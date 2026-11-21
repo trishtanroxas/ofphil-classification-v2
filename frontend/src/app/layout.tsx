@@ -23,9 +23,7 @@ export default function RootLayout({
         />
         <link rel="icon" type="image/png" href="/icons/ophil-logo.png" />
       </head>
-      <body>
-        <Providers>{children}</Providers>
-      </body>
+      <body suppressHydrationWarning>{children ? <Providers>{children}</Providers> : null}</body>
     </html>
   );
 }
