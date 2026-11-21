@@ -1,7 +1,21 @@
 from functools import lru_cache
 from typing import List, Union, Optional
+from pathlib import Path
 from pydantic import AnyHttpUrl, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from app.core.paths import (
+    DATA_DIR,
+    RAW_DATA_DIR,
+    INTERIM_DATA_DIR,
+    PROCESSED_DATA_DIR,
+    SYNTHETIC_DATA_DIR,
+    MODELS_DIR,
+    PRETRAINED_MODELS_DIR,
+    TRAINED_MODELS_DIR,
+    NOTEBOOKS_DIR,
+    UPLOAD_STORAGE_DIR,
+    MODEL_STORAGE_DIR,
+)
 
 
 class Settings(BaseSettings):
@@ -42,9 +56,9 @@ class Settings(BaseSettings):
         "http://127.0.0.1:8000",
     ]
 
-    # Storage configurations
-    MODEL_STORAGE_PATH: str = "./storage/models"
-    UPLOAD_STORAGE_PATH: str = "./storage/uploads"
+    # Centralized Storage & Data paths (synced with app.core.paths)
+    MODEL_STORAGE_PATH: str = str(MODEL_STORAGE_DIR)
+    UPLOAD_STORAGE_PATH: str = str(UPLOAD_STORAGE_DIR)
     MAX_UPLOAD_SIZE_MB: int = 20
 
     model_config = SettingsConfigDict(

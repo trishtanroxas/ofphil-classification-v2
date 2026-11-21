@@ -4,7 +4,7 @@
 .env.*.local
 *.env
 
-# Python
+# Python & Jupyter
 __pycache__/
 *.py[cod]
 *$py.class
@@ -30,11 +30,26 @@ wheels/
 .installed.cfg
 *.egg
 .pytest_cache/
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/*
 
-# Storage & SQLite
+# Storage & SQLite Databases
 *.db
 *.sqlite
 *.sqlite3
+
+# Data Architecture Exclusions (Ignore all contents but preserve folder structure via .gitkeep)
+data/**
+!data/
+!data/**/
+!data/**/.gitkeep
+
+# Model Weight Artifacts Exclusions
+models/**
+!models/
+!models/**/
+!models/**/.gitkeep
+
 storage/uploads/*
 !storage/uploads/.gitkeep
 storage/models/*
