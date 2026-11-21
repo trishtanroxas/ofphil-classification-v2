@@ -38,6 +38,12 @@ wheels/
 *.sqlite
 *.sqlite3
 
+# Scratch & Temporary Testing Files (Ignore all scratch contents except .gitkeep)
+backend/scratch/*
+!backend/scratch/.gitkeep
+scratch/*
+!scratch/.gitkeep
+
 # Data Architecture Exclusions (Ignore all contents but preserve folder structure via .gitkeep)
 data/**
 !data/
