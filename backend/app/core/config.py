@@ -31,10 +31,11 @@ class Settings(BaseSettings):
     SEMAPHORE_SENDER_NAME: Optional[str] = None
 
     # Frontend and backend URLs
-    FRONTEND_URL: str = "http://localhost:3000"
+    FRONTEND_URL: str = "https://ofphil-foundation.vercel.app"
     BACKEND_URL: str = "http://localhost:8000"
 
     ALLOWED_ORIGINS: List[str] = [
+        "https://ofphil-foundation.vercel.app",
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "http://localhost:8000",
