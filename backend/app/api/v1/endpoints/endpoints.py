@@ -1,6 +1,6 @@
 import datetime
 import uuid
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from app.core.config import get_settings
 from app.schemas.schemas import (
@@ -234,8 +234,47 @@ def explain_prediction(payload: ExplainabilityRequest):
     )
 
 # -------------------------------------------------------------
-# 12. Experiments
+# 13. Password Reset & Forgot Password Endpoints (Brevo SMTP)
 # -------------------------------------------------------------
-@router.get("/experiments", response_model=List[ExperimentItem])
-def list_experiments():
-    return db_store.experiments
+from pydantic import BaseModel
+from app.services.email_service import send_password_reset_email
+
+class ForgotPasswordRequest(BaseModel):
+    role: str
+    identifier: Optional[str] = None
+    email: Optional[str] = None
+    birthdate: Optional[str] = None
+    recovery_method: Optional[str] = "email"
+
+@router.post("/auth/forgot-password")
+def request_password_reset(payload: ForgotPasswordRequest):
+    recipient_email = payload.email or "roxas.t.bscs@gmail.com"
+    role_labels = {
+        "patient": "Patient Beneficiary",
+        "msw": "Medical Social Services (MSW)",
+        "admin": "Clinic Administrator & Staff"
+    }
+    role_label = role_labels.get(payload.role, "OFPHIL User")
+    identifier = payload.identifier or payload.email or "User"
+    reset_url = f"{settings.FRONTEND_URL}/reset-password?role={payload.role}&token={uuid.uuid4().hex[:16]}"
+    
+    # Generate 6-digit verification code
+    import random
+    code = f"{random.randint(100000, 999999)}"
+    
+    email_sent = send_password_reset_email(
+        to_email=recipient_email,
+        role_title=role_label,
+        identifier=identifier,
+        reset_link=reset_url,
+        code=code
+    )
+    
+    return {
+        "status": "success",
+        "email_sent": email_sent,
+        "recipient": recipient_email,
+        "message": f"Verification code dispatched to {recipient_email}.",
+        "code": code
+    }
+

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import './landing-original.css';
 import './globals.css';
 import { Providers } from '@/providers/Providers';
 
@@ -22,8 +23,12 @@ export default function RootLayout({
           rel="stylesheet"
         />
         <link rel="icon" type="image/png" href="/icons/ophil-logo.png" />
+        <link
+          rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+        />
       </head>
-      <body suppressHydrationWarning>{children ? <Providers>{children}</Providers> : null}</body>
+      <body className="landing-page antialiased" suppressHydrationWarning>{children ? <Providers>{children}</Providers> : null}</body>
     </html>
   );
 }

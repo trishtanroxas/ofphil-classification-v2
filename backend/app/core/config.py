@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     # Optional notification / service integration tokens
     MAIL_SERVER: Optional[str] = None
     MAIL_PORT: Optional[int] = None
+    MAIL_USE_TLS: bool = True
     MAIL_USERNAME: Optional[str] = None
     MAIL_PASSWORD: Optional[str] = None
     MAIL_DEFAULT_SENDER: Optional[str] = None

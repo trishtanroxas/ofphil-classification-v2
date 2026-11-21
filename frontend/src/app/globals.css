@@ -78,6 +78,21 @@ h1, h2, h3, h4, h5, h6 {
   letter-spacing: -0.02em;
 }
 
+/* Ensure headings inside dark green backgrounds, heroes, and auth overlays stay crisp white */
+.text-white h1,
+.text-white h2,
+.text-white h3,
+.text-white h4,
+.saas-visual-overlay h1,
+.saas-visual-overlay h2,
+.saas-visual-overlay h3,
+.saas-visual-overlay h4,
+.bg-gradient-to-r h1,
+.bg-gradient-to-r h2,
+.hero-curve-container h1 {
+  color: #FFFFFF !important;
+}
+
 /* Custom Minimalist Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
@@ -92,4 +107,42 @@ h1, h2, h3, h4, h5, h6 {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #064826;
+}
+
+/* ==========================================================================
+   OFPHIL Modern SaaS Skeleton Loading Shimmer System
+   ========================================================================== */
+.skeleton {
+  position: relative !important;
+  overflow: hidden !important;
+  background-color: #E9EFEB !important;
+  border-radius: 8px !important;
+  pointer-events: none !important;
+  user-select: none !important;
+}
+
+.skeleton::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  transform: translateX(-100%) !important;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.75),
+    transparent
+  ) !important;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite !important;
+}
+
+@keyframes skeleton-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after {
+    animation: none !important;
+  }
 }
