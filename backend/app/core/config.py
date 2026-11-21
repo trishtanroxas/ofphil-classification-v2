@@ -27,15 +27,18 @@ class Settings(BaseSettings):
 
     DATABASE_URL: str = "sqlite:///./ofphil_v2.db"
 
-    # API Keys & Third-party integrations (Kept private on backend)
+    # Supabase Production PostgreSQL / REST Settings
+    SUPABASE_URL: str = ""
+    SUPABASE_ANON_KEY: str = ""
+    SUPABASE_SERVICE_ROLE_KEY: str = ""
+
+    # Private AI Keys & Third-party integrations (Kept private on backend)
     OPENAI_API_KEY: str = ""
     OCR_API_KEY: str = ""
     EMBEDDING_API_KEY: str = ""
     DOCUMENT_ANALYSIS_API_KEY: str = ""
 
-    # Optional notification / service integration tokens if utilized
-    SUPABASE_URL: Optional[str] = None
-    SUPABASE_ANON_KEY: Optional[str] = None
+    # Optional notification / service integration tokens
     MAIL_SERVER: Optional[str] = None
     MAIL_PORT: Optional[int] = None
     MAIL_USERNAME: Optional[str] = None
