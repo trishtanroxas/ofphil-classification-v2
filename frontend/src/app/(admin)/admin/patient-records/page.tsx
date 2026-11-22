@@ -19,7 +19,7 @@ export interface PatientRecordItem {
   residence_region: string;
   contact: string;
   category: 'CHARITY' | 'REGULAR';
-  status: 'APPROVED' | 'FIRST-TIME';
+  status: 'APPROVED' | 'FIRST-TIME' | 'PENDING' | 'DISAPPROVED/PROMISSORY' | string;
   email?: string;
   civil_status?: string;
   birthdate?: string;
@@ -468,6 +468,8 @@ export default function PatientRecordsPage(props: any) {
                   >
                     <option value="All">All ▼</option>
                     <option value="APPROVED">Approved</option>
+                    <option value="DISAPPROVED/PROMISSORY">Disapproved / Promissory</option>
+                    <option value="PENDING">Pending</option>
                     <option value="FIRST-TIME">First-Time</option>
                   </select>
                 </th>
@@ -591,10 +593,22 @@ export default function PatientRecordsPage(props: any) {
                             <i className="fa-solid fa-check text-[9px]" />
                             <span>APPROVED</span>
                           </span>
+                        ) : p.status === 'DISAPPROVED/PROMISSORY' ||
+                          p.status?.includes('PROMISSORY') ||
+                          p.status?.includes('DISAPPROVED') ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                            <i className="fa-solid fa-file-signature text-[9px] text-rose-600" />
+                            <span>DISAPPROVED / PROMISSORY</span>
+                          </span>
+                        ) : p.status === 'PENDING' ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                            <i className="fa-solid fa-clock text-[9px] text-amber-600" />
+                            <span>PENDING</span>
+                          </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
                             <span className="w-1.5 h-1.5 rounded-full bg-amber-600 inline-block" />
-                            <span>FIRST-TIME</span>
+                            <span>{p.status || 'FIRST-TIME'}</span>
                           </span>
                         )}
                       </td>

@@ -368,27 +368,35 @@ export default function CaseworkerDashboardPage() {
                         </span>
                       </td>
                       <td className="py-4 px-6 whitespace-nowrap">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          {r.status || 'APPROVED'}
+                        <span
+                          className={`px-2.5 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wider inline-flex items-center gap-1 ${
+                            r.status === 'APPROVED'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : r.status === 'DISAPPROVED/PROMISSORY' ||
+                                r.status?.includes('PROMISSORY') ||
+                                r.status?.includes('DISAPPROVED')
+                              ? 'bg-rose-50 text-rose-700 border-rose-200'
+                              : 'bg-amber-50 text-amber-800 border-amber-200'
+                          }`}
+                        >
+                          {r.status === 'APPROVED' && <i className="fa-solid fa-circle-check text-[9px] text-emerald-600" />}
+                          {(r.status === 'DISAPPROVED/PROMISSORY' ||
+                            r.status?.includes('PROMISSORY') ||
+                            r.status?.includes('DISAPPROVED')) && (
+                            <i className="fa-solid fa-file-signature text-[9px] text-rose-600" />
+                          )}
+                          {r.status === 'PENDING' && <i className="fa-solid fa-clock text-[9px] text-amber-600" />}
+                          <span>{r.status || 'PENDING'}</span>
                         </span>
                       </td>
                       <td className="py-4 px-6 text-center whitespace-nowrap">
-                        <div className="flex items-center justify-center gap-2">
-                          <Link
-                            href={`/assessment?patient_id=${r.patient_id}`}
-                            className="px-3 py-1.5 rounded-lg bg-[#0B6B3A] hover:bg-[#064826] text-white font-semibold text-xs transition inline-flex items-center gap-1"
-                          >
-                            <i className="fa-solid fa-stethoscope text-[10px]" />
-                            <span>Assess</span>
-                          </Link>
-                          <Link
-                            href={`/patients`}
-                            className="px-3 py-1.5 rounded-lg bg-[#FAFBF8] hover:bg-[#EEF2EF] text-[#0B6B3A] border border-[#DCE5DF] font-semibold text-xs transition inline-flex items-center gap-1"
-                          >
-                            <i className="fa-solid fa-eye text-[11px]" />
-                            <span>Dossier</span>
-                          </Link>
-                        </div>
+                        <Link
+                          href={`/assessment?patient_id=${encodeURIComponent(r.patient_id)}`}
+                          className="px-3.5 py-1.5 rounded-lg bg-[#0B6B3A] hover:bg-[#064826] text-white font-semibold text-xs transition inline-flex items-center gap-1.5 shadow-2xs"
+                        >
+                          <i className="fa-solid fa-stethoscope text-[10px]" />
+                          <span>Assess</span>
+                        </Link>
                       </td>
                     </tr>
                   ))}
