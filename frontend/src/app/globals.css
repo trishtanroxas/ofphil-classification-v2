@@ -493,3 +493,43 @@ html[data-theme="high-contrast"] *:focus-visible {
   outline: 3px solid #D97706 !important;
   outline-offset: 2px !important;
 }
+
+/* ==============================================================
+   RESPONSIVE DESIGN & ACCESSIBILITY ENHANCEMENTS
+   ============================================================== */
+
+/* Prevent horizontal page-level overflow across all viewports */
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Mobile smooth momentum scrolling */
+.touch-scroll,
+.overflow-x-auto,
+.overflow-y-auto {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Hide scrollbar utility for touch-friendly horizontal tab navigation */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Ensure interactive controls maintain minimum recommended tap targets */
+@media (max-width: 767px) {
+  button,
+  a,
+  input,
+  select {
+    touch-action: manipulation;
+  }
+}
+

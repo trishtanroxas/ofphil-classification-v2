@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { toast } from 'sonner';
 
@@ -241,6 +241,28 @@ export default function AdminInquiriesPage() {
       setActiveInquiry(null);
     }, 400);
   };
+
+  // Lock body scroll and dismiss modal on Escape key
+  useEffect(() => {
+    if (activeInquiry !== null || previewAttachment !== null) {
+      const prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      const handleEscape = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          if (previewAttachment !== null) {
+            setPreviewAttachment(null);
+          } else {
+            setActiveInquiry(null);
+          }
+        }
+      };
+      window.addEventListener('keydown', handleEscape);
+      return () => {
+        document.body.style.overflow = prevOverflow;
+        window.removeEventListener('keydown', handleEscape);
+      };
+    }
+  }, [activeInquiry, previewAttachment]);
 
   return (
     <DashboardLayout

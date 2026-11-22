@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth, UserRole } from '@/context/AuthContext';
@@ -106,8 +106,27 @@ export function Sidebar({
     };
   }, [pathname]);
 
+  // Lock body scroll and listen for Escape key on mobile when sidebar is open
+  React.useEffect(() => {
+    if (isOpen) {
+      const prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      const handleEscape = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') onToggle();
+      };
+      window.addEventListener('keydown', handleEscape);
+      return () => {
+        document.body.style.overflow = prevOverflow;
+        window.removeEventListener('keydown', handleEscape);
+      };
+    }
+  }, [isOpen, onToggle]);
+
   // Helper for safe link navigation when unsaved changes exist
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    if (isOpen && typeof window !== 'undefined' && window.innerWidth < 768) {
+      onToggle();
+    }
     if (pathname === href) return;
     startProgress();
     const allowed = confirmNavigation(href);
@@ -214,6 +233,7 @@ export function Sidebar({
               )}
               <Link
                 href="/portal?tab=dashboard"
+                onClick={(e) => handleNavClick(e, '/portal?tab=dashboard')}
                 className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${pathname === '/portal'
                   ? 'bg-[#0B6B3A] text-white font-semibold shadow-xs'
                   : 'text-[#D5E2D9] hover:bg-white/10 hover:text-white'
@@ -226,6 +246,7 @@ export function Sidebar({
 
               <Link
                 href="/portal?tab=applications"
+                onClick={(e) => handleNavClick(e, '/portal?tab=applications')}
                 className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-[#D5E2D9] hover:bg-white/10 hover:text-white transition-all"
                 title="My Assistance Applications"
               >
@@ -235,6 +256,7 @@ export function Sidebar({
 
               <Link
                 href="/portal?tab=profile"
+                onClick={(e) => handleNavClick(e, '/portal?tab=profile')}
                 className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-[#D5E2D9] hover:bg-white/10 hover:text-white transition-all"
                 title="My Profile"
               >
@@ -249,6 +271,7 @@ export function Sidebar({
               )}
               <Link
                 href="/portal?tab=settings"
+                onClick={(e) => handleNavClick(e, '/portal?tab=settings')}
                 className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-[#D5E2D9] hover:bg-white/10 hover:text-white transition-all"
                 title="Settings & Preferences"
               >
@@ -500,6 +523,7 @@ export function Sidebar({
               {/* Clinical Dashboard */}
               <Link
                 href="/dashboard"
+                onClick={(e) => handleNavClick(e, '/dashboard')}
                 className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${pathname === '/dashboard'
                   ? 'bg-[#0B6B3A] text-white font-semibold shadow-xs'
                   : 'text-[#D5E2D9] hover:bg-white/10 hover:text-white'
@@ -510,22 +534,10 @@ export function Sidebar({
                 {!collapsed && <span className="truncate">Dashboard</span>}
               </Link>
 
-              {/* New Applicant / Assessment */}
-              <Link
-                href="/assessment"
-                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${pathname.startsWith('/assessment')
-                  ? 'bg-[#0B6B3A] text-white font-semibold shadow-xs'
-                  : 'text-[#D5E2D9] hover:bg-white/10 hover:text-white'
-                  }`}
-                title="New Applicant Intake"
-              >
-                <i className="fa-solid fa-user-plus text-sm shrink-0 w-4 text-center" />
-                {!collapsed && <span className="truncate">New Applicant</span>}
-              </Link>
-
               {/* Patient Records Directory (Group with sublinks) */}
               <div className="space-y-0.5">
                 <button
+                  type="button"
                   onClick={() => setPatientRecordsOpen(!patientRecordsOpen)}
                   className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${pathname.startsWith('/patients')
                     ? 'bg-[#0B6B3A] text-white font-semibold shadow-xs'
@@ -549,16 +561,18 @@ export function Sidebar({
                   <div className="pl-6 pr-1 py-1 space-y-0.5 border-l border-white/15 ml-4 mt-1">
                     <Link
                       href="/patients"
+                      onClick={(e) => handleNavClick(e, '/patients')}
                       className={`flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition ${pathname === '/patients'
                         ? 'text-white font-semibold bg-white/15'
                         : 'text-[#B4CEBE] hover:text-white hover:bg-white/5'
                         }`}
                     >
-                      <i className="fa-solid fa-hand-holding-heart text-[10px] w-3 text-center text-[#86EFAC]" />
+                      <i className="fa-solid fa-hand-holding-heart text-[10px] w-3 text-center text-white" />
                       <span>Charity Patients</span>
                     </Link>
                     <Link
                       href="/patients/referrals"
+                      onClick={(e) => handleNavClick(e, '/patients/referrals')}
                       className={`flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition ${pathname === '/patients/referrals'
                         ? 'text-white font-semibold bg-white/15'
                         : 'text-[#B4CEBE] hover:text-white hover:bg-white/5'
@@ -569,13 +583,15 @@ export function Sidebar({
                     </Link>
                     <Link
                       href="/patients?tab=pending"
+                      onClick={(e) => handleNavClick(e, '/patients?tab=pending')}
                       className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[11px] font-medium text-[#B4CEBE] hover:text-white hover:bg-white/5 transition"
                     >
-                      <i className="fa-solid fa-user-clock text-[10px] w-3 text-center text-[#86EFAC]" />
+                      <i className="fa-solid fa-user-clock text-[10px] w-3 text-center text-white" />
                       <span>Pending Approvals</span>
                     </Link>
                     <Link
                       href="/patients?tab=promissory"
+                      onClick={(e) => handleNavClick(e, '/patients?tab=promissory')}
                       className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[11px] font-medium text-[#B4CEBE] hover:text-white hover:bg-white/5 transition"
                     >
                       <i className="fa-solid fa-file-signature text-[10px] w-3 text-center text-white" />
@@ -588,6 +604,7 @@ export function Sidebar({
               {/* Dedicated Menu Item: Referrals for Financial Assistance */}
               <Link
                 href="/patients/referrals"
+                onClick={(e) => handleNavClick(e, '/patients/referrals')}
                 className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${pathname === '/patients/referrals'
                   ? 'bg-[#0B6B3A] text-white font-semibold shadow-xs'
                   : 'text-[#D5E2D9] hover:bg-white/10 hover:text-white'
@@ -601,6 +618,7 @@ export function Sidebar({
               {/* Evidential Documents */}
               <Link
                 href="/documents"
+                onClick={(e) => handleNavClick(e, '/documents')}
                 className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${pathname.startsWith('/documents')
                   ? 'bg-[#0B6B3A] text-white font-semibold shadow-xs'
                   : 'text-[#D5E2D9] hover:bg-white/10 hover:text-white'
@@ -614,6 +632,7 @@ export function Sidebar({
               {/* Caseworker Notifications Feed */}
               <Link
                 href="/admin/inquiries"
+                onClick={(e) => handleNavClick(e, '/admin/inquiries')}
                 className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${pathname.startsWith('/admin/inquiries')
                   ? 'bg-[#0B6B3A] text-white font-semibold shadow-xs'
                   : 'text-[#D5E2D9] hover:bg-white/10 hover:text-white'
@@ -645,6 +664,7 @@ export function Sidebar({
               )}
               <Link
                 href="/profile"
+                onClick={(e) => handleNavClick(e, '/profile')}
                 className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${pathname === '/profile'
                   ? 'bg-[#0B6B3A] text-white font-semibold shadow-xs'
                   : 'text-[#D5E2D9] hover:bg-white/10 hover:text-white'
@@ -657,6 +677,7 @@ export function Sidebar({
 
               <Link
                 href="/settings"
+                onClick={(e) => handleNavClick(e, '/settings')}
                 className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${pathname === '/settings'
                   ? 'bg-[#0B6B3A] text-white font-semibold shadow-xs'
                   : 'text-[#D5E2D9] hover:bg-white/10 hover:text-white'
@@ -730,6 +751,35 @@ export function Header({
   const [a11yDropdownOpen, setA11yDropdownOpen] = useState(false);
   const [unreadInquiriesCount, setUnreadInquiriesCount] = useState(0);
   const [upcomingApptsCount, setUpcomingApptsCount] = useState(0);
+
+  const a11yRef = useRef<HTMLDivElement>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdowns on click outside or Escape key
+  useEffect(() => {
+    const handleOutsideAndEscape = (e: MouseEvent | KeyboardEvent) => {
+      if (e instanceof KeyboardEvent && e.key === 'Escape') {
+        setA11yDropdownOpen(false);
+        setProfileDropdownOpen(false);
+        return;
+      }
+      if (e instanceof MouseEvent) {
+        if (a11yRef.current && !a11yRef.current.contains(e.target as Node)) {
+          setA11yDropdownOpen(false);
+        }
+        if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+          setProfileDropdownOpen(false);
+        }
+      }
+    };
+
+    window.addEventListener('mousedown', handleOutsideAndEscape);
+    window.addEventListener('keydown', handleOutsideAndEscape);
+    return () => {
+      window.removeEventListener('mousedown', handleOutsideAndEscape);
+      window.removeEventListener('keydown', handleOutsideAndEscape);
+    };
+  }, []);
 
   React.useEffect(() => {
     const syncHeaderNotifications = () => {
@@ -828,7 +878,7 @@ export function Header({
     'Ophthalmological Foundation of the Philippines — Patient Master Registry & Clinical Directory';
 
   return (
-    <header className="sticky top-0 z-30 h-[72px] bg-white border-b border-[#D5E2D9] px-6 flex items-center justify-between shadow-xs relative">
+    <header className="sticky top-0 z-30 h-[72px] bg-white border-b border-[#D5E2D9] px-3.5 sm:px-6 flex items-center justify-between shadow-xs relative">
       {/* Sleek Clinical Progress Loading Bar Attached Underneath Header */}
       {isProgressBarActive && (
         <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-[#E6F1EA] overflow-hidden z-50">
@@ -856,7 +906,7 @@ export function Header({
 
       <div className="flex items-center gap-3 shrink-0">
         {/* Universal Accessibility / Quick Display & Reading Aid Quick Button */}
-        <div className="relative">
+        <div className="relative" ref={a11yRef}>
           <button
             type="button"
             onClick={() => {
@@ -875,7 +925,7 @@ export function Header({
 
           {/* Quick Display & Reading Aid Dropdown Menu (Matching User Screenshot) */}
           {a11yDropdownOpen && (
-            <div className="absolute right-0 top-12 w-80 bg-white rounded-2xl shadow-xl border border-[#D5E2D9] p-4 z-50 animate-in fade-in zoom-in-95 duration-150 text-xs">
+            <div className="absolute right-0 top-12 w-[calc(100vw-24px)] max-w-xs sm:w-80 bg-white rounded-2xl shadow-xl border border-[#D5E2D9] p-4 z-50 animate-in fade-in zoom-in-95 duration-150 text-xs">
               {/* Header */}
               <div className="flex items-center justify-between pb-3 border-b border-[#EEF2EF] mb-3.5">
                 <div className="flex items-center gap-2 font-bold text-[#10241A] text-[13px]">
@@ -983,18 +1033,19 @@ export function Header({
         </div>
 
         {/* Interactive User Pill Profile Dropdown (Matching User Screenshot) */}
-        <div className="relative">
+        <div className="relative" ref={profileRef}>
           <button
             type="button"
             onClick={() => {
               setProfileDropdownOpen(!profileDropdownOpen);
               setA11yDropdownOpen(false);
             }}
-            className={`hidden sm:flex items-center gap-2.5 px-3 py-1.5 rounded-full border text-xs transition cursor-pointer ${profileDropdownOpen
+            className={`flex items-center gap-1.5 sm:gap-2.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border text-xs transition cursor-pointer ${profileDropdownOpen
               ? 'bg-[#E8F5EC] border-[#0B6B3A] shadow-xs ring-2 ring-[#0B6B3A]/20'
               : 'bg-[#FAFBF8] hover:bg-[#E8F5EC] border-[#D5E2D9]'
               }`}
             title="User Profile Menu"
+            aria-label="User Profile"
           >
             <div className="w-6 h-6 rounded-full bg-[#064826] text-white flex items-center justify-center font-bold text-[11px] shrink-0 leading-none">
               <span className="flex items-center justify-center w-full h-full text-center">
@@ -1004,7 +1055,7 @@ export function Header({
                   .toUpperCase()}
               </span>
             </div>
-            <div className="text-left">
+            <div className="text-left hidden sm:block">
               <div className="font-bold text-[#10241A] leading-tight">
                 {user?.name || (isAdmin ? 'Dr. Roberto Reyes' : isPatient ? 'Juan Dela Cruz' : 'Maria Santos, RSW')}
               </div>
@@ -1022,14 +1073,14 @@ export function Header({
               </div>
             </div>
             <i
-              className={`fa-solid fa-chevron-up text-[10px] text-gray-500 ml-1 transition-transform ${profileDropdownOpen ? '' : 'rotate-180'
+              className={`fa-solid fa-chevron-up text-[10px] text-gray-500 ml-0.5 sm:ml-1 hidden sm:block transition-transform ${profileDropdownOpen ? '' : 'rotate-180'
                 }`}
             />
           </button>
 
           {/* Profile Dropdown Menu Card (Matching User Screenshot) */}
           {profileDropdownOpen && (
-            <div className="absolute right-0 top-12 w-64 bg-white rounded-2xl shadow-xl border border-[#D5E2D9] p-3 z-50 animate-in fade-in zoom-in-95 duration-150">
+            <div className="absolute right-0 top-12 w-64 max-w-[calc(100vw-24px)] bg-white rounded-2xl shadow-xl border border-[#D5E2D9] p-3 z-50 animate-in fade-in zoom-in-95 duration-150">
               {/* Profile Card Header */}
               <div className="p-2 pb-3 mb-2 border-b border-[#EEF2EF] flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-[#E6F1EA] text-[#0B6B3A] flex items-center justify-center font-bold text-base border border-[#BBF7D0]">

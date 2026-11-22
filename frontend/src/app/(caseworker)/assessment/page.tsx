@@ -9,53 +9,91 @@ import { fetchApi } from '@/lib/api';
 function MSWAssessmentContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const patientIdParam = searchParams?.get('patient_id') || 'M26-11-00001';
+  const patientIdParam = searchParams?.get('patient_id')?.trim() || '';
+  const assessmentIdParam = searchParams?.get('assessment_id')?.trim() || '';
+
+  const [patientLoadStatus, setPatientLoadStatus] = useState<'loading' | 'ready' | 'missing' | 'error'>(
+    patientIdParam ? 'loading' : 'missing'
+  );
+  const [patientLoadError, setPatientLoadError] = useState<string | null>(null);
 
   // Stages: 1 = Case Study & Profile, 2 = MSW Assessment, 3 = Supporting Documents, 4 = Eligibility Grant Tier
   const [activeStage, setActiveStage] = useState<1 | 2 | 3 | 4>(1);
 
   // Common Header & Encounter metadata
-  const [applicationEncounterNo, setApplicationEncounterNo] = useState(patientIdParam);
-  const [mswNumber, setMswNumber] = useState('MSW_FA_0125-01');
-  const [interviewDate, setInterviewDate] = useState('2026-11-22');
+  const [applicationEncounterNo, setApplicationEncounterNo] = useState(patientIdParam || 'UNASSIGNED');
+  const [mswNumber, setMswNumber] = useState('');
+  const [interviewDate, setInterviewDate] = useState(new Date().toISOString().slice(0, 10));
   const [timeStarted, setTimeStarted] = useState('09:00 AM');
   const [timeEnded, setTimeEnded] = useState('09:45 AM');
   const [sourceOfReferral, setSourceOfReferral] = useState('EYE CLINIC REFERRAL');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Dynamic patient loading from database
+  // Dynamic patient loading from database — NEVER falls back to hardcoded/random patients
   useEffect(() => {
+    let cancelled = false;
     async function loadPatientDetails() {
-      if (!patientIdParam) return;
+      if (!patientIdParam) {
+        setPatientLoadStatus('missing');
+        setPatientLoadError('No patient selected. Please select a patient from Master Records before launching an assessment.');
+        return;
+      }
+      setPatientLoadStatus('loading');
+      setPatientLoadError(null);
+      // Reset state so previous patient's data never leaks
+      setAssessmentId(null);
+      setWorkflowStatus('DRAFT');
+      setBackendEval(null);
+      setAssessmentHistory([]);
+      setMswCaseNotes('');
+      setDiscrepancyNotes('');
+      setApprovalNotes('');
+      setFamilyMembers([]);
+      setInfFirstName('');
+      setInfLastName('');
+      setInfIncome('0.0');
+      setPatIncome('0.0');
+      setApplicationEncounterNo(patientIdParam);
+
       try {
-        const res = await fetchApi(`/patients/${patientIdParam}`);
-        if (res && res.patient) {
-          const p = res.patient;
-          setApplicationEncounterNo(p.patient_id || patientIdParam);
-          if (p.patient_id && (p.patient_id.startsWith('MSW_FA_') || p.category === 'CHARITY')) {
-            setMswNumber(p.patient_id);
-          }
-          setPatFirstName(p.first_name || '');
-          setPatMiddleName(p.middle_name || '');
-          setPatLastName(p.last_name || '');
-          setPatSuffix(p.suffix || 'None');
-          setPatAge(p.age ? String(p.age) : '48');
-          setPatDob(p.birthdate || '1978-05-15');
-          setPatSex(p.sex === 'M' ? 'Male' : p.sex === 'F' ? 'Female' : (p.sex || 'Male'));
-          setPatCivilStatus(p.civil_status || 'Married');
-          setPatContact(p.contact || '');
-          setPatOccupation(p.occupation || 'Public Utility Driver');
-          setPatEducation(p.educational_attainment || 'High School');
-          if (p.diagnosis) {
-            setAdmittingDiagnosis(p.diagnosis);
-            setFinalDiagnosis(p.diagnosis);
-          }
+        const res = await fetchApi(`/patients/${encodeURIComponent(patientIdParam)}`, {
+          headers: { 'x-user-role': 'msw', 'x-user-id': 'msw_lead' },
+        });
+        if (cancelled) return;
+        if (!res || !res.patient) {
+          setPatientLoadStatus('error');
+          setPatientLoadError(`Patient record '${patientIdParam}' could not be found.`);
+          return;
         }
-      } catch (e) {
-        // Fallback to default Juan Dela Cruz
+        const p = res.patient;
+        setApplicationEncounterNo(p.patient_id || patientIdParam);
+        setMswNumber(p.patient_id || patientIdParam);
+        setPatFirstName(p.first_name || '');
+        setPatMiddleName(p.middle_name || '');
+        setPatLastName(p.last_name || '');
+        setPatSuffix(p.suffix || 'None');
+        setPatAge(p.age ? String(p.age) : '');
+        setPatDob(p.birthdate || '');
+        setPatSex(p.sex === 'M' ? 'Male' : p.sex === 'F' ? 'Female' : (p.sex || ''));
+        setPatCivilStatus(p.civil_status || '');
+        setPatContact(p.contact || '');
+        setPatOccupation(p.occupation || '');
+        setPatEducation(p.educational_attainment || 'High School');
+        if (p.diagnosis) {
+          setAdmittingDiagnosis(p.diagnosis);
+          setFinalDiagnosis(p.diagnosis);
+        }
+        setPatientLoadStatus('ready');
+      } catch (e: any) {
+        if (cancelled) return;
+        setPatientLoadStatus('error');
+        setPatientLoadError(e?.message || `Unable to load patient '${patientIdParam}'.`);
       }
     }
     loadPatientDetails();
+    return () => {
+      cancelled = true;
+    };
   }, [patientIdParam]);
 
   // STAGE 1: Informant / Representative State
@@ -286,11 +324,16 @@ function MSWAssessmentContent() {
         // ignore
       }
       try {
-        const draftRes = await fetchApi(`/assessments/patient/${encodeURIComponent(patientIdParam)}/latest-draft`, {
-          headers: MSW_HDRS,
-        });
-        if (draftRes?.found && draftRes.assessment) {
-          const a = draftRes.assessment;
+        let a: any = null;
+        if (assessmentIdParam) {
+          a = await fetchApi(`/assessments/${encodeURIComponent(assessmentIdParam)}`, { headers: MSW_HDRS });
+        } else {
+          const draftRes = await fetchApi(`/assessments/patient/${encodeURIComponent(patientIdParam)}/latest-draft`, {
+            headers: MSW_HDRS,
+          });
+          if (draftRes?.found && draftRes.assessment) a = draftRes.assessment;
+        }
+        if (a) {
           setAssessmentId(a.id);
           setWorkflowStatus(a.workflow_status || 'DRAFT');
           if (a.encounter_no) setApplicationEncounterNo(a.encounter_no);
@@ -321,7 +364,26 @@ function MSWAssessmentContent() {
       }
     }
     initWorkflow();
-  }, [patientIdParam]);
+  }, [patientIdParam, assessmentIdParam]);
+
+  // Lock body scroll and dismiss modals on Escape key
+  useEffect(() => {
+    if (inspectDoc !== null || dossierOpen) {
+      const prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      const handleEscape = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          setInspectDoc(null);
+          setDossierOpen(false);
+        }
+      };
+      window.addEventListener('keydown', handleEscape);
+      return () => {
+        document.body.style.overflow = prevOverflow;
+        window.removeEventListener('keydown', handleEscape);
+      };
+    }
+  }, [inspectDoc, dossierOpen]);
 
   // Backend-authoritative OFPHIL classification evaluation
   const runBackendClassification = async () => {
@@ -537,21 +599,67 @@ function MSWAssessmentContent() {
     }
   };
 
+  if (patientLoadStatus === 'loading') {
+    return (
+      <DashboardLayout
+        title="Medical Social Work Assessment Tool"
+        subtitle="Ophthalmological Foundation of the Philippines — Patient Intake & Evaluation"
+      >
+        <div className="py-20 text-center">
+          <i className="fa-solid fa-circle-notch fa-spin text-3xl text-[#0B6B3A] mb-3" />
+          <p className="text-xs font-semibold text-[#64748B]">
+            Loading verified patient record ({patientIdParam})...
+          </p>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (patientLoadStatus === 'missing' || patientLoadStatus === 'error') {
+    return (
+      <DashboardLayout
+        title="Medical Social Work Assessment Tool"
+        subtitle="Ophthalmological Foundation of the Philippines — Patient Intake & Evaluation"
+      >
+        <div className="max-w-xl mx-auto my-12 bg-white border border-[#D5E2D9] rounded-2xl p-8 text-center space-y-4 shadow-sm">
+          <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-700 border border-amber-200 flex items-center justify-center mx-auto text-xl">
+            <i className="fa-solid fa-user-check" />
+          </div>
+          <h2 className="font-['Outfit'] text-lg font-bold text-[#10241A] m-0">
+            {patientLoadStatus === 'missing' ? 'Patient Selection Required' : 'Patient Record Unavailable'}
+          </h2>
+          <p className="text-xs text-[#5A7466] leading-relaxed m-0">
+            {patientLoadError || 'Please select a patient from Patient Master Records to begin or continue an MSW assessment.'}
+          </p>
+          <div className="pt-2">
+            <Link
+              href="/patients"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#0B6B3A] hover:bg-[#064826] text-white text-xs font-bold transition no-underline shadow-xs"
+            >
+              <i className="fa-solid fa-arrow-left text-xs" />
+              <span>Go to Patient Master Records</span>
+            </Link>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout
       title="Medical Social Work Assessment Tool"
       subtitle="Ophthalmological Foundation of the Philippines — AI-Assisted Patient Intake & Evaluation"
     >
       <div className="w-full pb-12 text-xs">
-        {/* Top Control Bar: Back to Queue, Screening Status Badge, Print Assessment, Patient Dossier */}
+        {/* Top Control Bar: Back to Patient Records, Status Badge, Print Assessment, Patient Dossier */}
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-2">
             <Link
-              href="/dashboard"
+              href="/patients"
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#CBD5E1] bg-white text-[#334155] hover:bg-[#F8FAFC] font-semibold text-xs transition no-underline shadow-2xs"
             >
               <i className="fa-solid fa-arrow-left text-[11px]" />
-              <span>Back to Step 1 Queue</span>
+              <span>Back to Patient Records</span>
             </Link>
 
             <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-[#EFF6FF] text-[#1D4ED8] border border-[#BFDBFE] flex items-center gap-1.5">
@@ -746,8 +854,8 @@ function MSWAssessmentContent() {
             <div className="p-3 bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl text-right shrink-0">
               <div className="text-[10px] font-bold uppercase text-[#64748B]">APPLICATION ENCOUNTER NO.</div>
               <div className="font-mono font-bold text-sm text-[#0B6B3A]">{applicationEncounterNo}</div>
-              <div className="text-[10.5px] text-[#D97706] font-semibold mt-0.5">
-                Patient ID: <strong>Pending Intake</strong>
+              <div className="text-[10.5px] text-[#0B6B3A] font-semibold mt-0.5">
+                Patient ID: <strong>{patientIdParam}</strong>
               </div>
             </div>
           </div>

@@ -647,7 +647,7 @@ export default function MSWSettingsPage() {
                     className="w-full px-3.5 py-2.5 rounded-xl border border-[#D5E2D9] text-xs font-medium text-[#10241A] focus:outline-none focus:ring-2 focus:ring-[#0B6B3A]/30 focus:border-[#0B6B3A] bg-white transition"
                   >
                     <option value="/dashboard">Social Worker Dashboard (/dashboard)</option>
-                    <option value="/assessment">Patient Assessment &amp; Intake (/assessment)</option>
+                    <option value="/patients">Patient Master Records (/patients)</option>
                     <option value="/documents">Document Processing &amp; OCR (/documents)</option>
                   </select>
                 </div>

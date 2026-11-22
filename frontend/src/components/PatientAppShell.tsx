@@ -24,6 +24,49 @@ export default function PatientAppShell({
   const [a11yDropdownOpen, setA11yDropdownOpen] = useState(false);
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
 
+  const a11yRef = React.useRef<HTMLDivElement>(null);
+  const profileRef = React.useRef<HTMLDivElement>(null);
+
+  // Lock body scroll and handle Escape key for mobile sidebar drawer
+  useEffect(() => {
+    if (mobileSidebarOpen) {
+      const prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') setMobileSidebarOpen(false);
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.body.style.overflow = prevOverflow;
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    }
+  }, [mobileSidebarOpen]);
+
+  // Handle click-outside and Escape key for header dropdowns
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (a11yRef.current && !a11yRef.current.contains(e.target as Node)) {
+        setA11yDropdownOpen(false);
+      }
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setProfileDropdownOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setA11yDropdownOpen(false);
+        setProfileDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
   // Quick Display & Reading Aid global accessibility state
   const {
     fontSize,
@@ -216,7 +259,10 @@ export default function PatientAppShell({
 
           <Link
             href="/portal?tab=dashboard"
-            onClick={() => startProgress()}
+            onClick={() => {
+              setMobileSidebarOpen(false);
+              startProgress();
+            }}
             className={`nav-link flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-[13.5px] font-medium no-underline transition ${
               activeTab === 'dashboard'
                 ? 'bg-[#0B6B3A] text-white shadow-xs'
@@ -231,7 +277,10 @@ export default function PatientAppShell({
 
           <Link
             href="/portal?tab=applications"
-            onClick={() => startProgress()}
+            onClick={() => {
+              setMobileSidebarOpen(false);
+              startProgress();
+            }}
             className={`nav-link flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-[13.5px] font-medium no-underline transition ${
               activeTab === 'applications'
                 ? 'bg-[#0B6B3A] text-white shadow-xs'
@@ -246,7 +295,10 @@ export default function PatientAppShell({
 
           <Link
             href="/portal?tab=appointments"
-            onClick={() => startProgress()}
+            onClick={() => {
+              setMobileSidebarOpen(false);
+              startProgress();
+            }}
             className={`nav-link flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-[13.5px] font-medium no-underline transition ${
               activeTab === 'appointments'
                 ? 'bg-[#0B6B3A] text-white shadow-xs'
@@ -262,7 +314,10 @@ export default function PatientAppShell({
           {/* Notifications Navigation Item with Live Unread Badge */}
           <Link
             href="/portal?tab=notifications"
-            onClick={() => startProgress()}
+            onClick={() => {
+              setMobileSidebarOpen(false);
+              startProgress();
+            }}
             className={`nav-link flex items-center justify-between px-3.5 py-2.5 rounded-lg text-[13.5px] font-medium no-underline transition ${
               activeTab === 'notifications'
                 ? 'bg-[#0B6B3A] text-white shadow-xs'
@@ -295,7 +350,10 @@ export default function PatientAppShell({
 
           <Link
             href="/portal?tab=profile"
-            onClick={() => startProgress()}
+            onClick={() => {
+              setMobileSidebarOpen(false);
+              startProgress();
+            }}
             className={`nav-link flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-[13.5px] font-medium no-underline transition ${
               activeTab === 'profile'
                 ? 'bg-[#0B6B3A] text-white shadow-xs'
@@ -317,7 +375,10 @@ export default function PatientAppShell({
 
           <Link
             href="/portal?tab=settings"
-            onClick={() => startProgress()}
+            onClick={() => {
+              setMobileSidebarOpen(false);
+              startProgress();
+            }}
             className={`nav-link flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-[13.5px] font-medium no-underline transition ${
               activeTab === 'settings'
                 ? 'bg-[#0B6B3A] text-white shadow-xs'
@@ -340,6 +401,7 @@ export default function PatientAppShell({
           <button
             type="button"
             onClick={() => {
+              setMobileSidebarOpen(false);
               showLoading('Signing out of beneficiary session...');
               setTimeout(() => {
                 logout('/login-patient');
@@ -401,9 +463,9 @@ export default function PatientAppShell({
             </div>
           </div>
 
-          <div className="topbar-actions flex items-center gap-3 flex-shrink-0">
+          <div className="topbar-actions flex items-center gap-2 sm:gap-3 flex-shrink-0">
             {/* Universal Accessibility / Quick Display & Reading Aid Button */}
-            <div className="relative">
+            <div ref={a11yRef} className="relative">
               <button
                 type="button"
                 onClick={() => {
@@ -422,7 +484,7 @@ export default function PatientAppShell({
               </button>
 
               {a11yDropdownOpen && (
-                <div className="absolute right-0 top-12 w-80 bg-white rounded-2xl shadow-xl border border-[#D5E2D9] p-4 z-50 animate-in fade-in zoom-in-95 duration-150 text-xs">
+                <div className="absolute right-0 top-12 w-[calc(100vw-24px)] max-w-xs sm:w-80 bg-white rounded-2xl shadow-xl border border-[#D5E2D9] p-4 z-50 animate-in fade-in zoom-in-95 duration-150 text-xs">
                   <div className="flex items-center justify-between pb-3 border-b border-[#EEF2EF] mb-3.5">
                     <div className="flex items-center gap-2 font-bold text-[#10241A] text-[13px]">
                       <i className="fa-regular fa-eye text-[#0B6B3A] text-sm" />
@@ -528,15 +590,15 @@ export default function PatientAppShell({
               )}
             </div>
 
-            {/* Interactive User Pill Profile Dropdown (Exact Replica of Image 2!) */}
-            <div className="relative">
+            {/* Interactive User Pill Profile Dropdown */}
+            <div ref={profileRef} className="relative">
               <button
                 type="button"
                 onClick={() => {
                   setProfileDropdownOpen(!profileDropdownOpen);
                   setA11yDropdownOpen(false);
                 }}
-                className={`flex items-center gap-2.5 px-3 py-1.5 rounded-full border text-xs transition cursor-pointer ${
+                className={`flex items-center gap-2 sm:gap-2.5 px-2.5 sm:px-3 py-1.5 rounded-full border text-xs transition cursor-pointer ${
                   profileDropdownOpen
                     ? 'bg-[#E8F5EC] border-[#0B6B3A] shadow-xs ring-2 ring-[#0B6B3A]/20'
                     : 'bg-[#FAFBF8] hover:bg-[#E8F5EC] border-[#D5E2D9]'
@@ -546,7 +608,7 @@ export default function PatientAppShell({
                 <div className="w-6 h-6 rounded-full bg-[#064826] text-white flex items-center justify-center font-bold text-[11px] shrink-0 leading-none">
                   {patient.name.charAt(0).toUpperCase()}
                 </div>
-                <div className="text-left">
+                <div className="text-left hidden sm:block">
                   <div className="font-bold text-[#10241A] leading-tight">{patient.name}</div>
                   <div className="text-[10px] text-[#5A7466] leading-tight flex items-center gap-1">
                     <i className="fa-solid fa-hospital-user text-[9px] text-[#0B6B3A]" />
@@ -554,15 +616,15 @@ export default function PatientAppShell({
                   </div>
                 </div>
                 <i
-                  className={`fa-solid fa-chevron-up text-[10px] text-gray-500 ml-1 transition-transform ${
+                  className={`fa-solid fa-chevron-up text-[10px] text-gray-500 ml-0.5 sm:ml-1 transition-transform ${
                     profileDropdownOpen ? '' : 'rotate-180'
                   }`}
                 />
               </button>
 
-              {/* Profile Dropdown Menu Card (Exact Layout of Image 2) */}
+              {/* Profile Dropdown Menu Card */}
               {profileDropdownOpen && (
-                <div className="absolute right-0 top-12 w-64 bg-white rounded-2xl shadow-xl border border-[#D5E2D9] p-3 z-50 animate-in fade-in zoom-in-95 duration-150">
+                <div className="absolute right-0 top-12 w-64 max-w-[calc(100vw-24px)] bg-white rounded-2xl shadow-xl border border-[#D5E2D9] p-3 z-50 animate-in fade-in zoom-in-95 duration-150">
                   {/* Profile Card Header */}
                   <div className="p-2 pb-3 mb-2 border-b border-[#EEF2EF] flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-[#E6F1EA] text-[#0B6B3A] flex items-center justify-center font-bold text-base border border-[#BBF7D0]">
@@ -657,7 +719,7 @@ export default function PatientAppShell({
         </header>
 
         {/* Dynamic Page Content */}
-        <main className="content-container p-6 sm:p-8 flex-1 w-full max-w-[1440px] mx-auto box-border">
+        <main className="content-container p-3.5 sm:p-6 lg:p-8 flex-1 w-full max-w-[1440px] mx-auto box-border">
           {children}
         </main>
       </div>

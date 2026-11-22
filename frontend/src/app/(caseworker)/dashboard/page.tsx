@@ -109,11 +109,11 @@ export default function CaseworkerDashboardPage() {
               <span>Refresh</span>
             </button>
             <Link
-              href="/assessment"
+              href="/patients"
               className="px-5 py-2.5 rounded-xl bg-[#0B6B3A] hover:bg-[#064826] text-white text-xs font-bold transition flex items-center gap-2 shadow-xs"
             >
-              <i className="fa-solid fa-plus text-xs" />
-              <span>New Patient Intake</span>
+              <i className="fa-solid fa-address-book text-xs" />
+              <span>Open Master Records</span>
             </Link>
           </div>
         </div>

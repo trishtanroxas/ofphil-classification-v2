@@ -126,6 +126,22 @@ export default function AdminUpcomingAppointmentsPage() {
     };
   }, []);
 
+  // Lock body scroll and dismiss modal on Escape key
+  useEffect(() => {
+    if (modalOpen) {
+      const prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      const handleEscape = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') setModalOpen(false);
+      };
+      window.addEventListener('keydown', handleEscape);
+      return () => {
+        document.body.style.overflow = prevOverflow;
+        window.removeEventListener('keydown', handleEscape);
+      };
+    }
+  }, [modalOpen]);
+
   const handlePatientSelectChange = (pid: string) => {
     const found = registeredPatients.find((p) => p.patient_id === pid);
     setForm((prev) => ({
@@ -554,8 +570,8 @@ export default function AdminUpcomingAppointmentsPage() {
 
       {/* Modal: Schedule New Appointment */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl max-w-2xl w-full border border-[#D5E2D9] shadow-2xl overflow-hidden text-xs font-sans">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl max-w-2xl sm:max-w-3xl w-full max-h-[92vh] overflow-y-auto border border-[#D5E2D9] shadow-2xl text-xs font-sans">
             <div className="px-6 py-4 bg-[#064826] text-white flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center text-base">

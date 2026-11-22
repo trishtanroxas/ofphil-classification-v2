@@ -100,6 +100,11 @@ class AssessmentService:
         actor_id: str,
         role: str,
     ) -> Dict[str, Any]:
+        # Prevent duplicate active drafts for the same patient_id
+        for existing in self.list_assessments(patient_id=payload.patient_id):
+            if existing.get("workflow_status") in {"DRAFT", "ASSESSMENT_IN_PROGRESS", "RETURNED_FOR_REVISION"}:
+                return existing
+
         assessment_id = f"asmt-{uuid.uuid4().hex[:10]}"
         encounter_no = payload.encounter_no or f"ENC-{payload.patient_id}-{uuid.uuid4().hex[:6].upper()}"
         now = _utc_now()

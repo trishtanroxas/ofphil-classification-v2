@@ -353,6 +353,35 @@ export default function PatientDossierPage() {
       })
       .catch(() => {});
   }, [patientId]);
+  // Lock body scroll & listen for Escape key when any modal is open
+  useEffect(() => {
+    const isAnyModalOpen =
+      appointmentModalOpen ||
+      urgentEmailModalOpen ||
+      docUploadModalOpen ||
+      previewAttachment !== null ||
+      apptActionConfirm !== null;
+
+    if (isAnyModalOpen) {
+      const prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          setAppointmentModalOpen(false);
+          setUrgentEmailModalOpen(false);
+          setDocUploadModalOpen(false);
+          setPreviewAttachment(null);
+          setApptActionConfirm(null);
+        }
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.body.style.overflow = prevOverflow;
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    }
+  }, [appointmentModalOpen, urgentEmailModalOpen, docUploadModalOpen, previewAttachment, apptActionConfirm]);
+
   const [adminCalendarMonth, setAdminCalendarMonth] = useState<Date>(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
@@ -4409,8 +4438,8 @@ export default function PatientDossierPage() {
 
           {/* Schedule / Edit Clinic Appointment Modal with Horizontal Tabs (Consistent with Patient Inquiries) */}
           {appointmentModalOpen && (
-            <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-              <div className="bg-white rounded-2xl max-w-3xl md:max-w-4xl w-full max-h-[92vh] flex flex-col overflow-hidden border border-[#D5E2D9] shadow-2xl text-xs font-sans animate-in zoom-in-95 duration-150">
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs">
+              <div className="bg-white rounded-2xl max-w-4xl lg:max-w-5xl w-full max-h-[92vh] flex flex-col overflow-hidden border border-[#D5E2D9] shadow-2xl text-xs font-sans animate-in zoom-in-95 duration-150">
                 {/* Modal Header */}
                 <div className="px-6 py-4 bg-white border-b border-[#EEF2EF] flex items-start justify-between shrink-0">
                   <div>
@@ -4713,16 +4742,16 @@ export default function PatientDossierPage() {
                         </div>
 
                         {/* Recipient Contact Information (Email & Number indication) */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className={`grid gap-3.5 ${apptChannel === 'both' ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
                           {(apptChannel === 'email' || apptChannel === 'both') && (
-                            <div className={apptChannel === 'email' ? 'sm:col-span-2' : ''}>
+                            <div className="w-full">
                               <div className="flex items-center justify-between mb-1">
                                 <label className="text-[10.5px] font-bold text-[#10241A] uppercase tracking-wider">
                                   Recipient Email Address <span className="text-red-600">*</span>
                                 </label>
                                 <span className="text-[10px] text-[#0B6B3A] font-bold">Active Patient Email</span>
                               </div>
-                              <div className="relative">
+                              <div className="relative w-full">
                                 <i className="fa-solid fa-at absolute left-3 top-3.5 text-[#5A7466] text-xs pointer-events-none" />
                                 <input
                                   type="email"
@@ -4740,14 +4769,14 @@ export default function PatientDossierPage() {
                           )}
 
                           {(apptChannel === 'sms' || apptChannel === 'both') && (
-                            <div className={apptChannel === 'sms' ? 'sm:col-span-2' : ''}>
+                            <div className="w-full">
                               <div className="flex items-center justify-between mb-1">
                                 <label className="text-[10.5px] font-bold text-[#10241A] uppercase tracking-wider">
                                   Recipient Mobile Number <span className="text-red-600">*</span>
                                 </label>
                                 <span className="text-[10px] text-[#0B6B3A] font-bold">Patient Phone / SMS</span>
                               </div>
-                              <div className="relative">
+                              <div className="relative w-full">
                                 <i className="fa-solid fa-phone absolute left-3 top-3.5 text-[#5A7466] text-xs pointer-events-none" />
                                 <input
                                   type="text"

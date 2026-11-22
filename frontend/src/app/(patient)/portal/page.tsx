@@ -66,6 +66,22 @@ function PatientPortalContent() {
   });
   const [dateWeekdayError, setDateWeekdayError] = useState<string | null>(null);
 
+  // Lock body scroll and dismiss on Escape when appointment modal is open
+  useEffect(() => {
+    if (reqApptModalOpen) {
+      const prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      const handleEscape = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') setReqApptModalOpen(false);
+      };
+      window.addEventListener('keydown', handleEscape);
+      return () => {
+        document.body.style.overflow = prevOverflow;
+        window.removeEventListener('keydown', handleEscape);
+      };
+    }
+  }, [reqApptModalOpen]);
+
   const isMondayToFriday = (dateStr: string) => {
     if (!dateStr) return false;
     const parts = dateStr.split('-').map(Number);
@@ -2434,8 +2450,8 @@ function PatientPortalContent() {
 
       {/* Modal: Patient Request / Edit Clinic Appointment (Mon-Fri, 8:00 AM - 5:00 PM) */}
       {reqApptModalOpen && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[92vh] overflow-y-auto border border-[#D5E2D9] shadow-2xl text-xs font-sans">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl max-w-3xl md:max-w-4xl w-full max-h-[92vh] overflow-y-auto border border-[#D5E2D9] shadow-2xl text-xs font-sans">
             <div className="px-6 py-4 bg-white border-b border-[#EEF2EF] flex items-start justify-between sticky top-0 z-10">
               <div>
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-[#E8F5EC] text-[#0B6B3A] text-[10px] font-bold uppercase tracking-wider mb-1.5">

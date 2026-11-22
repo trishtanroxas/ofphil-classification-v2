@@ -63,6 +63,7 @@ export function MSWPatientsContent({ initialTab }: { initialTab?: 'charity' | 'r
   const [statusFilter, setStatusFilter] = useState('All');
   const [rowsPerPage, setRowsPerPage] = useState('10');
   const [currentPage, setCurrentPage] = useState(1);
+  const [assessmentsByPatient, setAssessmentsByPatient] = useState<Record<string, any>>({});
 
   // Synchronize tab from URL query or initialTab
   useEffect(() => {
@@ -82,10 +83,21 @@ export function MSWPatientsContent({ initialTab }: { initialTab?: 'charity' | 'r
   const fetchPatientsAndReferrals = async () => {
     setIsLoading(true);
     try {
-      const [patientsData, referralsData] = await Promise.all([
+      const [patientsData, referralsData, assessmentsData] = await Promise.all([
         fetchApi('/patients').catch(() => []),
         fetchApi('/referrals').catch(() => ({ referrals: [] })),
+        fetchApi('/assessments', { headers: { 'x-user-role': 'msw', 'x-user-id': 'msw_lead' } }).catch(() => []),
       ]);
+
+      if (Array.isArray(assessmentsData)) {
+        const map: Record<string, any> = {};
+        for (const a of assessmentsData) {
+          if (a?.patient_id && !map[a.patient_id]) {
+            map[a.patient_id] = a;
+          }
+        }
+        setAssessmentsByPatient(map);
+      }
 
       if (Array.isArray(patientsData)) {
         // MSW ONLY HANDLES CHARITY PATIENTS (Exclude regular clinic patients from charity list)
@@ -249,7 +261,7 @@ export function MSWPatientsContent({ initialTab }: { initialTab?: 'charity' | 'r
         title={`Referral ${selectedReferral.id} · Clinical Dossier`}
         subtitle="Ophthalmological Foundation of the Philippines — Official Clinical Referral for Financial Assistance"
       >
-        <div className="space-y-6 max-w-4xl mx-auto animate-in fade-in duration-150">
+        <div className="space-y-6 animate-in fade-in duration-150">
           {/* Top Bar with Back Navigation & Direct Assess Action */}
           <div className="bg-white rounded-2xl p-4 sm:p-5 border border-[#EEF2EF] shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <button
@@ -477,13 +489,6 @@ export function MSWPatientsContent({ initialTab }: { initialTab?: 'charity' | 'r
               <i className="fa-solid fa-arrows-rotate text-xs text-[#0B6B3A]" />
               <span>Refresh</span>
             </button>
-            <Link
-              href="/assessment"
-              className="px-5 py-2.5 rounded-xl bg-[#0B6B3A] hover:bg-[#064826] text-white text-xs font-bold transition flex items-center gap-2 shadow-xs"
-            >
-              <i className="fa-solid fa-user-plus text-xs" />
-              <span>Start New Intake</span>
-            </Link>
           </div>
         </div>
 
@@ -795,14 +800,37 @@ export function MSWPatientsContent({ initialTab }: { initialTab?: 'charity' | 'r
                           </span>
                         </td>
                         <td className="py-4 px-6 text-center whitespace-nowrap">
-                          <Link
-                            href={`/assessment?patient_id=${p.patient_id}`}
-                            className="px-3.5 py-1.5 rounded-lg bg-[#0B6B3A] hover:bg-[#064826] text-white font-semibold text-xs transition inline-flex items-center gap-1.5 shadow-2xs cursor-pointer"
-                            title="Launch Social Welfare Assessment"
-                          >
-                            <i className="fa-solid fa-stethoscope text-[10px]" />
-                            <span>Assess</span>
-                          </Link>
+                          {(() => {
+                            const asmt = assessmentsByPatient[p.patient_id];
+                            const ws = asmt?.workflow_status;
+                            const isDraft = ws === 'DRAFT' || ws === 'ASSESSMENT_IN_PROGRESS' || ws === 'RETURNED_FOR_REVISION';
+                            const isReview = ws === 'PENDING_DOCUMENT_REVIEW' || ws === 'PENDING_MSW_REVIEW' || ws === 'PENDING_APPROVAL';
+                            const isDone = ws === 'APPROVED' || ws === 'REJECTED';
+                            const label = isDraft
+                              ? 'Continue Assessment'
+                              : isReview
+                                ? 'View / Review'
+                                : isDone
+                                  ? 'View Assessment'
+                                  : 'Assess';
+                            const href = asmt?.id
+                              ? `/assessment?patient_id=${encodeURIComponent(p.patient_id)}&assessment_id=${encodeURIComponent(asmt.id)}`
+                              : `/assessment?patient_id=${encodeURIComponent(p.patient_id)}`;
+                            return (
+                              <Link
+                                href={href}
+                                className={`px-3.5 py-1.5 rounded-lg font-semibold text-xs transition inline-flex items-center gap-1.5 shadow-2xs cursor-pointer ${
+                                  isDone || isReview
+                                    ? 'bg-white border border-[#0B6B3A] text-[#0B6B3A] hover:bg-[#E8F5EC]'
+                                    : 'bg-[#0B6B3A] hover:bg-[#064826] text-white'
+                                }`}
+                                title={label}
+                              >
+                                <i className={`fa-solid ${isDone || isReview ? 'fa-eye' : isDraft ? 'fa-pen-to-square' : 'fa-stethoscope'} text-[10px]`} />
+                                <span>{label}</span>
+                              </Link>
+                            );
+                          })()}
                         </td>
                       </tr>
                     ))}

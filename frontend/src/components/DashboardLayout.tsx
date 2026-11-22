@@ -44,7 +44,7 @@ export function DashboardLayout({
           title={title}
           subtitle={subtitle}
         />
-        <main className="flex-1 p-6 sm:p-8 w-full max-w-[1440px] mx-auto box-border">
+        <main className="flex-1 p-3.5 sm:p-6 lg:p-8 w-full max-w-[1440px] mx-auto box-border">
           {children}
         </main>
       </div>
