@@ -287,7 +287,8 @@ def request_password_reset(payload: ForgotPasswordRequest):
 # 14. Patient Registration & Welcome Email Notification
 # -------------------------------------------------------------
 class PatientRegisterRequest(BaseModel):
-    patient_id: str
+    patient_id: Optional[str] = None
+    category: Optional[str] = "REGULAR"
     first_name: str
     middle_name: Optional[str] = ""
     last_name: str
@@ -314,6 +315,29 @@ class PatientRegisterRequest(BaseModel):
     email_verified: Optional[bool] = False
     initial_password: Optional[str] = ""
     send_credentials_email: Optional[bool] = True
+
+def generate_next_charity_case_no(registry: Optional[List[Dict[str, Any]]] = None) -> str:
+    """
+    Generates dynamic sequential charity case numbering in format MSW_FA_MMYY-XX
+    where MM is current month, YY is 2-digit year, and XX is sequential (01, 02...).
+    Dynamically tracks the live system month & year (e.g. 1126 for November 2026).
+    """
+    now = datetime.date.today()
+    prefix = f"MSW_FA_{now.strftime('%m%y')}-"
+    reg = registry if registry is not None else REGISTERED_PATIENTS_REGISTRY
+    max_seq = 0
+    for p in reg:
+        pid = str(p.get("patient_id", "")).strip().upper()
+        if pid.startswith(prefix):
+            suffix = pid[len(prefix):]
+            if suffix.isdigit():
+                max_seq = max(max_seq, int(suffix))
+        elif pid.startswith("MSW_FA_"):
+            m = re.match(r"^MSW_FA_(\d{2})(\d{2})-(\d+)$", pid)
+            if m and m.group(1) == now.strftime('%m') and m.group(2) == now.strftime('%y'):
+                max_seq = max(max_seq, int(m.group(3)))
+    next_num = max_seq + 1
+    return f"{prefix}{next_num:02d}"
 
 # Registered patients storage initialized with verified records
 REGISTERED_PATIENTS_REGISTRY: List[Dict[str, Any]] = [
@@ -357,7 +381,7 @@ REGISTERED_PATIENTS_REGISTRY: List[Dict[str, Any]] = [
     },
     {
         "id": "rec-2",
-        "patient_id": "MSW_FA_0125-01",
+        "patient_id": "MSW_FA_1126-01",
         "first_name": "Maria Clara",
         "middle_name": "Flores",
         "last_name": "Ramos",
@@ -395,7 +419,7 @@ REGISTERED_PATIENTS_REGISTRY: List[Dict[str, Any]] = [
     },
     {
         "id": "rec-3",
-        "patient_id": "MSW_FA_0125-02",
+        "patient_id": "MSW_FA_1126-02",
         "first_name": "Pedro",
         "middle_name": "Alvarez",
         "last_name": "Bautista",
@@ -433,7 +457,7 @@ REGISTERED_PATIENTS_REGISTRY: List[Dict[str, Any]] = [
     },
     {
         "id": "rec-4",
-        "patient_id": "MSW_FA_0125-03",
+        "patient_id": "MSW_FA_1126-03",
         "first_name": "Elena",
         "middle_name": "Velasco",
         "last_name": "Santos",
@@ -471,7 +495,7 @@ REGISTERED_PATIENTS_REGISTRY: List[Dict[str, Any]] = [
     },
     {
         "id": "rec-5",
-        "patient_id": "MSW_FA_0125-04",
+        "patient_id": "MSW_FA_1126-04",
         "first_name": "Ricardo",
         "middle_name": "Gomez",
         "last_name": "Dalisay",
@@ -509,11 +533,35 @@ REGISTERED_PATIENTS_REGISTRY: List[Dict[str, Any]] = [
     }
 ]
 
+@router.get("/patients/next-charity-case-no")
+def get_next_charity_case_no():
+    """
+    Returns the next sequential Charity Case No. based on current MMYY.
+    """
+    return {"next_case_no": generate_next_charity_case_no()}
+
 @router.post("/patients/register")
 def register_patient_record(payload: PatientRegisterRequest):
     req_first = payload.first_name.strip()
     req_last = payload.last_name.strip()
-    req_pid = payload.patient_id.strip().upper()
+    category = "CHARITY" if (payload.category or "").upper() == "CHARITY" else "REGULAR"
+
+    if category == "CHARITY" and (not payload.patient_id or payload.patient_id.strip().upper() in {"", "AUTO"} or payload.patient_id.strip().upper().startswith("AUTO")):
+        req_pid = generate_next_charity_case_no()
+    else:
+        req_pid = (payload.patient_id or "").strip().upper()
+        if not req_pid:
+            # Fallback for regular patients
+            now = datetime.date.today()
+            prefix = f"M{now.strftime('%y')}-{now.strftime('%m')}-"
+            max_seq = 1
+            for p in REGISTERED_PATIENTS_REGISTRY:
+                pid = str(p.get("patient_id", "")).strip().upper()
+                if pid.startswith(prefix):
+                    s = pid[len(prefix):]
+                    if s.isdigit():
+                        max_seq = max(max_seq, int(s))
+            req_pid = f"{prefix}{max_seq + 1:05d}"
 
     # Check for duplicate Patient Name (First Name + Last Name case-insensitive) or duplicate Patient ID
     for existing in REGISTERED_PATIENTS_REGISTRY:
@@ -539,12 +587,12 @@ def register_patient_record(payload: PatientRegisterRequest):
     email_sent = False
     temp_pass = payload.initial_password or "Ofphil@2026"
 
-    # Send Welcome Email via Brevo if email is provided
-    if payload.email_address and payload.send_credentials_email:
+    # Send Welcome Email via Brevo if email is provided and not charity
+    if payload.email_address and payload.send_credentials_email and category != "CHARITY":
         email_sent = send_patient_welcome_email(
             to_email=payload.email_address,
             patient_name=full_name,
-            patient_id=payload.patient_id,
+            patient_id=req_pid,
             temporary_password=temp_pass,
             portal_url=f"{settings.FRONTEND_URL}/login-patient"
         )
@@ -561,7 +609,7 @@ def register_patient_record(payload: PatientRegisterRequest):
     # Save to live active clinic registry (clean masterlist with full Register Patient fields)
     new_record = {
         "id": f"rec-{len(REGISTERED_PATIENTS_REGISTRY) + 1}",
-        "patient_id": payload.patient_id,
+        "patient_id": req_pid,
         "first_name": payload.first_name,
         "middle_name": payload.middle_name or "",
         "last_name": payload.last_name,
@@ -589,20 +637,18 @@ def register_patient_record(payload: PatientRegisterRequest):
         "email": payload.email_address or "",
         "phone_verified": payload.phone_verified if payload.phone_verified is not None else True,
         "email_verified": payload.email_verified if payload.email_verified is not None else False,
-        "has_account": True if (payload.email_address or payload.initial_password) else False,
+        "has_account": True if (payload.email_address or payload.initial_password) and category != "CHARITY" else False,
         "registration_date": datetime.datetime.now().strftime("%Y-%m-%d"),
-        "category": "REGULAR",
+        "category": category,
         "status": "APPROVED",
     }
     REGISTERED_PATIENTS_REGISTRY.insert(0, new_record)
 
     return {
         "status": "success",
-        "patient_id": payload.patient_id,
-        "patient_name": full_name,
+        "message": f"Patient '{full_name}' successfully registered with ID {req_pid}.",
+        "patient": new_record,
         "email_sent": email_sent,
-        "recipient": payload.email_address,
-        "message": f"Patient {full_name} ({payload.patient_id}) successfully registered" + (f" and credentials emailed to {payload.email_address}." if email_sent else ".")
     }
 
 

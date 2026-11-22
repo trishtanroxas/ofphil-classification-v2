@@ -119,8 +119,44 @@ export default function PatientDossierPage() {
     residence_region: '',
     email: '',
     category: 'REGULAR',
+    phone_verified: true,
+    email_verified: true,
   });
   const [isSavingEdit, setIsSavingEdit] = useState(false);
+
+  const openEditModal = () => {
+    if (patientData) {
+      setEditForm((prev) => ({
+        ...prev,
+        first_name: patientData.first_name ?? prev.first_name,
+        middle_name: patientData.middle_name ?? prev.middle_name,
+        last_name: patientData.last_name ?? prev.last_name,
+        suffix: patientData.suffix ?? prev.suffix,
+        birthdate: patientData.birthdate ?? prev.birthdate,
+        age: patientData.age !== null && patientData.age !== undefined ? String(patientData.age) : prev.age,
+        sex: patientData.sex ?? prev.sex,
+        civil_status: patientData.civil_status ?? prev.civil_status,
+        num_dependents: String(patientData.num_dependents ?? prev.num_dependents),
+        perm_province: patientData.perm_province || patientData.residence_region || prev.perm_province,
+        perm_city: patientData.perm_city || patientData.residence_city || prev.perm_city,
+        perm_barangay: patientData.perm_barangay || prev.perm_barangay,
+        perm_street: patientData.perm_street || prev.perm_street,
+        alt_province: patientData.alt_province || patientData.perm_province || prev.alt_province,
+        alt_city: patientData.alt_city || patientData.perm_city || prev.alt_city,
+        alt_barangay: patientData.alt_barangay || patientData.perm_barangay || prev.alt_barangay,
+        alt_street: patientData.alt_street || patientData.perm_street || prev.alt_street,
+        educational_attainment: patientData.educational_attainment || prev.educational_attainment,
+        employment_status: patientData.employment_status || prev.employment_status,
+        occupation: patientData.occupation || prev.occupation,
+        contact: patientData.contact ?? prev.contact,
+        email: patientData.email ?? prev.email,
+        category: patientData.category ?? prev.category,
+        phone_verified: patientData.phone_verified ?? (Boolean(patientData.contact)),
+        email_verified: patientData.email_verified ?? (Boolean(patientData.email && patientData.email.includes('@'))),
+      }));
+    }
+    setEditModalOpen(true);
+  };
 
   // Referral Form State & Editable Mode (empty by default for new/regular patients)
   const [isEditingReferral, setIsEditingReferral] = useState(false);
@@ -814,6 +850,8 @@ export default function PatientDossierPage() {
             residence_region: mergedPatient.perm_province || mergedPatient.residence_region || 'Metro Manila (NCR)',
             email: mergedPatient.email || '',
             category: mergedPatient.category || 'REGULAR',
+            phone_verified: mergedPatient.phone_verified ?? Boolean(mergedPatient.contact),
+            email_verified: mergedPatient.email_verified ?? Boolean(mergedPatient.email && mergedPatient.email.includes('@')),
           });
 
           // Preload urgent email template
@@ -1193,6 +1231,8 @@ export default function PatientDossierPage() {
         residence_region: editForm.perm_province || editForm.residence_region,
         email: editForm.email,
         category: editForm.category,
+        phone_verified: editForm.phone_verified,
+        email_verified: editForm.email_verified,
       };
       await fetchApi(`/patients/${patientId}`, {
         method: 'PUT',
@@ -1361,7 +1401,7 @@ export default function PatientDossierPage() {
 
             <button
               type="button"
-              onClick={() => setEditModalOpen(true)}
+              onClick={openEditModal}
               className="px-3.5 py-2 rounded-xl bg-white border border-[#CBD5E1] text-[#10241A] hover:bg-[#FAFBF8] font-bold text-xs flex items-center gap-1.5 transition shadow-2xs cursor-pointer"
               title="Edit Patient Name, Phone Number, or Demographics"
             >
@@ -1503,7 +1543,7 @@ export default function PatientDossierPage() {
 
                 <button
                   type="button"
-                  onClick={() => setEditModalOpen(true)}
+                  onClick={openEditModal}
                   className="px-3.5 py-2 rounded-xl border border-[#CBD5E1] bg-white hover:bg-[#FAFBF8] text-[#0B6B3A] font-bold text-xs flex items-center gap-1.5 transition shadow-2xs cursor-pointer"
                 >
                   <i className="fa-solid fa-pen-to-square text-xs" />
@@ -1684,9 +1724,11 @@ export default function PatientDossierPage() {
                     <i className="fa-solid fa-phone text-[#0B6B3A] text-[11px]" />
                     <span>{patientData?.contact || '0917 888 1678'}</span>
                   </div>
-                  <div className="text-[10.5px] text-[#0B6B3A] font-semibold mt-0.5 flex items-center gap-1">
-                    <i className="fa-solid fa-circle-check text-[10px]" />
-                    <span>Phone Verified (SMS / OTP Ready)</span>
+                  <div className="text-[10.5px] font-semibold mt-0.5 flex items-center gap-1">
+                    <i className={`fa-solid ${patientData?.phone_verified !== false ? 'fa-circle-check text-[#0B6B3A]' : 'fa-circle-exclamation text-amber-600'} text-[10px]`} />
+                    <span className={patientData?.phone_verified !== false ? 'text-[#0B6B3A]' : 'text-amber-700'}>
+                      {patientData?.phone_verified !== false ? 'Phone Verified (SMS / OTP Ready)' : 'Phone Unverified (Pending Handset Confirmation)'}
+                    </span>
                   </div>
                 </div>
 
@@ -1694,12 +1736,14 @@ export default function PatientDossierPage() {
                   <div className="text-[10.5px] font-bold uppercase tracking-wider text-[#64748B] mb-1">
                     Registered Email Address
                   </div>
-                  <div className="font-bold text-xs text-[#10241A] truncate" title={patientData?.email || 'juan.delacruz@example.ph'}>
-                    {patientData?.email || 'juan.delacruz@example.ph'}
+                  <div className="font-bold text-xs text-[#10241A] truncate" title={patientData?.email || 'None Provided'}>
+                    {patientData?.email || 'None Provided'}
                   </div>
-                  <div className="text-[10.5px] text-[#0B6B3A] font-semibold mt-0.5 flex items-center gap-1">
-                    <i className="fa-solid fa-envelope-circle-check text-[10px]" />
-                    <span>Portal Email Notifications Active</span>
+                  <div className="text-[10.5px] font-semibold mt-0.5 flex items-center gap-1">
+                    <i className={`fa-solid ${patientData?.email_verified ? 'fa-envelope-circle-check text-[#0B6B3A]' : 'fa-envelope text-[#64748B]'} text-[10px]`} />
+                    <span className={patientData?.email_verified ? 'text-[#0B6B3A]' : 'text-[#64748B]'}>
+                      {patientData?.email_verified ? 'Portal Email Notifications Active' : (patientData?.email ? 'Email Unverified (Pending Confirmation)' : 'No Email on File (SMS Fallback Active)')}
+                    </span>
                   </div>
                 </div>
 
@@ -2189,41 +2233,48 @@ export default function PatientDossierPage() {
                       </div>
                     </div>
 
-                    {/* Patient Name, Age, Sex */}
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center bg-white p-3.5 rounded-xl border border-[#E2E8F0] text-xs">
-                      <div className="md:col-span-2 text-[11px] font-bold uppercase text-[#5A7466]">Patient Name :</div>
-                      <div className="md:col-span-3">
+                    {/* Patient No., Patient Name, Age, Sex (Read-Only) */}
+                    <div className="flex flex-wrap md:flex-nowrap items-center gap-3 bg-white p-3.5 rounded-xl border border-[#E2E8F0] text-xs">
+                      <div className="w-full md:w-auto md:flex-[1.2] flex items-center gap-2 min-w-0">
+                        <span className="text-[11px] font-bold uppercase text-[#5A7466] whitespace-nowrap shrink-0">Patient No. :</span>
+                        <input
+                          type="text"
+                          readOnly
+                          value={patientData?.patient_id || patientId || ''}
+                          className="w-full min-w-0 h-9 px-3 border border-[#E2E8F0] rounded-lg bg-[#FAFBF8] font-mono font-bold text-[#0B6B3A]"
+                        />
+                      </div>
+                      <div className="w-full md:w-auto md:flex-[2.4] flex items-center gap-2 min-w-0">
+                        <span className="text-[11px] font-bold uppercase text-[#5A7466] whitespace-nowrap shrink-0">Patient Name :</span>
                         <input
                           type="text"
                           readOnly
                           value={(patientData?.last_name || 'DELA CRUZ').toUpperCase()}
-                          className="w-full h-9 px-3 border border-[#E2E8F0] rounded-lg bg-[#FAFBF8] font-bold text-[#10241A]"
+                          className="w-full min-w-0 h-9 px-3 border border-[#E2E8F0] rounded-lg bg-[#FAFBF8] font-bold text-[#10241A]"
                         />
-                      </div>
-                      <div className="md:col-span-3">
                         <input
                           type="text"
                           readOnly
                           value={(patientData?.first_name || 'JUAN').toUpperCase()}
-                          className="w-full h-9 px-3 border border-[#E2E8F0] rounded-lg bg-[#FAFBF8] font-bold text-[#10241A]"
+                          className="w-full min-w-0 h-9 px-3 border border-[#E2E8F0] rounded-lg bg-[#FAFBF8] font-bold text-[#10241A]"
                         />
                       </div>
-                      <div className="md:col-span-2 flex items-center gap-2">
-                        <span className="text-[11px] font-bold uppercase text-[#5A7466]">Age :</span>
+                      <div className="w-full sm:w-auto md:flex-[0.8] flex items-center gap-2 min-w-0">
+                        <span className="text-[11px] font-bold uppercase text-[#5A7466] whitespace-nowrap shrink-0">Age :</span>
                         <input
                           type="text"
                           readOnly
                           value={patientData?.age ?? '48'}
-                          className="w-16 h-9 px-2.5 border border-[#E2E8F0] rounded-lg bg-[#FAFBF8] font-bold text-[#10241A] text-center"
+                          className="w-full min-w-0 h-9 px-3 border border-[#E2E8F0] rounded-lg bg-[#FAFBF8] font-bold text-[#10241A] text-center"
                         />
                       </div>
-                      <div className="md:col-span-2 flex items-center gap-2">
-                        <span className="text-[11px] font-bold uppercase text-[#5A7466]">Sex :</span>
+                      <div className="w-full sm:w-auto md:flex-[0.8] flex items-center gap-2 min-w-0">
+                        <span className="text-[11px] font-bold uppercase text-[#5A7466] whitespace-nowrap shrink-0">Sex :</span>
                         <input
                           type="text"
                           readOnly
                           value={patientData?.sex || 'M'}
-                          className="w-14 h-9 px-2.5 border border-[#E2E8F0] rounded-lg bg-[#FAFBF8] font-bold text-[#10241A] text-center"
+                          className="w-full min-w-0 h-9 px-3 border border-[#E2E8F0] rounded-lg bg-[#FAFBF8] font-bold text-[#10241A] text-center"
                         />
                       </div>
                     </div>
@@ -3764,28 +3815,66 @@ export default function PatientDossierPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-bold text-[#10241A] uppercase tracking-wider mb-1">
-                    Contact Number
+              {/* Info Notice Banner */}
+              <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3 flex items-center gap-2 text-xs text-[#475569]">
+                <i className="fa-solid fa-circle-info text-[#0B6B3A] text-sm shrink-0" />
+                <span>
+                  Verified contact information is required for two-factor authentication (OTP) and secure password reset links. Please confirm phone/email accuracy with the patient.
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Mobile Phone Number */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-medium text-[#334155]">
+                    Mobile Phone Number <span className="text-[#DC2626]">*</span>
                   </label>
                   <input
                     type="text"
                     value={editForm.contact}
                     onChange={(e) => setEditForm({ ...editForm, contact: e.target.value })}
-                    className="w-full h-9 px-3 text-xs bg-white border border-[#D5E2D9] rounded-lg focus:outline-none focus:border-[#0B6B3A]"
+                    placeholder="0917 123 4567"
+                    required
+                    className="w-full h-10 px-3.5 border border-[#D5E2D9] rounded-xl text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A] focus:ring-2 focus:ring-[#0B6B3A]/15 transition"
                   />
+                  <div className="text-[11px] text-[#64748B]">
+                    Standard Philippine mobile format (09XX or +639XX)
+                  </div>
+                  <label className="flex items-center gap-2 pt-1 text-xs text-[#1E293B] cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={editForm.phone_verified}
+                      onChange={(e) => setEditForm({ ...editForm, phone_verified: e.target.checked })}
+                      className="accent-[#0B6B3A] w-4 h-4 rounded cursor-pointer"
+                    />
+                    <span className="font-medium text-[11px] text-[#1E293B]">Phone Verified: Confirmed in-person with patient handset</span>
+                  </label>
                 </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-[#10241A] uppercase tracking-wider mb-1">
-                    Email Address
+
+                {/* Email Address */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-medium text-[#334155]">
+                    Email Address <span className="text-[#64748B] text-[11px]">(Optional — For Portal Activation)</span>
                   </label>
                   <input
                     type="email"
                     value={editForm.email}
                     onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                    className="w-full h-9 px-3 text-xs bg-white border border-[#D5E2D9] rounded-lg focus:outline-none focus:border-[#0B6B3A]"
+                    placeholder="patient@example.com"
+                    className="w-full h-10 px-3.5 border border-[#D5E2D9] rounded-xl text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A] focus:ring-2 focus:ring-[#0B6B3A]/15 transition"
                   />
+                  <div className="text-[11px] text-[#64748B]">
+                    Patients without email can still log in using Patient ID &amp; SMS OTP.
+                  </div>
+                  <label className="flex items-center gap-2 pt-1 text-xs text-[#1E293B] cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={editForm.email_verified}
+                      onChange={(e) => setEditForm({ ...editForm, email_verified: e.target.checked })}
+                      className="accent-[#0B6B3A] w-4 h-4 rounded cursor-pointer"
+                    />
+                    <span className="font-medium text-[11px] text-[#1E293B]">Email Verified: Address verified by patient</span>
+                  </label>
                 </div>
               </div>
 

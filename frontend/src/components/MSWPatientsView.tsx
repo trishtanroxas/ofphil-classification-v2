@@ -397,31 +397,31 @@ export function MSWPatientsContent({ initialTab }: { initialTab?: 'charity' | 'r
               </div>
             </div>
 
-            {/* Medical Staff Signatures Block */}
+            {/* Medical Staff Signatures Block (Matching Admin Referral Form Format) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-[#EEF2EF]">
-              <div className="p-4 rounded-xl border border-[#EEF2EF] bg-[#FAFBF8]">
-                <div className="text-[10px] uppercase font-bold text-[#64748B] mb-2">Attending Eye Surgeon</div>
-                <div className="font-bold text-xs text-[#10241A]">{selectedReferral.attending_doctor || 'Dr. J. E. Garcia, MD'}</div>
-                <div className="text-[10px] text-[#64748B]">
-                  {selectedReferral.doctor_signature_title || 'Attending Eye Surgeon • License No. 0089421'}
+              <div className="p-4 rounded-xl border border-[#EEF2EF] bg-white space-y-3">
+                <div className="text-[10.5px] uppercase font-bold text-[#5A7466]">Attending Doctor :</div>
+                <div className="h-9 px-3 border border-[#E2E8F0] rounded-lg bg-[#FAFBF8] flex items-center text-xs font-semibold text-[#10241A]">
+                  {selectedReferral.attending_doctor || 'Dr. J. E. Garcia, MD'}
                 </div>
-                <div className="mt-2 text-[9.5px] text-[#0B6B3A] font-semibold flex items-center gap-1">
-                  <i className="fa-solid fa-signature text-xs" />
-                  <span>Clinically Signed &amp; Endorsed</span>
+                <div className="flex items-center justify-between gap-3 pt-1">
+                  <span className="text-[10.5px] uppercase font-bold text-[#5A7466]">Signature:</span>
+                  <div className="h-8 px-3 border border-[#E2E8F0] rounded-lg bg-[#FAFBF8] flex items-center text-xs italic font-medium text-[#0B6B3A]">
+                    {(selectedReferral as any).doctor_signature || selectedReferral.attending_doctor || 'Dr. J. E. Garcia, MD'}
+                  </div>
                 </div>
               </div>
 
-              <div className="p-4 rounded-xl border border-[#EEF2EF] bg-[#FAFBF8]">
-                <div className="text-[10px] uppercase font-bold text-[#64748B] mb-2">Referring Clinic Administrator</div>
-                <div className="font-bold text-xs text-[#10241A]">
+              <div className="p-4 rounded-xl border border-[#EEF2EF] bg-white space-y-3">
+                <div className="text-[10.5px] uppercase font-bold text-[#5A7466]">Referring Individual :</div>
+                <div className="h-9 px-3 border border-[#E2E8F0] rounded-lg bg-[#FAFBF8] flex items-center text-xs font-semibold text-[#10241A]">
                   {selectedReferral.referring_individual || 'Dr. Roberto Reyes, MD, DPBO'}
                 </div>
-                <div className="text-[10px] text-[#64748B]">
-                  {selectedReferral.referring_signature_title || 'Clinic Medical Administrator & Ophthalmologist'}
-                </div>
-                <div className="mt-2 text-[9.5px] text-[#0B6B3A] font-semibold flex items-center gap-1">
-                  <i className="fa-solid fa-stamp text-xs" />
-                  <span>Official Clinic Endorsement Stamp</span>
+                <div className="flex items-center justify-between gap-3 pt-1">
+                  <span className="text-[10.5px] uppercase font-bold text-[#5A7466]">Signature:</span>
+                  <div className="h-8 px-3 border border-[#E2E8F0] rounded-lg bg-[#FAFBF8] flex items-center text-xs italic font-medium text-[#0B6B3A]">
+                    {(selectedReferral as any).referring_signature || selectedReferral.referring_individual || 'Dr. Roberto Reyes, MD, DPBO'}
+                  </div>
                 </div>
               </div>
             </div>
@@ -489,6 +489,15 @@ export function MSWPatientsContent({ initialTab }: { initialTab?: 'charity' | 'r
               <i className="fa-solid fa-arrows-rotate text-xs text-[#0B6B3A]" />
               <span>Refresh</span>
             </button>
+
+            <Link
+              href="/admin/register-patient"
+              className="px-4 py-2.5 rounded-xl bg-[#0B6B3A] hover:bg-[#064826] text-white text-xs font-bold transition flex items-center gap-2 cursor-pointer shadow-xs"
+              title="Register new indigent charity beneficiary with dynamic sequential case numbering"
+            >
+              <i className="fa-solid fa-user-plus text-xs" />
+              <span>New Charity Case</span>
+            </Link>
           </div>
         </div>
 
@@ -562,7 +571,7 @@ export function MSWPatientsContent({ initialTab }: { initialTab?: 'charity' | 'r
               placeholder={
                 activeTab === 'referrals'
                   ? 'Search by Referral #, Patient Name, Diagnosis, or Procedure...'
-                  : 'Search by Charity Case No. (MSW_FA_MMYY-NO), Name, Diagnosis, or City...'
+                  : 'Search by Charity Case No. (MSW_FA_1126-XX), Name, Diagnosis, or City...'
               }
               value={searchQuery}
               onChange={(e) => {

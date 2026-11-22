@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Any, Dict, Optional
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 
 from app.core.audit import log_audit_event
@@ -8,7 +8,10 @@ from app.schemas.assessment_schemas import (
     AssessmentSubmitRequest,
     AssessmentUpdateRequest,
     InstitutionalApprovalRequest,
+    InterviewSaveRequest,
     MSWRecommendationRequest,
+    Stage2EvaluationRequest,
+    Stage2EvaluationResponse,
 )
 from app.services.assessment_service import assessment_service
 
@@ -179,5 +182,58 @@ def post_institutional_approval(
             "decision": payload.decision,
             "approved_subsidy_percentage": payload.approved_subsidy_percentage,
         },
+    )
+    return record
+
+
+@router.post("/{assessment_id}/evaluate-stage2", response_model=Stage2EvaluationResponse)
+def post_evaluate_stage2(
+    assessment_id: str,
+    payload: Stage2EvaluationRequest,
+    role: UserRole = Depends(require_roles([UserRole.ADMIN, UserRole.MSW])),
+    x_user_id: str = Header(default="msw_lead"),
+):
+    result = assessment_service.evaluate_stage2(
+        assessment_id, payload, actor_id=x_user_id, role=role.value
+    )
+    log_audit_event(
+        action="STAGE2_EVALUATE_INTERVIEW",
+        actor_id=x_user_id,
+        role=role.value,
+        resource=f"assessment:{assessment_id}",
+        status="SUCCESS",
+        details={
+            "is_complete": result.get("is_complete"),
+            "status": result.get("status"),
+            "total_risk": str(result.get("total_risk")),
+            "missing_factors": result.get("missing_factors", []),
+        },
+    )
+    return result
+
+
+@router.post("/{assessment_id}/interview")
+def post_save_interview(
+    assessment_id: str,
+    payload: InterviewSaveRequest,
+    role: UserRole = Depends(require_roles([UserRole.ADMIN, UserRole.MSW])),
+    x_user_id: str = Header(default="msw_lead"),
+):
+    dumped = payload.model_dump(exclude_unset=True)
+    mark_completed = dumped.pop("mark_completed", False)
+    record = assessment_service.save_interview_draft(
+        assessment_id,
+        payload=dumped,
+        actor_id=x_user_id,
+        role=role.value,
+        mark_completed=mark_completed,
+    )
+    log_audit_event(
+        action="INTERVIEW_SAVED",
+        actor_id=x_user_id,
+        role=role.value,
+        resource=f"assessment:{assessment_id}",
+        status="SUCCESS",
+        details={"mark_completed": mark_completed},
     )
     return record

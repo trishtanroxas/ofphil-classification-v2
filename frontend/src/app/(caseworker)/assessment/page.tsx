@@ -191,75 +191,170 @@ function MSWAssessmentContent() {
     setFamilyMembers(familyMembers.filter((f) => f.id !== id));
   };
 
-  // STAGE 2: Medical Data & Health Access State
+  // Qualitative Rubric Options (No manual raw numbers entered by MSW)
+  const SEVERITY_LEVEL_OPTIONS = [
+    { value: 'LEVEL_1_MINIMAL', label: 'Minimal / No Significant Impairment (Level 1)' },
+    { value: 'LEVEL_2_MILD', label: 'Mild Impairment / Low Barrier (Level 2)' },
+    { value: 'LEVEL_3_MODERATE', label: 'Moderate Impairment / Moderate Barrier (Level 3)' },
+    { value: 'LEVEL_4_MODERATELY_SEVERE', label: 'Moderately Severe / High Barrier (Level 4)' },
+    { value: 'LEVEL_5_SEVERE', label: 'Severe Impairment / Extreme Barrier (Level 5)' },
+    { value: 'LEVEL_6_CATASTROPHIC', label: 'Catastrophic / Crisis Level (Level 6)' },
+  ];
+
+  const COPING_LEVEL_OPTIONS = [
+    { value: 'LEVEL_1_SUPERIOR', label: 'Superior / Fully Adequate Coping (Level 1)' },
+    { value: 'LEVEL_2_ADEQUATE', label: 'Adequate Coping / Strong Support (Level 2)' },
+    { value: 'LEVEL_3_VULNERABLE', label: 'Vulnerable / Partially Strained Coping (Level 3)' },
+    { value: 'LEVEL_4_INADEQUATE', label: 'Inadequate / Heavily Strained Coping (Level 4)' },
+    { value: 'LEVEL_5_SEVERE_BREAKDOWN', label: 'Severe Breakdown / Marginal Coping (Level 5)' },
+    { value: 'LEVEL_6_CRISIS', label: 'Complete Coping Failure / Crisis State (Level 6)' },
+  ];
+
+  // STAGE 2: Structured MSW Interview State
+  const [interviewStartTime, setInterviewStartTime] = useState('09:00 AM');
+  const [interviewEndTime, setInterviewEndTime] = useState('09:45 AM');
+  const [assignedMsw, setAssignedMsw] = useState('Maria Santos, RSW');
+  const [interviewedPerson, setInterviewedPerson] = useState<'PATIENT' | 'REPRESENTATIVE'>('PATIENT');
+  const [representativeRelationship, setRepresentativeRelationship] = useState('');
+  const [interviewMethod, setInterviewMethod] = useState<'FACE_TO_FACE' | 'TELECONSULTATION' | 'HOSPITAL_BEDSIDE' | 'HOME_VISIT'>('FACE_TO_FACE');
+  const [interviewStatus, setInterviewStatus] = useState<'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED'>('IN_PROGRESS');
+  const [consentObtained, setConsentObtained] = useState(true);
+  const [consentNotes, setConsentNotes] = useState('Patient/Representative signed social service intake acknowledgment and privacy consent.');
+  const [isReviewMode, setIsReviewMode] = useState(false);
+  const [isSavingInterview, setIsSavingInterview] = useState(false);
+
+  // Subsection B: Patient and Family Background (Separated Patient Responses & MSW Observations)
+  const [livingSituation, setLivingSituation] = useState('Renting a small room in high-density settlement; informal tenancy');
+  const [livingSituationObs, setLivingSituationObs] = useState('Crowded living quarters; verified with barangay certificate of residency');
+  const [householdComposition, setHouseholdComposition] = useState('4 household members: patient, spouse, and 2 minor school-age children');
+  const [householdCompositionObs, setHouseholdCompositionObs] = useState('Two vulnerable minor dependents entirely reliant on parental labor');
+  const [familySupport, setFamilySupport] = useState('Spouse provides primary home caregiving, guided mobility, and basic nursing');
+  const [familySupportObs, setFamilySupportObs] = useState('Caregiver shows high dedication but experiences substantial emotional strain');
+  const [employmentSituation, setEmploymentSituation] = useState('Patient previously worked as daily informal utility driver; now incapacitated by cataract');
+  const [employmentObs, setEmploymentObs] = useState('Complete loss of primary family livelihood directly attributable to ocular disability');
+  const [incomeSources, setIncomeSources] = useState('Irregular earnings from spouse home laundry and occasional sibling assistance');
+  const [incomeSourcesObs, setIncomeSourcesObs] = useState('Combined monthly earnings below poverty threshold; unstable and intermittent');
+  const [financialResponsibilities, setFinancialResponsibilities] = useState('Monthly room rental (₱3,500), basic food sustenance, children educational needs');
+  const [financialResponsibilitiesObs, setFinancialResponsibilitiesObs] = useState('Zero emergency savings; family accumulating neighborhood sari-sari store debt');
+
+  // Subsection C: Medical and Financial Difficulties
+  const [medicalConditionSummary, setMedicalConditionSummary] = useState('Mature cataract with near-total visual acuity loss in operative eye; secondary glare');
+  const [medicalConditionObs, setMedicalConditionObs] = useState('Clinical referral confirms urgent surgical necessity to prevent bilateral blindness');
+  const [durationProblems, setDurationProblems] = useState('2 years progressive visual deterioration with significant functional impairment');
+  const [previousTreatment, setPreviousTreatment] = useState('Over-the-counter lubricant eyedrops; optical consultation with local optometrist');
+  const [presentTreatmentPlan, setPresentTreatmentPlan] = useState('Phacoemulsification with Foldable IOL (OS)');
   const [admittingDiagnosis, setAdmittingDiagnosis] = useState('Senile Immature Cataract');
   const [finalDiagnosis, setFinalDiagnosis] = useState('Senile Immature Cataract');
-  const [durationProblems, setDurationProblems] = useState('');
-  const [previousTreatment, setPreviousTreatment] = useState('');
-  const [presentTreatmentPlan, setPresentTreatmentPlan] = useState('Phacoemulsification with Foldable IOL (OS)');
-  const [healthAccessibilityProblem, setHealthAccessibilityProblem] = useState('');
+  const [estimatedExpenses, setEstimatedExpenses] = useState('11600');
+  const [financialBarriers, setFinancialBarriers] = useState('Inability to afford hospital surgical package, intraocular lens, and post-op medication');
+  const [financialBarriersObs, setFinancialBarriersObs] = useState('Out-of-pocket surgical expense represents over 100% of entire monthly family earnings');
+  const [healthAccessibilityProblem, setHealthAccessibilityProblem] = useState('Lack of specialized ophthalmic surgical center in local municipal district');
+  const [availableHealthcareResources, setAvailableHealthcareResources] = useState('PhilHealth Indigent Member, Barangay Certificate of Indigency, Malasakit Referral');
 
-  // Health Factors Checklist (DOH-PIE Clinical Rubric)
+  // Subsection D: Psychosocial Circumstances
+  const [accessibilityConcerns, setAccessibilityConcerns] = useState('Patient cannot safely travel alone; requires two jeepney transfers and companion fare');
+  const [accessibilityConcernsObs, setAccessibilityConcernsObs] = useState('Travel barriers pose safety hazards; companion wage loss is a major deterrent');
+  const [discriminationExperienced, setDiscriminationExperienced] = useState('Experienced job refusal and societal stigma due to visible white cataract pupillary reflex');
+  const [discriminationObs, setDiscriminationObs] = useState('Social isolation and withdrawal observed; loss of social status as productive worker');
+  const [safetyHazards, setSafetyHazards] = useState('Multiple indoor stumble incidents; unpaved wet pathways around dwelling');
+  const [safetyHazardsObs, setSafetyHazardsObs] = useState('High fall and domestic trauma risk without restoration of bilateral stereoscopic vision');
+  const [socialResponsibilities, setSocialResponsibilities] = useState('Traditional role as head of household and family protector now severely impaired');
+  const [socialResponsibilitiesObs, setSocialResponsibilitiesObs] = useState('Role reversal causing distress; spouse forced to seek outside daily labor');
+  const [supportSystems, setSupportSystems] = useState('Barangay health worker, parish charity fund, and extended family neighbors');
+  const [supportSystemsObs, setSupportSystemsObs] = useState('Informal community support present but financial capacity of neighbors is also limited');
+  const [basicNeedsLivingConditions, setBasicNeedsLivingConditions] = useState('Shared communal water meter; reliance on subsidized rice ration');
+  const [basicNeedsObs, setBasicNeedsObs] = useState('Basic caloric intake maintained with difficulty; vulnerable to inflationary food shocks');
+  const [copingCapacityNarrative, setCopingCapacityNarrative] = useState('Patient relies on faith and spouse encouragement, but feels burdened by inactivity');
+  const [copingCapacityObs, setCopingCapacityObs] = useState('Psychological resilience present; highly motivated for sight restoration and return to work');
+
+  // Domain V: Health Factors Checklist (DOH-PIE Qualitative Levels & Observations - No Raw Numbers)
   const [healthFactors, setHealthFactors] = useState([
-    { factor: 'Absence of adequate health services', severity: 4, duration: 3, coping: 4, obs: 'High surgical fee barrier; nearest specialty tertiary hospital requires substantial out-of-pocket payment' },
-    { factor: 'Inaccessibility of Health Services', severity: 4, duration: 4, coping: 4, obs: 'No direct ophthalmic subspecialist in local municipality; requires long travel with escort' },
-    { factor: 'Absence of support services needed to use health services', severity: 3, duration: 3, coping: 3, obs: 'Limited caregiver capacity; primary earner cannot take leave without wage loss' },
-    { factor: 'Absence of adequate Mental Health / Psychosocial Support services', severity: 2, duration: 2, coping: 2, obs: 'Mild anxiety over deteriorating sight; community social worker supportive' },
+    {
+      factor: 'Absence of adequate health services',
+      severityLevel: 'LEVEL_4_MODERATELY_SEVERE',
+      copingLevel: 'LEVEL_4_INADEQUATE',
+      patientReported: 'High surgical fee barrier; nearest specialty tertiary hospital requires substantial out-of-pocket payment.',
+      mswObservation: 'Nearest tertiary hospital with phacoemulsification equipment requires inter-city transport.',
+    },
+    {
+      factor: 'Inaccessibility of Health Services',
+      severityLevel: 'LEVEL_4_MODERATELY_SEVERE',
+      copingLevel: 'LEVEL_4_INADEQUATE',
+      patientReported: 'No direct ophthalmic subspecialist in local municipality; requires long travel with escort.',
+      mswObservation: 'Public transportation inaccessible for unaccompanied visually impaired patient.',
+    },
+    {
+      factor: 'Absence of support services needed to use health services',
+      severityLevel: 'LEVEL_3_MODERATE',
+      copingLevel: 'LEVEL_3_VULNERABLE',
+      patientReported: 'Limited caregiver capacity; primary earner cannot take leave without wage loss.',
+      mswObservation: 'Caregiver wage loss represents substantial portion of weekly household sustenance.',
+    },
+    {
+      factor: 'Absence of adequate Mental Health / Psychosocial Support services',
+      severityLevel: 'LEVEL_2_MILD',
+      copingLevel: 'LEVEL_2_ADEQUATE',
+      patientReported: 'Mild anxiety over deteriorating sight; community social worker supportive.',
+      mswObservation: 'Patient emotionally supported by spouse and parish counseling; well-oriented.',
+    },
   ]);
 
-  // Discrimination, Safety & Environmental Rubrics
-  const [discrimSeverity, setDiscrimSeverity] = useState(3);
-  const [discrimCoping, setDiscrimCoping] = useState(3);
-  const [safetySeverity, setSafetySeverity] = useState(3);
-  const [safetyCoping, setSafetyCoping] = useState(3);
-  const [roleSeverity, setRoleSeverity] = useState(4);
-  const [roleCoping, setRoleCoping] = useState(4);
-  const [envSeverity, setEnvSeverity] = useState(4);
+  // Domains VI to IX: Qualitative Levels & Observations (No Raw Numbers)
+  const [discrimSeverityLevel, setDiscrimSeverityLevel] = useState('LEVEL_3_MODERATE');
+  const [discrimCopingLevel, setDiscrimCopingLevel] = useState('LEVEL_3_VULNERABLE');
+  const [discrimPatientReported, setDiscrimPatientReported] = useState('Faced hiring reluctance and wage discount due to visual impairment.');
+  const [discrimMswObs, setDiscrimMswObs] = useState('Economic marginalization directly linked to progressive cataract blindness.');
 
-  // Live Rubric Calculations
-  const averageSeverity = Number(
-    ((healthFactors.reduce((acc, h) => acc + h.severity, 0) / healthFactors.length +
-      discrimSeverity + safetySeverity + roleSeverity + envSeverity) / 5).toFixed(2)
-  );
+  const [safetySeverityLevel, setSafetySeverityLevel] = useState('LEVEL_3_MODERATE');
+  const [safetyCopingLevel, setSafetyCopingLevel] = useState('LEVEL_3_VULNERABLE');
+  const [safetyPatientReported, setSafetyPatientReported] = useState('Frequent stumbling and disorientation at dusk.');
+  const [safetyMswObs, setSafetyMswObs] = useState('Home environment lacks handrails and adequate task lighting.');
 
-  const averageCoping = Number(
-    ((healthFactors.reduce((acc, h) => acc + h.coping, 0) / healthFactors.length +
-      discrimCoping + safetyCoping + roleCoping) / 4).toFixed(2)
-  );
+  const [roleSeverityLevel, setRoleSeverityLevel] = useState('LEVEL_4_MODERATELY_SEVERE');
+  const [roleCopingLevel, setRoleCopingLevel] = useState('LEVEL_4_INADEQUATE');
+  const [rolePatientReported, setRolePatientReported] = useState('Unable to work or guide children safely.');
+  const [roleMswObs, setRoleMswObs] = useState('Severe breadwinner role strain; spouse forced into informal work.');
 
-  // Total Risk Formula: (Average Severity * 8.5) + (Average Coping * 5.0)
-  const totalRisk = Number(((averageSeverity * 8.5) + (averageCoping * 5.0)).toFixed(1));
+  const [envSeverityLevel, setEnvSeverityLevel] = useState('LEVEL_4_MODERATELY_SEVERE');
+  const [envPatientReported, setEnvPatientReported] = useState('Congested rental room with communal water facility.');
+  const [envMswObs, setEnvMswObs] = useState('Substandard dwelling conditions with high vulnerability to economic shocks.');
 
-  // Total Household Income
+  // Backend Live Evaluation State & Assessment ID
+  const [assessmentId, setAssessmentId] = useState<string | null>(null);
+  const [workflowStatus, setWorkflowStatus] = useState<string>('DRAFT');
+  const [backendEval, setBackendEval] = useState<any>(null);
+  const [isEvaluating, setIsEvaluating] = useState(false);
+  const [evalError, setEvalError] = useState<string | null>(null);
+
+  // Total Household Income (Derived from Stage 1 Informant + Patient + Family Members)
   const totalHouseholdIncome = Number(infIncome || 0) + Number(patIncome || 0) +
     familyMembers.reduce((acc, f) => acc + (Number(f.income) || 0), 0);
 
-  // Evaluate MSW Classification based on Trigger Condition rubric:
-  // 1. Indigent: Average Severity >= 3.8 OR Average Coping >= 3.8 OR Total Risk >= 65.0% (or Total Household Income <= ₱14,000 on initial load)
-  // 2. Financially Incapacitated (B1): Average Severity >= 2.8 OR Average Coping >= 2.8 OR Total Risk >= 45.0%
-  // 3. Financially Incapacitated (B2): Total Risk >= 30.0% (or Total Household Income <= ₱25,000 on initial load)
-  // 4. Financially Capacitated (Full Pay): All scores below thresholds above
-  let mswClassification = 'Financially Capacitated (Full Pay)';
-  let subsidyLevel = 'Full Pay (Non-Charity)';
-  let badgeColor = 'bg-[#F1F5F9] text-[#475569] border-[#CBD5E1]';
-  let bannerColor = 'bg-[#F8FAFC] border-[#CBD5E1] text-[#334155]';
-
-  if (averageSeverity >= 3.8 || averageCoping >= 3.8 || totalRisk >= 65.0 || totalHouseholdIncome <= 14000) {
-    mswClassification = 'Indigent';
-    subsidyLevel = '100% Full Charity Subsidy';
-    badgeColor = 'bg-[#E8F5EC] text-[#0B6B3A] border-[#86EFAC]';
-    bannerColor = 'bg-[#F0FDF4] border-[#86EFAC] text-[#14532D]';
-  } else if (averageSeverity >= 2.8 || averageCoping >= 2.8 || totalRisk >= 45.0) {
-    mswClassification = 'Financially Incapacitated (B1)';
-    subsidyLevel = 'High Partial Charity Subsidy';
-    badgeColor = 'bg-[#EFF6FF] text-[#1D4ED8] border-[#93C5FD]';
-    bannerColor = 'bg-[#EFF6FF] border-[#BFDBFE] text-[#1E40AF]';
-  } else if (totalRisk >= 30.0 || totalHouseholdIncome <= 25000) {
-    mswClassification = 'Financially Incapacitated (B2)';
-    subsidyLevel = 'Moderate Partial Subsidy';
-    badgeColor = 'bg-[#FFFBEB] text-[#B45309] border-[#FDE68A]';
-    bannerColor = 'bg-[#FFFBEB] border-[#FDE68A] text-[#92400E]';
-  }
+  // Dynamic badge and classification values derived strictly from backend API evaluation result
+  const currentMswClass = backendEval?.msw_classification?.classification || (backendEval?.is_complete ? 'FINANCIALLY_CAPACITATED' : 'INCOMPLETE');
+  const mswClassification = backendEval?.msw_classification?.classification_label || (backendEval?.is_complete ? 'Financially Capacitated' : 'Assessment Incomplete');
+  const subsidyLevel = backendEval?.subsidy_recommendation || (backendEval?.is_complete ? 'Full Pay (0%)' : 'Pending Classification');
+  const averageSeverity = Number(backendEval?.average_severity ?? 0);
+  const averageCoping = Number(backendEval?.average_coping ?? 0);
+  const totalRisk = Number(backendEval?.total_risk ?? 0);
+  const badgeColor = currentMswClass === 'INDIGENT'
+    ? 'bg-[#E8F5EC] text-[#0B6B3A] border-[#86EFAC]'
+    : currentMswClass === 'FINANCIALLY_INCAPACITATED_B1'
+    ? 'bg-[#EFF6FF] text-[#1D4ED8] border-[#93C5FD]'
+    : currentMswClass === 'FINANCIALLY_INCAPACITATED_B2'
+    ? 'bg-[#FFFBEB] text-[#B45309] border-[#FDE68A]'
+    : currentMswClass === 'INCOMPLETE'
+    ? 'bg-amber-50 text-amber-800 border-amber-300'
+    : 'bg-[#F1F5F9] text-[#475569] border-[#CBD5E1]';
+  const bannerColor = currentMswClass === 'INDIGENT'
+    ? 'bg-[#E8F5EC] border-[#86EFAC]'
+    : currentMswClass === 'FINANCIALLY_INCAPACITATED_B1'
+    ? 'bg-[#EFF6FF] border-[#93C5FD]'
+    : currentMswClass === 'FINANCIALLY_INCAPACITATED_B2'
+    ? 'bg-[#FFFBEB] border-[#FDE68A]'
+    : currentMswClass === 'INCOMPLETE'
+    ? 'bg-amber-50 border-amber-300'
+    : 'bg-[#F8FAFC] border-[#CBD5E1]';
 
   // STAGE 3: Supporting Documents Checklist State
   const [docStatuses, setDocStatuses] = useState<Record<string, 'Pending' | 'Submitted' | 'Verified' | 'N/A'>>({
@@ -279,12 +374,6 @@ function MSWAssessmentContent() {
   const MSW_HDRS = { 'x-user-role': 'msw', 'x-user-id': 'msw_lead' };
   const ADMIN_HDRS = { 'x-user-role': 'admin', 'x-user-id': 'admin_officer_01' };
   const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1';
-
-  const [assessmentId, setAssessmentId] = useState<string | null>(null);
-  const [workflowStatus, setWorkflowStatus] = useState<string>('DRAFT');
-  const [backendEval, setBackendEval] = useState<any>(null);
-  const [isEvaluating, setIsEvaluating] = useState(false);
-  const [evalError, setEvalError] = useState<string | null>(null);
 
   // Stage 3 real documents & authenticity state
   const [patientDocs, setPatientDocs] = useState<any[]>([]);
@@ -336,7 +425,14 @@ function MSWAssessmentContent() {
         if (a) {
           setAssessmentId(a.id);
           setWorkflowStatus(a.workflow_status || 'DRAFT');
-          if (a.encounter_no) setApplicationEncounterNo(a.encounter_no);
+          if (a.encounter_no) {
+            // Charity patients use their case number directly without random prefixes or suffixes
+            if (patientIdParam?.startsWith('MSW_FA_')) {
+              setApplicationEncounterNo(patientIdParam);
+            } else {
+              setApplicationEncounterNo(a.encounter_no);
+            }
+          }
           if (a.interview_date) setInterviewDate(a.interview_date);
           if (a.source_of_referral) setSourceOfReferral(a.source_of_referral);
           const s1 = a.stage1_data || {};
@@ -346,14 +442,75 @@ function MSWAssessmentContent() {
           if (s1.informant_income !== undefined) setInfIncome(String(s1.informant_income));
           if (Array.isArray(s1.family_members)) setFamilyMembers(s1.family_members);
           const s2 = a.stage2_data || {};
-          if (Array.isArray(s2.health_factors) && s2.health_factors.length > 0) setHealthFactors(s2.health_factors);
-          if (s2.discrimination_severity !== undefined) setDiscrimSeverity(s2.discrimination_severity);
-          if (s2.discrimination_coping !== undefined) setDiscrimCoping(s2.discrimination_coping);
-          if (s2.safety_severity !== undefined) setSafetySeverity(s2.safety_severity);
-          if (s2.safety_coping !== undefined) setSafetyCoping(s2.safety_coping);
-          if (s2.roles_severity !== undefined) setRoleSeverity(s2.roles_severity);
-          if (s2.roles_coping !== undefined) setRoleCoping(s2.roles_coping);
-          if (s2.environment_severity !== undefined) setEnvSeverity(s2.environment_severity);
+          if (s2.interview_info) {
+            if (s2.interview_info.interview_date) setInterviewDate(s2.interview_info.interview_date);
+            if (s2.interview_info.interview_start_time) setInterviewStartTime(s2.interview_info.interview_start_time);
+            if (s2.interview_info.interview_end_time) setInterviewEndTime(s2.interview_info.interview_end_time);
+            if (s2.interview_info.assigned_msw) setAssignedMsw(s2.interview_info.assigned_msw);
+            if (s2.interview_info.interviewed_person) setInterviewedPerson(s2.interview_info.interviewed_person);
+            if (s2.interview_info.representative_relationship) setRepresentativeRelationship(s2.interview_info.representative_relationship);
+            if (s2.interview_info.interview_method) setInterviewMethod(s2.interview_info.interview_method);
+            if (s2.interview_info.interview_status) setInterviewStatus(s2.interview_info.interview_status);
+            if (s2.interview_info.consent_obtained !== undefined) setConsentObtained(s2.interview_info.consent_obtained);
+            if (s2.interview_info.consent_notes) setConsentNotes(s2.interview_info.consent_notes);
+          }
+          if (s2.background) {
+            if (s2.background.living_situation) setLivingSituation(s2.background.living_situation);
+            if (s2.background.living_situation_obs) setLivingSituationObs(s2.background.living_situation_obs);
+            if (s2.background.household_composition) setHouseholdComposition(s2.background.household_composition);
+            if (s2.background.household_composition_obs) setHouseholdCompositionObs(s2.background.household_composition_obs);
+            if (s2.background.family_support) setFamilySupport(s2.background.family_support);
+            if (s2.background.family_support_obs) setFamilySupportObs(s2.background.family_support_obs);
+            if (s2.background.employment_situation) setEmploymentSituation(s2.background.employment_situation);
+            if (s2.background.employment_obs) setEmploymentObs(s2.background.employment_obs);
+            if (s2.background.income_sources) setIncomeSources(s2.background.income_sources);
+            if (s2.background.income_sources_obs) setIncomeSourcesObs(s2.background.income_sources_obs);
+            if (s2.background.financial_responsibilities) setFinancialResponsibilities(s2.background.financial_responsibilities);
+            if (s2.background.financial_responsibilities_obs) setFinancialResponsibilitiesObs(s2.background.financial_responsibilities_obs);
+          }
+          if (s2.medical_difficulties) {
+            if (s2.medical_difficulties.medical_condition_summary) setMedicalConditionSummary(s2.medical_difficulties.medical_condition_summary);
+            if (s2.medical_difficulties.medical_condition_obs) setMedicalConditionObs(s2.medical_difficulties.medical_condition_obs);
+            if (s2.medical_difficulties.problem_duration) setDurationProblems(s2.medical_difficulties.problem_duration);
+            if (s2.medical_difficulties.previous_treatments) setPreviousTreatment(s2.medical_difficulties.previous_treatments);
+            if (s2.medical_difficulties.recommended_procedure) setPresentTreatmentPlan(s2.medical_difficulties.recommended_procedure);
+            if (s2.medical_difficulties.estimated_treatment_expenses) setEstimatedExpenses(String(s2.medical_difficulties.estimated_treatment_expenses));
+            if (s2.medical_difficulties.financial_barriers) setFinancialBarriers(s2.medical_difficulties.financial_barriers);
+            if (s2.medical_difficulties.financial_barriers_obs) setFinancialBarriersObs(s2.medical_difficulties.financial_barriers_obs);
+            if (s2.medical_difficulties.service_accessibility) setHealthAccessibilityProblem(s2.medical_difficulties.service_accessibility);
+            if (s2.medical_difficulties.available_healthcare_resources) setAvailableHealthcareResources(s2.medical_difficulties.available_healthcare_resources);
+          }
+          if (s2.psychosocial) {
+            if (s2.psychosocial.accessibility_concerns) setAccessibilityConcerns(s2.psychosocial.accessibility_concerns);
+            if (s2.psychosocial.discrimination_experienced) setDiscriminationExperienced(s2.psychosocial.discrimination_experienced);
+            if (s2.psychosocial.discrimination_obs) setDiscriminationObs(s2.psychosocial.discrimination_obs);
+            if (s2.psychosocial.safety_hazards) setSafetyHazards(s2.psychosocial.safety_hazards);
+            if (s2.psychosocial.safety_hazards_obs) setSafetyHazardsObs(s2.psychosocial.safety_hazards_obs);
+            if (s2.psychosocial.social_responsibilities) setSocialResponsibilities(s2.psychosocial.social_responsibilities);
+            if (s2.psychosocial.social_responsibilities_obs) setSocialResponsibilitiesObs(s2.psychosocial.social_responsibilities_obs);
+            if (s2.psychosocial.support_systems) setSupportSystems(s2.psychosocial.support_systems);
+            if (s2.psychosocial.support_systems_obs) setSupportSystemsObs(s2.psychosocial.support_systems_obs);
+            if (s2.psychosocial.basic_needs_living_conditions) setBasicNeedsLivingConditions(s2.psychosocial.basic_needs_living_conditions);
+            if (s2.psychosocial.basic_needs_obs) setBasicNeedsObs(s2.psychosocial.basic_needs_obs);
+            if (s2.psychosocial.coping_capacity_narrative) setCopingCapacityNarrative(s2.psychosocial.coping_capacity_narrative);
+            if (s2.psychosocial.coping_capacity_obs) setCopingCapacityObs(s2.psychosocial.coping_capacity_obs);
+          }
+          if (Array.isArray(s2.health_factors) && s2.health_factors.length > 0) {
+            setHealthFactors(s2.health_factors.map((hf: any) => ({
+              factor: hf.factor,
+              severityLevel: hf.severity_level || (hf.severity ? `LEVEL_${hf.severity}_${hf.severity <= 2 ? 'MILD' : hf.severity <= 4 ? 'MODERATE' : 'SEVERE'}` : 'LEVEL_3_MODERATE'),
+              copingLevel: hf.coping_level || (hf.coping ? `LEVEL_${hf.coping}_${hf.coping <= 2 ? 'ADEQUATE' : hf.coping <= 4 ? 'INADEQUATE' : 'CRISIS'}` : 'LEVEL_3_VULNERABLE'),
+              patientReported: hf.patient_reported || hf.obs || '',
+              mswObservation: hf.msw_observation || hf.obs || '',
+            })));
+          }
+          if (s2.discrimination_severity_level) setDiscrimSeverityLevel(s2.discrimination_severity_level);
+          if (s2.discrimination_coping_level) setDiscrimCopingLevel(s2.discrimination_coping_level);
+          if (s2.safety_severity_level) setSafetySeverityLevel(s2.safety_severity_level);
+          if (s2.safety_coping_level) setSafetyCopingLevel(s2.safety_coping_level);
+          if (s2.roles_severity_level) setRoleSeverityLevel(s2.roles_severity_level);
+          if (s2.roles_coping_level) setRoleCopingLevel(s2.roles_coping_level);
+          if (s2.environment_severity_level) setEnvSeverityLevel(s2.environment_severity_level);
           if (a.classification_result) setBackendEval(a.classification_result);
           if (Array.isArray(a.history)) setAssessmentHistory(a.history);
           if (a.msw_recommendation?.case_notes) setMswCaseNotes(a.msw_recommendation.case_notes);
@@ -385,34 +542,97 @@ function MSWAssessmentContent() {
     }
   }, [inspectDoc, dossierOpen]);
 
-  // Backend-authoritative OFPHIL classification evaluation
+  // Backend-authoritative OFPHIL Stage 2 Interview Assessment Evaluation
   const runBackendClassification = async () => {
     const hs = Math.max(1, familyMembers.length + 1);
     const inc = Math.max(0, totalHouseholdIncome);
-    const hSevAvg = healthFactors.reduce((acc, h) => acc + h.severity, 0) / Math.max(1, healthFactors.length);
-    const hCopAvg = healthFactors.reduce((acc, h) => acc + h.coping, 0) / Math.max(1, healthFactors.length);
     setIsEvaluating(true);
     setEvalError(null);
     try {
-      const res = await fetchApi('/classification/evaluate', {
+      const res = await fetchApi('/classification/evaluate-stage2', {
         method: 'POST',
         headers: MSW_HDRS,
         body: JSON.stringify({
-          total_monthly_household_income: inc,
+          patient_id: patientIdParam,
+          total_household_income: inc,
           household_size: hs,
-          is_initial_load: false,
+          is_initial_load: true,
           assessment_context: 'live_recalculation',
-          factors: {
-            health_severity_avg: Number(hSevAvg.toFixed(2)),
-            discrimination_severity: discrimSeverity,
-            safety_severity: safetySeverity,
-            roles_severity: roleSeverity,
-            environment_severity: envSeverity,
-            health_coping_avg: Number(hCopAvg.toFixed(2)),
-            discrimination_coping: discrimCoping,
-            safety_coping: safetyCoping,
-            roles_coping: roleCoping,
+          interview_info: {
+            interview_date: interviewDate,
+            interview_start_time: interviewStartTime,
+            interview_end_time: interviewEndTime,
+            assigned_msw: assignedMsw,
+            interviewed_person: interviewedPerson,
+            representative_relationship: representativeRelationship,
+            interview_method: interviewMethod,
+            interview_status: interviewStatus,
+            consent_obtained: consentObtained,
+            consent_notes: consentNotes,
           },
+          background: {
+            living_situation: livingSituation,
+            living_situation_obs: livingSituationObs,
+            household_composition: householdComposition,
+            household_composition_obs: householdCompositionObs,
+            family_support: familySupport,
+            family_support_obs: familySupportObs,
+            employment_situation: employmentSituation,
+            employment_obs: employmentObs,
+            income_sources: incomeSources,
+            income_sources_obs: incomeSourcesObs,
+            financial_responsibilities: financialResponsibilities,
+            financial_responsibilities_obs: financialResponsibilitiesObs,
+          },
+          medical_difficulties: {
+            medical_condition_summary: medicalConditionSummary,
+            medical_condition_obs: medicalConditionObs,
+            problem_duration: durationProblems,
+            previous_treatments: previousTreatment,
+            recommended_procedure: presentTreatmentPlan,
+            estimated_treatment_expenses: estimatedExpenses ? Number(estimatedExpenses) : 11600,
+            financial_barriers: financialBarriers,
+            financial_barriers_obs: financialBarriersObs,
+            service_accessibility: healthAccessibilityProblem,
+            available_healthcare_resources: availableHealthcareResources,
+          },
+          psychosocial: {
+            accessibility_concerns: accessibilityConcerns,
+            discrimination_experienced: discriminationExperienced,
+            discrimination_obs: discriminationObs,
+            safety_hazards: safetyHazards,
+            safety_hazards_obs: safetyHazardsObs,
+            social_responsibilities: socialResponsibilities,
+            social_responsibilities_obs: socialResponsibilitiesObs,
+            support_systems: supportSystems,
+            support_systems_obs: supportSystemsObs,
+            basic_needs_living_conditions: basicNeedsLivingConditions,
+            basic_needs_obs: basicNeedsObs,
+            coping_capacity_narrative: copingCapacityNarrative,
+            coping_capacity_obs: copingCapacityObs,
+          },
+          health_factors: healthFactors.map((hf) => ({
+            factor: hf.factor,
+            severity_level: hf.severityLevel,
+            coping_level: hf.copingLevel,
+            patient_reported: hf.patientReported,
+            msw_observation: hf.mswObservation,
+          })),
+          discrimination_severity_level: discrimSeverityLevel,
+          discrimination_coping_level: discrimCopingLevel,
+          discrimination_patient_reported: discrimPatientReported,
+          discrimination_msw_observation: discrimMswObs,
+          safety_severity_level: safetySeverityLevel,
+          safety_coping_level: safetyCopingLevel,
+          safety_patient_reported: safetyPatientReported,
+          safety_msw_observation: safetyMswObs,
+          roles_severity_level: roleSeverityLevel,
+          roles_coping_level: roleCopingLevel,
+          roles_patient_reported: rolePatientReported,
+          roles_msw_observation: roleMswObs,
+          environment_severity_level: envSeverityLevel,
+          environment_patient_reported: envPatientReported,
+          environment_msw_observation: envMswObs,
         }),
       });
       setBackendEval(res);
@@ -426,20 +646,117 @@ function MSWAssessmentContent() {
   useEffect(() => {
     const t = setTimeout(() => {
       runBackendClassification();
-    }, 350);
+    }, 400);
     return () => clearTimeout(t);
   }, [
     totalHouseholdIncome,
     familyMembers.length,
+    interviewDate,
+    interviewStartTime,
+    interviewEndTime,
+    assignedMsw,
+    interviewedPerson,
     healthFactors,
-    discrimSeverity,
-    discrimCoping,
-    safetySeverity,
-    safetyCoping,
-    roleSeverity,
-    roleCoping,
-    envSeverity,
+    discrimSeverityLevel,
+    discrimCopingLevel,
+    safetySeverityLevel,
+    safetyCopingLevel,
+    roleSeverityLevel,
+    roleCopingLevel,
+    envSeverityLevel,
   ]);
+
+  const handleSaveInterviewDraft = async (markCompleted: boolean = false) => {
+    setIsSavingInterview(true);
+    try {
+      let id = assessmentId;
+      if (!id) {
+        id = await saveDraftToBackend(true);
+      }
+      if (id) {
+        await fetchApi(`/assessments/${id}/interview`, {
+          method: 'POST',
+          headers: MSW_HDRS,
+          body: JSON.stringify({
+            interview_info: {
+              interview_date: interviewDate,
+              interview_start_time: interviewStartTime,
+              interview_end_time: interviewEndTime,
+              assigned_msw: assignedMsw,
+              interviewed_person: interviewedPerson,
+              representative_relationship: representativeRelationship,
+              interview_method: interviewMethod,
+              interview_status: markCompleted ? 'COMPLETED' : interviewStatus,
+              consent_obtained: consentObtained,
+              consent_notes: consentNotes,
+            },
+            background: {
+              living_situation: livingSituation,
+              living_situation_obs: livingSituationObs,
+              household_composition: householdComposition,
+              household_composition_obs: householdCompositionObs,
+              family_support: familySupport,
+              family_support_obs: familySupportObs,
+              employment_situation: employmentSituation,
+              employment_obs: employmentObs,
+              income_sources: incomeSources,
+              income_sources_obs: incomeSourcesObs,
+              financial_responsibilities: financialResponsibilities,
+              financial_responsibilities_obs: financialResponsibilitiesObs,
+            },
+            medical_difficulties: {
+              medical_condition_summary: medicalConditionSummary,
+              medical_condition_obs: medicalConditionObs,
+              problem_duration: durationProblems,
+              previous_treatments: previousTreatment,
+              recommended_procedure: presentTreatmentPlan,
+              estimated_treatment_expenses: estimatedExpenses ? Number(estimatedExpenses) : 11600,
+              financial_barriers: financialBarriers,
+              financial_barriers_obs: financialBarriersObs,
+              service_accessibility: healthAccessibilityProblem,
+              available_healthcare_resources: availableHealthcareResources,
+            },
+            psychosocial: {
+              accessibility_concerns: accessibilityConcerns,
+              discrimination_experienced: discriminationExperienced,
+              discrimination_obs: discriminationObs,
+              safety_hazards: safetyHazards,
+              safety_hazards_obs: safetyHazardsObs,
+              social_responsibilities: socialResponsibilities,
+              social_responsibilities_obs: socialResponsibilitiesObs,
+              support_systems: supportSystems,
+              support_systems_obs: supportSystemsObs,
+              basic_needs_living_conditions: basicNeedsLivingConditions,
+              basic_needs_obs: basicNeedsObs,
+              coping_capacity_narrative: copingCapacityNarrative,
+              coping_capacity_obs: copingCapacityObs,
+            },
+            health_factors: healthFactors.map((hf) => ({
+              factor: hf.factor,
+              severity_level: hf.severityLevel,
+              coping_level: hf.copingLevel,
+              patient_reported: hf.patientReported,
+              msw_observation: hf.mswObservation,
+            })),
+            notes: consentNotes,
+            mark_completed: markCompleted,
+          }),
+        });
+        if (markCompleted) {
+          setInterviewStatus('COMPLETED');
+          toast.success('MSW Interview marked as Completed and logged in official audit record!');
+        } else {
+          toast.success('MSW Clinical Interview draft saved successfully!');
+        }
+        // Refresh classification
+        runBackendClassification();
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to save interview draft.');
+    } finally {
+      setIsSavingInterview(false);
+    }
+  };
 
   const buildStagePayload = (stageOverride?: number) => ({
     active_stage: stageOverride ?? activeStage,
@@ -464,17 +781,84 @@ function MSWAssessmentContent() {
       treatment_plan: presentTreatmentPlan,
     },
     stage2_data: {
-      health_factors: healthFactors,
-      discrimination_severity: discrimSeverity,
-      discrimination_coping: discrimCoping,
-      safety_severity: safetySeverity,
-      safety_coping: safetyCoping,
-      roles_severity: roleSeverity,
-      roles_coping: roleCoping,
-      environment_severity: envSeverity,
-      average_severity: Number(backendEval?.average_severity ?? averageSeverity),
-      average_coping: Number(backendEval?.average_coping ?? averageCoping),
-      total_risk: Number(backendEval?.total_risk ?? totalRisk),
+      interview_info: {
+        interview_date: interviewDate,
+        interview_start_time: interviewStartTime,
+        interview_end_time: interviewEndTime,
+        assigned_msw: assignedMsw,
+        interviewed_person: interviewedPerson,
+        representative_relationship: representativeRelationship,
+        interview_method: interviewMethod,
+        interview_status: interviewStatus,
+        consent_obtained: consentObtained,
+        consent_notes: consentNotes,
+      },
+      background: {
+        living_situation: livingSituation,
+        living_situation_obs: livingSituationObs,
+        household_composition: householdComposition,
+        household_composition_obs: householdCompositionObs,
+        family_support: familySupport,
+        family_support_obs: familySupportObs,
+        employment_situation: employmentSituation,
+        employment_obs: employmentObs,
+        income_sources: incomeSources,
+        income_sources_obs: incomeSourcesObs,
+        financial_responsibilities: financialResponsibilities,
+        financial_responsibilities_obs: financialResponsibilitiesObs,
+      },
+      medical_difficulties: {
+        medical_condition_summary: medicalConditionSummary,
+        medical_condition_obs: medicalConditionObs,
+        problem_duration: durationProblems,
+        previous_treatments: previousTreatment,
+        recommended_procedure: presentTreatmentPlan,
+        estimated_treatment_expenses: estimatedExpenses ? Number(estimatedExpenses) : 11600,
+        financial_barriers: financialBarriers,
+        financial_barriers_obs: financialBarriersObs,
+        service_accessibility: healthAccessibilityProblem,
+        available_healthcare_resources: availableHealthcareResources,
+      },
+      psychosocial: {
+        accessibility_concerns: accessibilityConcerns,
+        discrimination_experienced: discriminationExperienced,
+        discrimination_obs: discriminationObs,
+        safety_hazards: safetyHazards,
+        safety_hazards_obs: safetyHazardsObs,
+        social_responsibilities: socialResponsibilities,
+        social_responsibilities_obs: socialResponsibilitiesObs,
+        support_systems: supportSystems,
+        support_systems_obs: supportSystemsObs,
+        basic_needs_living_conditions: basicNeedsLivingConditions,
+        basic_needs_obs: basicNeedsObs,
+        coping_capacity_narrative: copingCapacityNarrative,
+        coping_capacity_obs: copingCapacityObs,
+      },
+      health_factors: healthFactors.map((hf) => ({
+        factor: hf.factor,
+        severity_level: hf.severityLevel,
+        coping_level: hf.copingLevel,
+        patient_reported: hf.patientReported,
+        msw_observation: hf.mswObservation,
+      })),
+      discrimination_severity_level: discrimSeverityLevel,
+      discrimination_coping_level: discrimCopingLevel,
+      discrimination_patient_reported: discrimPatientReported,
+      discrimination_msw_observation: discrimMswObs,
+      safety_severity_level: safetySeverityLevel,
+      safety_coping_level: safetyCopingLevel,
+      safety_patient_reported: safetyPatientReported,
+      safety_msw_observation: safetyMswObs,
+      roles_severity_level: roleSeverityLevel,
+      roles_coping_level: roleCopingLevel,
+      roles_patient_reported: rolePatientReported,
+      roles_msw_observation: roleMswObs,
+      environment_severity_level: envSeverityLevel,
+      environment_patient_reported: envPatientReported,
+      environment_msw_observation: envMswObs,
+      average_severity: backendEval?.average_severity,
+      average_coping: backendEval?.average_coping,
+      total_risk: backendEval?.total_risk,
     },
     stage3_documents: patientDocs.map((d) => d.id),
   });
@@ -852,8 +1236,12 @@ function MSWAssessmentContent() {
 
             {/* Application Encounter Badge */}
             <div className="p-3 bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl text-right shrink-0">
-              <div className="text-[10px] font-bold uppercase text-[#64748B]">APPLICATION ENCOUNTER NO.</div>
-              <div className="font-mono font-bold text-sm text-[#0B6B3A]">{applicationEncounterNo}</div>
+              <div className="text-[10px] font-bold uppercase text-[#64748B]">
+                {patientIdParam?.startsWith('MSW_FA_') ? 'CHARITY CASE NO.' : 'APPLICATION ENCOUNTER NO.'}
+              </div>
+              <div className="font-mono font-bold text-sm text-[#0B6B3A]">
+                {patientIdParam?.startsWith('MSW_FA_') ? patientIdParam : applicationEncounterNo}
+              </div>
               <div className="text-[10.5px] text-[#0B6B3A] font-semibold mt-0.5">
                 Patient ID: <strong>{patientIdParam}</strong>
               </div>
@@ -1531,66 +1919,661 @@ function MSWAssessmentContent() {
           )}
 
           {/* ========================================================
-              STAGE 2: MSW ASSESSMENT & CLINICAL DATA (Image 3)
+              STAGE 2: MSW ASSESSMENT & CLINICAL DATA
              ======================================================== */}
           {activeStage === 2 && (
             <div className="space-y-6">
-              {/* Interview Meta Bar */}
-              <div className="p-3 bg-[#FAFBF8] border border-[#E2E8F0] rounded-xl grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
+              {/* STAGE 2 ACTION & STATUS TOOLBAR */}
+              <div className="p-4 rounded-xl border border-[#0B6B3A]/30 bg-[#F0FDF4] flex flex-wrap items-center justify-between gap-3 shadow-xs">
                 <div>
-                  <label className="block text-[10px] font-bold text-[#64748B] uppercase">MSW NUMBER *</label>
-                  <input
-                    type="text"
-                    value={mswNumber}
-                    readOnly
-                    className="w-full h-8 px-2.5 font-mono font-bold text-[#0B6B3A] bg-white border border-[#CBD5E1] rounded"
-                  />
+                  <div className="flex items-center gap-2">
+                    <span className="font-['Outfit'] font-bold text-sm text-[#14532D]">
+                      Stage 2: Structured MSW Clinical Intake Interview &amp; Assessment
+                    </span>
+                    <span
+                      className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                        interviewStatus === 'COMPLETED'
+                          ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                          : interviewStatus === 'IN_PROGRESS'
+                          ? 'bg-blue-100 text-blue-800 border-blue-300'
+                          : 'bg-amber-100 text-amber-800 border-amber-300'
+                      }`}
+                    >
+                      {interviewStatus === 'COMPLETED'
+                        ? 'Interview Completed'
+                        : interviewStatus === 'IN_PROGRESS'
+                        ? 'Interview In Progress'
+                        : 'Interview Not Started'}
+                    </span>
+                  </div>
+                  <p className="text-[11.5px] text-[#166534] mt-0.5 mb-0">
+                    Interview-driven clinical casework. Document patient disclosures and MSW professional observations; backend API computes deterministic classification without manual scoring.
+                  </p>
                 </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-[#64748B] uppercase">DATE OF INTERVIEW *</label>
-                  <input
-                    type="text"
-                    value={interviewDate}
-                    onChange={(e) => setInterviewDate(e.target.value)}
-                    className="w-full h-8 px-2.5 bg-white border border-[#CBD5E1] rounded"
-                  />
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsReviewMode(!isReviewMode)}
+                    className="px-3 py-1.5 rounded-lg border border-[#CBD5E1] bg-white hover:bg-[#F8FAFC] text-xs font-semibold text-[#334155] transition flex items-center gap-1.5 shadow-2xs"
+                  >
+                    <i className={`fa-solid ${isReviewMode ? 'fa-pen-to-square' : 'fa-clipboard-check'} text-[11px] text-[#0B6B3A]`} />
+                    <span>{isReviewMode ? 'Switch to Edit Form' : 'Review Interview Summary'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleSaveInterviewDraft(false)}
+                    disabled={isSavingInterview}
+                    className="px-3 py-1.5 rounded-lg border border-[#86EFAC] bg-white hover:bg-emerald-50 text-xs font-semibold text-[#0B6B3A] transition flex items-center gap-1.5 shadow-2xs"
+                  >
+                    {isSavingInterview ? (
+                      <i className="fa-solid fa-circle-notch fa-spin text-[11px]" />
+                    ) : (
+                      <i className="fa-solid fa-floppy-disk text-[11px]" />
+                    )}
+                    <span>Save Draft</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleSaveInterviewDraft(true)}
+                    disabled={isSavingInterview}
+                    className="px-3.5 py-1.5 rounded-lg bg-[#0B6B3A] hover:bg-[#064826] text-white text-xs font-bold transition flex items-center gap-1.5 shadow-xs"
+                  >
+                    <i className="fa-solid fa-check text-[11px]" />
+                    <span>Mark Completed</span>
+                  </button>
                 </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-[#64748B] uppercase">TIME STARTED / ENDED</label>
-                  <div className="flex gap-1.5">
-                    <input
-                      type="text"
-                      value={timeStarted}
-                      onChange={(e) => setTimeStarted(e.target.value)}
-                      className="w-full h-8 px-2 bg-white border border-[#CBD5E1] rounded text-[11px]"
-                    />
-                    <input
-                      type="text"
-                      value={timeEnded}
-                      onChange={(e) => setTimeEnded(e.target.value)}
-                      className="w-full h-8 px-2 bg-white border border-[#CBD5E1] rounded text-[11px]"
-                    />
+              </div>
+
+              {/* REVIEW MODE AUDIT SUMMARY VIEW */}
+              {isReviewMode ? (
+                <div className="space-y-4 p-5 bg-white border border-[#CBD5E1] rounded-2xl shadow-xs">
+                  <div className="flex items-center justify-between pb-3 border-b border-[#E2E8F0]">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-[#0B6B3A] text-white flex items-center justify-center text-sm font-bold">
+                        <i className="fa-solid fa-file-invoice" />
+                      </div>
+                      <div>
+                        <h4 className="font-['Outfit'] font-bold text-sm text-[#10241A] m-0">
+                          MSW Clinical Intake &amp; Assessment Dossier Review
+                        </h4>
+                        <p className="text-[11px] text-[#5A7466] m-0">
+                          Official Casework Audit &amp; Evidentiary Separation Review
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-xs font-mono text-[#64748B]">
+                      Assigned MSW: <strong>{assignedMsw}</strong> | Date: <strong>{interviewDate}</strong>
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Patient Disclosures Column */}
+                    <div className="p-4 bg-[#F8FAFC] border border-blue-200 rounded-xl space-y-3">
+                      <div className="flex items-center gap-2 text-blue-900 font-bold text-xs pb-2 border-b border-blue-200">
+                        <i className="fa-solid fa-user-tag text-blue-600" />
+                        <span>Patient / Representative Disclosed Responses</span>
+                      </div>
+                      <div className="text-xs space-y-2 text-[#334155]">
+                        <div><strong className="text-slate-700">Interviewed:</strong> {interviewedPerson} {representativeRelationship ? `(${representativeRelationship})` : ''}</div>
+                        <div><strong className="text-slate-700">Living Situation:</strong> {livingSituation}</div>
+                        <div><strong className="text-slate-700">Household Composition:</strong> {householdComposition}</div>
+                        <div><strong className="text-slate-700">Employment &amp; Income:</strong> {employmentSituation} — {incomeSources}</div>
+                        <div><strong className="text-slate-700">Medical Condition:</strong> {medicalConditionSummary}</div>
+                        <div><strong className="text-slate-700">Financial Barriers:</strong> {financialBarriers}</div>
+                        <div><strong className="text-slate-700">Psychosocial &amp; Coping:</strong> {copingCapacityNarrative}</div>
+                      </div>
+                    </div>
+
+                    {/* MSW Observations Column */}
+                    <div className="p-4 bg-[#F0FDF4] border border-emerald-200 rounded-xl space-y-3">
+                      <div className="flex items-center gap-2 text-emerald-900 font-bold text-xs pb-2 border-b border-emerald-200">
+                        <i className="fa-solid fa-user-doctor text-emerald-600" />
+                        <span>MSW Professional Clinical Observations</span>
+                      </div>
+                      <div className="text-xs space-y-2 text-[#14532D]">
+                        <div><strong className="text-[#166534]">Interview Method:</strong> {interviewMethod.replace(/_/g, ' ')} ({interviewStartTime} - {interviewEndTime})</div>
+                        <div><strong className="text-[#166534]">Living Quarters Finding:</strong> {livingSituationObs}</div>
+                        <div><strong className="text-[#166534]">Dependents Vulnerability:</strong> {householdCompositionObs}</div>
+                        <div><strong className="text-[#166534]">Livelihood Assessment:</strong> {employmentObs}</div>
+                        <div><strong className="text-[#166534]">Clinical Need &amp; Risk:</strong> {medicalConditionObs}</div>
+                        <div><strong className="text-[#166534]">Economic Out-of-Pocket Burden:</strong> {financialBarriersObs}</div>
+                        <div><strong className="text-[#166534]">Psychological Resilience:</strong> {copingCapacityObs}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-[#E2E8F0] flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsReviewMode(false)}
+                      className="px-4 py-2 rounded-xl bg-white border border-[#CBD5E1] text-xs font-semibold text-[#334155] hover:bg-slate-50"
+                    >
+                      Return to Edit Form
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveStage(3)}
+                      className="px-4 py-2 rounded-xl bg-[#0B6B3A] text-white text-xs font-bold hover:bg-[#064826]"
+                    >
+                      Proceed to Supporting Documents (Stage 3) &rarr;
+                    </button>
                   </div>
                 </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-[#64748B] uppercase">SOURCE OF REFERRAL</label>
+              ) : null}
+
+              {/* SECTION II-A: ADMINISTRATIVE INTERVIEW DETAILS */}
+              <div className="p-4 rounded-xl border border-[#E2E8F0] bg-white space-y-4">
+                <div className="flex items-center justify-between pb-2 border-b border-[#EEF2EF]">
+                  <span className="font-bold text-xs text-[#0B6B3A] flex items-center gap-1.5 uppercase tracking-wide">
+                    <i className="fa-solid fa-id-card-clip text-sm" />
+                    <span>II-A. MSW Clinical Intake &amp; Interview Information</span>
+                  </span>
+                  <span className="text-[10px] font-bold uppercase text-[#0B6B3A] bg-[#E8F5EC] px-2 py-0.5 rounded">
+                    ADMINISTRATIVE DATA
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                  <div>
+                    <label className="block text-[10px] font-bold text-[#64748B] uppercase mb-1">MSW NUMBER *</label>
+                    <input
+                      type="text"
+                      value={mswNumber}
+                      readOnly
+                      className="w-full h-8 px-2.5 font-mono font-bold text-[#0B6B3A] bg-[#FAFBF8] border border-[#CBD5E1] rounded"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-[#64748B] uppercase mb-1">ASSIGNED MSW *</label>
+                    <input
+                      type="text"
+                      value={assignedMsw}
+                      onChange={(e) => setAssignedMsw(e.target.value)}
+                      className="w-full h-8 px-2.5 bg-white border border-[#CBD5E1] rounded font-semibold text-[#10241A]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-[#64748B] uppercase mb-1">DATE OF INTERVIEW *</label>
+                    <input
+                      type="date"
+                      value={interviewDate}
+                      onChange={(e) => setInterviewDate(e.target.value)}
+                      className="w-full h-8 px-2.5 bg-white border border-[#CBD5E1] rounded"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-[#64748B] uppercase mb-1">START / END TIME</label>
+                    <div className="flex gap-1.5">
+                      <input
+                        type="text"
+                        value={interviewStartTime}
+                        onChange={(e) => setInterviewStartTime(e.target.value)}
+                        placeholder="Start"
+                        className="w-full h-8 px-2 bg-white border border-[#CBD5E1] rounded text-[11px]"
+                      />
+                      <input
+                        type="text"
+                        value={interviewEndTime}
+                        onChange={(e) => setInterviewEndTime(e.target.value)}
+                        placeholder="End"
+                        className="w-full h-8 px-2 bg-white border border-[#CBD5E1] rounded text-[11px]"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs pt-2 border-t border-[#EEF2EF]">
+                  <div>
+                    <label className="block text-[10px] font-bold text-[#64748B] uppercase mb-1">INTERVIEWED PERSON *</label>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setInterviewedPerson('PATIENT')}
+                        className={`flex-1 h-8 rounded border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                          interviewedPerson === 'PATIENT'
+                            ? 'bg-[#0B6B3A] text-white border-[#0B6B3A]'
+                            : 'bg-white text-[#475569] border-[#CBD5E1]'
+                        }`}
+                      >
+                        <i className="fa-solid fa-user text-[10px]" />
+                        <span>Patient</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setInterviewedPerson('REPRESENTATIVE')}
+                        className={`flex-1 h-8 rounded border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                          interviewedPerson === 'REPRESENTATIVE'
+                            ? 'bg-[#0B6B3A] text-white border-[#0B6B3A]'
+                            : 'bg-white text-[#475569] border-[#CBD5E1]'
+                        }`}
+                      >
+                        <i className="fa-solid fa-users text-[10px]" />
+                        <span>Representative</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-[#64748B] uppercase mb-1">
+                      REPRESENTATIVE RELATIONSHIP {interviewedPerson === 'REPRESENTATIVE' ? '*' : '(IF APPLICABLE)'}
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Spouse / Eldest Daughter / Sibling"
+                      value={representativeRelationship}
+                      onChange={(e) => setRepresentativeRelationship(e.target.value)}
+                      disabled={interviewedPerson === 'PATIENT'}
+                      className="w-full h-8 px-2.5 bg-white border border-[#CBD5E1] rounded disabled:bg-slate-100 disabled:text-slate-400"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-[#64748B] uppercase mb-1">INTERVIEW METHOD *</label>
+                    <select
+                      value={interviewMethod}
+                      onChange={(e: any) => setInterviewMethod(e.target.value)}
+                      className="w-full h-8 px-2 bg-white border border-[#CBD5E1] rounded font-semibold text-[#10241A]"
+                    >
+                      <option value="FACE_TO_FACE">Face-to-Face (Eye Center Clinic)</option>
+                      <option value="TELECONSULTATION">Teleconsultation / Video Intake</option>
+                      <option value="HOSPITAL_BEDSIDE">Hospital Bedside Intake</option>
+                      <option value="HOME_VISIT">Home Visit / Field Casework</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Consent & Acknowledgment Status */}
+                <div className="p-3 bg-[#FAFBF8] border border-[#E2E8F0] rounded-lg text-xs space-y-2">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="consentCheck"
+                      checked={consentObtained}
+                      onChange={(e) => setConsentObtained(e.target.checked)}
+                      className="w-4 h-4 text-[#0B6B3A] border-[#CBD5E1] rounded focus:ring-0"
+                    />
+                    <label htmlFor="consentCheck" className="font-bold text-[#10241A] cursor-pointer">
+                      Informed Social Work Consent, Voluntary Disclosure &amp; Data Privacy Acknowledgment Confirmed
+                    </label>
+                  </div>
                   <input
                     type="text"
-                    value={sourceOfReferral}
-                    onChange={(e) => setSourceOfReferral(e.target.value)}
-                    className="w-full h-8 px-2.5 bg-white border border-[#CBD5E1] rounded font-semibold text-[#10241A]"
+                    value={consentNotes}
+                    onChange={(e) => setConsentNotes(e.target.value)}
+                    placeholder="Consent documentation reference or patient acknowledgment notes..."
+                    className="w-full h-7 px-2.5 bg-white border border-[#CBD5E1] rounded text-[11px]"
                   />
                 </div>
               </div>
 
-              {/* IV. MEDICAL DATA */}
+              {/* SECTION II-B: PATIENT & FAMILY BACKGROUND (SEPARATED RESPONSES & MSW OBSERVATIONS) */}
+              <div className="p-4 rounded-xl border border-[#E2E8F0] bg-white space-y-4">
+                <div className="flex items-center justify-between pb-2 border-b border-[#EEF2EF]">
+                  <div>
+                    <span className="font-bold text-xs text-[#0B6B3A] flex items-center gap-1.5 uppercase tracking-wide">
+                      <i className="fa-solid fa-people-roof text-sm" />
+                      <span>II-B. Patient &amp; Family Background</span>
+                    </span>
+                    <p className="text-[11px] text-[#5A7466] mt-0.5 mb-0">
+                      Dual-source documentation: Left column records patient disclosures; right column records verified clinical observations.
+                    </p>
+                  </div>
+                  <span className="text-[10px] font-bold uppercase text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                    INTERVIEW DUAL-PANEL
+                  </span>
+                </div>
+
+                <div className="space-y-4">
+                  {/* Living Situation */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="p-3 rounded-lg border border-blue-100 bg-blue-50/40 space-y-1">
+                      <label className="block text-[10.5px] font-bold text-blue-900 uppercase">
+                        1. Living Situation (Patient Disclosure)
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={livingSituation}
+                        onChange={(e) => setLivingSituation(e.target.value)}
+                        placeholder="Patient description of home dwelling, ownership, tenancy, condition..."
+                        className="w-full p-2 bg-white border border-[#CBD5E1] rounded text-xs"
+                      />
+                    </div>
+                    <div className="p-3 rounded-lg border border-emerald-100 bg-[#F0FDF4]/50 space-y-1">
+                      <label className="block text-[10.5px] font-bold text-[#14532D] uppercase">
+                        MSW Clinical Observation &amp; Verification
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={livingSituationObs}
+                        onChange={(e) => setLivingSituationObs(e.target.value)}
+                        placeholder="Objective findings, barangay verification, physical environment notes..."
+                        className="w-full p-2 bg-white border border-[#CBD5E1] rounded text-xs"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Household Composition */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="p-3 rounded-lg border border-blue-100 bg-blue-50/40 space-y-1">
+                      <label className="block text-[10.5px] font-bold text-blue-900 uppercase">
+                        2. Household Composition &amp; Dependents (Patient Disclosure)
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={householdComposition}
+                        onChange={(e) => setHouseholdComposition(e.target.value)}
+                        placeholder="Members residing in household, school-age children, elderly dependents..."
+                        className="w-full p-2 bg-white border border-[#CBD5E1] rounded text-xs"
+                      />
+                    </div>
+                    <div className="p-3 rounded-lg border border-emerald-100 bg-[#F0FDF4]/50 space-y-1">
+                      <label className="block text-[10.5px] font-bold text-[#14532D] uppercase">
+                        MSW Clinical Observation &amp; Dependent Risk
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={householdCompositionObs}
+                        onChange={(e) => setHouseholdCompositionObs(e.target.value)}
+                        placeholder="Assessment of family dependency ratio, vulnerable minor protection..."
+                        className="w-full p-2 bg-white border border-[#CBD5E1] rounded text-xs"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Family Support */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="p-3 rounded-lg border border-blue-100 bg-blue-50/40 space-y-1">
+                      <label className="block text-[10.5px] font-bold text-blue-900 uppercase">
+                        3. Family Support System (Patient Disclosure)
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={familySupport}
+                        onChange={(e) => setFamilySupport(e.target.value)}
+                        placeholder="Available caregiver assistance, family members assisting with mobility..."
+                        className="w-full p-2 bg-white border border-[#CBD5E1] rounded text-xs"
+                      />
+                    </div>
+                    <div className="p-3 rounded-lg border border-emerald-100 bg-[#F0FDF4]/50 space-y-1">
+                      <label className="block text-[10.5px] font-bold text-[#14532D] uppercase">
+                        MSW Clinical Observation &amp; Caregiver Burden
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={familySupportObs}
+                        onChange={(e) => setFamilySupportObs(e.target.value)}
+                        placeholder="Observed caregiver stress, psychological bandwidth, mobility accompaniment..."
+                        className="w-full p-2 bg-white border border-[#CBD5E1] rounded text-xs"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Current Employment */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="p-3 rounded-lg border border-blue-100 bg-blue-50/40 space-y-1">
+                      <label className="block text-[10.5px] font-bold text-blue-900 uppercase">
+                        4. Current Employment &amp; Livelihood (Patient Disclosure)
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={employmentSituation}
+                        onChange={(e) => setEmploymentSituation(e.target.value)}
+                        placeholder="Current employment status, informal jobs, daily wage, impact of blindness..."
+                        className="w-full p-2 bg-white border border-[#CBD5E1] rounded text-xs"
+                      />
+                    </div>
+                    <div className="p-3 rounded-lg border border-emerald-100 bg-[#F0FDF4]/50 space-y-1">
+                      <label className="block text-[10.5px] font-bold text-[#14532D] uppercase">
+                        MSW Clinical Observation &amp; Productivity Loss
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={employmentObs}
+                        onChange={(e) => setEmploymentObs(e.target.value)}
+                        placeholder="Evaluation of work incapacity directly attributable to ocular disability..."
+                        className="w-full p-2 bg-white border border-[#CBD5E1] rounded text-xs"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Income Sources & Financial Responsibilities */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="p-3 rounded-lg border border-blue-100 bg-blue-50/40 space-y-1">
+                      <label className="block text-[10.5px] font-bold text-blue-900 uppercase">
+                        5. Income Sources &amp; Responsibilities (Patient Disclosure)
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={incomeSources}
+                        onChange={(e) => setIncomeSources(e.target.value)}
+                        placeholder="Reported earnings, informal assistance, debts, rent obligations..."
+                        className="w-full p-2 bg-white border border-[#CBD5E1] rounded text-xs"
+                      />
+                    </div>
+                    <div className="p-3 rounded-lg border border-emerald-100 bg-[#F0FDF4]/50 space-y-1">
+                      <label className="block text-[10.5px] font-bold text-[#14532D] uppercase">
+                        MSW Clinical Observation &amp; Financial Stability
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={financialResponsibilitiesObs}
+                        onChange={(e) => setFinancialResponsibilitiesObs(e.target.value)}
+                        placeholder="Verified per capita threshold, food security risk, emergency liquidity..."
+                        className="w-full p-2 bg-white border border-[#CBD5E1] rounded text-xs"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION II-C: MEDICAL & FINANCIAL DIFFICULTIES */}
+              <div className="p-4 rounded-xl border border-[#E2E8F0] bg-white space-y-4">
+                <div className="flex items-center justify-between pb-2 border-b border-[#EEF2EF]">
+                  <span className="font-bold text-xs text-[#0B6B3A] flex items-center gap-1.5 uppercase tracking-wide">
+                    <i className="fa-solid fa-hand-holding-dollar text-sm" />
+                    <span>II-C. Medical &amp; Financial Difficulties</span>
+                  </span>
+                  <span className="text-[10px] font-bold uppercase text-[#0B6B3A] bg-[#E8F5EC] px-2 py-0.5 rounded">
+                    TREATMENT BARRIERS
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="p-3 rounded-lg border border-blue-100 bg-blue-50/40 space-y-1">
+                    <label className="block text-[10.5px] font-bold text-blue-900 uppercase">
+                      Current Medical Condition (Patient Disclosure)
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={medicalConditionSummary}
+                      onChange={(e) => setMedicalConditionSummary(e.target.value)}
+                      placeholder="Symptoms, vision loss impact on daily tasks..."
+                      className="w-full p-2 bg-white border border-[#CBD5E1] rounded text-xs"
+                    />
+                  </div>
+                  <div className="p-3 rounded-lg border border-emerald-100 bg-[#F0FDF4]/50 space-y-1">
+                    <label className="block text-[10.5px] font-bold text-[#14532D] uppercase">
+                      MSW Clinical Observation &amp; Urgent Procedure Need
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={medicalConditionObs}
+                      onChange={(e) => setMedicalConditionObs(e.target.value)}
+                      placeholder="Clinical referral cross-check, surgical urgency..."
+                      className="w-full p-2 bg-white border border-[#CBD5E1] rounded text-xs"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs pt-2 border-t border-[#EEF2EF]">
+                  <div>
+                    <label className="block text-[10px] font-bold text-[#64748B] uppercase mb-1">DURATION OF PROBLEM</label>
+                    <input
+                      type="text"
+                      value={durationProblems}
+                      onChange={(e) => setDurationProblems(e.target.value)}
+                      placeholder="e.g. 2 years progressive blurring"
+                      className="w-full h-8 px-2.5 bg-white border border-[#CBD5E1] rounded"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-[#64748B] uppercase mb-1">PREVIOUS TREATMENT</label>
+                    <input
+                      type="text"
+                      value={previousTreatment}
+                      onChange={(e) => setPreviousTreatment(e.target.value)}
+                      placeholder="e.g. OTC eyedrops"
+                      className="w-full h-8 px-2.5 bg-white border border-[#CBD5E1] rounded"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-[#64748B] uppercase mb-1">ESTIMATED EXPENSES (PHP)</label>
+                    <input
+                      type="text"
+                      value={estimatedExpenses}
+                      onChange={(e) => setEstimatedExpenses(e.target.value)}
+                      placeholder="e.g. 11600"
+                      className="w-full h-8 px-2.5 bg-white border border-[#CBD5E1] rounded font-bold text-[#0B6B3A]"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="p-3 rounded-lg border border-blue-100 bg-blue-50/40 space-y-1">
+                    <label className="block text-[10.5px] font-bold text-blue-900 uppercase">
+                      Financial Barriers to Treatment (Patient Disclosure)
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={financialBarriers}
+                      onChange={(e) => setFinancialBarriers(e.target.value)}
+                      placeholder="Inability to pay hospital fees, lens costs, transportation..."
+                      className="w-full p-2 bg-white border border-[#CBD5E1] rounded text-xs"
+                    />
+                  </div>
+                  <div className="p-3 rounded-lg border border-emerald-100 bg-[#F0FDF4]/50 space-y-1">
+                    <label className="block text-[10.5px] font-bold text-[#14532D] uppercase">
+                      MSW Clinical Observation &amp; Subsidy Gap
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={financialBarriersObs}
+                      onChange={(e) => setFinancialBarriersObs(e.target.value)}
+                      placeholder="Out-of-pocket proportion relative to total monthly income..."
+                      className="w-full p-2 bg-white border border-[#CBD5E1] rounded text-xs"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION II-D: PSYCHOSOCIAL CIRCUMSTANCES */}
+              <div className="p-4 rounded-xl border border-[#E2E8F0] bg-white space-y-4">
+                <div className="flex items-center justify-between pb-2 border-b border-[#EEF2EF]">
+                  <span className="font-bold text-xs text-[#0B6B3A] flex items-center gap-1.5 uppercase tracking-wide">
+                    <i className="fa-solid fa-brain text-sm" />
+                    <span>II-D. Psychosocial Circumstances</span>
+                  </span>
+                  <span className="text-[10px] font-bold uppercase text-[#0B6B3A] bg-[#E8F5EC] px-2 py-0.5 rounded">
+                    COPING &amp; RESILIENCE
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="p-3 rounded-lg border border-blue-100 bg-blue-50/40 space-y-1">
+                    <label className="block text-[10.5px] font-bold text-blue-900 uppercase">
+                      Stigma / Discrimination Experiences (Patient Disclosure)
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={discriminationExperienced}
+                      onChange={(e) => setDiscriminationExperienced(e.target.value)}
+                      placeholder="Work refusal, social isolation due to visible cataract..."
+                      className="w-full p-2 bg-white border border-[#CBD5E1] rounded text-xs"
+                    />
+                  </div>
+                  <div className="p-3 rounded-lg border border-emerald-100 bg-[#F0FDF4]/50 space-y-1">
+                    <label className="block text-[10.5px] font-bold text-[#14532D] uppercase">
+                      MSW Clinical Observation &amp; Discrimination Burden
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={discriminationObs}
+                      onChange={(e) => setDiscriminationObs(e.target.value)}
+                      placeholder="Observed psychological withdrawal, employment marginalization..."
+                      className="w-full p-2 bg-white border border-[#CBD5E1] rounded text-xs"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="p-3 rounded-lg border border-blue-100 bg-blue-50/40 space-y-1">
+                    <label className="block text-[10.5px] font-bold text-blue-900 uppercase">
+                      Safety Concerns &amp; Fall Hazards (Patient Disclosure)
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={safetyHazards}
+                      onChange={(e) => setSafetyHazards(e.target.value)}
+                      placeholder="Stumbling, cooking hazards, difficulty with stairs/paths..."
+                      className="w-full p-2 bg-white border border-[#CBD5E1] rounded text-xs"
+                    />
+                  </div>
+                  <div className="p-3 rounded-lg border border-emerald-100 bg-[#F0FDF4]/50 space-y-1">
+                    <label className="block text-[10.5px] font-bold text-[#14532D] uppercase">
+                      MSW Clinical Observation &amp; Domestic Trauma Risk
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={safetyHazardsObs}
+                      onChange={(e) => setSafetyHazardsObs(e.target.value)}
+                      placeholder="Physical safety hazards without bilateral stereoscopic restoration..."
+                      className="w-full p-2 bg-white border border-[#CBD5E1] rounded text-xs"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="p-3 rounded-lg border border-blue-100 bg-blue-50/40 space-y-1">
+                    <label className="block text-[10.5px] font-bold text-blue-900 uppercase">
+                      Coping Capacity Narrative (Patient Disclosure)
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={copingCapacityNarrative}
+                      onChange={(e) => setCopingCapacityNarrative(e.target.value)}
+                      placeholder="Emotional coping, faith, family encouragement, daily struggle..."
+                      className="w-full p-2 bg-white border border-[#CBD5E1] rounded text-xs"
+                    />
+                  </div>
+                  <div className="p-3 rounded-lg border border-emerald-100 bg-[#F0FDF4]/50 space-y-1">
+                    <label className="block text-[10.5px] font-bold text-[#14532D] uppercase">
+                      MSW Clinical Observation &amp; Resilience Index
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={copingCapacityObs}
+                      onChange={(e) => setCopingCapacityObs(e.target.value)}
+                      placeholder="Emotional orientation, motivation to regain independence and work..."
+                      className="w-full p-2 bg-white border border-[#CBD5E1] rounded text-xs"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION IV: MEDICAL DATA */}
               <div className="p-4 rounded-xl border border-[#E2E8F0] bg-white space-y-4">
                 <div className="flex items-center justify-between pb-2 border-b border-[#EEF2EF]">
                   <span className="font-bold text-xs text-[#0B6B3A] flex items-center gap-1.5 uppercase tracking-wide">
                     <i className="fa-solid fa-stethoscope text-sm" />
-                    <span>IV. MEDICAL DATA</span>
+                    <span>IV. Medical Data (Diagnostic Profile)</span>
                   </span>
-                  <span className="text-[11px] text-[#94A3B8]">Image 2 Header</span>
+                  <span className="text-[11px] text-[#94A3B8]">Clinical Reference</span>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1600,7 +2583,7 @@ function MSWAssessmentContent() {
                       type="text"
                       value={admittingDiagnosis}
                       onChange={(e) => setAdmittingDiagnosis(e.target.value)}
-                      className="w-full h-10 px-3 border border-[#CBD5E1] rounded-lg text-xs"
+                      className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs"
                     />
                   </div>
                   <div>
@@ -1609,66 +2592,35 @@ function MSWAssessmentContent() {
                       type="text"
                       value={finalDiagnosis}
                       onChange={(e) => setFinalDiagnosis(e.target.value)}
-                      className="w-full h-10 px-3 border border-[#CBD5E1] rounded-lg text-xs"
+                      className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[11px] font-semibold text-[#475569] mb-1">
-                      DURATION OF PROBLEMS / SYMPTOMS
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. 2 years progressive blurring of vision"
-                      value={durationProblems}
-                      onChange={(e) => setDurationProblems(e.target.value)}
-                      className="w-full h-10 px-3 border border-[#CBD5E1] rounded-lg text-xs"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-semibold text-[#475569] mb-1">
-                      PREVIOUS TREATMENT / DURATION
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Eyedrops prescribed by local clinic"
-                      value={previousTreatment}
-                      onChange={(e) => setPreviousTreatment(e.target.value)}
-                      className="w-full h-10 px-3 border border-[#CBD5E1] rounded-lg text-xs"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[11px] font-semibold text-[#475569] mb-1">
-                      PRESENT TREATMENT PLAN
-                    </label>
+                    <label className="block text-[11px] font-semibold text-[#475569] mb-1">PRESENT TREATMENT PLAN</label>
                     <input
                       type="text"
                       value={presentTreatmentPlan}
                       onChange={(e) => setPresentTreatmentPlan(e.target.value)}
-                      className="w-full h-10 px-3 border border-[#CBD5E1] rounded-lg text-xs"
+                      className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs"
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-semibold text-[#475569] mb-1">
-                      HEALTH ACCESSIBILITY PROBLEM
-                    </label>
+                    <label className="block text-[11px] font-semibold text-[#475569] mb-1">HEALTH ACCESSIBILITY PROBLEM</label>
                     <input
                       type="text"
-                      placeholder="e.g. High cost of surgical consumables and lack of local facility"
                       value={healthAccessibilityProblem}
                       onChange={(e) => setHealthAccessibilityProblem(e.target.value)}
-                      className="w-full h-10 px-3 border border-[#CBD5E1] rounded-lg text-xs"
+                      placeholder="e.g. High cost of surgical consumables and lack of local facility"
+                      className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* LIVE DOH-PIE COMPOSITE SCORING & MSW CLASSIFICATION DASHBOARD */}
+              {/* LIVE DOH-PIE COMPOSITE SCORING & MSW CLASSIFICATION DASHBOARD (100% API CALCULATED) */}
               <div className="p-4 rounded-xl border border-[#0B6B3A]/30 bg-[#F0FDF4] space-y-4 shadow-sm">
                 <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-[#BBF7D0]">
                   <div className="flex items-center gap-2">
@@ -1680,39 +2632,74 @@ function MSWAssessmentContent() {
                         Live DOH-PIE Clinical Scoring &amp; Decision Advisory
                       </h4>
                       <p className="text-[11px] text-[#166534] m-0">
-                        Evaluated from live rubric factors and household income thresholds
+                        Deterministically calculated by backend API using approved OFPHIL qualitative rubric mappings
                       </p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-bold text-[#14532D]">MSW Classification:</span>
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold border ${badgeColor} shadow-2xs`}>
-                      {mswClassification}
-                    </span>
-                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-[#0B6B3A] text-white shadow-2xs">
-                      {subsidyLevel}
-                    </span>
+                    {backendEval?.is_complete ? (
+                      <>
+                        <span className="text-[11px] font-bold text-[#14532D]">MSW Classification:</span>
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold border ${badgeColor} shadow-2xs`}>
+                          {mswClassification}
+                        </span>
+                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-[#0B6B3A] text-white shadow-2xs">
+                          {subsidyLevel}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300 shadow-2xs flex items-center gap-1.5">
+                        <i className="fa-solid fa-triangle-exclamation text-amber-600" />
+                        <span>ASSESSMENT INCOMPLETE — CLASSIFICATION PENDING</span>
+                      </span>
+                    )}
                   </div>
                 </div>
 
-                {/* 4 Metric Cards */}
+                {/* Incomplete assessment warning alert */}
+                {backendEval && !backendEval.is_complete && (
+                  <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 text-xs space-y-1.5">
+                    <div className="font-bold flex items-center gap-1.5">
+                      <i className="fa-solid fa-circle-exclamation text-amber-600" />
+                      <span>The following required interview or rubric factors are pending completion:</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {(backendEval.missing_factors || []).map((mf: string, idx: number) => (
+                        <span key={idx} className="px-2 py-0.5 rounded bg-white border border-amber-300 text-amber-800 text-[10.5px] font-semibold">
+                          {mf}
+                        </span>
+                      ))}
+                    </div>
+                    <p className="text-[10.5px] text-amber-700 m-0 pt-1">
+                      OFPHIL institutional policy prohibits fabricating or manually calculating scores. Complete the qualitative options below to generate official classification.
+                    </p>
+                  </div>
+                )}
+
+                {/* 4 Metric Cards (API-calculated) */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
                   <div className="p-3 bg-white border border-[#CBD5E1] rounded-xl shadow-2xs">
                     <div className="text-[10px] font-bold text-[#64748B] uppercase">Average Severity</div>
-                    <div className="text-xl font-extrabold text-[#0B6B3A] my-0.5">{averageSeverity.toFixed(2)}</div>
+                    <div className="text-xl font-extrabold text-[#0B6B3A] my-0.5">
+                      {backendEval?.is_complete ? averageSeverity.toFixed(2) : '—'}
+                    </div>
                     <div className="text-[10px] text-[#94A3B8]">Threshold &ge; 3.8 / 2.8</div>
                   </div>
 
                   <div className="p-3 bg-white border border-[#CBD5E1] rounded-xl shadow-2xs">
                     <div className="text-[10px] font-bold text-[#64748B] uppercase">Average Coping</div>
-                    <div className="text-xl font-extrabold text-[#0284C7] my-0.5">{averageCoping.toFixed(2)}</div>
+                    <div className="text-xl font-extrabold text-[#0284C7] my-0.5">
+                      {backendEval?.is_complete ? averageCoping.toFixed(2) : '—'}
+                    </div>
                     <div className="text-[10px] text-[#94A3B8]">Threshold &ge; 3.8 / 2.8</div>
                   </div>
 
                   <div className="p-3 bg-white border border-[#CBD5E1] rounded-xl shadow-2xs">
                     <div className="text-[10px] font-bold text-[#64748B] uppercase">Total Risk Score</div>
-                    <div className="text-xl font-extrabold text-[#0F766E] my-0.5">{totalRisk.toFixed(1)}%</div>
+                    <div className="text-xl font-extrabold text-[#0F766E] my-0.5">
+                      {backendEval?.is_complete ? `${totalRisk.toFixed(1)}%` : '—'}
+                    </div>
                     <div className="text-[10px] text-[#94A3B8]">(Sev &times; 8.5) + (Cop &times; 5)</div>
                   </div>
 
@@ -1769,7 +2756,7 @@ function MSWAssessmentContent() {
                 </div>
               </div>
 
-              {/* V. HEALTH (PHYSICAL & MENTAL HEALTH SERVICES / ACCESS) */}
+              {/* V. HEALTH (PHYSICAL & MENTAL HEALTH SERVICES / ACCESS) - QUALITATIVE OPTIONS */}
               <div className="p-4 rounded-xl border border-[#E2E8F0] bg-white space-y-4">
                 <div className="flex items-center justify-between pb-2 border-b border-[#EEF2EF]">
                   <span className="font-bold text-xs text-[#0B6B3A] flex items-center gap-1.5 uppercase tracking-wide">
@@ -1777,170 +2764,290 @@ function MSWAssessmentContent() {
                     <span>V. HEALTH (PHYSICAL &amp; MENTAL HEALTH SERVICES / ACCESS)</span>
                   </span>
                   <span className="text-[10px] font-bold uppercase text-[#0B6B3A] bg-[#E8F5EC] px-2 py-0.5 rounded">
-                    CLINICAL ASSESSMENT
+                    QUALITATIVE CLINICAL TIERS
                   </span>
                 </div>
 
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs border-collapse">
-                    <thead className="bg-[#FAFBF8] text-[#64748B] uppercase text-[10px] tracking-wider border-b border-[#EEF2EF]">
-                      <tr>
-                        <th className="py-2.5 px-3">HEALTH SERVICE / ACCESSIBILITY FACTOR</th>
-                        <th className="py-2.5 px-3 w-28">SEVERITY (1-6)</th>
-                        <th className="py-2.5 px-3 w-28">COPING (1-6)</th>
-                        <th className="py-2.5 px-3">MSW CLINICAL OBSERVATIONS &amp; SPECIFIC DETAILS</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#EEF2EF]">
-                      {healthFactors.map((hf, i) => (
-                        <tr key={i} className="hover:bg-[#FAFBF8]">
-                          <td className="py-3 px-3 font-medium text-[#1E293B]">{hf.factor}</td>
-                          <td className="py-3 px-3">
-                            <select
-                              value={hf.severity}
-                              onChange={(e) => {
-                                const updated = [...healthFactors];
-                                updated[i].severity = Number(e.target.value);
-                                setHealthFactors(updated);
-                              }}
-                              className="w-full h-8 px-2 border border-[#CBD5E1] rounded text-xs bg-white font-bold text-[#0B6B3A]"
-                            >
-                              {[1, 2, 3, 4, 5, 6].map((num) => (
-                                <option key={num} value={num}>
-                                  {num} - {num <= 2 ? 'Low' : num <= 4 ? 'Moderate' : 'Severe'}
-                                </option>
-                              ))}
-                            </select>
-                          </td>
-                          <td className="py-3 px-3">
-                            <select
-                              value={hf.coping}
-                              onChange={(e) => {
-                                const updated = [...healthFactors];
-                                updated[i].coping = Number(e.target.value);
-                                setHealthFactors(updated);
-                              }}
-                              className="w-full h-8 px-2 border border-[#CBD5E1] rounded text-xs bg-white font-bold text-[#0284C7]"
-                            >
-                              {[1, 2, 3, 4, 5, 6].map((num) => (
-                                <option key={num} value={num}>
-                                  {num} - {num <= 2 ? 'Adequate' : num <= 4 ? 'Inadequate' : 'No Coping'}
-                                </option>
-                              ))}
-                            </select>
-                          </td>
-                          <td className="py-3 px-3">
-                            <input
-                              type="text"
-                              value={hf.obs}
-                              onChange={(e) => {
-                                const updated = [...healthFactors];
-                                updated[i].obs = e.target.value;
-                                setHealthFactors(updated);
-                              }}
-                              className="w-full h-8 px-2.5 border border-[#CBD5E1] rounded text-xs"
-                            />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="space-y-4">
+                  {healthFactors.map((hf, i) => (
+                    <div key={i} className="p-3.5 bg-[#FAFBF8] border border-[#CBD5E1] rounded-xl space-y-3">
+                      <div className="font-semibold text-xs text-[#1E293B] flex items-center justify-between">
+                        <span>{i + 1}. {hf.factor}</span>
+                        <span className="text-[10px] text-[#64748B] font-normal">DOH-PIE Clinical Factor</span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[10px] font-bold text-[#0B6B3A] uppercase mb-1">
+                            Severity Tier (Qualitative) *
+                          </label>
+                          <select
+                            value={hf.severityLevel}
+                            onChange={(e) => {
+                              const updated = [...healthFactors];
+                              updated[i].severityLevel = e.target.value;
+                              setHealthFactors(updated);
+                            }}
+                            className="w-full h-8 px-2 border border-[#CBD5E1] rounded text-xs bg-white font-bold text-[#0B6B3A]"
+                          >
+                            {SEVERITY_LEVEL_OPTIONS.map((opt) => (
+                              <option key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-bold text-[#0284C7] uppercase mb-1">
+                            Coping Tier (Qualitative) *
+                          </label>
+                          <select
+                            value={hf.copingLevel}
+                            onChange={(e) => {
+                              const updated = [...healthFactors];
+                              updated[i].copingLevel = e.target.value;
+                              setHealthFactors(updated);
+                            }}
+                            className="w-full h-8 px-2 border border-[#CBD5E1] rounded text-xs bg-white font-bold text-[#0284C7]"
+                          >
+                            {COPING_LEVEL_OPTIONS.map((opt) => (
+                              <option key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                        <div>
+                          <label className="block text-[10px] font-bold text-blue-900 uppercase mb-0.5">
+                            Patient / Representative Response
+                          </label>
+                          <input
+                            type="text"
+                            value={hf.patientReported}
+                            onChange={(e) => {
+                              const updated = [...healthFactors];
+                              updated[i].patientReported = e.target.value;
+                              setHealthFactors(updated);
+                            }}
+                            placeholder="Reported accessibility barrier or difficulty..."
+                            className="w-full h-8 px-2.5 border border-[#CBD5E1] rounded text-xs bg-white"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-bold text-[#14532D] uppercase mb-0.5">
+                            MSW Clinical Observation &amp; Evidence
+                          </label>
+                          <input
+                            type="text"
+                            value={hf.mswObservation}
+                            onChange={(e) => {
+                              const updated = [...healthFactors];
+                              updated[i].mswObservation = e.target.value;
+                              setHealthFactors(updated);
+                            }}
+                            placeholder="Clinical finding, referral cross-check..."
+                            className="w-full h-8 px-2.5 border border-[#CBD5E1] rounded text-xs bg-white"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              {/* VI to IX SUBTOPIC ADJUSTERS */}
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 p-4 bg-white border border-[#E2E8F0] rounded-xl text-xs">
-                <div>
-                  <label className="block text-[11px] font-semibold text-[#475569] mb-1">
-                    VI. Discrimination Burden
-                  </label>
-                  <div className="flex gap-1.5">
-                    <select
-                      value={discrimSeverity}
-                      onChange={(e) => setDiscrimSeverity(Number(e.target.value))}
-                      className="w-full h-8 px-2 border border-[#CBD5E1] rounded text-xs font-bold text-[#0B6B3A]"
-                    >
-                      {[1, 2, 3, 4, 5, 6].map((n) => (
-                        <option key={n} value={n}>Sev: {n}</option>
-                      ))}
-                    </select>
-                    <select
-                      value={discrimCoping}
-                      onChange={(e) => setDiscrimCoping(Number(e.target.value))}
-                      className="w-full h-8 px-2 border border-[#CBD5E1] rounded text-xs font-bold text-[#0284C7]"
-                    >
-                      {[1, 2, 3, 4, 5, 6].map((n) => (
-                        <option key={n} value={n}>Cop: {n}</option>
-                      ))}
-                    </select>
-                  </div>
+              {/* VI to IX SUBTOPIC ADJUSTERS - QUALITATIVE OPTIONS */}
+              <div className="p-4 bg-white border border-[#E2E8F0] rounded-xl space-y-4">
+                <div className="flex items-center justify-between pb-2 border-b border-[#EEF2EF]">
+                  <span className="font-bold text-xs text-[#0B6B3A] flex items-center gap-1.5 uppercase tracking-wide">
+                    <i className="fa-solid fa-layer-group text-sm" />
+                    <span>VI to IX. Psychosocial Domains (Qualitative Tiers &amp; Dual Observations)</span>
+                  </span>
+                  <span className="text-[10px] font-bold uppercase text-[#0B6B3A] bg-[#E8F5EC] px-2 py-0.5 rounded">
+                    INTERVIEW RUBRIC
+                  </span>
                 </div>
 
-                <div>
-                  <label className="block text-[11px] font-semibold text-[#475569] mb-1">
-                    VII. Safety / Hazards
-                  </label>
-                  <div className="flex gap-1.5">
-                    <select
-                      value={safetySeverity}
-                      onChange={(e) => setSafetySeverity(Number(e.target.value))}
-                      className="w-full h-8 px-2 border border-[#CBD5E1] rounded text-xs font-bold text-[#0B6B3A]"
-                    >
-                      {[1, 2, 3, 4, 5, 6].map((n) => (
-                        <option key={n} value={n}>Sev: {n}</option>
-                      ))}
-                    </select>
-                    <select
-                      value={safetyCoping}
-                      onChange={(e) => setSafetyCoping(Number(e.target.value))}
-                      className="w-full h-8 px-2 border border-[#CBD5E1] rounded text-xs font-bold text-[#0284C7]"
-                    >
-                      {[1, 2, 3, 4, 5, 6].map((n) => (
-                        <option key={n} value={n}>Cop: {n}</option>
-                      ))}
-                    </select>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* VI. Discrimination Burden */}
+                  <div className="p-3.5 bg-[#FAFBF8] border border-[#CBD5E1] rounded-xl space-y-2.5">
+                    <div className="font-bold text-xs text-[#1E293B]">VI. Discrimination Burden</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[9.5px] font-bold text-[#0B6B3A] uppercase mb-1">Severity</label>
+                        <select
+                          value={discrimSeverityLevel}
+                          onChange={(e) => setDiscrimSeverityLevel(e.target.value)}
+                          className="w-full h-8 px-2 border border-[#CBD5E1] rounded text-[11px] font-bold text-[#0B6B3A] bg-white"
+                        >
+                          {SEVERITY_LEVEL_OPTIONS.map((o) => (
+                            <option key={o.value} value={o.value}>{o.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[9.5px] font-bold text-[#0284C7] uppercase mb-1">Coping</label>
+                        <select
+                          value={discrimCopingLevel}
+                          onChange={(e) => setDiscrimCopingLevel(e.target.value)}
+                          className="w-full h-8 px-2 border border-[#CBD5E1] rounded text-[11px] font-bold text-[#0284C7] bg-white"
+                        >
+                          {COPING_LEVEL_OPTIONS.map((o) => (
+                            <option key={o.value} value={o.value}>{o.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <div className="space-y-1.5 text-xs">
+                      <input
+                        type="text"
+                        value={discrimPatientReported}
+                        onChange={(e) => setDiscrimPatientReported(e.target.value)}
+                        placeholder="Patient reported discrimination..."
+                        className="w-full h-7 px-2 border border-[#CBD5E1] rounded text-[11px] bg-white"
+                      />
+                      <input
+                        type="text"
+                        value={discrimMswObs}
+                        onChange={(e) => setDiscrimMswObs(e.target.value)}
+                        placeholder="MSW clinical observation..."
+                        className="w-full h-7 px-2 border border-[#CBD5E1] rounded text-[11px] bg-white"
+                      />
+                    </div>
                   </div>
-                </div>
 
-                <div>
-                  <label className="block text-[11px] font-semibold text-[#475569] mb-1">
-                    VIII. Social Roles
-                  </label>
-                  <div className="flex gap-1.5">
-                    <select
-                      value={roleSeverity}
-                      onChange={(e) => setRoleSeverity(Number(e.target.value))}
-                      className="w-full h-8 px-2 border border-[#CBD5E1] rounded text-xs font-bold text-[#0B6B3A]"
-                    >
-                      {[1, 2, 3, 4, 5, 6].map((n) => (
-                        <option key={n} value={n}>Sev: {n}</option>
-                      ))}
-                    </select>
-                    <select
-                      value={roleCoping}
-                      onChange={(e) => setRoleCoping(Number(e.target.value))}
-                      className="w-full h-8 px-2 border border-[#CBD5E1] rounded text-xs font-bold text-[#0284C7]"
-                    >
-                      {[1, 2, 3, 4, 5, 6].map((n) => (
-                        <option key={n} value={n}>Cop: {n}</option>
-                      ))}
-                    </select>
+                  {/* VII. Safety / Hazards */}
+                  <div className="p-3.5 bg-[#FAFBF8] border border-[#CBD5E1] rounded-xl space-y-2.5">
+                    <div className="font-bold text-xs text-[#1E293B]">VII. Safety / Hazards</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[9.5px] font-bold text-[#0B6B3A] uppercase mb-1">Severity</label>
+                        <select
+                          value={safetySeverityLevel}
+                          onChange={(e) => setSafetySeverityLevel(e.target.value)}
+                          className="w-full h-8 px-2 border border-[#CBD5E1] rounded text-[11px] font-bold text-[#0B6B3A] bg-white"
+                        >
+                          {SEVERITY_LEVEL_OPTIONS.map((o) => (
+                            <option key={o.value} value={o.value}>{o.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[9.5px] font-bold text-[#0284C7] uppercase mb-1">Coping</label>
+                        <select
+                          value={safetyCopingLevel}
+                          onChange={(e) => setSafetyCopingLevel(e.target.value)}
+                          className="w-full h-8 px-2 border border-[#CBD5E1] rounded text-[11px] font-bold text-[#0284C7] bg-white"
+                        >
+                          {COPING_LEVEL_OPTIONS.map((o) => (
+                            <option key={o.value} value={o.value}>{o.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <div className="space-y-1.5 text-xs">
+                      <input
+                        type="text"
+                        value={safetyPatientReported}
+                        onChange={(e) => setSafetyPatientReported(e.target.value)}
+                        placeholder="Patient reported safety risks..."
+                        className="w-full h-7 px-2 border border-[#CBD5E1] rounded text-[11px] bg-white"
+                      />
+                      <input
+                        type="text"
+                        value={safetyMswObs}
+                        onChange={(e) => setSafetyMswObs(e.target.value)}
+                        placeholder="MSW domestic hazard observation..."
+                        className="w-full h-7 px-2 border border-[#CBD5E1] rounded text-[11px] bg-white"
+                      />
+                    </div>
                   </div>
-                </div>
 
-                <div>
-                  <label className="block text-[11px] font-semibold text-[#475569] mb-1">
-                    IX. Environment Basic Needs
-                  </label>
-                  <select
-                    value={envSeverity}
-                    onChange={(e) => setEnvSeverity(Number(e.target.value))}
-                    className="w-full h-8 px-2 border border-[#CBD5E1] rounded text-xs font-bold text-[#0B6B3A]"
-                  >
-                    {[1, 2, 3, 4, 5, 6].map((n) => (
-                      <option key={n} value={n}>Sev: {n}</option>
-                    ))}
-                  </select>
+                  {/* VIII. Social Roles */}
+                  <div className="p-3.5 bg-[#FAFBF8] border border-[#CBD5E1] rounded-xl space-y-2.5">
+                    <div className="font-bold text-xs text-[#1E293B]">VIII. Social Roles</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[9.5px] font-bold text-[#0B6B3A] uppercase mb-1">Severity</label>
+                        <select
+                          value={roleSeverityLevel}
+                          onChange={(e) => setRoleSeverityLevel(e.target.value)}
+                          className="w-full h-8 px-2 border border-[#CBD5E1] rounded text-[11px] font-bold text-[#0B6B3A] bg-white"
+                        >
+                          {SEVERITY_LEVEL_OPTIONS.map((o) => (
+                            <option key={o.value} value={o.value}>{o.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[9.5px] font-bold text-[#0284C7] uppercase mb-1">Coping</label>
+                        <select
+                          value={roleCopingLevel}
+                          onChange={(e) => setRoleCopingLevel(e.target.value)}
+                          className="w-full h-8 px-2 border border-[#CBD5E1] rounded text-[11px] font-bold text-[#0284C7] bg-white"
+                        >
+                          {COPING_LEVEL_OPTIONS.map((o) => (
+                            <option key={o.value} value={o.value}>{o.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <div className="space-y-1.5 text-xs">
+                      <input
+                        type="text"
+                        value={rolePatientReported}
+                        onChange={(e) => setRolePatientReported(e.target.value)}
+                        placeholder="Patient role strain disclosure..."
+                        className="w-full h-7 px-2 border border-[#CBD5E1] rounded text-[11px] bg-white"
+                      />
+                      <input
+                        type="text"
+                        value={roleMswObs}
+                        onChange={(e) => setRoleMswObs(e.target.value)}
+                        placeholder="MSW breadwinner role strain observation..."
+                        className="w-full h-7 px-2 border border-[#CBD5E1] rounded text-[11px] bg-white"
+                      />
+                    </div>
+                  </div>
+
+                  {/* IX. Environment Basic Needs */}
+                  <div className="p-3.5 bg-[#FAFBF8] border border-[#CBD5E1] rounded-xl space-y-2.5">
+                    <div className="font-bold text-xs text-[#1E293B]">IX. Environment &amp; Basic Needs</div>
+                    <div>
+                      <label className="block text-[9.5px] font-bold text-[#0B6B3A] uppercase mb-1">
+                        Severity (Basic Needs Barrier)
+                      </label>
+                      <select
+                        value={envSeverityLevel}
+                        onChange={(e) => setEnvSeverityLevel(e.target.value)}
+                        className="w-full h-8 px-2 border border-[#CBD5E1] rounded text-[11px] font-bold text-[#0B6B3A] bg-white"
+                      >
+                        {SEVERITY_LEVEL_OPTIONS.map((o) => (
+                          <option key={o.value} value={o.value}>{o.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-1.5 text-xs">
+                      <input
+                        type="text"
+                        value={envPatientReported}
+                        onChange={(e) => setEnvPatientReported(e.target.value)}
+                        placeholder="Patient basic needs dwelling report..."
+                        className="w-full h-7 px-2 border border-[#CBD5E1] rounded text-[11px] bg-white"
+                      />
+                      <input
+                        type="text"
+                        value={envMswObs}
+                        onChange={(e) => setEnvMswObs(e.target.value)}
+                        placeholder="MSW living condition observation..."
+                        className="w-full h-7 px-2 border border-[#CBD5E1] rounded text-[11px] bg-white"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

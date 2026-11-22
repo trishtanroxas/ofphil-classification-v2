@@ -1,6 +1,10 @@
 from fastapi import APIRouter, Depends, Header
 from app.core.rbac import UserRole, require_roles
 from app.core.audit import log_audit_event
+from app.schemas.assessment_schemas import (
+    Stage2EvaluationRequest,
+    Stage2EvaluationResponse,
+)
 from app.schemas.classification_schemas import (
     CombinedClassificationRequest,
     CombinedClassificationResponse,
@@ -13,6 +17,7 @@ from app.services.classification_service import (
     classify_financial,
     classify_msw,
     evaluate_combined,
+    evaluate_stage2_interview,
 )
 
 router = APIRouter(prefix="/classification", tags=["OFPHIL Classification"])
@@ -80,6 +85,30 @@ def post_combined_classification(
             "financial_tier": result.financial_classification.classification,
             "msw_tier": result.msw_classification.classification,
             "discrepancy_detected": result.discrepancy_detected,
+        },
+    )
+    return result
+
+
+@router.post("/evaluate-stage2", response_model=Stage2EvaluationResponse)
+def post_evaluate_stage2_direct(
+    payload: Stage2EvaluationRequest,
+    role: UserRole = Depends(require_roles([UserRole.ADMIN, UserRole.MSW, UserRole.RESEARCHER])),
+    x_user_id: str = Header(default="msw_lead"),
+):
+    result = evaluate_stage2_interview(payload)
+    log_audit_event(
+        action="CLASSIFICATION_EVALUATE_STAGE2",
+        actor_id=x_user_id,
+        role=role.value,
+        resource="ofphil_stage2_interview_rubric_v1",
+        status="SUCCESS",
+        details={
+            "is_complete": result.is_complete,
+            "status": result.status,
+            "total_risk": str(result.total_risk),
+            "missing_factors": result.missing_factors,
+            "missing_mappings": result.missing_mappings,
         },
     )
     return result

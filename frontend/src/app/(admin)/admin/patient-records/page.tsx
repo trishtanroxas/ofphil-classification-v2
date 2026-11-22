@@ -70,6 +70,19 @@ export default function PatientRecordsPage(props: any) {
     }
   }, [initialTab, tabFromQuery]);
 
+  // Reset category filter and inapplicable status filters when switching to specific tabs
+  useEffect(() => {
+    if (activeTab === 'regular' || activeTab === 'charity') {
+      setCategoryFilter('All');
+    }
+    if (activeTab === 'regular' && (statusFilter === 'DISAPPROVED/PROMISSORY' || statusFilter === 'PENDING')) {
+      setStatusFilter('All');
+    }
+    if (activeTab === 'charity' && statusFilter === 'FIRST-TIME') {
+      setStatusFilter('All');
+    }
+  }, [activeTab]);
+
   // Load patients from backend API
   useEffect(() => {
     async function loadPatients() {
@@ -448,16 +461,22 @@ export default function PatientRecordsPage(props: any) {
                 <th className="py-2.5 px-4 font-semibold whitespace-nowrap">Residence</th>
                 <th className="py-2.5 px-4 font-semibold whitespace-nowrap">Contact</th>
                 <th className="py-2.5 px-4 font-semibold whitespace-nowrap">
-                  Category:{' '}
-                  <select
-                    value={categoryFilter}
-                    onChange={(e) => setCategoryFilter(e.target.value)}
-                    className="ml-1 text-[10.5px] bg-[#FAFBF8] border border-[#CBD5E1] rounded px-1.5 py-0.5 font-bold text-[#10241A] focus:outline-none focus:border-[#0B6B3A] cursor-pointer"
-                  >
-                    <option value="All">All ▼</option>
-                    <option value="CHARITY">Charity</option>
-                    <option value="REGULAR">Regular</option>
-                  </select>
+                  {activeTab === 'charity' || activeTab === 'regular' ? (
+                    <span>Category</span>
+                  ) : (
+                    <>
+                      Category:{' '}
+                      <select
+                        value={categoryFilter}
+                        onChange={(e) => setCategoryFilter(e.target.value)}
+                        className="ml-1 text-[10.5px] bg-[#FAFBF8] border border-[#CBD5E1] rounded px-1.5 py-0.5 font-bold text-[#10241A] focus:outline-none focus:border-[#0B6B3A] cursor-pointer"
+                      >
+                        <option value="All">All ▼</option>
+                        <option value="CHARITY">Charity</option>
+                        <option value="REGULAR">Regular</option>
+                      </select>
+                    </>
+                  )}
                 </th>
                 <th className="py-2.5 px-4 font-semibold whitespace-nowrap">
                   Status:{' '}
@@ -468,9 +487,15 @@ export default function PatientRecordsPage(props: any) {
                   >
                     <option value="All">All ▼</option>
                     <option value="APPROVED">Approved</option>
-                    <option value="DISAPPROVED/PROMISSORY">Disapproved / Promissory</option>
-                    <option value="PENDING">Pending</option>
-                    <option value="FIRST-TIME">First-Time</option>
+                    {activeTab !== 'regular' && (
+                      <>
+                        <option value="DISAPPROVED/PROMISSORY">Disapproved / Promissory</option>
+                        <option value="PENDING">Pending</option>
+                      </>
+                    )}
+                    {activeTab !== 'charity' && (
+                      <option value="FIRST-TIME">First-Time</option>
+                    )}
                   </select>
                 </th>
               </tr>

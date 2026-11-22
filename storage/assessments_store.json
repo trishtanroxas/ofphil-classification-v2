@@ -1228,8 +1228,8 @@
   },
   "asmt-9e9df6a87a": {
     "id": "asmt-9e9df6a87a",
-    "patient_id": "MSW_FA_0125-01",
-    "encounter_no": "ENC-MSW_FA_0125-01-AE68AF",
+    "patient_id": "MSW_FA_1126-01",
+    "encounter_no": "MSW_FA_1126-01",
     "interview_date": "2026-11-23",
     "source_of_referral": "",
     "active_stage": 1,
@@ -1256,7 +1256,7 @@
         "role": "msw",
         "workflow_status": "DRAFT",
         "details": {
-          "encounter_no": "ENC-MSW_FA_0125-01-AE68AF"
+          "encounter_no": "MSW_FA_1126-01"
         }
       }
     ]
@@ -1666,6 +1666,2690 @@
           "approved_by_user_id": "admin_officer_01",
           "approver_name": "Dr. Director",
           "decision_timestamp": "2026-11-22T17:13:29.461309+00:00"
+        }
+      }
+    ]
+  },
+  "asmt-d17ddab59c": {
+    "id": "asmt-d17ddab59c",
+    "patient_id": "M26-11-TEST01",
+    "encounter_no": "ENC-M26-11-TEST01-43E32C",
+    "interview_date": "2026-11-22",
+    "source_of_referral": "EYE CLINIC REFERRAL",
+    "active_stage": 2,
+    "workflow_status": "APPROVED",
+    "is_initial_load": true,
+    "stage1_data": {
+      "patient_first_name": "Elena",
+      "patient_last_name": "Reyes",
+      "informant_income": 0,
+      "patient_income": 5000,
+      "household_size": 4
+    },
+    "stage2_data": {
+      "health_factors": [
+        {
+          "factor": "Absence of adequate health services",
+          "severity": 4,
+          "coping": 4
+        },
+        {
+          "factor": "Inaccessibility",
+          "severity": 4,
+          "coping": 4
+        }
+      ],
+      "discrimination_severity": 3,
+      "discrimination_coping": 3,
+      "safety_severity": 3,
+      "safety_coping": 3,
+      "roles_severity": 4,
+      "roles_coping": 4,
+      "environment_severity": 4
+    },
+    "stage3_documents": [],
+    "classification_result": {
+      "financial_classification": {
+        "monthly_per_capita_income": "1250.00",
+        "total_monthly_household_income": "5000.00",
+        "household_size": 4,
+        "classification": "INDIGENT",
+        "classification_label": "Indigent",
+        "reference_threshold": "4715.76",
+        "pcpt_reference": "3368.40",
+        "family_of_five_reference": "16842.00",
+        "classification_basis": "OFPHIL_FINANCIAL_RUBRIC",
+        "rubric_version": "1.0",
+        "explanation": "Monthly per capita income (\u20b11,250.00) is at or below the OFPHIL Indigent threshold of \u20b14,715.76."
+      },
+      "msw_classification": {
+        "classification": "FINANCIALLY_INCAPACITATED_B1",
+        "classification_label": "Financially Incapacitated B1",
+        "proposed_subsidy": "High Partial Charity Subsidy",
+        "subsidy_percentage_range": "75% - 90%",
+        "average_severity": "3.60",
+        "average_coping": "3.50",
+        "total_risk": "48.1",
+        "total_risk_formula": "(Average Severity * 8.5) + (Average Coping * 5.0)",
+        "triggered_conditions": [
+          {
+            "tier": "FINANCIALLY_INCAPACITATED_B1",
+            "rule": "Average Severity >= 2.8",
+            "metric": "average_severity",
+            "actual_value": "3.60",
+            "threshold": "2.8",
+            "context_applicable": true
+          },
+          {
+            "tier": "FINANCIALLY_INCAPACITATED_B1",
+            "rule": "Average Coping >= 2.8",
+            "metric": "average_coping",
+            "actual_value": "3.50",
+            "threshold": "2.8",
+            "context_applicable": true
+          },
+          {
+            "tier": "FINANCIALLY_INCAPACITATED_B1",
+            "rule": "Total Risk >= 45.0%",
+            "metric": "total_risk",
+            "actual_value": "48.1%",
+            "threshold": "45.0%",
+            "context_applicable": true
+          },
+          {
+            "tier": "FINANCIALLY_INCAPACITATED_B2",
+            "rule": "Total Risk >= 30.0%",
+            "metric": "total_risk",
+            "actual_value": "48.1%",
+            "threshold": "30.0%",
+            "context_applicable": true
+          }
+        ],
+        "classification_precedence": [
+          "INDIGENT",
+          "FINANCIALLY_INCAPACITATED_B1",
+          "FINANCIALLY_INCAPACITATED_B2",
+          "FINANCIALLY_CAPACITATED"
+        ],
+        "initial_load_applied": false,
+        "assessment_context": "live_recalculation",
+        "missing_factors": [],
+        "calculation_breakdown": {
+          "severity_components": [
+            4.0,
+            3.0,
+            3.0,
+            4.0,
+            4.0
+          ],
+          "coping_components": [
+            4.0,
+            3.0,
+            3.0,
+            4.0
+          ],
+          "average_severity": 3.6,
+          "average_coping": 3.5,
+          "severity_weighted": 30.6,
+          "coping_weighted": 17.5,
+          "total_risk_percent": 48.1
+        },
+        "classification_basis": "OFPHIL_MSW_RUBRIC",
+        "rubric_version": "1.0",
+        "explanation": "MSW Rubric Classification: Financially Incapacitated B1 (High Partial Charity Subsidy). Computed Avg Severity=3.60, Avg Coping=3.50, Total Risk=48.1%. Primary triggers: Average Severity >= 2.8; Average Coping >= 2.8; Total Risk >= 45.0%."
+      },
+      "monthly_per_capita_income": "1250.00",
+      "average_severity": "3.60",
+      "average_coping": "3.50",
+      "total_risk": "48.1",
+      "triggered_conditions": [
+        {
+          "tier": "FINANCIALLY_INCAPACITATED_B1",
+          "rule": "Average Severity >= 2.8",
+          "metric": "average_severity",
+          "actual_value": "3.60",
+          "threshold": "2.8",
+          "context_applicable": true
+        },
+        {
+          "tier": "FINANCIALLY_INCAPACITATED_B1",
+          "rule": "Average Coping >= 2.8",
+          "metric": "average_coping",
+          "actual_value": "3.50",
+          "threshold": "2.8",
+          "context_applicable": true
+        },
+        {
+          "tier": "FINANCIALLY_INCAPACITATED_B1",
+          "rule": "Total Risk >= 45.0%",
+          "metric": "total_risk",
+          "actual_value": "48.1%",
+          "threshold": "45.0%",
+          "context_applicable": true
+        },
+        {
+          "tier": "FINANCIALLY_INCAPACITATED_B2",
+          "rule": "Total Risk >= 30.0%",
+          "metric": "total_risk",
+          "actual_value": "48.1%",
+          "threshold": "30.0%",
+          "context_applicable": true
+        }
+      ],
+      "subsidy_recommendation": "High Partial Charity Subsidy",
+      "discrepancy_detected": true,
+      "discrepancy_details": "Financial Income Rubric classified patient as 'Indigent' (\u20b11,250.00/person), whereas MSW Scoring Rubric classified patient as 'Financially Incapacitated B1' (Risk 48.1%). Case flagged for MSW professional review.",
+      "requires_msw_review": true,
+      "rubric_version": "1.0",
+      "explanations": {
+        "financial": "Monthly per capita income (\u20b11,250.00) is at or below the OFPHIL Indigent threshold of \u20b14,715.76.",
+        "msw": "MSW Rubric Classification: Financially Incapacitated B1 (High Partial Charity Subsidy). Computed Avg Severity=3.60, Avg Coping=3.50, Total Risk=48.1%. Primary triggers: Average Severity >= 2.8; Average Coping >= 2.8; Total Risk >= 45.0%."
+      }
+    },
+    "classification_history": [
+      {
+        "timestamp": "2026-11-22T17:26:11.077530+00:00",
+        "actor_id": "msw_test",
+        "result": {
+          "financial_classification": {
+            "monthly_per_capita_income": "1250.00",
+            "total_monthly_household_income": "5000.00",
+            "household_size": 4,
+            "classification": "INDIGENT",
+            "classification_label": "Indigent",
+            "reference_threshold": "4715.76",
+            "pcpt_reference": "3368.40",
+            "family_of_five_reference": "16842.00",
+            "classification_basis": "OFPHIL_FINANCIAL_RUBRIC",
+            "rubric_version": "1.0",
+            "explanation": "Monthly per capita income (\u20b11,250.00) is at or below the OFPHIL Indigent threshold of \u20b14,715.76."
+          },
+          "msw_classification": {
+            "classification": "FINANCIALLY_INCAPACITATED_B1",
+            "classification_label": "Financially Incapacitated B1",
+            "proposed_subsidy": "High Partial Charity Subsidy",
+            "subsidy_percentage_range": "75% - 90%",
+            "average_severity": "3.60",
+            "average_coping": "3.50",
+            "total_risk": "48.1",
+            "total_risk_formula": "(Average Severity * 8.5) + (Average Coping * 5.0)",
+            "triggered_conditions": [
+              {
+                "tier": "FINANCIALLY_INCAPACITATED_B1",
+                "rule": "Average Severity >= 2.8",
+                "metric": "average_severity",
+                "actual_value": "3.60",
+                "threshold": "2.8",
+                "context_applicable": true
+              },
+              {
+                "tier": "FINANCIALLY_INCAPACITATED_B1",
+                "rule": "Average Coping >= 2.8",
+                "metric": "average_coping",
+                "actual_value": "3.50",
+                "threshold": "2.8",
+                "context_applicable": true
+              },
+              {
+                "tier": "FINANCIALLY_INCAPACITATED_B1",
+                "rule": "Total Risk >= 45.0%",
+                "metric": "total_risk",
+                "actual_value": "48.1%",
+                "threshold": "45.0%",
+                "context_applicable": true
+              },
+              {
+                "tier": "FINANCIALLY_INCAPACITATED_B2",
+                "rule": "Total Risk >= 30.0%",
+                "metric": "total_risk",
+                "actual_value": "48.1%",
+                "threshold": "30.0%",
+                "context_applicable": true
+              }
+            ],
+            "classification_precedence": [
+              "INDIGENT",
+              "FINANCIALLY_INCAPACITATED_B1",
+              "FINANCIALLY_INCAPACITATED_B2",
+              "FINANCIALLY_CAPACITATED"
+            ],
+            "initial_load_applied": false,
+            "assessment_context": "live_recalculation",
+            "missing_factors": [],
+            "calculation_breakdown": {
+              "severity_components": [
+                4.0,
+                3.0,
+                3.0,
+                4.0,
+                4.0
+              ],
+              "coping_components": [
+                4.0,
+                3.0,
+                3.0,
+                4.0
+              ],
+              "average_severity": 3.6,
+              "average_coping": 3.5,
+              "severity_weighted": 30.6,
+              "coping_weighted": 17.5,
+              "total_risk_percent": 48.1
+            },
+            "classification_basis": "OFPHIL_MSW_RUBRIC",
+            "rubric_version": "1.0",
+            "explanation": "MSW Rubric Classification: Financially Incapacitated B1 (High Partial Charity Subsidy). Computed Avg Severity=3.60, Avg Coping=3.50, Total Risk=48.1%. Primary triggers: Average Severity >= 2.8; Average Coping >= 2.8; Total Risk >= 45.0%."
+          },
+          "monthly_per_capita_income": "1250.00",
+          "average_severity": "3.60",
+          "average_coping": "3.50",
+          "total_risk": "48.1",
+          "triggered_conditions": [
+            {
+              "tier": "FINANCIALLY_INCAPACITATED_B1",
+              "rule": "Average Severity >= 2.8",
+              "metric": "average_severity",
+              "actual_value": "3.60",
+              "threshold": "2.8",
+              "context_applicable": true
+            },
+            {
+              "tier": "FINANCIALLY_INCAPACITATED_B1",
+              "rule": "Average Coping >= 2.8",
+              "metric": "average_coping",
+              "actual_value": "3.50",
+              "threshold": "2.8",
+              "context_applicable": true
+            },
+            {
+              "tier": "FINANCIALLY_INCAPACITATED_B1",
+              "rule": "Total Risk >= 45.0%",
+              "metric": "total_risk",
+              "actual_value": "48.1%",
+              "threshold": "45.0%",
+              "context_applicable": true
+            },
+            {
+              "tier": "FINANCIALLY_INCAPACITATED_B2",
+              "rule": "Total Risk >= 30.0%",
+              "metric": "total_risk",
+              "actual_value": "48.1%",
+              "threshold": "30.0%",
+              "context_applicable": true
+            }
+          ],
+          "subsidy_recommendation": "High Partial Charity Subsidy",
+          "discrepancy_detected": true,
+          "discrepancy_details": "Financial Income Rubric classified patient as 'Indigent' (\u20b11,250.00/person), whereas MSW Scoring Rubric classified patient as 'Financially Incapacitated B1' (Risk 48.1%). Case flagged for MSW professional review.",
+          "requires_msw_review": true,
+          "rubric_version": "1.0",
+          "explanations": {
+            "financial": "Monthly per capita income (\u20b11,250.00) is at or below the OFPHIL Indigent threshold of \u20b14,715.76.",
+            "msw": "MSW Rubric Classification: Financially Incapacitated B1 (High Partial Charity Subsidy). Computed Avg Severity=3.60, Avg Coping=3.50, Total Risk=48.1%. Primary triggers: Average Severity >= 2.8; Average Coping >= 2.8; Total Risk >= 45.0%."
+          }
+        }
+      }
+    ],
+    "ml_prediction": null,
+    "msw_recommendation": {
+      "recommended_tier": "Indigent",
+      "recommended_subsidy_pct": 100.0,
+      "case_notes": "Household per capita income is \u20b11,250.00; qualifies for 100% full charity subsidy.",
+      "discrepancy_explanation": null,
+      "override_reason": null,
+      "msw_assessor_id": "msw_test",
+      "msw_assessor_name": "Maria Santos, RSW",
+      "recommended_at": "2026-11-22T17:26:11.096669+00:00"
+    },
+    "institutional_approval": {
+      "decision": "APPROVED",
+      "approved_subsidy_percentage": 100.0,
+      "decision_notes": "Approved by Hospital Director.",
+      "approved_by_user_id": "admin_officer_01",
+      "approver_name": "Dr. Director",
+      "decision_timestamp": "2026-11-22T17:26:11.119909+00:00"
+    },
+    "created_by": "msw_test",
+    "created_at": "2026-11-22T17:26:11.042416+00:00",
+    "updated_at": "2026-11-22T17:26:11.119909+00:00",
+    "history": [
+      {
+        "timestamp": "2026-11-22T17:26:11.042416+00:00",
+        "event": "ASSESSMENT_CREATED",
+        "actor_id": "msw_test",
+        "role": "msw",
+        "workflow_status": "DRAFT",
+        "details": {
+          "encounter_no": "ENC-M26-11-TEST01-43E32C"
+        }
+      },
+      {
+        "timestamp": "2026-11-22T17:26:11.061009+00:00",
+        "event": "DRAFT_SAVED",
+        "actor_id": "msw_test",
+        "role": "msw",
+        "workflow_status": "ASSESSMENT_IN_PROGRESS",
+        "details": {
+          "active_stage": 2
+        }
+      },
+      {
+        "timestamp": "2026-11-22T17:26:11.077530+00:00",
+        "event": "ASSESSMENT_CLASSIFIED",
+        "actor_id": "msw_test",
+        "role": "msw",
+        "workflow_status": "PENDING_MSW_REVIEW",
+        "details": {
+          "financial_classification": "INDIGENT",
+          "msw_classification": "FINANCIALLY_INCAPACITATED_B1",
+          "discrepancy_detected": true
+        }
+      },
+      {
+        "timestamp": "2026-11-22T17:26:11.096669+00:00",
+        "event": "MSW_RECOMMENDATION_SUBMITTED",
+        "actor_id": "msw_test",
+        "role": "msw",
+        "workflow_status": "PENDING_APPROVAL",
+        "details": {
+          "recommended_tier": "Indigent",
+          "recommended_subsidy_pct": 100.0,
+          "case_notes": "Household per capita income is \u20b11,250.00; qualifies for 100% full charity subsidy.",
+          "discrepancy_explanation": null,
+          "override_reason": null,
+          "msw_assessor_id": "msw_test",
+          "msw_assessor_name": "Maria Santos, RSW",
+          "recommended_at": "2026-11-22T17:26:11.096669+00:00"
+        }
+      },
+      {
+        "timestamp": "2026-11-22T17:26:11.119909+00:00",
+        "event": "INSTITUTIONAL_APPROVED",
+        "actor_id": "admin_officer_01",
+        "role": "admin",
+        "workflow_status": "APPROVED",
+        "details": {
+          "decision": "APPROVED",
+          "approved_subsidy_percentage": 100.0,
+          "decision_notes": "Approved by Hospital Director.",
+          "approved_by_user_id": "admin_officer_01",
+          "approver_name": "Dr. Director",
+          "decision_timestamp": "2026-11-22T17:26:11.119909+00:00"
+        }
+      }
+    ]
+  },
+  "asmt-c95db0365e": {
+    "id": "asmt-c95db0365e",
+    "patient_id": "M26-11-TEST01",
+    "encounter_no": "ENC-M26-11-TEST01-4B7CCD",
+    "interview_date": "2026-11-22",
+    "source_of_referral": "EYE CLINIC REFERRAL",
+    "active_stage": 2,
+    "workflow_status": "APPROVED",
+    "is_initial_load": true,
+    "stage1_data": {
+      "patient_first_name": "Elena",
+      "patient_last_name": "Reyes",
+      "informant_income": 0,
+      "patient_income": 5000,
+      "household_size": 4
+    },
+    "stage2_data": {
+      "health_factors": [
+        {
+          "factor": "Absence of adequate health services",
+          "severity": 4,
+          "coping": 4
+        },
+        {
+          "factor": "Inaccessibility",
+          "severity": 4,
+          "coping": 4
+        }
+      ],
+      "discrimination_severity": 3,
+      "discrimination_coping": 3,
+      "safety_severity": 3,
+      "safety_coping": 3,
+      "roles_severity": 4,
+      "roles_coping": 4,
+      "environment_severity": 4
+    },
+    "stage3_documents": [],
+    "classification_result": {
+      "financial_classification": {
+        "monthly_per_capita_income": "1250.00",
+        "total_monthly_household_income": "5000.00",
+        "household_size": 4,
+        "classification": "INDIGENT",
+        "classification_label": "Indigent",
+        "reference_threshold": "4715.76",
+        "pcpt_reference": "3368.40",
+        "family_of_five_reference": "16842.00",
+        "classification_basis": "OFPHIL_FINANCIAL_RUBRIC",
+        "rubric_version": "1.0",
+        "explanation": "Monthly per capita income (\u20b11,250.00) is at or below the OFPHIL Indigent threshold of \u20b14,715.76."
+      },
+      "msw_classification": {
+        "classification": "FINANCIALLY_INCAPACITATED_B1",
+        "classification_label": "Financially Incapacitated B1",
+        "proposed_subsidy": "High Partial Charity Subsidy",
+        "subsidy_percentage_range": "75% - 90%",
+        "average_severity": "3.60",
+        "average_coping": "3.50",
+        "total_risk": "48.1",
+        "total_risk_formula": "(Average Severity * 8.5) + (Average Coping * 5.0)",
+        "triggered_conditions": [
+          {
+            "tier": "FINANCIALLY_INCAPACITATED_B1",
+            "rule": "Average Severity >= 2.8",
+            "metric": "average_severity",
+            "actual_value": "3.60",
+            "threshold": "2.8",
+            "context_applicable": true
+          },
+          {
+            "tier": "FINANCIALLY_INCAPACITATED_B1",
+            "rule": "Average Coping >= 2.8",
+            "metric": "average_coping",
+            "actual_value": "3.50",
+            "threshold": "2.8",
+            "context_applicable": true
+          },
+          {
+            "tier": "FINANCIALLY_INCAPACITATED_B1",
+            "rule": "Total Risk >= 45.0%",
+            "metric": "total_risk",
+            "actual_value": "48.1%",
+            "threshold": "45.0%",
+            "context_applicable": true
+          },
+          {
+            "tier": "FINANCIALLY_INCAPACITATED_B2",
+            "rule": "Total Risk >= 30.0%",
+            "metric": "total_risk",
+            "actual_value": "48.1%",
+            "threshold": "30.0%",
+            "context_applicable": true
+          }
+        ],
+        "classification_precedence": [
+          "INDIGENT",
+          "FINANCIALLY_INCAPACITATED_B1",
+          "FINANCIALLY_INCAPACITATED_B2",
+          "FINANCIALLY_CAPACITATED"
+        ],
+        "initial_load_applied": false,
+        "assessment_context": "live_recalculation",
+        "missing_factors": [],
+        "calculation_breakdown": {
+          "severity_components": [
+            4.0,
+            3.0,
+            3.0,
+            4.0,
+            4.0
+          ],
+          "coping_components": [
+            4.0,
+            3.0,
+            3.0,
+            4.0
+          ],
+          "average_severity": 3.6,
+          "average_coping": 3.5,
+          "severity_weighted": 30.6,
+          "coping_weighted": 17.5,
+          "total_risk_percent": 48.1
+        },
+        "classification_basis": "OFPHIL_MSW_RUBRIC",
+        "rubric_version": "1.0",
+        "explanation": "MSW Rubric Classification: Financially Incapacitated B1 (High Partial Charity Subsidy). Computed Avg Severity=3.60, Avg Coping=3.50, Total Risk=48.1%. Primary triggers: Average Severity >= 2.8; Average Coping >= 2.8; Total Risk >= 45.0%."
+      },
+      "monthly_per_capita_income": "1250.00",
+      "average_severity": "3.60",
+      "average_coping": "3.50",
+      "total_risk": "48.1",
+      "triggered_conditions": [
+        {
+          "tier": "FINANCIALLY_INCAPACITATED_B1",
+          "rule": "Average Severity >= 2.8",
+          "metric": "average_severity",
+          "actual_value": "3.60",
+          "threshold": "2.8",
+          "context_applicable": true
+        },
+        {
+          "tier": "FINANCIALLY_INCAPACITATED_B1",
+          "rule": "Average Coping >= 2.8",
+          "metric": "average_coping",
+          "actual_value": "3.50",
+          "threshold": "2.8",
+          "context_applicable": true
+        },
+        {
+          "tier": "FINANCIALLY_INCAPACITATED_B1",
+          "rule": "Total Risk >= 45.0%",
+          "metric": "total_risk",
+          "actual_value": "48.1%",
+          "threshold": "45.0%",
+          "context_applicable": true
+        },
+        {
+          "tier": "FINANCIALLY_INCAPACITATED_B2",
+          "rule": "Total Risk >= 30.0%",
+          "metric": "total_risk",
+          "actual_value": "48.1%",
+          "threshold": "30.0%",
+          "context_applicable": true
+        }
+      ],
+      "subsidy_recommendation": "High Partial Charity Subsidy",
+      "discrepancy_detected": true,
+      "discrepancy_details": "Financial Income Rubric classified patient as 'Indigent' (\u20b11,250.00/person), whereas MSW Scoring Rubric classified patient as 'Financially Incapacitated B1' (Risk 48.1%). Case flagged for MSW professional review.",
+      "requires_msw_review": true,
+      "rubric_version": "1.0",
+      "explanations": {
+        "financial": "Monthly per capita income (\u20b11,250.00) is at or below the OFPHIL Indigent threshold of \u20b14,715.76.",
+        "msw": "MSW Rubric Classification: Financially Incapacitated B1 (High Partial Charity Subsidy). Computed Avg Severity=3.60, Avg Coping=3.50, Total Risk=48.1%. Primary triggers: Average Severity >= 2.8; Average Coping >= 2.8; Total Risk >= 45.0%."
+      }
+    },
+    "classification_history": [
+      {
+        "timestamp": "2026-11-22T18:17:53.454389+00:00",
+        "actor_id": "msw_test",
+        "result": {
+          "financial_classification": {
+            "monthly_per_capita_income": "1250.00",
+            "total_monthly_household_income": "5000.00",
+            "household_size": 4,
+            "classification": "INDIGENT",
+            "classification_label": "Indigent",
+            "reference_threshold": "4715.76",
+            "pcpt_reference": "3368.40",
+            "family_of_five_reference": "16842.00",
+            "classification_basis": "OFPHIL_FINANCIAL_RUBRIC",
+            "rubric_version": "1.0",
+            "explanation": "Monthly per capita income (\u20b11,250.00) is at or below the OFPHIL Indigent threshold of \u20b14,715.76."
+          },
+          "msw_classification": {
+            "classification": "FINANCIALLY_INCAPACITATED_B1",
+            "classification_label": "Financially Incapacitated B1",
+            "proposed_subsidy": "High Partial Charity Subsidy",
+            "subsidy_percentage_range": "75% - 90%",
+            "average_severity": "3.60",
+            "average_coping": "3.50",
+            "total_risk": "48.1",
+            "total_risk_formula": "(Average Severity * 8.5) + (Average Coping * 5.0)",
+            "triggered_conditions": [
+              {
+                "tier": "FINANCIALLY_INCAPACITATED_B1",
+                "rule": "Average Severity >= 2.8",
+                "metric": "average_severity",
+                "actual_value": "3.60",
+                "threshold": "2.8",
+                "context_applicable": true
+              },
+              {
+                "tier": "FINANCIALLY_INCAPACITATED_B1",
+                "rule": "Average Coping >= 2.8",
+                "metric": "average_coping",
+                "actual_value": "3.50",
+                "threshold": "2.8",
+                "context_applicable": true
+              },
+              {
+                "tier": "FINANCIALLY_INCAPACITATED_B1",
+                "rule": "Total Risk >= 45.0%",
+                "metric": "total_risk",
+                "actual_value": "48.1%",
+                "threshold": "45.0%",
+                "context_applicable": true
+              },
+              {
+                "tier": "FINANCIALLY_INCAPACITATED_B2",
+                "rule": "Total Risk >= 30.0%",
+                "metric": "total_risk",
+                "actual_value": "48.1%",
+                "threshold": "30.0%",
+                "context_applicable": true
+              }
+            ],
+            "classification_precedence": [
+              "INDIGENT",
+              "FINANCIALLY_INCAPACITATED_B1",
+              "FINANCIALLY_INCAPACITATED_B2",
+              "FINANCIALLY_CAPACITATED"
+            ],
+            "initial_load_applied": false,
+            "assessment_context": "live_recalculation",
+            "missing_factors": [],
+            "calculation_breakdown": {
+              "severity_components": [
+                4.0,
+                3.0,
+                3.0,
+                4.0,
+                4.0
+              ],
+              "coping_components": [
+                4.0,
+                3.0,
+                3.0,
+                4.0
+              ],
+              "average_severity": 3.6,
+              "average_coping": 3.5,
+              "severity_weighted": 30.6,
+              "coping_weighted": 17.5,
+              "total_risk_percent": 48.1
+            },
+            "classification_basis": "OFPHIL_MSW_RUBRIC",
+            "rubric_version": "1.0",
+            "explanation": "MSW Rubric Classification: Financially Incapacitated B1 (High Partial Charity Subsidy). Computed Avg Severity=3.60, Avg Coping=3.50, Total Risk=48.1%. Primary triggers: Average Severity >= 2.8; Average Coping >= 2.8; Total Risk >= 45.0%."
+          },
+          "monthly_per_capita_income": "1250.00",
+          "average_severity": "3.60",
+          "average_coping": "3.50",
+          "total_risk": "48.1",
+          "triggered_conditions": [
+            {
+              "tier": "FINANCIALLY_INCAPACITATED_B1",
+              "rule": "Average Severity >= 2.8",
+              "metric": "average_severity",
+              "actual_value": "3.60",
+              "threshold": "2.8",
+              "context_applicable": true
+            },
+            {
+              "tier": "FINANCIALLY_INCAPACITATED_B1",
+              "rule": "Average Coping >= 2.8",
+              "metric": "average_coping",
+              "actual_value": "3.50",
+              "threshold": "2.8",
+              "context_applicable": true
+            },
+            {
+              "tier": "FINANCIALLY_INCAPACITATED_B1",
+              "rule": "Total Risk >= 45.0%",
+              "metric": "total_risk",
+              "actual_value": "48.1%",
+              "threshold": "45.0%",
+              "context_applicable": true
+            },
+            {
+              "tier": "FINANCIALLY_INCAPACITATED_B2",
+              "rule": "Total Risk >= 30.0%",
+              "metric": "total_risk",
+              "actual_value": "48.1%",
+              "threshold": "30.0%",
+              "context_applicable": true
+            }
+          ],
+          "subsidy_recommendation": "High Partial Charity Subsidy",
+          "discrepancy_detected": true,
+          "discrepancy_details": "Financial Income Rubric classified patient as 'Indigent' (\u20b11,250.00/person), whereas MSW Scoring Rubric classified patient as 'Financially Incapacitated B1' (Risk 48.1%). Case flagged for MSW professional review.",
+          "requires_msw_review": true,
+          "rubric_version": "1.0",
+          "explanations": {
+            "financial": "Monthly per capita income (\u20b11,250.00) is at or below the OFPHIL Indigent threshold of \u20b14,715.76.",
+            "msw": "MSW Rubric Classification: Financially Incapacitated B1 (High Partial Charity Subsidy). Computed Avg Severity=3.60, Avg Coping=3.50, Total Risk=48.1%. Primary triggers: Average Severity >= 2.8; Average Coping >= 2.8; Total Risk >= 45.0%."
+          }
+        }
+      }
+    ],
+    "ml_prediction": null,
+    "msw_recommendation": {
+      "recommended_tier": "Indigent",
+      "recommended_subsidy_pct": 100.0,
+      "case_notes": "Household per capita income is \u20b11,250.00; qualifies for 100% full charity subsidy.",
+      "discrepancy_explanation": null,
+      "override_reason": null,
+      "msw_assessor_id": "msw_test",
+      "msw_assessor_name": "Maria Santos, RSW",
+      "recommended_at": "2026-11-22T18:17:53.472719+00:00"
+    },
+    "institutional_approval": {
+      "decision": "APPROVED",
+      "approved_subsidy_percentage": 100.0,
+      "decision_notes": "Approved by Hospital Director.",
+      "approved_by_user_id": "admin_officer_01",
+      "approver_name": "Dr. Director",
+      "decision_timestamp": "2026-11-22T18:17:53.495976+00:00"
+    },
+    "created_by": "msw_test",
+    "created_at": "2026-11-22T18:17:53.420637+00:00",
+    "updated_at": "2026-11-22T18:17:53.495976+00:00",
+    "history": [
+      {
+        "timestamp": "2026-11-22T18:17:53.420637+00:00",
+        "event": "ASSESSMENT_CREATED",
+        "actor_id": "msw_test",
+        "role": "msw",
+        "workflow_status": "DRAFT",
+        "details": {
+          "encounter_no": "ENC-M26-11-TEST01-4B7CCD"
+        }
+      },
+      {
+        "timestamp": "2026-11-22T18:17:53.438274+00:00",
+        "event": "DRAFT_SAVED",
+        "actor_id": "msw_test",
+        "role": "msw",
+        "workflow_status": "ASSESSMENT_IN_PROGRESS",
+        "details": {
+          "active_stage": 2
+        }
+      },
+      {
+        "timestamp": "2026-11-22T18:17:53.454389+00:00",
+        "event": "ASSESSMENT_CLASSIFIED",
+        "actor_id": "msw_test",
+        "role": "msw",
+        "workflow_status": "PENDING_MSW_REVIEW",
+        "details": {
+          "financial_classification": "INDIGENT",
+          "msw_classification": "FINANCIALLY_INCAPACITATED_B1",
+          "discrepancy_detected": true
+        }
+      },
+      {
+        "timestamp": "2026-11-22T18:17:53.472719+00:00",
+        "event": "MSW_RECOMMENDATION_SUBMITTED",
+        "actor_id": "msw_test",
+        "role": "msw",
+        "workflow_status": "PENDING_APPROVAL",
+        "details": {
+          "recommended_tier": "Indigent",
+          "recommended_subsidy_pct": 100.0,
+          "case_notes": "Household per capita income is \u20b11,250.00; qualifies for 100% full charity subsidy.",
+          "discrepancy_explanation": null,
+          "override_reason": null,
+          "msw_assessor_id": "msw_test",
+          "msw_assessor_name": "Maria Santos, RSW",
+          "recommended_at": "2026-11-22T18:17:53.472719+00:00"
+        }
+      },
+      {
+        "timestamp": "2026-11-22T18:17:53.495976+00:00",
+        "event": "INSTITUTIONAL_APPROVED",
+        "actor_id": "admin_officer_01",
+        "role": "admin",
+        "workflow_status": "APPROVED",
+        "details": {
+          "decision": "APPROVED",
+          "approved_subsidy_percentage": 100.0,
+          "decision_notes": "Approved by Hospital Director.",
+          "approved_by_user_id": "admin_officer_01",
+          "approver_name": "Dr. Director",
+          "decision_timestamp": "2026-11-22T18:17:53.495976+00:00"
+        }
+      }
+    ]
+  },
+  "asmt-16ee1b10fc": {
+    "id": "asmt-16ee1b10fc",
+    "patient_id": "M26-11-TEST01",
+    "encounter_no": "ENC-M26-11-TEST01-1A9F23",
+    "interview_date": "2026-11-22",
+    "source_of_referral": "EYE CLINIC REFERRAL",
+    "active_stage": 2,
+    "workflow_status": "APPROVED",
+    "is_initial_load": true,
+    "stage1_data": {
+      "patient_first_name": "Elena",
+      "patient_last_name": "Reyes",
+      "informant_income": 0,
+      "patient_income": 5000,
+      "household_size": 4
+    },
+    "stage2_data": {
+      "health_factors": [
+        {
+          "factor": "Absence of adequate health services",
+          "severity": 4,
+          "coping": 4
+        },
+        {
+          "factor": "Inaccessibility",
+          "severity": 4,
+          "coping": 4
+        }
+      ],
+      "discrimination_severity": 3,
+      "discrimination_coping": 3,
+      "safety_severity": 3,
+      "safety_coping": 3,
+      "roles_severity": 4,
+      "roles_coping": 4,
+      "environment_severity": 4
+    },
+    "stage3_documents": [],
+    "classification_result": {
+      "financial_classification": {
+        "monthly_per_capita_income": "1250.00",
+        "total_monthly_household_income": "5000.00",
+        "household_size": 4,
+        "classification": "INDIGENT",
+        "classification_label": "Indigent",
+        "reference_threshold": "4715.76",
+        "pcpt_reference": "3368.40",
+        "family_of_five_reference": "16842.00",
+        "classification_basis": "OFPHIL_FINANCIAL_RUBRIC",
+        "rubric_version": "1.0",
+        "explanation": "Monthly per capita income (\u20b11,250.00) is at or below the OFPHIL Indigent threshold of \u20b14,715.76."
+      },
+      "msw_classification": {
+        "classification": "FINANCIALLY_INCAPACITATED_B1",
+        "classification_label": "Financially Incapacitated B1",
+        "proposed_subsidy": "High Partial Charity Subsidy",
+        "subsidy_percentage_range": "75% - 90%",
+        "average_severity": "3.60",
+        "average_coping": "3.50",
+        "total_risk": "48.1",
+        "total_risk_formula": "(Average Severity * 8.5) + (Average Coping * 5.0)",
+        "triggered_conditions": [
+          {
+            "tier": "FINANCIALLY_INCAPACITATED_B1",
+            "rule": "Average Severity >= 2.8",
+            "metric": "average_severity",
+            "actual_value": "3.60",
+            "threshold": "2.8",
+            "context_applicable": true
+          },
+          {
+            "tier": "FINANCIALLY_INCAPACITATED_B1",
+            "rule": "Average Coping >= 2.8",
+            "metric": "average_coping",
+            "actual_value": "3.50",
+            "threshold": "2.8",
+            "context_applicable": true
+          },
+          {
+            "tier": "FINANCIALLY_INCAPACITATED_B1",
+            "rule": "Total Risk >= 45.0%",
+            "metric": "total_risk",
+            "actual_value": "48.1%",
+            "threshold": "45.0%",
+            "context_applicable": true
+          },
+          {
+            "tier": "FINANCIALLY_INCAPACITATED_B2",
+            "rule": "Total Risk >= 30.0%",
+            "metric": "total_risk",
+            "actual_value": "48.1%",
+            "threshold": "30.0%",
+            "context_applicable": true
+          }
+        ],
+        "classification_precedence": [
+          "INDIGENT",
+          "FINANCIALLY_INCAPACITATED_B1",
+          "FINANCIALLY_INCAPACITATED_B2",
+          "FINANCIALLY_CAPACITATED"
+        ],
+        "initial_load_applied": false,
+        "assessment_context": "live_recalculation",
+        "missing_factors": [],
+        "calculation_breakdown": {
+          "severity_components": [
+            4.0,
+            3.0,
+            3.0,
+            4.0,
+            4.0
+          ],
+          "coping_components": [
+            4.0,
+            3.0,
+            3.0,
+            4.0
+          ],
+          "average_severity": 3.6,
+          "average_coping": 3.5,
+          "severity_weighted": 30.6,
+          "coping_weighted": 17.5,
+          "total_risk_percent": 48.1
+        },
+        "classification_basis": "OFPHIL_MSW_RUBRIC",
+        "rubric_version": "1.0",
+        "explanation": "MSW Rubric Classification: Financially Incapacitated B1 (High Partial Charity Subsidy). Computed Avg Severity=3.60, Avg Coping=3.50, Total Risk=48.1%. Primary triggers: Average Severity >= 2.8; Average Coping >= 2.8; Total Risk >= 45.0%."
+      },
+      "monthly_per_capita_income": "1250.00",
+      "average_severity": "3.60",
+      "average_coping": "3.50",
+      "total_risk": "48.1",
+      "triggered_conditions": [
+        {
+          "tier": "FINANCIALLY_INCAPACITATED_B1",
+          "rule": "Average Severity >= 2.8",
+          "metric": "average_severity",
+          "actual_value": "3.60",
+          "threshold": "2.8",
+          "context_applicable": true
+        },
+        {
+          "tier": "FINANCIALLY_INCAPACITATED_B1",
+          "rule": "Average Coping >= 2.8",
+          "metric": "average_coping",
+          "actual_value": "3.50",
+          "threshold": "2.8",
+          "context_applicable": true
+        },
+        {
+          "tier": "FINANCIALLY_INCAPACITATED_B1",
+          "rule": "Total Risk >= 45.0%",
+          "metric": "total_risk",
+          "actual_value": "48.1%",
+          "threshold": "45.0%",
+          "context_applicable": true
+        },
+        {
+          "tier": "FINANCIALLY_INCAPACITATED_B2",
+          "rule": "Total Risk >= 30.0%",
+          "metric": "total_risk",
+          "actual_value": "48.1%",
+          "threshold": "30.0%",
+          "context_applicable": true
+        }
+      ],
+      "subsidy_recommendation": "High Partial Charity Subsidy",
+      "discrepancy_detected": true,
+      "discrepancy_details": "Financial Income Rubric classified patient as 'Indigent' (\u20b11,250.00/person), whereas MSW Scoring Rubric classified patient as 'Financially Incapacitated B1' (Risk 48.1%). Case flagged for MSW professional review.",
+      "requires_msw_review": true,
+      "rubric_version": "1.0",
+      "explanations": {
+        "financial": "Monthly per capita income (\u20b11,250.00) is at or below the OFPHIL Indigent threshold of \u20b14,715.76.",
+        "msw": "MSW Rubric Classification: Financially Incapacitated B1 (High Partial Charity Subsidy). Computed Avg Severity=3.60, Avg Coping=3.50, Total Risk=48.1%. Primary triggers: Average Severity >= 2.8; Average Coping >= 2.8; Total Risk >= 45.0%."
+      }
+    },
+    "classification_history": [
+      {
+        "timestamp": "2026-11-22T18:23:43.617531+00:00",
+        "actor_id": "msw_test",
+        "result": {
+          "financial_classification": {
+            "monthly_per_capita_income": "1250.00",
+            "total_monthly_household_income": "5000.00",
+            "household_size": 4,
+            "classification": "INDIGENT",
+            "classification_label": "Indigent",
+            "reference_threshold": "4715.76",
+            "pcpt_reference": "3368.40",
+            "family_of_five_reference": "16842.00",
+            "classification_basis": "OFPHIL_FINANCIAL_RUBRIC",
+            "rubric_version": "1.0",
+            "explanation": "Monthly per capita income (\u20b11,250.00) is at or below the OFPHIL Indigent threshold of \u20b14,715.76."
+          },
+          "msw_classification": {
+            "classification": "FINANCIALLY_INCAPACITATED_B1",
+            "classification_label": "Financially Incapacitated B1",
+            "proposed_subsidy": "High Partial Charity Subsidy",
+            "subsidy_percentage_range": "75% - 90%",
+            "average_severity": "3.60",
+            "average_coping": "3.50",
+            "total_risk": "48.1",
+            "total_risk_formula": "(Average Severity * 8.5) + (Average Coping * 5.0)",
+            "triggered_conditions": [
+              {
+                "tier": "FINANCIALLY_INCAPACITATED_B1",
+                "rule": "Average Severity >= 2.8",
+                "metric": "average_severity",
+                "actual_value": "3.60",
+                "threshold": "2.8",
+                "context_applicable": true
+              },
+              {
+                "tier": "FINANCIALLY_INCAPACITATED_B1",
+                "rule": "Average Coping >= 2.8",
+                "metric": "average_coping",
+                "actual_value": "3.50",
+                "threshold": "2.8",
+                "context_applicable": true
+              },
+              {
+                "tier": "FINANCIALLY_INCAPACITATED_B1",
+                "rule": "Total Risk >= 45.0%",
+                "metric": "total_risk",
+                "actual_value": "48.1%",
+                "threshold": "45.0%",
+                "context_applicable": true
+              },
+              {
+                "tier": "FINANCIALLY_INCAPACITATED_B2",
+                "rule": "Total Risk >= 30.0%",
+                "metric": "total_risk",
+                "actual_value": "48.1%",
+                "threshold": "30.0%",
+                "context_applicable": true
+              }
+            ],
+            "classification_precedence": [
+              "INDIGENT",
+              "FINANCIALLY_INCAPACITATED_B1",
+              "FINANCIALLY_INCAPACITATED_B2",
+              "FINANCIALLY_CAPACITATED"
+            ],
+            "initial_load_applied": false,
+            "assessment_context": "live_recalculation",
+            "missing_factors": [],
+            "calculation_breakdown": {
+              "severity_components": [
+                4.0,
+                3.0,
+                3.0,
+                4.0,
+                4.0
+              ],
+              "coping_components": [
+                4.0,
+                3.0,
+                3.0,
+                4.0
+              ],
+              "average_severity": 3.6,
+              "average_coping": 3.5,
+              "severity_weighted": 30.6,
+              "coping_weighted": 17.5,
+              "total_risk_percent": 48.1
+            },
+            "classification_basis": "OFPHIL_MSW_RUBRIC",
+            "rubric_version": "1.0",
+            "explanation": "MSW Rubric Classification: Financially Incapacitated B1 (High Partial Charity Subsidy). Computed Avg Severity=3.60, Avg Coping=3.50, Total Risk=48.1%. Primary triggers: Average Severity >= 2.8; Average Coping >= 2.8; Total Risk >= 45.0%."
+          },
+          "monthly_per_capita_income": "1250.00",
+          "average_severity": "3.60",
+          "average_coping": "3.50",
+          "total_risk": "48.1",
+          "triggered_conditions": [
+            {
+              "tier": "FINANCIALLY_INCAPACITATED_B1",
+              "rule": "Average Severity >= 2.8",
+              "metric": "average_severity",
+              "actual_value": "3.60",
+              "threshold": "2.8",
+              "context_applicable": true
+            },
+            {
+              "tier": "FINANCIALLY_INCAPACITATED_B1",
+              "rule": "Average Coping >= 2.8",
+              "metric": "average_coping",
+              "actual_value": "3.50",
+              "threshold": "2.8",
+              "context_applicable": true
+            },
+            {
+              "tier": "FINANCIALLY_INCAPACITATED_B1",
+              "rule": "Total Risk >= 45.0%",
+              "metric": "total_risk",
+              "actual_value": "48.1%",
+              "threshold": "45.0%",
+              "context_applicable": true
+            },
+            {
+              "tier": "FINANCIALLY_INCAPACITATED_B2",
+              "rule": "Total Risk >= 30.0%",
+              "metric": "total_risk",
+              "actual_value": "48.1%",
+              "threshold": "30.0%",
+              "context_applicable": true
+            }
+          ],
+          "subsidy_recommendation": "High Partial Charity Subsidy",
+          "discrepancy_detected": true,
+          "discrepancy_details": "Financial Income Rubric classified patient as 'Indigent' (\u20b11,250.00/person), whereas MSW Scoring Rubric classified patient as 'Financially Incapacitated B1' (Risk 48.1%). Case flagged for MSW professional review.",
+          "requires_msw_review": true,
+          "rubric_version": "1.0",
+          "explanations": {
+            "financial": "Monthly per capita income (\u20b11,250.00) is at or below the OFPHIL Indigent threshold of \u20b14,715.76.",
+            "msw": "MSW Rubric Classification: Financially Incapacitated B1 (High Partial Charity Subsidy). Computed Avg Severity=3.60, Avg Coping=3.50, Total Risk=48.1%. Primary triggers: Average Severity >= 2.8; Average Coping >= 2.8; Total Risk >= 45.0%."
+          }
+        }
+      }
+    ],
+    "ml_prediction": null,
+    "msw_recommendation": {
+      "recommended_tier": "Indigent",
+      "recommended_subsidy_pct": 100.0,
+      "case_notes": "Household per capita income is \u20b11,250.00; qualifies for 100% full charity subsidy.",
+      "discrepancy_explanation": null,
+      "override_reason": null,
+      "msw_assessor_id": "msw_test",
+      "msw_assessor_name": "Maria Santos, RSW",
+      "recommended_at": "2026-11-22T18:23:43.635495+00:00"
+    },
+    "institutional_approval": {
+      "decision": "APPROVED",
+      "approved_subsidy_percentage": 100.0,
+      "decision_notes": "Approved by Hospital Director.",
+      "approved_by_user_id": "admin_officer_01",
+      "approver_name": "Dr. Director",
+      "decision_timestamp": "2026-11-22T18:23:43.660001+00:00"
+    },
+    "created_by": "msw_test",
+    "created_at": "2026-11-22T18:23:43.583611+00:00",
+    "updated_at": "2026-11-22T18:23:43.660001+00:00",
+    "history": [
+      {
+        "timestamp": "2026-11-22T18:23:43.583611+00:00",
+        "event": "ASSESSMENT_CREATED",
+        "actor_id": "msw_test",
+        "role": "msw",
+        "workflow_status": "DRAFT",
+        "details": {
+          "encounter_no": "ENC-M26-11-TEST01-1A9F23"
+        }
+      },
+      {
+        "timestamp": "2026-11-22T18:23:43.600482+00:00",
+        "event": "DRAFT_SAVED",
+        "actor_id": "msw_test",
+        "role": "msw",
+        "workflow_status": "ASSESSMENT_IN_PROGRESS",
+        "details": {
+          "active_stage": 2
+        }
+      },
+      {
+        "timestamp": "2026-11-22T18:23:43.617531+00:00",
+        "event": "ASSESSMENT_CLASSIFIED",
+        "actor_id": "msw_test",
+        "role": "msw",
+        "workflow_status": "PENDING_MSW_REVIEW",
+        "details": {
+          "financial_classification": "INDIGENT",
+          "msw_classification": "FINANCIALLY_INCAPACITATED_B1",
+          "discrepancy_detected": true
+        }
+      },
+      {
+        "timestamp": "2026-11-22T18:23:43.635495+00:00",
+        "event": "MSW_RECOMMENDATION_SUBMITTED",
+        "actor_id": "msw_test",
+        "role": "msw",
+        "workflow_status": "PENDING_APPROVAL",
+        "details": {
+          "recommended_tier": "Indigent",
+          "recommended_subsidy_pct": 100.0,
+          "case_notes": "Household per capita income is \u20b11,250.00; qualifies for 100% full charity subsidy.",
+          "discrepancy_explanation": null,
+          "override_reason": null,
+          "msw_assessor_id": "msw_test",
+          "msw_assessor_name": "Maria Santos, RSW",
+          "recommended_at": "2026-11-22T18:23:43.635495+00:00"
+        }
+      },
+      {
+        "timestamp": "2026-11-22T18:23:43.660001+00:00",
+        "event": "INSTITUTIONAL_APPROVED",
+        "actor_id": "admin_officer_01",
+        "role": "admin",
+        "workflow_status": "APPROVED",
+        "details": {
+          "decision": "APPROVED",
+          "approved_subsidy_percentage": 100.0,
+          "decision_notes": "Approved by Hospital Director.",
+          "approved_by_user_id": "admin_officer_01",
+          "approver_name": "Dr. Director",
+          "decision_timestamp": "2026-11-22T18:23:43.660001+00:00"
+        }
+      }
+    ]
+  },
+  "asmt-22ee4b367a": {
+    "id": "asmt-22ee4b367a",
+    "patient_id": "M26-11-INT01",
+    "encounter_no": "ENC-M26-11-INT01-36C76F",
+    "interview_date": "2026-11-23",
+    "source_of_referral": "",
+    "active_stage": 1,
+    "workflow_status": "DRAFT",
+    "is_initial_load": true,
+    "stage1_data": {
+      "patient_income": 8000,
+      "household_size": 3,
+      "total_household_income": 8000
+    },
+    "stage2_data": {
+      "interview_info": {
+        "interview_date": "2026-11-23",
+        "assigned_msw": "Maria Santos, RSW",
+        "interview_status": "IN_PROGRESS"
+      },
+      "background": {
+        "living_situation": "Informal settlement",
+        "living_situation_obs": "High vulnerability observed"
+      },
+      "notes": "Patient accompanied by eldest daughter."
+    },
+    "stage3_documents": [],
+    "classification_result": {
+      "financial_classification": {
+        "monthly_per_capita_income": "2666.67",
+        "total_monthly_household_income": "8000.00",
+        "household_size": 3,
+        "classification": "INDIGENT",
+        "classification_label": "Indigent",
+        "reference_threshold": "4715.76",
+        "pcpt_reference": "3368.40",
+        "family_of_five_reference": "16842.00",
+        "classification_basis": "OFPHIL_FINANCIAL_RUBRIC",
+        "rubric_version": "1.0",
+        "explanation": "Monthly per capita income (\u20b12,666.67) is at or below the OFPHIL Indigent threshold of \u20b14,715.76."
+      },
+      "msw_classification": {
+        "classification": "INDIGENT",
+        "classification_label": "Indigent",
+        "proposed_subsidy": "100% Full Charity Subsidy",
+        "subsidy_percentage_range": "100%",
+        "average_severity": "4.40",
+        "average_coping": "4.25",
+        "total_risk": "58.7",
+        "total_risk_formula": "(Average Severity * 8.5) + (Average Coping * 5.0)",
+        "triggered_conditions": [
+          {
+            "tier": "INDIGENT",
+            "rule": "Average Severity >= 3.8",
+            "metric": "average_severity",
+            "actual_value": "4.40",
+            "threshold": "3.8",
+            "context_applicable": true
+          },
+          {
+            "tier": "INDIGENT",
+            "rule": "Average Coping >= 3.8",
+            "metric": "average_coping",
+            "actual_value": "4.25",
+            "threshold": "3.8",
+            "context_applicable": true
+          },
+          {
+            "tier": "FINANCIALLY_INCAPACITATED_B1",
+            "rule": "Average Severity >= 2.8",
+            "metric": "average_severity",
+            "actual_value": "4.40",
+            "threshold": "2.8",
+            "context_applicable": true
+          },
+          {
+            "tier": "FINANCIALLY_INCAPACITATED_B1",
+            "rule": "Average Coping >= 2.8",
+            "metric": "average_coping",
+            "actual_value": "4.25",
+            "threshold": "2.8",
+            "context_applicable": true
+          },
+          {
+            "tier": "FINANCIALLY_INCAPACITATED_B1",
+            "rule": "Total Risk >= 45.0%",
+            "metric": "total_risk",
+            "actual_value": "58.7%",
+            "threshold": "45.0%",
+            "context_applicable": true
+          },
+          {
+            "tier": "FINANCIALLY_INCAPACITATED_B2",
+            "rule": "Total Risk >= 30.0%",
+            "metric": "total_risk",
+            "actual_value": "58.7%",
+            "threshold": "30.0%",
+            "context_applicable": true
+          }
+        ],
+        "classification_precedence": [
+          "INDIGENT",
+          "FINANCIALLY_INCAPACITATED_B1",
+          "FINANCIALLY_INCAPACITATED_B2",
+          "FINANCIALLY_CAPACITATED"
+        ],
+        "initial_load_applied": false,
+        "assessment_context": "live_recalculation",
+        "missing_factors": [],
+        "calculation_breakdown": {
+          "average_severity": 4.4,
+          "average_coping": 4.25,
+          "severity_weighted": 37.4,
+          "coping_weighted": 21.25,
+          "total_risk_percent": 58.7
+        },
+        "classification_basis": "OFPHIL_MSW_RUBRIC",
+        "rubric_version": "1.0",
+        "explanation": "MSW Rubric Classification: Indigent (100% Full Charity Subsidy). Computed Avg Severity=4.40, Avg Coping=4.25, Total Risk=58.7%. Primary triggers: Average Severity >= 3.8; Average Coping >= 3.8."
+      },
+      "total_risk": 58.7
+    },
+    "classification_history": [],
+    "ml_prediction": null,
+    "msw_recommendation": null,
+    "institutional_approval": null,
+    "created_by": "msw_santos_01",
+    "created_at": "2026-11-22T18:24:50.011197+00:00",
+    "updated_at": "2026-11-22T19:06:11.412372+00:00",
+    "history": [
+      {
+        "timestamp": "2026-11-22T18:24:50.011197+00:00",
+        "event": "ASSESSMENT_CREATED",
+        "actor_id": "msw_santos_01",
+        "role": "msw",
+        "workflow_status": "DRAFT",
+        "details": {
+          "encounter_no": "ENC-M26-11-INT01-36C76F"
+        }
+      },
+      {
+        "timestamp": "2026-11-22T18:24:50.023203+00:00",
+        "event": "INTERVIEW_DRAFT_SAVED",
+        "actor_id": "msw_santos_01",
+        "role": "msw",
+        "workflow_status": "DRAFT",
+        "details": {
+          "mark_completed": false
+        }
+      },
+      {
+        "timestamp": "2026-11-22T18:24:50.034206+00:00",
+        "event": "STAGE2_INTERVIEW_EVALUATED",
+        "actor_id": "msw_santos_01",
+        "role": "msw",
+        "workflow_status": "DRAFT",
+        "details": {
+          "status": "EVALUATED",
+          "is_complete": true,
+          "missing_factors": []
+        }
+      },
+      {
+        "timestamp": "2026-11-22T18:36:19.098855+00:00",
+        "event": "INTERVIEW_DRAFT_SAVED",
+        "actor_id": "msw_santos_01",
+        "role": "msw",
+        "workflow_status": "DRAFT",
+        "details": {
+          "mark_completed": false
+        }
+      },
+      {
+        "timestamp": "2026-11-22T18:36:19.114459+00:00",
+        "event": "STAGE2_INTERVIEW_EVALUATED",
+        "actor_id": "msw_santos_01",
+        "role": "msw",
+        "workflow_status": "DRAFT",
+        "details": {
+          "status": "EVALUATED",
+          "is_complete": true,
+          "missing_factors": []
+        }
+      },
+      {
+        "timestamp": "2026-11-22T18:48:37.632027+00:00",
+        "event": "INTERVIEW_DRAFT_SAVED",
+        "actor_id": "msw_santos_01",
+        "role": "msw",
+        "workflow_status": "DRAFT",
+        "details": {
+          "mark_completed": false
+        }
+      },
+      {
+        "timestamp": "2026-11-22T18:48:37.646777+00:00",
+        "event": "STAGE2_INTERVIEW_EVALUATED",
+        "actor_id": "msw_santos_01",
+        "role": "msw",
+        "workflow_status": "DRAFT",
+        "details": {
+          "status": "EVALUATED",
+          "is_complete": true,
+          "missing_factors": []
+        }
+      },
+      {
+        "timestamp": "2026-11-22T19:06:11.412372+00:00",
+        "event": "INTERVIEW_DRAFT_SAVED",
+        "actor_id": "msw_santos_01",
+        "role": "msw",
+        "workflow_status": "DRAFT",
+        "details": {
+          "mark_completed": false
+        }
+      },
+      {
+        "timestamp": "2026-11-22T19:06:11.430070+00:00",
+        "event": "STAGE2_INTERVIEW_EVALUATED",
+        "actor_id": "msw_santos_01",
+        "role": "msw",
+        "workflow_status": "DRAFT",
+        "details": {
+          "status": "EVALUATED",
+          "is_complete": true,
+          "missing_factors": []
+        }
+      }
+    ]
+  },
+  "asmt-e091df5040": {
+    "id": "asmt-e091df5040",
+    "patient_id": "M26-11-TEST01",
+    "encounter_no": "ENC-M26-11-TEST01-380827",
+    "interview_date": "2026-11-22",
+    "source_of_referral": "EYE CLINIC REFERRAL",
+    "active_stage": 2,
+    "workflow_status": "APPROVED",
+    "is_initial_load": true,
+    "stage1_data": {
+      "patient_first_name": "Elena",
+      "patient_last_name": "Reyes",
+      "informant_income": 0,
+      "patient_income": 5000,
+      "household_size": 4
+    },
+    "stage2_data": {
+      "health_factors": [
+        {
+          "factor": "Absence of adequate health services",
+          "severity": 4,
+          "coping": 4
+        },
+        {
+          "factor": "Inaccessibility",
+          "severity": 4,
+          "coping": 4
+        }
+      ],
+      "discrimination_severity": 3,
+      "discrimination_coping": 3,
+      "safety_severity": 3,
+      "safety_coping": 3,
+      "roles_severity": 4,
+      "roles_coping": 4,
+      "environment_severity": 4
+    },
+    "stage3_documents": [],
+    "classification_result": {
+      "financial_classification": {
+        "monthly_per_capita_income": "1250.00",
+        "total_monthly_household_income": "5000.00",
+        "household_size": 4,
+        "classification": "INDIGENT",
+        "classification_label": "Indigent",
+        "reference_threshold": "4715.76",
+        "pcpt_reference": "3368.40",
+        "family_of_five_reference": "16842.00",
+        "classification_basis": "OFPHIL_FINANCIAL_RUBRIC",
+        "rubric_version": "1.0",
+        "explanation": "Monthly per capita income (\u20b11,250.00) is at or below the OFPHIL Indigent threshold of \u20b14,715.76."
+      },
+      "msw_classification": {
+        "classification": "FINANCIALLY_INCAPACITATED_B1",
+        "classification_label": "Financially Incapacitated B1",
+        "proposed_subsidy": "High Partial Charity Subsidy",
+        "subsidy_percentage_range": "75% - 90%",
+        "average_severity": "3.60",
+        "average_coping": "3.50",
+        "total_risk": "48.1",
+        "total_risk_formula": "(Average Severity * 8.5) + (Average Coping * 5.0)",
+        "triggered_conditions": [
+          {
+            "tier": "FINANCIALLY_INCAPACITATED_B1",
+            "rule": "Average Severity >= 2.8",
+            "metric": "average_severity",
+            "actual_value": "3.60",
+            "threshold": "2.8",
+            "context_applicable": true
+          },
+          {
+            "tier": "FINANCIALLY_INCAPACITATED_B1",
+            "rule": "Average Coping >= 2.8",
+            "metric": "average_coping",
+            "actual_value": "3.50",
+            "threshold": "2.8",
+            "context_applicable": true
+          },
+          {
+            "tier": "FINANCIALLY_INCAPACITATED_B1",
+            "rule": "Total Risk >= 45.0%",
+            "metric": "total_risk",
+            "actual_value": "48.1%",
+            "threshold": "45.0%",
+            "context_applicable": true
+          },
+          {
+            "tier": "FINANCIALLY_INCAPACITATED_B2",
+            "rule": "Total Risk >= 30.0%",
+            "metric": "total_risk",
+            "actual_value": "48.1%",
+            "threshold": "30.0%",
+            "context_applicable": true
+          }
+        ],
+        "classification_precedence": [
+          "INDIGENT",
+          "FINANCIALLY_INCAPACITATED_B1",
+          "FINANCIALLY_INCAPACITATED_B2",
+          "FINANCIALLY_CAPACITATED"
+        ],
+        "initial_load_applied": false,
+        "assessment_context": "live_recalculation",
+        "missing_factors": [],
+        "calculation_breakdown": {
+          "severity_components": [
+            4.0,
+            3.0,
+            3.0,
+            4.0,
+            4.0
+          ],
+          "coping_components": [
+            4.0,
+            3.0,
+            3.0,
+            4.0
+          ],
+          "average_severity": 3.6,
+          "average_coping": 3.5,
+          "severity_weighted": 30.6,
+          "coping_weighted": 17.5,
+          "total_risk_percent": 48.1
+        },
+        "classification_basis": "OFPHIL_MSW_RUBRIC",
+        "rubric_version": "1.0",
+        "explanation": "MSW Rubric Classification: Financially Incapacitated B1 (High Partial Charity Subsidy). Computed Avg Severity=3.60, Avg Coping=3.50, Total Risk=48.1%. Primary triggers: Average Severity >= 2.8; Average Coping >= 2.8; Total Risk >= 45.0%."
+      },
+      "monthly_per_capita_income": "1250.00",
+      "average_severity": "3.60",
+      "average_coping": "3.50",
+      "total_risk": "48.1",
+      "triggered_conditions": [
+        {
+          "tier": "FINANCIALLY_INCAPACITATED_B1",
+          "rule": "Average Severity >= 2.8",
+          "metric": "average_severity",
+          "actual_value": "3.60",
+          "threshold": "2.8",
+          "context_applicable": true
+        },
+        {
+          "tier": "FINANCIALLY_INCAPACITATED_B1",
+          "rule": "Average Coping >= 2.8",
+          "metric": "average_coping",
+          "actual_value": "3.50",
+          "threshold": "2.8",
+          "context_applicable": true
+        },
+        {
+          "tier": "FINANCIALLY_INCAPACITATED_B1",
+          "rule": "Total Risk >= 45.0%",
+          "metric": "total_risk",
+          "actual_value": "48.1%",
+          "threshold": "45.0%",
+          "context_applicable": true
+        },
+        {
+          "tier": "FINANCIALLY_INCAPACITATED_B2",
+          "rule": "Total Risk >= 30.0%",
+          "metric": "total_risk",
+          "actual_value": "48.1%",
+          "threshold": "30.0%",
+          "context_applicable": true
+        }
+      ],
+      "subsidy_recommendation": "High Partial Charity Subsidy",
+      "discrepancy_detected": true,
+      "discrepancy_details": "Financial Income Rubric classified patient as 'Indigent' (\u20b11,250.00/person), whereas MSW Scoring Rubric classified patient as 'Financially Incapacitated B1' (Risk 48.1%). Case flagged for MSW professional review.",
+      "requires_msw_review": true,
+      "rubric_version": "1.0",
+      "explanations": {
+        "financial": "Monthly per capita income (\u20b11,250.00) is at or below the OFPHIL Indigent threshold of \u20b14,715.76.",
+        "msw": "MSW Rubric Classification: Financially Incapacitated B1 (High Partial Charity Subsidy). Computed Avg Severity=3.60, Avg Coping=3.50, Total Risk=48.1%. Primary triggers: Average Severity >= 2.8; Average Coping >= 2.8; Total Risk >= 45.0%."
+      }
+    },
+    "classification_history": [
+      {
+        "timestamp": "2026-11-22T18:35:57.221722+00:00",
+        "actor_id": "msw_test",
+        "result": {
+          "financial_classification": {
+            "monthly_per_capita_income": "1250.00",
+            "total_monthly_household_income": "5000.00",
+            "household_size": 4,
+            "classification": "INDIGENT",
+            "classification_label": "Indigent",
+            "reference_threshold": "4715.76",
+            "pcpt_reference": "3368.40",
+            "family_of_five_reference": "16842.00",
+            "classification_basis": "OFPHIL_FINANCIAL_RUBRIC",
+            "rubric_version": "1.0",
+            "explanation": "Monthly per capita income (\u20b11,250.00) is at or below the OFPHIL Indigent threshold of \u20b14,715.76."
+          },
+          "msw_classification": {
+            "classification": "FINANCIALLY_INCAPACITATED_B1",
+            "classification_label": "Financially Incapacitated B1",
+            "proposed_subsidy": "High Partial Charity Subsidy",
+            "subsidy_percentage_range": "75% - 90%",
+            "average_severity": "3.60",
+            "average_coping": "3.50",
+            "total_risk": "48.1",
+            "total_risk_formula": "(Average Severity * 8.5) + (Average Coping * 5.0)",
+            "triggered_conditions": [
+              {
+                "tier": "FINANCIALLY_INCAPACITATED_B1",
+                "rule": "Average Severity >= 2.8",
+                "metric": "average_severity",
+                "actual_value": "3.60",
+                "threshold": "2.8",
+                "context_applicable": true
+              },
+              {
+                "tier": "FINANCIALLY_INCAPACITATED_B1",
+                "rule": "Average Coping >= 2.8",
+                "metric": "average_coping",
+                "actual_value": "3.50",
+                "threshold": "2.8",
+                "context_applicable": true
+              },
+              {
+                "tier": "FINANCIALLY_INCAPACITATED_B1",
+                "rule": "Total Risk >= 45.0%",
+                "metric": "total_risk",
+                "actual_value": "48.1%",
+                "threshold": "45.0%",
+                "context_applicable": true
+              },
+              {
+                "tier": "FINANCIALLY_INCAPACITATED_B2",
+                "rule": "Total Risk >= 30.0%",
+                "metric": "total_risk",
+                "actual_value": "48.1%",
+                "threshold": "30.0%",
+                "context_applicable": true
+              }
+            ],
+            "classification_precedence": [
+              "INDIGENT",
+              "FINANCIALLY_INCAPACITATED_B1",
+              "FINANCIALLY_INCAPACITATED_B2",
+              "FINANCIALLY_CAPACITATED"
+            ],
+            "initial_load_applied": false,
+            "assessment_context": "live_recalculation",
+            "missing_factors": [],
+            "calculation_breakdown": {
+              "severity_components": [
+                4.0,
+                3.0,
+                3.0,
+                4.0,
+                4.0
+              ],
+              "coping_components": [
+                4.0,
+                3.0,
+                3.0,
+                4.0
+              ],
+              "average_severity": 3.6,
+              "average_coping": 3.5,
+              "severity_weighted": 30.6,
+              "coping_weighted": 17.5,
+              "total_risk_percent": 48.1
+            },
+            "classification_basis": "OFPHIL_MSW_RUBRIC",
+            "rubric_version": "1.0",
+            "explanation": "MSW Rubric Classification: Financially Incapacitated B1 (High Partial Charity Subsidy). Computed Avg Severity=3.60, Avg Coping=3.50, Total Risk=48.1%. Primary triggers: Average Severity >= 2.8; Average Coping >= 2.8; Total Risk >= 45.0%."
+          },
+          "monthly_per_capita_income": "1250.00",
+          "average_severity": "3.60",
+          "average_coping": "3.50",
+          "total_risk": "48.1",
+          "triggered_conditions": [
+            {
+              "tier": "FINANCIALLY_INCAPACITATED_B1",
+              "rule": "Average Severity >= 2.8",
+              "metric": "average_severity",
+              "actual_value": "3.60",
+              "threshold": "2.8",
+              "context_applicable": true
+            },
+            {
+              "tier": "FINANCIALLY_INCAPACITATED_B1",
+              "rule": "Average Coping >= 2.8",
+              "metric": "average_coping",
+              "actual_value": "3.50",
+              "threshold": "2.8",
+              "context_applicable": true
+            },
+            {
+              "tier": "FINANCIALLY_INCAPACITATED_B1",
+              "rule": "Total Risk >= 45.0%",
+              "metric": "total_risk",
+              "actual_value": "48.1%",
+              "threshold": "45.0%",
+              "context_applicable": true
+            },
+            {
+              "tier": "FINANCIALLY_INCAPACITATED_B2",
+              "rule": "Total Risk >= 30.0%",
+              "metric": "total_risk",
+              "actual_value": "48.1%",
+              "threshold": "30.0%",
+              "context_applicable": true
+            }
+          ],
+          "subsidy_recommendation": "High Partial Charity Subsidy",
+          "discrepancy_detected": true,
+          "discrepancy_details": "Financial Income Rubric classified patient as 'Indigent' (\u20b11,250.00/person), whereas MSW Scoring Rubric classified patient as 'Financially Incapacitated B1' (Risk 48.1%). Case flagged for MSW professional review.",
+          "requires_msw_review": true,
+          "rubric_version": "1.0",
+          "explanations": {
+            "financial": "Monthly per capita income (\u20b11,250.00) is at or below the OFPHIL Indigent threshold of \u20b14,715.76.",
+            "msw": "MSW Rubric Classification: Financially Incapacitated B1 (High Partial Charity Subsidy). Computed Avg Severity=3.60, Avg Coping=3.50, Total Risk=48.1%. Primary triggers: Average Severity >= 2.8; Average Coping >= 2.8; Total Risk >= 45.0%."
+          }
+        }
+      }
+    ],
+    "ml_prediction": null,
+    "msw_recommendation": {
+      "recommended_tier": "Indigent",
+      "recommended_subsidy_pct": 100.0,
+      "case_notes": "Household per capita income is \u20b11,250.00; qualifies for 100% full charity subsidy.",
+      "discrepancy_explanation": null,
+      "override_reason": null,
+      "msw_assessor_id": "msw_test",
+      "msw_assessor_name": "Maria Santos, RSW",
+      "recommended_at": "2026-11-22T18:35:57.242805+00:00"
+    },
+    "institutional_approval": {
+      "decision": "APPROVED",
+      "approved_subsidy_percentage": 100.0,
+      "decision_notes": "Approved by Hospital Director.",
+      "approved_by_user_id": "admin_officer_01",
+      "approver_name": "Dr. Director",
+      "decision_timestamp": "2026-11-22T18:35:57.267139+00:00"
+    },
+    "created_by": "msw_test",
+    "created_at": "2026-11-22T18:35:57.186369+00:00",
+    "updated_at": "2026-11-22T18:35:57.267139+00:00",
+    "history": [
+      {
+        "timestamp": "2026-11-22T18:35:57.186369+00:00",
+        "event": "ASSESSMENT_CREATED",
+        "actor_id": "msw_test",
+        "role": "msw",
+        "workflow_status": "DRAFT",
+        "details": {
+          "encounter_no": "ENC-M26-11-TEST01-380827"
+        }
+      },
+      {
+        "timestamp": "2026-11-22T18:35:57.203417+00:00",
+        "event": "DRAFT_SAVED",
+        "actor_id": "msw_test",
+        "role": "msw",
+        "workflow_status": "ASSESSMENT_IN_PROGRESS",
+        "details": {
+          "active_stage": 2
+        }
+      },
+      {
+        "timestamp": "2026-11-22T18:35:57.221722+00:00",
+        "event": "ASSESSMENT_CLASSIFIED",
+        "actor_id": "msw_test",
+        "role": "msw",
+        "workflow_status": "PENDING_MSW_REVIEW",
+        "details": {
+          "financial_classification": "INDIGENT",
+          "msw_classification": "FINANCIALLY_INCAPACITATED_B1",
+          "discrepancy_detected": true
+        }
+      },
+      {
+        "timestamp": "2026-11-22T18:35:57.242805+00:00",
+        "event": "MSW_RECOMMENDATION_SUBMITTED",
+        "actor_id": "msw_test",
+        "role": "msw",
+        "workflow_status": "PENDING_APPROVAL",
+        "details": {
+          "recommended_tier": "Indigent",
+          "recommended_subsidy_pct": 100.0,
+          "case_notes": "Household per capita income is \u20b11,250.00; qualifies for 100% full charity subsidy.",
+          "discrepancy_explanation": null,
+          "override_reason": null,
+          "msw_assessor_id": "msw_test",
+          "msw_assessor_name": "Maria Santos, RSW",
+          "recommended_at": "2026-11-22T18:35:57.242805+00:00"
+        }
+      },
+      {
+        "timestamp": "2026-11-22T18:35:57.267139+00:00",
+        "event": "INSTITUTIONAL_APPROVED",
+        "actor_id": "admin_officer_01",
+        "role": "admin",
+        "workflow_status": "APPROVED",
+        "details": {
+          "decision": "APPROVED",
+          "approved_subsidy_percentage": 100.0,
+          "decision_notes": "Approved by Hospital Director.",
+          "approved_by_user_id": "admin_officer_01",
+          "approver_name": "Dr. Director",
+          "decision_timestamp": "2026-11-22T18:35:57.267139+00:00"
+        }
+      }
+    ]
+  },
+  "asmt-2420403440": {
+    "id": "asmt-2420403440",
+    "patient_id": "M26-11-TEST01",
+    "encounter_no": "ENC-M26-11-TEST01",
+    "interview_date": "2026-11-22",
+    "source_of_referral": "EYE CLINIC REFERRAL",
+    "active_stage": 2,
+    "workflow_status": "APPROVED",
+    "is_initial_load": true,
+    "stage1_data": {
+      "patient_first_name": "Elena",
+      "patient_last_name": "Reyes",
+      "informant_income": 0,
+      "patient_income": 5000,
+      "household_size": 4
+    },
+    "stage2_data": {
+      "health_factors": [
+        {
+          "factor": "Absence of adequate health services",
+          "severity": 4,
+          "coping": 4
+        },
+        {
+          "factor": "Inaccessibility",
+          "severity": 4,
+          "coping": 4
+        }
+      ],
+      "discrimination_severity": 3,
+      "discrimination_coping": 3,
+      "safety_severity": 3,
+      "safety_coping": 3,
+      "roles_severity": 4,
+      "roles_coping": 4,
+      "environment_severity": 4
+    },
+    "stage3_documents": [],
+    "classification_result": {
+      "financial_classification": {
+        "monthly_per_capita_income": "1250.00",
+        "total_monthly_household_income": "5000.00",
+        "household_size": 4,
+        "classification": "INDIGENT",
+        "classification_label": "Indigent",
+        "reference_threshold": "4715.76",
+        "pcpt_reference": "3368.40",
+        "family_of_five_reference": "16842.00",
+        "classification_basis": "OFPHIL_FINANCIAL_RUBRIC",
+        "rubric_version": "1.0",
+        "explanation": "Monthly per capita income (\u20b11,250.00) is at or below the OFPHIL Indigent threshold of \u20b14,715.76."
+      },
+      "msw_classification": {
+        "classification": "FINANCIALLY_INCAPACITATED_B1",
+        "classification_label": "Financially Incapacitated B1",
+        "proposed_subsidy": "High Partial Charity Subsidy",
+        "subsidy_percentage_range": "75% - 90%",
+        "average_severity": "3.60",
+        "average_coping": "3.50",
+        "total_risk": "48.1",
+        "total_risk_formula": "(Average Severity * 8.5) + (Average Coping * 5.0)",
+        "triggered_conditions": [
+          {
+            "tier": "FINANCIALLY_INCAPACITATED_B1",
+            "rule": "Average Severity >= 2.8",
+            "metric": "average_severity",
+            "actual_value": "3.60",
+            "threshold": "2.8",
+            "context_applicable": true
+          },
+          {
+            "tier": "FINANCIALLY_INCAPACITATED_B1",
+            "rule": "Average Coping >= 2.8",
+            "metric": "average_coping",
+            "actual_value": "3.50",
+            "threshold": "2.8",
+            "context_applicable": true
+          },
+          {
+            "tier": "FINANCIALLY_INCAPACITATED_B1",
+            "rule": "Total Risk >= 45.0%",
+            "metric": "total_risk",
+            "actual_value": "48.1%",
+            "threshold": "45.0%",
+            "context_applicable": true
+          },
+          {
+            "tier": "FINANCIALLY_INCAPACITATED_B2",
+            "rule": "Total Risk >= 30.0%",
+            "metric": "total_risk",
+            "actual_value": "48.1%",
+            "threshold": "30.0%",
+            "context_applicable": true
+          }
+        ],
+        "classification_precedence": [
+          "INDIGENT",
+          "FINANCIALLY_INCAPACITATED_B1",
+          "FINANCIALLY_INCAPACITATED_B2",
+          "FINANCIALLY_CAPACITATED"
+        ],
+        "initial_load_applied": false,
+        "assessment_context": "live_recalculation",
+        "missing_factors": [],
+        "calculation_breakdown": {
+          "severity_components": [
+            4.0,
+            3.0,
+            3.0,
+            4.0,
+            4.0
+          ],
+          "coping_components": [
+            4.0,
+            3.0,
+            3.0,
+            4.0
+          ],
+          "average_severity": 3.6,
+          "average_coping": 3.5,
+          "severity_weighted": 30.6,
+          "coping_weighted": 17.5,
+          "total_risk_percent": 48.1
+        },
+        "classification_basis": "OFPHIL_MSW_RUBRIC",
+        "rubric_version": "1.0",
+        "explanation": "MSW Rubric Classification: Financially Incapacitated B1 (High Partial Charity Subsidy). Computed Avg Severity=3.60, Avg Coping=3.50, Total Risk=48.1%. Primary triggers: Average Severity >= 2.8; Average Coping >= 2.8; Total Risk >= 45.0%."
+      },
+      "monthly_per_capita_income": "1250.00",
+      "average_severity": "3.60",
+      "average_coping": "3.50",
+      "total_risk": "48.1",
+      "triggered_conditions": [
+        {
+          "tier": "FINANCIALLY_INCAPACITATED_B1",
+          "rule": "Average Severity >= 2.8",
+          "metric": "average_severity",
+          "actual_value": "3.60",
+          "threshold": "2.8",
+          "context_applicable": true
+        },
+        {
+          "tier": "FINANCIALLY_INCAPACITATED_B1",
+          "rule": "Average Coping >= 2.8",
+          "metric": "average_coping",
+          "actual_value": "3.50",
+          "threshold": "2.8",
+          "context_applicable": true
+        },
+        {
+          "tier": "FINANCIALLY_INCAPACITATED_B1",
+          "rule": "Total Risk >= 45.0%",
+          "metric": "total_risk",
+          "actual_value": "48.1%",
+          "threshold": "45.0%",
+          "context_applicable": true
+        },
+        {
+          "tier": "FINANCIALLY_INCAPACITATED_B2",
+          "rule": "Total Risk >= 30.0%",
+          "metric": "total_risk",
+          "actual_value": "48.1%",
+          "threshold": "30.0%",
+          "context_applicable": true
+        }
+      ],
+      "subsidy_recommendation": "High Partial Charity Subsidy",
+      "discrepancy_detected": true,
+      "discrepancy_details": "Financial Income Rubric classified patient as 'Indigent' (\u20b11,250.00/person), whereas MSW Scoring Rubric classified patient as 'Financially Incapacitated B1' (Risk 48.1%). Case flagged for MSW professional review.",
+      "requires_msw_review": true,
+      "rubric_version": "1.0",
+      "explanations": {
+        "financial": "Monthly per capita income (\u20b11,250.00) is at or below the OFPHIL Indigent threshold of \u20b14,715.76.",
+        "msw": "MSW Rubric Classification: Financially Incapacitated B1 (High Partial Charity Subsidy). Computed Avg Severity=3.60, Avg Coping=3.50, Total Risk=48.1%. Primary triggers: Average Severity >= 2.8; Average Coping >= 2.8; Total Risk >= 45.0%."
+      }
+    },
+    "classification_history": [
+      {
+        "timestamp": "2026-11-22T18:48:15.884308+00:00",
+        "actor_id": "msw_test",
+        "result": {
+          "financial_classification": {
+            "monthly_per_capita_income": "1250.00",
+            "total_monthly_household_income": "5000.00",
+            "household_size": 4,
+            "classification": "INDIGENT",
+            "classification_label": "Indigent",
+            "reference_threshold": "4715.76",
+            "pcpt_reference": "3368.40",
+            "family_of_five_reference": "16842.00",
+            "classification_basis": "OFPHIL_FINANCIAL_RUBRIC",
+            "rubric_version": "1.0",
+            "explanation": "Monthly per capita income (\u20b11,250.00) is at or below the OFPHIL Indigent threshold of \u20b14,715.76."
+          },
+          "msw_classification": {
+            "classification": "FINANCIALLY_INCAPACITATED_B1",
+            "classification_label": "Financially Incapacitated B1",
+            "proposed_subsidy": "High Partial Charity Subsidy",
+            "subsidy_percentage_range": "75% - 90%",
+            "average_severity": "3.60",
+            "average_coping": "3.50",
+            "total_risk": "48.1",
+            "total_risk_formula": "(Average Severity * 8.5) + (Average Coping * 5.0)",
+            "triggered_conditions": [
+              {
+                "tier": "FINANCIALLY_INCAPACITATED_B1",
+                "rule": "Average Severity >= 2.8",
+                "metric": "average_severity",
+                "actual_value": "3.60",
+                "threshold": "2.8",
+                "context_applicable": true
+              },
+              {
+                "tier": "FINANCIALLY_INCAPACITATED_B1",
+                "rule": "Average Coping >= 2.8",
+                "metric": "average_coping",
+                "actual_value": "3.50",
+                "threshold": "2.8",
+                "context_applicable": true
+              },
+              {
+                "tier": "FINANCIALLY_INCAPACITATED_B1",
+                "rule": "Total Risk >= 45.0%",
+                "metric": "total_risk",
+                "actual_value": "48.1%",
+                "threshold": "45.0%",
+                "context_applicable": true
+              },
+              {
+                "tier": "FINANCIALLY_INCAPACITATED_B2",
+                "rule": "Total Risk >= 30.0%",
+                "metric": "total_risk",
+                "actual_value": "48.1%",
+                "threshold": "30.0%",
+                "context_applicable": true
+              }
+            ],
+            "classification_precedence": [
+              "INDIGENT",
+              "FINANCIALLY_INCAPACITATED_B1",
+              "FINANCIALLY_INCAPACITATED_B2",
+              "FINANCIALLY_CAPACITATED"
+            ],
+            "initial_load_applied": false,
+            "assessment_context": "live_recalculation",
+            "missing_factors": [],
+            "calculation_breakdown": {
+              "severity_components": [
+                4.0,
+                3.0,
+                3.0,
+                4.0,
+                4.0
+              ],
+              "coping_components": [
+                4.0,
+                3.0,
+                3.0,
+                4.0
+              ],
+              "average_severity": 3.6,
+              "average_coping": 3.5,
+              "severity_weighted": 30.6,
+              "coping_weighted": 17.5,
+              "total_risk_percent": 48.1
+            },
+            "classification_basis": "OFPHIL_MSW_RUBRIC",
+            "rubric_version": "1.0",
+            "explanation": "MSW Rubric Classification: Financially Incapacitated B1 (High Partial Charity Subsidy). Computed Avg Severity=3.60, Avg Coping=3.50, Total Risk=48.1%. Primary triggers: Average Severity >= 2.8; Average Coping >= 2.8; Total Risk >= 45.0%."
+          },
+          "monthly_per_capita_income": "1250.00",
+          "average_severity": "3.60",
+          "average_coping": "3.50",
+          "total_risk": "48.1",
+          "triggered_conditions": [
+            {
+              "tier": "FINANCIALLY_INCAPACITATED_B1",
+              "rule": "Average Severity >= 2.8",
+              "metric": "average_severity",
+              "actual_value": "3.60",
+              "threshold": "2.8",
+              "context_applicable": true
+            },
+            {
+              "tier": "FINANCIALLY_INCAPACITATED_B1",
+              "rule": "Average Coping >= 2.8",
+              "metric": "average_coping",
+              "actual_value": "3.50",
+              "threshold": "2.8",
+              "context_applicable": true
+            },
+            {
+              "tier": "FINANCIALLY_INCAPACITATED_B1",
+              "rule": "Total Risk >= 45.0%",
+              "metric": "total_risk",
+              "actual_value": "48.1%",
+              "threshold": "45.0%",
+              "context_applicable": true
+            },
+            {
+              "tier": "FINANCIALLY_INCAPACITATED_B2",
+              "rule": "Total Risk >= 30.0%",
+              "metric": "total_risk",
+              "actual_value": "48.1%",
+              "threshold": "30.0%",
+              "context_applicable": true
+            }
+          ],
+          "subsidy_recommendation": "High Partial Charity Subsidy",
+          "discrepancy_detected": true,
+          "discrepancy_details": "Financial Income Rubric classified patient as 'Indigent' (\u20b11,250.00/person), whereas MSW Scoring Rubric classified patient as 'Financially Incapacitated B1' (Risk 48.1%). Case flagged for MSW professional review.",
+          "requires_msw_review": true,
+          "rubric_version": "1.0",
+          "explanations": {
+            "financial": "Monthly per capita income (\u20b11,250.00) is at or below the OFPHIL Indigent threshold of \u20b14,715.76.",
+            "msw": "MSW Rubric Classification: Financially Incapacitated B1 (High Partial Charity Subsidy). Computed Avg Severity=3.60, Avg Coping=3.50, Total Risk=48.1%. Primary triggers: Average Severity >= 2.8; Average Coping >= 2.8; Total Risk >= 45.0%."
+          }
+        }
+      }
+    ],
+    "ml_prediction": null,
+    "msw_recommendation": {
+      "recommended_tier": "Indigent",
+      "recommended_subsidy_pct": 100.0,
+      "case_notes": "Household per capita income is \u20b11,250.00; qualifies for 100% full charity subsidy.",
+      "discrepancy_explanation": null,
+      "override_reason": null,
+      "msw_assessor_id": "msw_test",
+      "msw_assessor_name": "Maria Santos, RSW",
+      "recommended_at": "2026-11-22T18:48:15.906604+00:00"
+    },
+    "institutional_approval": {
+      "decision": "APPROVED",
+      "approved_subsidy_percentage": 100.0,
+      "decision_notes": "Approved by Hospital Director.",
+      "approved_by_user_id": "admin_officer_01",
+      "approver_name": "Dr. Director",
+      "decision_timestamp": "2026-11-22T18:48:15.936780+00:00"
+    },
+    "created_by": "msw_test",
+    "created_at": "2026-11-22T18:48:15.840190+00:00",
+    "updated_at": "2026-11-22T18:48:15.936780+00:00",
+    "history": [
+      {
+        "timestamp": "2026-11-22T18:48:15.840190+00:00",
+        "event": "ASSESSMENT_CREATED",
+        "actor_id": "msw_test",
+        "role": "msw",
+        "workflow_status": "DRAFT",
+        "details": {
+          "encounter_no": "ENC-M26-11-TEST01"
+        }
+      },
+      {
+        "timestamp": "2026-11-22T18:48:15.860885+00:00",
+        "event": "DRAFT_SAVED",
+        "actor_id": "msw_test",
+        "role": "msw",
+        "workflow_status": "ASSESSMENT_IN_PROGRESS",
+        "details": {
+          "active_stage": 2
+        }
+      },
+      {
+        "timestamp": "2026-11-22T18:48:15.884891+00:00",
+        "event": "ASSESSMENT_CLASSIFIED",
+        "actor_id": "msw_test",
+        "role": "msw",
+        "workflow_status": "PENDING_MSW_REVIEW",
+        "details": {
+          "financial_classification": "INDIGENT",
+          "msw_classification": "FINANCIALLY_INCAPACITATED_B1",
+          "discrepancy_detected": true
+        }
+      },
+      {
+        "timestamp": "2026-11-22T18:48:15.906604+00:00",
+        "event": "MSW_RECOMMENDATION_SUBMITTED",
+        "actor_id": "msw_test",
+        "role": "msw",
+        "workflow_status": "PENDING_APPROVAL",
+        "details": {
+          "recommended_tier": "Indigent",
+          "recommended_subsidy_pct": 100.0,
+          "case_notes": "Household per capita income is \u20b11,250.00; qualifies for 100% full charity subsidy.",
+          "discrepancy_explanation": null,
+          "override_reason": null,
+          "msw_assessor_id": "msw_test",
+          "msw_assessor_name": "Maria Santos, RSW",
+          "recommended_at": "2026-11-22T18:48:15.906604+00:00"
+        }
+      },
+      {
+        "timestamp": "2026-11-22T18:48:15.936780+00:00",
+        "event": "INSTITUTIONAL_APPROVED",
+        "actor_id": "admin_officer_01",
+        "role": "admin",
+        "workflow_status": "APPROVED",
+        "details": {
+          "decision": "APPROVED",
+          "approved_subsidy_percentage": 100.0,
+          "decision_notes": "Approved by Hospital Director.",
+          "approved_by_user_id": "admin_officer_01",
+          "approver_name": "Dr. Director",
+          "decision_timestamp": "2026-11-22T18:48:15.936780+00:00"
+        }
+      }
+    ]
+  },
+  "asmt-dbb9be27f6": {
+    "id": "asmt-dbb9be27f6",
+    "patient_id": "M26-11-TEST01",
+    "encounter_no": "ENC-M26-11-TEST01",
+    "interview_date": "2026-11-22",
+    "source_of_referral": "EYE CLINIC REFERRAL",
+    "active_stage": 2,
+    "workflow_status": "APPROVED",
+    "is_initial_load": true,
+    "stage1_data": {
+      "patient_first_name": "Elena",
+      "patient_last_name": "Reyes",
+      "informant_income": 0,
+      "patient_income": 5000,
+      "household_size": 4
+    },
+    "stage2_data": {
+      "health_factors": [
+        {
+          "factor": "Absence of adequate health services",
+          "severity": 4,
+          "coping": 4
+        },
+        {
+          "factor": "Inaccessibility",
+          "severity": 4,
+          "coping": 4
+        }
+      ],
+      "discrimination_severity": 3,
+      "discrimination_coping": 3,
+      "safety_severity": 3,
+      "safety_coping": 3,
+      "roles_severity": 4,
+      "roles_coping": 4,
+      "environment_severity": 4
+    },
+    "stage3_documents": [],
+    "classification_result": {
+      "financial_classification": {
+        "monthly_per_capita_income": "1250.00",
+        "total_monthly_household_income": "5000.00",
+        "household_size": 4,
+        "classification": "INDIGENT",
+        "classification_label": "Indigent",
+        "reference_threshold": "4715.76",
+        "pcpt_reference": "3368.40",
+        "family_of_five_reference": "16842.00",
+        "classification_basis": "OFPHIL_FINANCIAL_RUBRIC",
+        "rubric_version": "1.0",
+        "explanation": "Monthly per capita income (\u20b11,250.00) is at or below the OFPHIL Indigent threshold of \u20b14,715.76."
+      },
+      "msw_classification": {
+        "classification": "FINANCIALLY_INCAPACITATED_B1",
+        "classification_label": "Financially Incapacitated B1",
+        "proposed_subsidy": "High Partial Charity Subsidy",
+        "subsidy_percentage_range": "75% - 90%",
+        "average_severity": "3.60",
+        "average_coping": "3.50",
+        "total_risk": "48.1",
+        "total_risk_formula": "(Average Severity * 8.5) + (Average Coping * 5.0)",
+        "triggered_conditions": [
+          {
+            "tier": "FINANCIALLY_INCAPACITATED_B1",
+            "rule": "Average Severity >= 2.8",
+            "metric": "average_severity",
+            "actual_value": "3.60",
+            "threshold": "2.8",
+            "context_applicable": true
+          },
+          {
+            "tier": "FINANCIALLY_INCAPACITATED_B1",
+            "rule": "Average Coping >= 2.8",
+            "metric": "average_coping",
+            "actual_value": "3.50",
+            "threshold": "2.8",
+            "context_applicable": true
+          },
+          {
+            "tier": "FINANCIALLY_INCAPACITATED_B1",
+            "rule": "Total Risk >= 45.0%",
+            "metric": "total_risk",
+            "actual_value": "48.1%",
+            "threshold": "45.0%",
+            "context_applicable": true
+          },
+          {
+            "tier": "FINANCIALLY_INCAPACITATED_B2",
+            "rule": "Total Risk >= 30.0%",
+            "metric": "total_risk",
+            "actual_value": "48.1%",
+            "threshold": "30.0%",
+            "context_applicable": true
+          }
+        ],
+        "classification_precedence": [
+          "INDIGENT",
+          "FINANCIALLY_INCAPACITATED_B1",
+          "FINANCIALLY_INCAPACITATED_B2",
+          "FINANCIALLY_CAPACITATED"
+        ],
+        "initial_load_applied": false,
+        "assessment_context": "live_recalculation",
+        "missing_factors": [],
+        "calculation_breakdown": {
+          "severity_components": [
+            4.0,
+            3.0,
+            3.0,
+            4.0,
+            4.0
+          ],
+          "coping_components": [
+            4.0,
+            3.0,
+            3.0,
+            4.0
+          ],
+          "average_severity": 3.6,
+          "average_coping": 3.5,
+          "severity_weighted": 30.6,
+          "coping_weighted": 17.5,
+          "total_risk_percent": 48.1
+        },
+        "classification_basis": "OFPHIL_MSW_RUBRIC",
+        "rubric_version": "1.0",
+        "explanation": "MSW Rubric Classification: Financially Incapacitated B1 (High Partial Charity Subsidy). Computed Avg Severity=3.60, Avg Coping=3.50, Total Risk=48.1%. Primary triggers: Average Severity >= 2.8; Average Coping >= 2.8; Total Risk >= 45.0%."
+      },
+      "monthly_per_capita_income": "1250.00",
+      "average_severity": "3.60",
+      "average_coping": "3.50",
+      "total_risk": "48.1",
+      "triggered_conditions": [
+        {
+          "tier": "FINANCIALLY_INCAPACITATED_B1",
+          "rule": "Average Severity >= 2.8",
+          "metric": "average_severity",
+          "actual_value": "3.60",
+          "threshold": "2.8",
+          "context_applicable": true
+        },
+        {
+          "tier": "FINANCIALLY_INCAPACITATED_B1",
+          "rule": "Average Coping >= 2.8",
+          "metric": "average_coping",
+          "actual_value": "3.50",
+          "threshold": "2.8",
+          "context_applicable": true
+        },
+        {
+          "tier": "FINANCIALLY_INCAPACITATED_B1",
+          "rule": "Total Risk >= 45.0%",
+          "metric": "total_risk",
+          "actual_value": "48.1%",
+          "threshold": "45.0%",
+          "context_applicable": true
+        },
+        {
+          "tier": "FINANCIALLY_INCAPACITATED_B2",
+          "rule": "Total Risk >= 30.0%",
+          "metric": "total_risk",
+          "actual_value": "48.1%",
+          "threshold": "30.0%",
+          "context_applicable": true
+        }
+      ],
+      "subsidy_recommendation": "High Partial Charity Subsidy",
+      "discrepancy_detected": true,
+      "discrepancy_details": "Financial Income Rubric classified patient as 'Indigent' (\u20b11,250.00/person), whereas MSW Scoring Rubric classified patient as 'Financially Incapacitated B1' (Risk 48.1%). Case flagged for MSW professional review.",
+      "requires_msw_review": true,
+      "rubric_version": "1.0",
+      "explanations": {
+        "financial": "Monthly per capita income (\u20b11,250.00) is at or below the OFPHIL Indigent threshold of \u20b14,715.76.",
+        "msw": "MSW Rubric Classification: Financially Incapacitated B1 (High Partial Charity Subsidy). Computed Avg Severity=3.60, Avg Coping=3.50, Total Risk=48.1%. Primary triggers: Average Severity >= 2.8; Average Coping >= 2.8; Total Risk >= 45.0%."
+      }
+    },
+    "classification_history": [
+      {
+        "timestamp": "2026-11-22T19:05:45.964081+00:00",
+        "actor_id": "msw_test",
+        "result": {
+          "financial_classification": {
+            "monthly_per_capita_income": "1250.00",
+            "total_monthly_household_income": "5000.00",
+            "household_size": 4,
+            "classification": "INDIGENT",
+            "classification_label": "Indigent",
+            "reference_threshold": "4715.76",
+            "pcpt_reference": "3368.40",
+            "family_of_five_reference": "16842.00",
+            "classification_basis": "OFPHIL_FINANCIAL_RUBRIC",
+            "rubric_version": "1.0",
+            "explanation": "Monthly per capita income (\u20b11,250.00) is at or below the OFPHIL Indigent threshold of \u20b14,715.76."
+          },
+          "msw_classification": {
+            "classification": "FINANCIALLY_INCAPACITATED_B1",
+            "classification_label": "Financially Incapacitated B1",
+            "proposed_subsidy": "High Partial Charity Subsidy",
+            "subsidy_percentage_range": "75% - 90%",
+            "average_severity": "3.60",
+            "average_coping": "3.50",
+            "total_risk": "48.1",
+            "total_risk_formula": "(Average Severity * 8.5) + (Average Coping * 5.0)",
+            "triggered_conditions": [
+              {
+                "tier": "FINANCIALLY_INCAPACITATED_B1",
+                "rule": "Average Severity >= 2.8",
+                "metric": "average_severity",
+                "actual_value": "3.60",
+                "threshold": "2.8",
+                "context_applicable": true
+              },
+              {
+                "tier": "FINANCIALLY_INCAPACITATED_B1",
+                "rule": "Average Coping >= 2.8",
+                "metric": "average_coping",
+                "actual_value": "3.50",
+                "threshold": "2.8",
+                "context_applicable": true
+              },
+              {
+                "tier": "FINANCIALLY_INCAPACITATED_B1",
+                "rule": "Total Risk >= 45.0%",
+                "metric": "total_risk",
+                "actual_value": "48.1%",
+                "threshold": "45.0%",
+                "context_applicable": true
+              },
+              {
+                "tier": "FINANCIALLY_INCAPACITATED_B2",
+                "rule": "Total Risk >= 30.0%",
+                "metric": "total_risk",
+                "actual_value": "48.1%",
+                "threshold": "30.0%",
+                "context_applicable": true
+              }
+            ],
+            "classification_precedence": [
+              "INDIGENT",
+              "FINANCIALLY_INCAPACITATED_B1",
+              "FINANCIALLY_INCAPACITATED_B2",
+              "FINANCIALLY_CAPACITATED"
+            ],
+            "initial_load_applied": false,
+            "assessment_context": "live_recalculation",
+            "missing_factors": [],
+            "calculation_breakdown": {
+              "severity_components": [
+                4.0,
+                3.0,
+                3.0,
+                4.0,
+                4.0
+              ],
+              "coping_components": [
+                4.0,
+                3.0,
+                3.0,
+                4.0
+              ],
+              "average_severity": 3.6,
+              "average_coping": 3.5,
+              "severity_weighted": 30.6,
+              "coping_weighted": 17.5,
+              "total_risk_percent": 48.1
+            },
+            "classification_basis": "OFPHIL_MSW_RUBRIC",
+            "rubric_version": "1.0",
+            "explanation": "MSW Rubric Classification: Financially Incapacitated B1 (High Partial Charity Subsidy). Computed Avg Severity=3.60, Avg Coping=3.50, Total Risk=48.1%. Primary triggers: Average Severity >= 2.8; Average Coping >= 2.8; Total Risk >= 45.0%."
+          },
+          "monthly_per_capita_income": "1250.00",
+          "average_severity": "3.60",
+          "average_coping": "3.50",
+          "total_risk": "48.1",
+          "triggered_conditions": [
+            {
+              "tier": "FINANCIALLY_INCAPACITATED_B1",
+              "rule": "Average Severity >= 2.8",
+              "metric": "average_severity",
+              "actual_value": "3.60",
+              "threshold": "2.8",
+              "context_applicable": true
+            },
+            {
+              "tier": "FINANCIALLY_INCAPACITATED_B1",
+              "rule": "Average Coping >= 2.8",
+              "metric": "average_coping",
+              "actual_value": "3.50",
+              "threshold": "2.8",
+              "context_applicable": true
+            },
+            {
+              "tier": "FINANCIALLY_INCAPACITATED_B1",
+              "rule": "Total Risk >= 45.0%",
+              "metric": "total_risk",
+              "actual_value": "48.1%",
+              "threshold": "45.0%",
+              "context_applicable": true
+            },
+            {
+              "tier": "FINANCIALLY_INCAPACITATED_B2",
+              "rule": "Total Risk >= 30.0%",
+              "metric": "total_risk",
+              "actual_value": "48.1%",
+              "threshold": "30.0%",
+              "context_applicable": true
+            }
+          ],
+          "subsidy_recommendation": "High Partial Charity Subsidy",
+          "discrepancy_detected": true,
+          "discrepancy_details": "Financial Income Rubric classified patient as 'Indigent' (\u20b11,250.00/person), whereas MSW Scoring Rubric classified patient as 'Financially Incapacitated B1' (Risk 48.1%). Case flagged for MSW professional review.",
+          "requires_msw_review": true,
+          "rubric_version": "1.0",
+          "explanations": {
+            "financial": "Monthly per capita income (\u20b11,250.00) is at or below the OFPHIL Indigent threshold of \u20b14,715.76.",
+            "msw": "MSW Rubric Classification: Financially Incapacitated B1 (High Partial Charity Subsidy). Computed Avg Severity=3.60, Avg Coping=3.50, Total Risk=48.1%. Primary triggers: Average Severity >= 2.8; Average Coping >= 2.8; Total Risk >= 45.0%."
+          }
+        }
+      }
+    ],
+    "ml_prediction": null,
+    "msw_recommendation": {
+      "recommended_tier": "Indigent",
+      "recommended_subsidy_pct": 100.0,
+      "case_notes": "Household per capita income is \u20b11,250.00; qualifies for 100% full charity subsidy.",
+      "discrepancy_explanation": null,
+      "override_reason": null,
+      "msw_assessor_id": "msw_test",
+      "msw_assessor_name": "Maria Santos, RSW",
+      "recommended_at": "2026-11-22T19:05:45.985446+00:00"
+    },
+    "institutional_approval": {
+      "decision": "APPROVED",
+      "approved_subsidy_percentage": 100.0,
+      "decision_notes": "Approved by Hospital Director.",
+      "approved_by_user_id": "admin_officer_01",
+      "approver_name": "Dr. Director",
+      "decision_timestamp": "2026-11-22T19:05:46.011561+00:00"
+    },
+    "created_by": "msw_test",
+    "created_at": "2026-11-22T19:05:45.922936+00:00",
+    "updated_at": "2026-11-22T19:05:46.011561+00:00",
+    "history": [
+      {
+        "timestamp": "2026-11-22T19:05:45.922936+00:00",
+        "event": "ASSESSMENT_CREATED",
+        "actor_id": "msw_test",
+        "role": "msw",
+        "workflow_status": "DRAFT",
+        "details": {
+          "encounter_no": "ENC-M26-11-TEST01"
+        }
+      },
+      {
+        "timestamp": "2026-11-22T19:05:45.943049+00:00",
+        "event": "DRAFT_SAVED",
+        "actor_id": "msw_test",
+        "role": "msw",
+        "workflow_status": "ASSESSMENT_IN_PROGRESS",
+        "details": {
+          "active_stage": 2
+        }
+      },
+      {
+        "timestamp": "2026-11-22T19:05:45.964081+00:00",
+        "event": "ASSESSMENT_CLASSIFIED",
+        "actor_id": "msw_test",
+        "role": "msw",
+        "workflow_status": "PENDING_MSW_REVIEW",
+        "details": {
+          "financial_classification": "INDIGENT",
+          "msw_classification": "FINANCIALLY_INCAPACITATED_B1",
+          "discrepancy_detected": true
+        }
+      },
+      {
+        "timestamp": "2026-11-22T19:05:45.985446+00:00",
+        "event": "MSW_RECOMMENDATION_SUBMITTED",
+        "actor_id": "msw_test",
+        "role": "msw",
+        "workflow_status": "PENDING_APPROVAL",
+        "details": {
+          "recommended_tier": "Indigent",
+          "recommended_subsidy_pct": 100.0,
+          "case_notes": "Household per capita income is \u20b11,250.00; qualifies for 100% full charity subsidy.",
+          "discrepancy_explanation": null,
+          "override_reason": null,
+          "msw_assessor_id": "msw_test",
+          "msw_assessor_name": "Maria Santos, RSW",
+          "recommended_at": "2026-11-22T19:05:45.985446+00:00"
+        }
+      },
+      {
+        "timestamp": "2026-11-22T19:05:46.011561+00:00",
+        "event": "INSTITUTIONAL_APPROVED",
+        "actor_id": "admin_officer_01",
+        "role": "admin",
+        "workflow_status": "APPROVED",
+        "details": {
+          "decision": "APPROVED",
+          "approved_subsidy_percentage": 100.0,
+          "decision_notes": "Approved by Hospital Director.",
+          "approved_by_user_id": "admin_officer_01",
+          "approver_name": "Dr. Director",
+          "decision_timestamp": "2026-11-22T19:05:46.011561+00:00"
         }
       }
     ]

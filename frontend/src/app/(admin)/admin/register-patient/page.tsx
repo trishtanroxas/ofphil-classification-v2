@@ -157,6 +157,7 @@ export default function RegisterPatientPage() {
   const router = useRouter();
 
   // Section 1: Assigned Identifier State (Auto-incremented after M26-11-00001 Juan Dela Cruz)
+  const [patientCategory, setPatientCategory] = useState<'REGULAR' | 'CHARITY'>('REGULAR');
   const [patientId, setPatientId] = useState('M26-11-00002');
   const [existingPatients, setExistingPatients] = useState<Array<{ patient_id: string; first_name: string; last_name: string }>>([
     { patient_id: 'M26-11-00001', first_name: 'Juan', last_name: 'Dela Cruz' },
@@ -164,24 +165,71 @@ export default function RegisterPatientPage() {
 
   // Helper to compute next available non-duplicate M26-11-XXXXX sequence ID
   const computeNextPatientId = (records: Array<{ patient_id: string }>) => {
+    const now = new Date();
+    const yy = String(now.getFullYear()).slice(-2);
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const prefix = `M${yy}-${mm}-`;
     const usedIds = new Set(records.map((r) => (r.patient_id || '').trim().toUpperCase()));
     let maxSeq = 1; // M26-11-00001 is reserved for Juan Dela Cruz
     records.forEach((r) => {
-      const m = (r.patient_id || '').trim().toUpperCase().match(/^M\d{2}-\d{2}-(\d+)$/);
-      if (m) {
-        const num = parseInt(m[1], 10);
+      const pid = (r.patient_id || '').trim().toUpperCase();
+      if (pid.startsWith(prefix)) {
+        const num = parseInt(pid.slice(prefix.length), 10);
         if (!isNaN(num) && num > maxSeq) {
           maxSeq = num;
         }
       }
     });
     let nextSeq = maxSeq + 1;
-    let candidate = `M26-11-${String(nextSeq).padStart(5, '0')}`;
+    let candidate = `${prefix}${String(nextSeq).padStart(5, '0')}`;
     while (usedIds.has(candidate)) {
       nextSeq++;
-      candidate = `M26-11-${String(nextSeq).padStart(5, '0')}`;
+      candidate = `${prefix}${String(nextSeq).padStart(5, '0')}`;
     }
     return candidate;
+  };
+
+  // Helper to compute next available interactive sequential Charity Case ID (format: MSW_FA_MMYY-XX)
+  const computeNextCharityId = (records: Array<{ patient_id: string }>) => {
+    const now = new Date();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const yy = String(now.getFullYear()).slice(-2);
+    const prefix = `MSW_FA_${mm}${yy}-`;
+    const usedIds = new Set(records.map((r) => (r.patient_id || '').trim().toUpperCase()));
+    let maxSeq = 0;
+    records.forEach((r) => {
+      const pid = (r.patient_id || '').trim().toUpperCase();
+      if (pid.startsWith(prefix)) {
+        const num = parseInt(pid.slice(prefix.length), 10);
+        if (!isNaN(num) && num > maxSeq) {
+          maxSeq = num;
+        }
+      } else {
+        const m = pid.match(/^MSW_FA_(\d{2})(\d{2})-(\d+)$/);
+        if (m && m[1] === mm && m[2] === yy) {
+          const num = parseInt(m[3], 10);
+          if (!isNaN(num) && num > maxSeq) maxSeq = num;
+        }
+      }
+    });
+    let nextSeq = maxSeq + 1;
+    let candidate = `${prefix}${String(nextSeq).padStart(2, '0')}`;
+    while (usedIds.has(candidate)) {
+      nextSeq++;
+      candidate = `${prefix}${String(nextSeq).padStart(2, '0')}`;
+    }
+    return candidate;
+  };
+
+  const handleCategoryChange = (newCat: 'REGULAR' | 'CHARITY') => {
+    setPatientCategory(newCat);
+    if (newCat === 'CHARITY') {
+      const nextCharity = computeNextCharityId(existingPatients);
+      setPatientId(nextCharity);
+    } else {
+      const nextReg = computeNextPatientId(existingPatients);
+      setPatientId(nextReg);
+    }
   };
 
   // Fetch existing patients from backend + localStorage on mount to auto-assign next sequence ID
@@ -496,6 +544,7 @@ export default function RegisterPatientPage() {
           educational_attainment: educationalAttainment,
           employment_status: employmentStatus,
           occupation: occupation.trim(),
+          category: patientCategory,
           contact_number: mobileNumber,
           email_address: emailAddress.trim() || null,
           phone_verified: phoneVerified,
@@ -517,6 +566,8 @@ export default function RegisterPatientPage() {
         const localSaved = JSON.parse(localStorage.getItem('ofphil_registered_patients') || '[]');
         localSaved.push({
           patient_id: patientId.trim().toUpperCase(),
+          category: patientCategory,
+          has_account: patientCategory !== 'CHARITY',
           first_name: firstName.trim(),
           middle_name: middleName.trim(),
           last_name: lastName.trim(),
@@ -664,16 +715,54 @@ export default function RegisterPatientPage() {
               <span>Section A — Patient Account &amp; Assigned Identifier</span>
             </div>
 
+            {/* Category Selector Tabs */}
+            <div className="mb-5 p-3.5 bg-[#FAFBF8] border border-[#CBD5E1] rounded-xl flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <span className="text-xs font-bold text-[#10241A] block">Patient Category &amp; Registration Type</span>
+                <span className="text-[11px] text-[#64748B]">
+                  Select whether registering a Regular patient portal user or a Charity beneficiary case
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleCategoryChange('REGULAR')}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer border ${
+                    patientCategory === 'REGULAR'
+                      ? 'bg-[#0B6B3A] text-white border-[#0B6B3A] shadow-xs'
+                      : 'bg-white text-[#475569] border-[#CBD5E1] hover:bg-[#F8FAFC]'
+                  }`}
+                >
+                  <i className="fa-solid fa-user text-[10px]" />
+                  <span>Regular Patient (M26-11-XXXXX)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleCategoryChange('CHARITY')}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer border ${
+                    patientCategory === 'CHARITY'
+                      ? 'bg-[#0B6B3A] text-white border-[#0B6B3A] shadow-xs'
+                      : 'bg-white text-[#475569] border-[#CBD5E1] hover:bg-[#F8FAFC]'
+                  }`}
+                >
+                  <i className="fa-solid fa-hand-holding-heart text-[10px]" />
+                  <span>Charity Beneficiary (MSW_FA_MMYY-XX)</span>
+                </button>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
               {/* Assigned ID Box */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-[#64748B]">
-                    ASSIGNED PATIENT ID (FORMAT: M[YY]-[MM]-[SEQ])
+                    {patientCategory === 'CHARITY'
+                      ? 'ASSIGNED CHARITY CASE NO. (FORMAT: MSW_FA_MMYY-XX)'
+                      : 'ASSIGNED PATIENT ID (FORMAT: M[YY]-[MM]-[SEQ])'}
                   </label>
                   <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-bold ${duplicateIdRecord ? 'bg-[#FEF2F2] text-[#DC2626] border border-[#FECACA]' : 'bg-[#ECFDF5] text-[#0B6B3A] border border-[#A7F3D0]'}`}>
                     <i className={`fa-solid ${duplicateIdRecord ? 'fa-triangle-exclamation' : 'fa-circle-check'} text-[10px]`} />
-                    <span>{duplicateIdRecord ? 'Duplicate ID Detected' : 'Unique Sequence ID'}</span>
+                    <span>{duplicateIdRecord ? 'Duplicate ID Detected' : 'Sequential Identifier'}</span>
                   </span>
                 </div>
 
@@ -691,11 +780,13 @@ export default function RegisterPatientPage() {
                   <button
                     type="button"
                     onClick={() => {
-                      const nextId = computeNextPatientId(existingPatients);
+                      const nextId = patientCategory === 'CHARITY'
+                        ? computeNextCharityId(existingPatients)
+                        : computeNextPatientId(existingPatients);
                       setPatientId(nextId);
-                      toast.success(`Assigned next available Patient ID: ${nextId}`);
+                      toast.success(`Assigned next sequential ID: ${nextId}`);
                     }}
-                    title="Auto-generate next available non-duplicate Patient ID"
+                    title="Auto-generate next available sequential ID"
                     className="h-12 px-3.5 rounded-xl border border-[#CBD5E1] bg-white hover:bg-[#F8FAFC] text-[#0B6B3A] font-semibold text-xs flex items-center gap-1.5 shrink-0 cursor-pointer transition"
                   >
                     <i className="fa-solid fa-rotate text-xs" />
@@ -714,17 +805,24 @@ export default function RegisterPatientPage() {
                     </div>
                     <button
                       type="button"
-                      onClick={() => setPatientId(computeNextPatientId(existingPatients))}
+                      onClick={() => {
+                        const nextId = patientCategory === 'CHARITY'
+                          ? computeNextCharityId(existingPatients)
+                          : computeNextPatientId(existingPatients);
+                        setPatientId(nextId);
+                      }}
                       className="px-2.5 py-1 rounded-lg bg-[#DC2626] hover:bg-[#B91C1C] text-white text-[10.5px] font-bold shrink-0 border-0 cursor-pointer"
                     >
-                      Use {computeNextPatientId(existingPatients)}
+                      Use {patientCategory === 'CHARITY' ? computeNextCharityId(existingPatients) : computeNextPatientId(existingPatients)}
                     </button>
                   </div>
                 ) : (
                   <div className="text-[11.5px] text-[#64748B] flex items-center gap-1.5">
                     <i className="fa-solid fa-shield-halved text-[#0B6B3A] text-[11px]" />
                     <span>
-                      Auto-incremented after existing record <strong>M26-11-00001 (Juan Dela Cruz)</strong> to prevent ID duplication.
+                      {patientCategory === 'CHARITY'
+                        ? 'Dynamic sequential charity case numbering for current month & year (November 2026: 1126).'
+                        : 'Auto-incremented after existing record M26-11-00001 (Juan Dela Cruz) to prevent ID duplication.'}
                     </span>
                   </div>
                 )}

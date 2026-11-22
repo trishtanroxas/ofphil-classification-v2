@@ -7,10 +7,15 @@ Implements:
 
 Authoritative Criteria: User-supplied OFPHIL reference rubrics.
 """
+import json
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Any, Dict, List, Optional
 from fastapi import HTTPException, status
 
+from app.schemas.assessment_schemas import (
+    Stage2EvaluationRequest,
+    Stage2EvaluationResponse,
+)
 from app.schemas.classification_schemas import (
     CombinedClassificationRequest,
     CombinedClassificationResponse,
@@ -51,6 +56,77 @@ PRECEDENCE_ORDER = [
     "FINANCIALLY_INCAPACITATED_B2",
     "FINANCIALLY_CAPACITATED",
 ]
+
+# Approved OFPHIL DOH-PIE Qualitative-to-Numerical Assessment Rubric Mappings
+APPROVED_SEVERITY_MAPPING: Dict[str, Decimal] = {
+    "LEVEL_1_MINIMAL": Decimal("1.0"),
+    "LEVEL_2_MILD": Decimal("2.0"),
+    "LEVEL_3_MODERATE": Decimal("3.0"),
+    "LEVEL_4_MODERATELY_SEVERE": Decimal("4.0"),
+    "LEVEL_5_SEVERE": Decimal("5.0"),
+    "LEVEL_6_CATASTROPHIC": Decimal("6.0"),
+    # Numerical compatibility
+    "1": Decimal("1.0"),
+    "2": Decimal("2.0"),
+    "3": Decimal("3.0"),
+    "4": Decimal("4.0"),
+    "5": Decimal("5.0"),
+    "6": Decimal("6.0"),
+    "1.0": Decimal("1.0"),
+    "2.0": Decimal("2.0"),
+    "3.0": Decimal("3.0"),
+    "4.0": Decimal("4.0"),
+    "5.0": Decimal("5.0"),
+    "6.0": Decimal("6.0"),
+}
+
+APPROVED_COPING_MAPPING: Dict[str, Decimal] = {
+    "LEVEL_1_SUPERIOR": Decimal("1.0"),
+    "LEVEL_2_ADEQUATE": Decimal("2.0"),
+    "LEVEL_3_VULNERABLE": Decimal("3.0"),
+    "LEVEL_4_INADEQUATE": Decimal("4.0"),
+    "LEVEL_5_SEVERE_BREAKDOWN": Decimal("5.0"),
+    "LEVEL_6_CRISIS": Decimal("6.0"),
+    # Numerical compatibility
+    "1": Decimal("1.0"),
+    "2": Decimal("2.0"),
+    "3": Decimal("3.0"),
+    "4": Decimal("4.0"),
+    "5": Decimal("5.0"),
+    "6": Decimal("6.0"),
+    "1.0": Decimal("1.0"),
+    "2.0": Decimal("2.0"),
+    "3.0": Decimal("3.0"),
+    "4.0": Decimal("4.0"),
+    "5.0": Decimal("5.0"),
+    "6.0": Decimal("6.0"),
+}
+
+
+def resolve_qualitative_severity(val: Any) -> tuple[Optional[Decimal], Optional[str]]:
+    if val is None or val == "":
+        return None, None
+    if isinstance(val, (int, float, Decimal)):
+        d = Decimal(str(val))
+        if Decimal("1.0") <= d <= Decimal("6.0"):
+            return d, None
+    val_str = str(val).strip().upper()
+    if val_str in APPROVED_SEVERITY_MAPPING:
+        return APPROVED_SEVERITY_MAPPING[val_str], None
+    return None, f"No approved OFPHIL clinical rubric mapping for severity descriptor: '{val}'"
+
+
+def resolve_qualitative_coping(val: Any) -> tuple[Optional[Decimal], Optional[str]]:
+    if val is None or val == "":
+        return None, None
+    if isinstance(val, (int, float, Decimal)):
+        d = Decimal(str(val))
+        if Decimal("1.0") <= d <= Decimal("6.0"):
+            return d, None
+    val_str = str(val).strip().upper()
+    if val_str in APPROVED_COPING_MAPPING:
+        return APPROVED_COPING_MAPPING[val_str], None
+    return None, f"No approved OFPHIL clinical rubric mapping for coping descriptor: '{val}'"
 
 
 def _quantize_2(val: Decimal) -> Decimal:
@@ -424,4 +500,149 @@ def evaluate_combined(payload: CombinedClassificationRequest) -> CombinedClassif
             "financial": fin_res.explanation,
             "msw": msw_res.explanation,
         },
+    )
+
+
+def evaluate_stage2_interview(req: Stage2EvaluationRequest) -> Stage2EvaluationResponse:
+    missing_factors: List[str] = []
+    missing_mappings: List[str] = []
+
+    # 1. Check interview administrative details
+    if not req.interview_info or not req.interview_info.interview_date:
+        missing_factors.append("Interview Administrative Details: Date of interview is required.")
+
+    # 2. Domain V: Health Factors
+    h_sev_components: List[Decimal] = []
+    h_cop_components: List[Decimal] = []
+    if not req.health_factors or len(req.health_factors) == 0:
+        missing_factors.append("Domain V: Health (Physical & Mental Health Services / Access factors are required)")
+    else:
+        for idx, hf in enumerate(req.health_factors):
+            label = hf.factor or f"Health factor #{idx + 1}"
+            sev_val, err_sev = resolve_qualitative_severity(hf.severity_level)
+            if err_sev:
+                missing_mappings.append(err_sev)
+            elif sev_val is None:
+                missing_factors.append(f"Domain V: {label} (Severity level selection missing)")
+            else:
+                h_sev_components.append(sev_val)
+
+            cop_val, err_cop = resolve_qualitative_coping(hf.coping_level)
+            if err_cop:
+                missing_mappings.append(err_cop)
+            elif cop_val is None:
+                missing_factors.append(f"Domain V: {label} (Coping level selection missing)")
+            else:
+                h_cop_components.append(cop_val)
+
+    # 3. Domain VI: Discrimination
+    discrim_sev, err_d_sev = resolve_qualitative_severity(req.discrimination_severity_level)
+    if err_d_sev:
+        missing_mappings.append(err_d_sev)
+    elif discrim_sev is None:
+        missing_factors.append("Domain VI: Discrimination Burden (Severity level selection missing)")
+
+    discrim_cop, err_d_cop = resolve_qualitative_coping(req.discrimination_coping_level)
+    if err_d_cop:
+        missing_mappings.append(err_d_cop)
+    elif discrim_cop is None:
+        missing_factors.append("Domain VI: Discrimination Burden (Coping level selection missing)")
+
+    # 4. Domain VII: Safety
+    safety_sev, err_s_sev = resolve_qualitative_severity(req.safety_severity_level)
+    if err_s_sev:
+        missing_mappings.append(err_s_sev)
+    elif safety_sev is None:
+        missing_factors.append("Domain VII: Safety / Hazards (Severity level selection missing)")
+
+    safety_cop, err_s_cop = resolve_qualitative_coping(req.safety_coping_level)
+    if err_s_cop:
+        missing_mappings.append(err_s_cop)
+    elif safety_cop is None:
+        missing_factors.append("Domain VII: Safety / Hazards (Coping level selection missing)")
+
+    # 5. Domain VIII: Social Roles
+    roles_sev, err_r_sev = resolve_qualitative_severity(req.roles_severity_level)
+    if err_r_sev:
+        missing_mappings.append(err_r_sev)
+    elif roles_sev is None:
+        missing_factors.append("Domain VIII: Social Roles (Severity level selection missing)")
+
+    roles_cop, err_r_cop = resolve_qualitative_coping(req.roles_coping_level)
+    if err_r_cop:
+        missing_mappings.append(err_r_cop)
+    elif roles_cop is None:
+        missing_factors.append("Domain VIII: Social Roles (Coping level selection missing)")
+
+    # 6. Domain IX: Environment
+    env_sev, err_e_sev = resolve_qualitative_severity(req.environment_severity_level)
+    if err_e_sev:
+        missing_mappings.append(err_e_sev)
+    elif env_sev is None:
+        missing_factors.append("Domain IX: Environment / Basic Needs (Severity level selection missing)")
+
+    # If any required item or unapproved mapping exists, return INCOMPLETE response without fabricating scores
+    if missing_factors or missing_mappings:
+        return Stage2EvaluationResponse(
+            is_complete=False,
+            status="INCOMPLETE",
+            message="ASSESSMENT INCOMPLETE — CLASSIFICATION PENDING",
+            missing_factors=missing_factors,
+            missing_mappings=missing_mappings,
+            institutional_confirmation_required=bool(missing_mappings),
+            total_household_income=req.total_household_income,
+        )
+
+    # All domains present: calculate averages deterministically
+    health_sev_avg = _quantize_2(sum(h_sev_components) / Decimal(len(h_sev_components)))
+    health_cop_avg = _quantize_2(sum(h_cop_components) / Decimal(len(h_cop_components)))
+
+    avg_sev = _quantize_2(
+        (health_sev_avg + discrim_sev + safety_sev + roles_sev + env_sev) / Decimal("5.0")
+    )
+    avg_cop = _quantize_2(
+        (health_cop_avg + discrim_cop + safety_cop + roles_cop) / Decimal("4.0")
+    )
+    total_risk = _quantize_1((avg_sev * Decimal("8.5")) + (avg_cop * Decimal("5.0")))
+
+    # Evaluate MSW Classification using exact rubric
+    msw_req = MSWClassificationRequest(
+        average_severity=avg_sev,
+        average_coping=avg_cop,
+        total_household_income=req.total_household_income,
+        is_initial_load=req.is_initial_load,
+        assessment_context=req.assessment_context,
+    )
+    msw_res = classify_msw(msw_req)
+
+    # Optional financial classification if income and household size are available
+    fin_res_dict = None
+    if req.total_household_income is not None and req.household_size and req.household_size >= 1:
+        try:
+            fin_res = classify_financial(
+                FinancialClassificationRequest(
+                    total_monthly_household_income=req.total_household_income,
+                    household_size=req.household_size,
+                )
+            )
+            fin_res_dict = json.loads(fin_res.model_dump_json())
+        except Exception:
+            pass
+
+    return Stage2EvaluationResponse(
+        is_complete=True,
+        status="EVALUATED",
+        message="Official OFPHIL Rubric Classification Complete",
+        missing_factors=[],
+        missing_mappings=[],
+        institutional_confirmation_required=False,
+        average_severity=avg_sev,
+        average_coping=avg_cop,
+        total_risk=total_risk,
+        total_household_income=req.total_household_income,
+        financial_classification=fin_res_dict,
+        msw_classification=json.loads(msw_res.model_dump_json()),
+        triggered_conditions=[json.loads(t.model_dump_json()) for t in msw_res.triggered_conditions],
+        calculation_basis="OFPHIL_MSW_RUBRIC",
+        rubric_version="1.0",
     )

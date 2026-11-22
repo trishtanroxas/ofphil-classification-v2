@@ -17,9 +17,15 @@ from app.schemas.assessment_schemas import (
     AssessmentUpdateRequest,
     InstitutionalApprovalRequest,
     MSWRecommendationRequest,
+    Stage2EvaluationRequest,
 )
 from app.schemas.classification_schemas import CombinedClassificationRequest, MSWScoreFactors
-from app.services.classification_service import evaluate_combined
+from app.services.classification_service import (
+    evaluate_combined,
+    evaluate_stage2_interview,
+    resolve_qualitative_coping,
+    resolve_qualitative_severity,
+)
 
 ASSESSMENTS_FILE = STORAGE_DIR / "assessments_store.json"
 
@@ -106,7 +112,12 @@ class AssessmentService:
                 return existing
 
         assessment_id = f"asmt-{uuid.uuid4().hex[:10]}"
-        encounter_no = payload.encounter_no or f"ENC-{payload.patient_id}-{uuid.uuid4().hex[:6].upper()}"
+        if payload.encounter_no:
+            encounter_no = payload.encounter_no
+        elif str(payload.patient_id).startswith("MSW_FA_"):
+            encounter_no = str(payload.patient_id)
+        else:
+            encounter_no = f"ENC-{payload.patient_id}"
         now = _utc_now()
 
         record: Dict[str, Any] = {
@@ -243,7 +254,7 @@ class AssessmentService:
 
         household_size = int(stage1.get("household_size") or (len(family_members) + 1))
 
-        # Resolve Stage 2 scores
+        # Resolve Stage 2 scores (supports both structured qualitative levels and legacy numeric scores)
         factors_payload = None
         avg_sev = stage2.get("average_severity")
         avg_cop = stage2.get("average_coping")
@@ -252,18 +263,36 @@ class AssessmentService:
             hf = stage2["health_factors"]
             if not hf:
                 raise HTTPException(status_code=422, detail="At least one health factor is required in Stage 2.")
-            h_sev_avg = Decimal(str(sum(float(x.get("severity", 0)) for x in hf) / len(hf)))
-            h_cop_avg = Decimal(str(sum(float(x.get("coping", 0)) for x in hf) / len(hf)))
+            sev_vals = []
+            cop_vals = []
+            for x in hf:
+                s, _ = resolve_qualitative_severity(x.get("severity_level", x.get("severity", 0)))
+                c, _ = resolve_qualitative_coping(x.get("coping_level", x.get("coping", 0)))
+                sev_vals.append(float(s) if s is not None else float(x.get("severity", 0)))
+                cop_vals.append(float(c) if c is not None else float(x.get("coping", 0)))
+
+            h_sev_avg = Decimal(str(sum(sev_vals) / len(sev_vals)))
+            h_cop_avg = Decimal(str(sum(cop_vals) / len(cop_vals)))
+
+            discrim_sev, _ = resolve_qualitative_severity(stage2.get("discrimination_severity_level", stage2.get("discrimination_severity")))
+            safety_sev, _ = resolve_qualitative_severity(stage2.get("safety_severity_level", stage2.get("safety_severity")))
+            roles_sev, _ = resolve_qualitative_severity(stage2.get("roles_severity_level", stage2.get("roles_severity")))
+            env_sev, _ = resolve_qualitative_severity(stage2.get("environment_severity_level", stage2.get("environment_severity")))
+
+            discrim_cop, _ = resolve_qualitative_coping(stage2.get("discrimination_coping_level", stage2.get("discrimination_coping")))
+            safety_cop, _ = resolve_qualitative_coping(stage2.get("safety_coping_level", stage2.get("safety_coping")))
+            roles_cop, _ = resolve_qualitative_coping(stage2.get("roles_coping_level", stage2.get("roles_coping")))
+
             factors_payload = MSWScoreFactors(
                 health_severity_avg=h_sev_avg,
-                discrimination_severity=Decimal(str(stage2.get("discrimination_severity"))),
-                safety_severity=Decimal(str(stage2.get("safety_severity"))),
-                roles_severity=Decimal(str(stage2.get("roles_severity"))),
-                environment_severity=Decimal(str(stage2.get("environment_severity"))),
+                discrimination_severity=discrim_sev if discrim_sev is not None else Decimal(str(stage2.get("discrimination_severity", 0))),
+                safety_severity=safety_sev if safety_sev is not None else Decimal(str(stage2.get("safety_severity", 0))),
+                roles_severity=roles_sev if roles_sev is not None else Decimal(str(stage2.get("roles_severity", 0))),
+                environment_severity=env_sev if env_sev is not None else Decimal(str(stage2.get("environment_severity", 0))),
                 health_coping_avg=h_cop_avg,
-                discrimination_coping=Decimal(str(stage2.get("discrimination_coping"))),
-                safety_coping=Decimal(str(stage2.get("safety_coping"))),
-                roles_coping=Decimal(str(stage2.get("roles_coping"))),
+                discrimination_coping=discrim_cop if discrim_cop is not None else Decimal(str(stage2.get("discrimination_coping", 0))),
+                safety_coping=safety_cop if safety_cop is not None else Decimal(str(stage2.get("safety_coping", 0))),
+                roles_coping=roles_cop if roles_cop is not None else Decimal(str(stage2.get("roles_coping", 0))),
             )
 
         combined_req = CombinedClassificationRequest(
@@ -372,6 +401,82 @@ class AssessmentService:
         record["workflow_status"] = decision
         record["updated_at"] = _utc_now()
         self._append_history(record, f"INSTITUTIONAL_{decision}", actor_id, role, approval)
+        self._save()
+        return record
+
+    def evaluate_stage2(
+        self,
+        assessment_id: str,
+        payload: Stage2EvaluationRequest,
+        actor_id: str,
+        role: str,
+    ) -> Dict[str, Any]:
+        record = self._assessments.get(assessment_id)
+        if not record:
+            raise HTTPException(status_code=404, detail="Assessment not found")
+
+        # Pull household income / size from stage1 if omitted in request
+        stage1 = record.get("stage1_data") or {}
+        if payload.total_household_income is None:
+            if "total_household_income" in stage1 and stage1["total_household_income"] is not None:
+                payload.total_household_income = Decimal(str(stage1["total_household_income"]))
+            else:
+                family_members = stage1.get("family_members") or []
+                inf_inc = Decimal(str(stage1.get("informant_income") or 0))
+                pat_inc = Decimal(str(stage1.get("patient_income") or 0))
+                fam_inc = sum(Decimal(str(m.get("income") or 0)) for m in family_members)
+                payload.total_household_income = inf_inc + pat_inc + fam_inc
+        if payload.household_size is None or payload.household_size < 1:
+            family_members = stage1.get("family_members") or []
+            payload.household_size = int(stage1.get("household_size") or (len(family_members) + 1))
+
+        res = evaluate_stage2_interview(payload)
+        res_dict = json.loads(res.model_dump_json())
+
+        # If evaluated successfully, cache the classification results on the assessment record
+        if res.is_complete and res.msw_classification:
+            record["classification_result"] = {
+                "financial_classification": res_dict.get("financial_classification"),
+                "msw_classification": res_dict.get("msw_classification"),
+                "total_risk": float(res.total_risk) if res.total_risk is not None else 0.0,
+            }
+
+        self._append_history(
+            record,
+            "STAGE2_INTERVIEW_EVALUATED",
+            actor_id,
+            role,
+            {"status": res.status, "is_complete": res.is_complete, "missing_factors": res.missing_factors},
+        )
+        self._save()
+        return res_dict
+
+    def save_interview_draft(
+        self,
+        assessment_id: str,
+        payload: Dict[str, Any],
+        actor_id: str,
+        role: str,
+        mark_completed: bool = False,
+    ) -> Dict[str, Any]:
+        record = self._assessments.get(assessment_id)
+        if not record:
+            raise HTTPException(status_code=404, detail="Assessment not found")
+
+        current_stage2 = record.get("stage2_data") or {}
+        merged_stage2 = {**current_stage2, **payload}
+        if mark_completed:
+            interview_info = merged_stage2.setdefault("interview_info", {})
+            interview_info["interview_status"] = "COMPLETED"
+        record["stage2_data"] = merged_stage2
+        record["updated_at"] = _utc_now()
+        self._append_history(
+            record,
+            "INTERVIEW_COMPLETED" if mark_completed else "INTERVIEW_DRAFT_SAVED",
+            actor_id,
+            role,
+            {"mark_completed": mark_completed},
+        )
         self._save()
         return record
 

@@ -142,12 +142,12 @@ def test_assessment_full_workflow_and_rbac():
 
 def test_patient_record_association_and_no_duplicate_drafts():
     # 1. Verify Patient A and Patient B return their distinct records
-    r_a = client.get("/api/v1/patients/MSW_FA_0125-01", headers=MSW_HEADERS)
-    r_b = client.get("/api/v1/patients/MSW_FA_0125-02", headers=MSW_HEADERS)
+    r_a = client.get("/api/v1/patients/MSW_FA_1126-01", headers=MSW_HEADERS)
+    r_b = client.get("/api/v1/patients/MSW_FA_1126-02", headers=MSW_HEADERS)
     assert r_a.status_code == 200
     assert r_b.status_code == 200
-    assert r_a.json()["patient"]["patient_id"] == "MSW_FA_0125-01"
-    assert r_b.json()["patient"]["patient_id"] == "MSW_FA_0125-02"
+    assert r_a.json()["patient"]["patient_id"] == "MSW_FA_1126-01"
+    assert r_b.json()["patient"]["patient_id"] == "MSW_FA_1126-02"
     assert r_a.json()["patient"]["last_name"] != r_b.json()["patient"]["last_name"]
 
     # 2. Missing/invalid patient ID returns 404 (no fallback to random patient)
@@ -157,12 +157,12 @@ def test_patient_record_association_and_no_duplicate_drafts():
     # 3. Creating a draft for Patient A twice reuses the same draft (no duplicates)
     r_d1 = client.post(
         "/api/v1/assessments",
-        json={"patient_id": "MSW_FA_0125-01", "stage1_data": {"patient_income": 5000}},
+        json={"patient_id": "MSW_FA_1126-01", "stage1_data": {"patient_income": 5000}},
         headers=MSW_HEADERS,
     )
     r_d2 = client.post(
         "/api/v1/assessments",
-        json={"patient_id": "MSW_FA_0125-01", "stage1_data": {"patient_income": 6000}},
+        json={"patient_id": "MSW_FA_1126-01", "stage1_data": {"patient_income": 6000}},
         headers=MSW_HEADERS,
     )
     assert r_d1.status_code == 201
@@ -171,8 +171,16 @@ def test_patient_record_association_and_no_duplicate_drafts():
     assert r_d1.json()["encounter_no"] == r_d2.json()["encounter_no"]
 
     # 4. Patient B's latest draft is completely isolated from Patient A
-    r_b_draft = client.get("/api/v1/assessments/patient/MSW_FA_0125-02/latest-draft", headers=MSW_HEADERS)
+    r_b_draft = client.get("/api/v1/assessments/patient/MSW_FA_1126-02/latest-draft", headers=MSW_HEADERS)
     assert r_b_draft.status_code == 200
     if r_b_draft.json()["found"]:
-        assert r_b_draft.json()["assessment"]["patient_id"] == "MSW_FA_0125-02"
+        assert r_b_draft.json()["assessment"]["patient_id"] == "MSW_FA_1126-02"
         assert r_b_draft.json()["assessment"]["id"] != r_d1.json()["id"]
+
+    # 5. Verify dynamic interactive sequential charity numbering
+    r_seq = client.get("/api/v1/patients/next-charity-case-no")
+    assert r_seq.status_code == 200
+    next_case_no = r_seq.json()["next_case_no"]
+    assert next_case_no.startswith("MSW_FA_")
+    # Must be sequential after MSW_FA_1126-04
+    assert next_case_no == "MSW_FA_1126-05"
