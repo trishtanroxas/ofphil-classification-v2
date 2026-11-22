@@ -21,9 +21,9 @@ export function Sidebar({
   onCollapseToggle: externalOnCollapseToggle,
 }: SidebarProps) {
   const pathname = usePathname();
-  const { role, user, logout } = useAuth();
+  const { role, user, logout, isLoggingOut } = useAuth();
   const { showLoading, startProgress } = useLoadingScreen();
-  const { confirmNavigation } = useNavigationBlocker();
+  const { confirmNavigation, handleLinkClick } = useNavigationBlocker();
   const [internalCollapsed, setInternalCollapsed] = useState(false);
   const [patientRecordsOpen, setPatientRecordsOpen] = useState(true);
   const [unreadInquiriesCount, setUnreadInquiriesCount] = useState(0);
@@ -127,12 +127,10 @@ export function Sidebar({
     if (isOpen && typeof window !== 'undefined' && window.innerWidth < 768) {
       onToggle();
     }
-    if (pathname === href) return;
     startProgress();
-    const allowed = confirmNavigation(href);
+    const allowed = handleLinkClick(e, href);
     if (!allowed) {
-      e.preventDefault();
-      e.stopPropagation();
+      return;
     }
   };
 
@@ -700,18 +698,16 @@ export function Sidebar({
           )}
           <button
             type="button"
+            disabled={isLoggingOut}
             onClick={() => {
-              showLoading('Signing out of session...');
               const target = isCaseworker ? '/login-msw' : isPatient ? '/login-patient' : '/login-admin';
-              setTimeout(() => {
-                logout(target);
-              }, 150);
+              logout(target);
             }}
-            className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-[#D5E2D9] hover:bg-white/10 hover:text-white transition-all bg-transparent border-0 cursor-pointer text-left"
+            className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-[#D5E2D9] hover:bg-white/10 hover:text-white transition-all bg-transparent border-0 cursor-pointer text-left disabled:opacity-50 disabled:cursor-not-allowed"
             title="Sign Out"
           >
-            <i className="fa-solid fa-arrow-right-from-bracket text-sm shrink-0 w-4 text-center" />
-            {!collapsed && <span className="truncate">Sign Out</span>}
+            <i className={`fa-solid ${isLoggingOut ? 'fa-spinner fa-spin' : 'fa-arrow-right-from-bracket'} text-sm shrink-0 w-4 text-center`} />
+            {!collapsed && <span className="truncate">{isLoggingOut ? 'Signing Out...' : 'Sign Out'}</span>}
           </button>
         </div>
 
@@ -738,9 +734,9 @@ export function Header({
   title?: string;
   subtitle?: string;
 }) {
-  const { role, user, logout } = useAuth();
+  const { role, user, logout, isLoggingOut } = useAuth();
   const { showLoading, isProgressBarActive, startProgress } = useLoadingScreen();
-  const { confirmNavigation } = useNavigationBlocker();
+  const { handleLinkClick } = useNavigationBlocker();
 
   const isPatient = role === 'patient';
   const isAdmin = role === 'admin' || role === 'nurse';
@@ -1118,11 +1114,8 @@ export function Header({
                   onClick={(e) => {
                     startProgress();
                     const target = isAdmin ? '/admin/profile' : isPatient ? '/portal?tab=profile' : '/profile';
-                    if (!confirmNavigation(target)) {
-                      e.preventDefault();
-                      e.stopPropagation();
-                    }
-                    setProfileDropdownOpen(false);
+                    const allowed = handleLinkClick(e, target);
+                    if (allowed) setProfileDropdownOpen(false);
                   }}
                   className="flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold text-[#1E293B] hover:bg-[#F8FAFC] transition no-underline"
                 >
@@ -1135,11 +1128,8 @@ export function Header({
                   onClick={(e) => {
                     startProgress();
                     const target = isAdmin ? '/admin/settings' : isCaseworker ? '/settings' : '/portal?tab=settings';
-                    if (!confirmNavigation(target)) {
-                      e.preventDefault();
-                      e.stopPropagation();
-                    }
-                    setProfileDropdownOpen(false);
+                    const allowed = handleLinkClick(e, target);
+                    if (allowed) setProfileDropdownOpen(false);
                   }}
                   className="flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold text-[#1E293B] hover:bg-[#F8FAFC] transition no-underline"
                 >
@@ -1151,11 +1141,8 @@ export function Header({
                   href="/admin/inquiries"
                   onClick={(e) => {
                     startProgress();
-                    if (!confirmNavigation('/admin/inquiries')) {
-                      e.preventDefault();
-                      e.stopPropagation();
-                    }
-                    setProfileDropdownOpen(false);
+                    const allowed = handleLinkClick(e, '/admin/inquiries');
+                    if (allowed) setProfileDropdownOpen(false);
                   }}
                   className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-[#1E293B] hover:bg-[#F8FAFC] transition no-underline"
                 >
@@ -1179,18 +1166,16 @@ export function Header({
               <div className="mt-2 pt-2 border-t border-[#EEF2EF]">
                 <button
                   type="button"
+                  disabled={isLoggingOut}
                   onClick={() => {
                     setProfileDropdownOpen(false);
-                    showLoading('Signing out of session...');
                     const target = isCaseworker ? '/login-msw' : isPatient ? '/login-patient' : '/login-admin';
-                    setTimeout(() => {
-                      logout(target);
-                    }, 150);
+                    logout(target);
                   }}
-                  className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold text-[#DC2626] hover:bg-[#FEF2F2] transition bg-transparent border-0 cursor-pointer text-left"
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold text-[#DC2626] hover:bg-[#FEF2F2] transition bg-transparent border-0 cursor-pointer text-left disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <i className="fa-solid fa-arrow-right-from-bracket text-[#DC2626] text-sm w-4 text-center" />
-                  <span>Sign Out</span>
+                  <i className={`fa-solid ${isLoggingOut ? 'fa-spinner fa-spin' : 'fa-arrow-right-from-bracket'} text-[#DC2626] text-sm w-4 text-center`} />
+                  <span>{isLoggingOut ? 'Signing Out...' : 'Sign Out'}</span>
                 </button>
               </div>
             </div>

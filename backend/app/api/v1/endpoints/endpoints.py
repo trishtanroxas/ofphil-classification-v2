@@ -1,7 +1,7 @@
 import datetime
 import uuid
 from typing import List, Dict, Any, Optional
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Header, Depends
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Header, Depends, Response, Request
 from app.core.config import get_settings
 from app.schemas.schemas import (
     APIResponse, HealthResponse, DatasetCreate, DatasetItem,
@@ -239,48 +239,40 @@ def explain_prediction(payload: ExplainabilityRequest):
     )
 
 # -------------------------------------------------------------
-# 13. Password Reset & Forgot Password Endpoints (Brevo SMTP)
+# 13. Email Service Imports (Password Recovery managed by auth_recovery.py)
 # -------------------------------------------------------------
 from pydantic import BaseModel
 from app.services.email_service import send_password_reset_email, send_patient_welcome_email, send_inquiry_submission_email, send_inquiry_reply_email, send_appointment_schedule_email
 
-class ForgotPasswordRequest(BaseModel):
-    role: str
-    identifier: Optional[str] = None
-    email: Optional[str] = None
-    birthdate: Optional[str] = None
-    recovery_method: Optional[str] = "email"
+# -------------------------------------------------------------
+# 13B. Authentication & Session Invalidation (Logout)
+# -------------------------------------------------------------
+class LogoutRequest(BaseModel):
+    role: Optional[str] = "admin"
+    user_id: Optional[str] = None
+    reason: Optional[str] = "user_initiated"
 
-@router.post("/auth/forgot-password")
-def request_password_reset(payload: ForgotPasswordRequest):
-    recipient_email = payload.email or "roxas.t.bscs@gmail.com"
-    role_labels = {
-        "patient": "Patient Beneficiary",
-        "msw": "Medical Social Services (MSW)",
-        "admin": "Clinic Administrator & Staff"
-    }
-    role_label = role_labels.get(payload.role, "OFPHIL User")
-    identifier = payload.identifier or payload.email or "User"
-    reset_url = f"{settings.FRONTEND_URL}/reset-password?role={payload.role}&token={uuid.uuid4().hex[:16]}"
-    
-    # Generate 6-digit verification code
-    import random
-    code = f"{random.randint(100000, 999999)}"
-    
-    email_sent = send_password_reset_email(
-        to_email=recipient_email,
-        role_title=role_label,
-        identifier=identifier,
-        reset_link=reset_url,
-        code=code
-    )
-    
+@router.post("/auth/logout")
+def logout_user_session(
+    payload: Optional[LogoutRequest] = None,
+    response: Response = None,
+    x_user_role: Optional[str] = Header(default=None),
+    x_user_id: Optional[str] = Header(default=None),
+):
+    effective_role = (payload.role if payload and payload.role else x_user_role) or "user"
+    effective_user = (payload.user_id if payload and payload.user_id else x_user_id) or "anonymous"
+
+    # Expire authentication / session cookies if present
+    if response:
+        response.delete_cookie(key="ofphil_session", path="/")
+        response.delete_cookie(key="ofphil_token", path="/")
+
     return {
         "status": "success",
-        "email_sent": email_sent,
-        "recipient": recipient_email,
-        "message": f"Verification code dispatched to {recipient_email}.",
-        "code": code
+        "message": f"Session for {effective_role} ({effective_user}) successfully terminated and invalidated on server.",
+        "role": effective_role,
+        "user_id": effective_user,
+        "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat()
     }
 
 # -------------------------------------------------------------
@@ -368,7 +360,7 @@ REGISTERED_PATIENTS_REGISTRY: List[Dict[str, Any]] = [
         "residence_city": "City of Manila",
         "residence_region": "Metro Manila (NCR)",
         "contact": "0917 888 1678",
-        "email": "juan.delacruz@example.ph",
+        "email": "tan1925alex@gmail.com",
         "phone_verified": True,
         "email_verified": True,
         "category": "REGULAR",

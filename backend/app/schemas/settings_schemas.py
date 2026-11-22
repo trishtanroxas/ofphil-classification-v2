@@ -29,8 +29,8 @@ class OrganizationProfile(BaseModel):
 # 2. Security Policies
 # ==============================================================================
 class AuthenticationPolicies(BaseModel):
-    min_password_length: int = Field(8, ge=8, le=64)
-    require_uppercase: bool = True
+    min_password_length: int = Field(6, ge=6, le=64)
+    require_uppercase: bool = False
     require_lowercase: bool = True
     require_numbers: bool = True
     require_special_chars: bool = True
@@ -246,8 +246,8 @@ class MSWPrivacySettings(BaseModel):
 
 class PasswordChangeRequest(BaseModel):
     current_password: str = Field(..., min_length=1)
-    new_password: str = Field(..., min_length=8)
-    confirm_password: str = Field(..., min_length=8)
+    new_password: str = Field(..., min_length=6)
+    confirm_password: str = Field(..., min_length=6)
 
 
 # Generic Action Result

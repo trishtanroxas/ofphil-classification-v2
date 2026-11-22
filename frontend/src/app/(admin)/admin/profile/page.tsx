@@ -4,6 +4,7 @@ import { DashboardLayout } from '@/components/DashboardLayout';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import PasswordStrengthMeter from '@/components/PasswordStrengthMeter';
+import ProfilePasswordChangeCard from '@/components/ProfilePasswordChangeCard';
 import PsgcAddressSelector from '@/components/PsgcAddressSelector';
 import { toast } from 'sonner';
 
@@ -395,119 +396,15 @@ export default function AdminProfilePage() {
             </div>
 
             {/* Change Administrator Password */}
-            <div className="bg-white rounded-2xl border border-[#EEF2EF] shadow-xs p-6">
-              <div className="pb-3 border-b border-[#EEF2EF] mb-4">
-                <h3 className="font-['Outfit'] text-base font-bold text-[#10241A] m-0 flex items-center gap-2">
-                  <i className="fa-solid fa-key text-[#0B6B3A]" />
-                  <span>Change Administrator Password</span>
-                </h3>
-                <p className="text-xs text-[#5A7466] mt-0.5 m-0">
-                  Update your authentication password to maintain high security clearance.
-                </p>
-              </div>
-
-              <form onSubmit={handleUpdatePassword} className="space-y-4">
-                <div>
-                  <label className="block font-semibold text-[#10241A] mb-1">
-                    Current Password <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showCurrentPass ? 'text' : 'password'}
-                      value={currentPass}
-                      onChange={(e) => setCurrentPass(e.target.value)}
-                      placeholder="Enter current password"
-                      required
-                      className="w-full h-11 pl-3.5 pr-10 border border-[#D5E2D9] rounded-xl text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowCurrentPass(!showCurrentPass)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8F9E96] hover:text-[#10241A] bg-transparent border-0 cursor-pointer"
-                    >
-                      <i className={`fa-regular ${showCurrentPass ? 'fa-eye-slash' : 'fa-eye'}`} />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
-                  <div>
-                    <label className="block font-semibold text-[#10241A] mb-1">
-                      New Password <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showNewPass ? 'text' : 'password'}
-                        value={newPass}
-                        onChange={(e) => setNewPass(e.target.value)}
-                        placeholder="At least 6 characters"
-                        required
-                        className="w-full h-11 pl-3.5 pr-10 border border-[#D5E2D9] rounded-xl text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowNewPass(!showNewPass)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8F9E96] hover:text-[#10241A] bg-transparent border-0 cursor-pointer"
-                      >
-                        <i className={`fa-regular ${showNewPass ? 'fa-eye-slash' : 'fa-eye'}`} />
-                      </button>
-                    </div>
-                    <PasswordStrengthMeter password={newPass} showChecks={true} />
-                  </div>
-                  <div>
-                    <label className="block font-semibold text-[#10241A] mb-1">
-                      Confirm New Password <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showConfirmPass ? 'text' : 'password'}
-                        value={confirmPass}
-                        onChange={(e) => setConfirmPass(e.target.value)}
-                        placeholder="Repeat new password"
-                        required
-                        className="w-full h-11 pl-3.5 pr-10 border border-[#D5E2D9] rounded-xl text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirmPass(!showConfirmPass)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8F9E96] hover:text-[#10241A] bg-transparent border-0 cursor-pointer"
-                      >
-                        <i className={`fa-regular ${showConfirmPass ? 'fa-eye-slash' : 'fa-eye'}`} />
-                      </button>
-                    </div>
-                    {confirmPass.length > 0 && (
-                      <div className={`mt-1.5 text-[11px] font-semibold flex items-center gap-1.5 ${newPass === confirmPass ? 'text-[#0B6B3A]' : 'text-[#DC2626]'}`}>
-                        <i className={`fa-solid ${newPass === confirmPass ? 'fa-circle-check' : 'fa-circle-xmark'}`} />
-                        <span>{newPass === confirmPass ? 'Passwords match' : 'Passwords do not match'}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="pt-2 flex flex-wrap items-center justify-between gap-3">
-                  <button
-                    type="button"
-                    onClick={handleGeneratePassword}
-                    className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-[#CBD5E1] bg-white hover:bg-[#F8FAFC] text-xs font-semibold text-[#334155] transition cursor-pointer"
-                  >
-                    <i className="fa-solid fa-key text-xs text-[#0B6B3A]" />
-                    <span>Generate Secure Password</span>
-                  </button>
-                  {passUpdated && (
-                    <span className="text-xs text-[#0B6B3A] font-bold">
-                      ✓ Security password updated successfully!
-                    </span>
-                  )}
-                  <button
-                    type="submit"
-                    className="ml-auto px-5 py-2.5 rounded-lg bg-[#0B6B3A] hover:bg-[#064826] text-white font-bold text-xs flex items-center gap-1.5 transition shadow-xs"
-                  >
-                    <i className="fa-solid fa-shield-check text-xs" />
-                    <span>Update Password</span>
-                  </button>
-                </div>
-              </form>
-            </div>
+            {/* Change Administrator Password Card */}
+            <ProfilePasswordChangeCard
+              role="admin"
+              userId="admin_sys"
+              defaultEmail="dr.reyes@ofphil.org.ph"
+              defaultMobile="0917 888 1678"
+              title="Change Administrator Password"
+              subtitle="Update your authentication password to maintain high security clearance."
+            />
           </div>
         </div>
       </div>

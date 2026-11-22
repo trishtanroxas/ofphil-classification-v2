@@ -1,6 +1,7 @@
 'use client';
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
+import { fetchApi } from '@/lib/api';
 
 export type UserRole = 'patient' | 'msw' | 'admin' | 'nurse';
 
@@ -17,8 +18,9 @@ interface AuthContextType {
   role: UserRole;
   isAuthenticated: boolean;
   isHydrated: boolean;
+  isLoggingOut: boolean;
   login: (role: UserRole, usernameOrId?: string) => void;
-  logout: (redirectUrl?: string) => void;
+  logout: (redirectUrl?: string) => Promise<void>;
 }
 
 const DEFAULT_USERS: Record<UserRole, AuthUser> = {
@@ -96,8 +98,9 @@ const AuthContext = createContext<AuthContextType>({
   role: 'admin',
   isAuthenticated: false,
   isHydrated: false,
+  isLoggingOut: false,
   login: () => {},
-  logout: () => {},
+  logout: async () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -106,6 +109,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isHydrated, setIsHydrated] = useState<boolean>(false);
+  const [isLoggingOut, setIsLoggingOut] = useState<boolean>(false);
 
   const syncAuthFromStorage = useCallback(() => {
     try {
@@ -210,8 +214,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (e) {}
   };
 
-  const logout = (redirectUrl?: string) => {
+  const logout = async (redirectUrl?: string) => {
+    // 1. Prevent duplicate logout triggers
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+
     const currentRole = role;
+    const currentUserId = user?.id || user?.username || 'anonymous';
+
+    // 2. Resolve target login destination based on role
+    const target =
+      redirectUrl ||
+      (currentRole === 'msw'
+        ? '/login-msw'
+        : currentRole === 'patient'
+          ? '/login-patient'
+          : '/login-admin');
+
+    // 3. Clear all authentication-related client state immediately
     try {
       localStorage.setItem('ofphil_last_role', currentRole);
       localStorage.removeItem('ofphil_current_role');
@@ -222,27 +242,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     setIsAuthenticated(false);
 
-    const target =
-      redirectUrl ||
-      (currentRole === 'msw'
-        ? '/login-msw'
-        : currentRole === 'patient'
-          ? '/login-patient'
-          : '/login-admin');
+    // 4. Invalidate server-side session and cookies via backend endpoint
+    try {
+      await fetchApi('/auth/logout', {
+        method: 'POST',
+        headers: {
+          'x-user-role': currentRole,
+          'x-user-id': currentUserId,
+        },
+        body: JSON.stringify({
+          role: currentRole,
+          user_id: currentUserId,
+          reason: 'user_initiated_logout',
+        }),
+      }).catch(() => {});
+    } catch (e) {
+      // Non-blocking: network timeout should never prevent client logout
+    }
 
+    // 5. Clean, direct replacement of window location (no history pushState race conditions)
     if (typeof window !== 'undefined') {
-      // Push and replace history state so Back button stays on the login page
-      window.history.pushState(null, '', target);
       window.location.replace(target);
     }
   };
 
-  // Prevent rendering protected route content with wrong fallback role while redirecting after logout
-  const shouldBlockRender = isHydrated && !isAuthenticated && !isPublicRoute(pathname);
+  // Prevent rendering protected route content or flashing dashboard during logout/redirect
+  const shouldBlockRender =
+    isLoggingOut || (isHydrated && !isAuthenticated && !isPublicRoute(pathname));
 
   return (
-    <AuthContext.Provider value={{ user, role, isAuthenticated, isHydrated, login, logout }}>
-      {shouldBlockRender ? null : children}
+    <AuthContext.Provider value={{ user, role, isAuthenticated, isHydrated, isLoggingOut, login, logout }}>
+      {shouldBlockRender ? (
+        <div className="fixed inset-0 z-[99999] bg-[#FAFBF8] flex flex-col items-center justify-center p-6 text-center select-none">
+          <div className="w-10 h-10 rounded-full border-3 border-[#0B6B3A]/20 border-t-[#0B6B3A] animate-spin mb-4" />
+          <h2 className="text-[15px] font-bold text-[#10241A] font-['Outfit'] tracking-wide m-0">
+            Signing Out of Session...
+          </h2>
+          <p className="text-xs text-[#5A7466] mt-1 m-0">
+            Invalidating session and restoring secure login portal.
+          </p>
+        </div>
+      ) : (
+        children
+      )}
     </AuthContext.Provider>
   );
 }

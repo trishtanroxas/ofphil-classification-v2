@@ -50,6 +50,895 @@
     "api_classification": "INDIGENT",
     "disagrees_with_api": false,
     "requires_msw_review": true,
+    "prediction_timestamp": "2026-11-22T20:15:53.387105+00:00",
+    "provenance_note": "Supplementary binary multimodal prediction (experimental, not yet 4-tier calibrated). Does not override deterministic OFPHIL API classification."
+  },
+  {
+    "assessment_id": null,
+    "prediction_enabled": true,
+    "status": "EXPERIMENTAL_BINARY_PREDICTION",
+    "model_candidate": "ebm",
+    "model_version": "ebm_multimodal_binary_v1",
+    "classes_supported": [
+      0,
+      1
+    ],
+    "predicted_class": 1,
+    "predicted_label": "Charity Eligible (Binary Class 1)",
+    "probabilities": {
+      "class_0_non_indigent": 0.0437,
+      "class_1_indigent": 0.9563
+    },
+    "top_explanations": [
+      {
+        "feature": "diagnosis_severity",
+        "value": "Moderate",
+        "contribution": -1.104
+      },
+      {
+        "feature": "residence_status",
+        "value": "Rented",
+        "contribution": 0.7256
+      },
+      {
+        "feature": "employment_status",
+        "value": "Self-Employed",
+        "contribution": -0.4157
+      },
+      {
+        "feature": "cost_of_treatment",
+        "value": 25000.0,
+        "contribution": -0.3545
+      },
+      {
+        "feature": "doc_visual_mean",
+        "value": 0.1,
+        "contribution": -0.3059
+      },
+      {
+        "feature": "monthly_household_obligations_expenses",
+        "value": 11500.0,
+        "contribution": 0.2965
+      }
+    ],
+    "api_classification": "INDIGENT",
+    "disagrees_with_api": false,
+    "requires_msw_review": true,
+    "prediction_timestamp": "2026-11-22T20:15:51.761365+00:00",
+    "provenance_note": "Supplementary binary multimodal prediction (experimental, not yet 4-tier calibrated). Does not override deterministic OFPHIL API classification."
+  },
+  {
+    "prediction_enabled": false,
+    "status": "AWAITING_4TIER_VALIDATION",
+    "model_candidate": "ebm",
+    "model_version": "ebm_multimodal_binary_v1",
+    "classes_supported": [
+      0,
+      1
+    ],
+    "predicted_class": null,
+    "predicted_label": null,
+    "probabilities": null,
+    "top_explanations": [],
+    "api_classification": "INDIGENT",
+    "disagrees_with_api": null,
+    "requires_msw_review": true,
+    "prediction_timestamp": "2026-11-22T20:15:51.747128+00:00",
+    "provenance_note": "ML predictions are currently gated pending 4-tier OFPHIL clinical validation and institutional sign-off. Deterministic OFPHIL API classification remains authoritative."
+  },
+  {
+    "assessment_id": null,
+    "prediction_enabled": true,
+    "status": "EXPERIMENTAL_BINARY_PREDICTION",
+    "model_candidate": "catboost",
+    "model_version": "catboost_multimodal_binary_v1",
+    "classes_supported": [
+      0,
+      1
+    ],
+    "predicted_class": 1,
+    "predicted_label": "Charity Eligible (Binary Class 1)",
+    "probabilities": {
+      "class_0_non_indigent": 0.3733,
+      "class_1_indigent": 0.6267
+    },
+    "top_explanations": [
+      {
+        "feature": "employment_status",
+        "value": "Self-Employed",
+        "contribution": -0.6774
+      },
+      {
+        "feature": "monthly_family_income",
+        "value": 12000.0,
+        "contribution": 0.6188
+      },
+      {
+        "feature": "monthly_household_obligations_expenses",
+        "value": 11500.0,
+        "contribution": 0.481
+      },
+      {
+        "feature": "diagnosis_severity",
+        "value": "Moderate",
+        "contribution": -0.475
+      },
+      {
+        "feature": "patient_clinical_type",
+        "value": "Charity",
+        "contribution": -0.4643
+      },
+      {
+        "feature": "doc_visual_mean",
+        "value": 0.1,
+        "contribution": -0.1733
+      }
+    ],
+    "api_classification": "INDIGENT",
+    "disagrees_with_api": false,
+    "requires_msw_review": true,
+    "prediction_timestamp": "2026-11-22T20:05:05.504982+00:00",
+    "provenance_note": "Supplementary binary multimodal prediction (experimental, not yet 4-tier calibrated). Does not override deterministic OFPHIL API classification."
+  },
+  {
+    "assessment_id": null,
+    "prediction_enabled": true,
+    "status": "EXPERIMENTAL_BINARY_PREDICTION",
+    "model_candidate": "ebm",
+    "model_version": "ebm_multimodal_binary_v1",
+    "classes_supported": [
+      0,
+      1
+    ],
+    "predicted_class": 1,
+    "predicted_label": "Charity Eligible (Binary Class 1)",
+    "probabilities": {
+      "class_0_non_indigent": 0.0437,
+      "class_1_indigent": 0.9563
+    },
+    "top_explanations": [
+      {
+        "feature": "diagnosis_severity",
+        "value": "Moderate",
+        "contribution": -1.104
+      },
+      {
+        "feature": "residence_status",
+        "value": "Rented",
+        "contribution": 0.7256
+      },
+      {
+        "feature": "employment_status",
+        "value": "Self-Employed",
+        "contribution": -0.4157
+      },
+      {
+        "feature": "cost_of_treatment",
+        "value": 25000.0,
+        "contribution": -0.3545
+      },
+      {
+        "feature": "doc_visual_mean",
+        "value": 0.1,
+        "contribution": -0.3059
+      },
+      {
+        "feature": "monthly_household_obligations_expenses",
+        "value": 11500.0,
+        "contribution": 0.2965
+      }
+    ],
+    "api_classification": "INDIGENT",
+    "disagrees_with_api": false,
+    "requires_msw_review": true,
+    "prediction_timestamp": "2026-11-22T20:05:03.817172+00:00",
+    "provenance_note": "Supplementary binary multimodal prediction (experimental, not yet 4-tier calibrated). Does not override deterministic OFPHIL API classification."
+  },
+  {
+    "prediction_enabled": false,
+    "status": "AWAITING_4TIER_VALIDATION",
+    "model_candidate": "ebm",
+    "model_version": "ebm_multimodal_binary_v1",
+    "classes_supported": [
+      0,
+      1
+    ],
+    "predicted_class": null,
+    "predicted_label": null,
+    "probabilities": null,
+    "top_explanations": [],
+    "api_classification": "INDIGENT",
+    "disagrees_with_api": null,
+    "requires_msw_review": true,
+    "prediction_timestamp": "2026-11-22T20:05:03.800791+00:00",
+    "provenance_note": "ML predictions are currently gated pending 4-tier OFPHIL clinical validation and institutional sign-off. Deterministic OFPHIL API classification remains authoritative."
+  },
+  {
+    "assessment_id": null,
+    "prediction_enabled": true,
+    "status": "EXPERIMENTAL_BINARY_PREDICTION",
+    "model_candidate": "catboost",
+    "model_version": "catboost_multimodal_binary_v1",
+    "classes_supported": [
+      0,
+      1
+    ],
+    "predicted_class": 1,
+    "predicted_label": "Charity Eligible (Binary Class 1)",
+    "probabilities": {
+      "class_0_non_indigent": 0.3733,
+      "class_1_indigent": 0.6267
+    },
+    "top_explanations": [
+      {
+        "feature": "employment_status",
+        "value": "Self-Employed",
+        "contribution": -0.6774
+      },
+      {
+        "feature": "monthly_family_income",
+        "value": 12000.0,
+        "contribution": 0.6188
+      },
+      {
+        "feature": "monthly_household_obligations_expenses",
+        "value": 11500.0,
+        "contribution": 0.481
+      },
+      {
+        "feature": "diagnosis_severity",
+        "value": "Moderate",
+        "contribution": -0.475
+      },
+      {
+        "feature": "patient_clinical_type",
+        "value": "Charity",
+        "contribution": -0.4643
+      },
+      {
+        "feature": "doc_visual_mean",
+        "value": 0.1,
+        "contribution": -0.1733
+      }
+    ],
+    "api_classification": "INDIGENT",
+    "disagrees_with_api": false,
+    "requires_msw_review": true,
+    "prediction_timestamp": "2026-11-22T19:53:16.969839+00:00",
+    "provenance_note": "Supplementary binary multimodal prediction (experimental, not yet 4-tier calibrated). Does not override deterministic OFPHIL API classification."
+  },
+  {
+    "assessment_id": null,
+    "prediction_enabled": true,
+    "status": "EXPERIMENTAL_BINARY_PREDICTION",
+    "model_candidate": "ebm",
+    "model_version": "ebm_multimodal_binary_v1",
+    "classes_supported": [
+      0,
+      1
+    ],
+    "predicted_class": 1,
+    "predicted_label": "Charity Eligible (Binary Class 1)",
+    "probabilities": {
+      "class_0_non_indigent": 0.0437,
+      "class_1_indigent": 0.9563
+    },
+    "top_explanations": [
+      {
+        "feature": "diagnosis_severity",
+        "value": "Moderate",
+        "contribution": -1.104
+      },
+      {
+        "feature": "residence_status",
+        "value": "Rented",
+        "contribution": 0.7256
+      },
+      {
+        "feature": "employment_status",
+        "value": "Self-Employed",
+        "contribution": -0.4157
+      },
+      {
+        "feature": "cost_of_treatment",
+        "value": 25000.0,
+        "contribution": -0.3545
+      },
+      {
+        "feature": "doc_visual_mean",
+        "value": 0.1,
+        "contribution": -0.3059
+      },
+      {
+        "feature": "monthly_household_obligations_expenses",
+        "value": 11500.0,
+        "contribution": 0.2965
+      }
+    ],
+    "api_classification": "INDIGENT",
+    "disagrees_with_api": false,
+    "requires_msw_review": true,
+    "prediction_timestamp": "2026-11-22T19:53:15.497498+00:00",
+    "provenance_note": "Supplementary binary multimodal prediction (experimental, not yet 4-tier calibrated). Does not override deterministic OFPHIL API classification."
+  },
+  {
+    "prediction_enabled": false,
+    "status": "AWAITING_4TIER_VALIDATION",
+    "model_candidate": "ebm",
+    "model_version": "ebm_multimodal_binary_v1",
+    "classes_supported": [
+      0,
+      1
+    ],
+    "predicted_class": null,
+    "predicted_label": null,
+    "probabilities": null,
+    "top_explanations": [],
+    "api_classification": "INDIGENT",
+    "disagrees_with_api": null,
+    "requires_msw_review": true,
+    "prediction_timestamp": "2026-11-22T19:53:15.479904+00:00",
+    "provenance_note": "ML predictions are currently gated pending 4-tier OFPHIL clinical validation and institutional sign-off. Deterministic OFPHIL API classification remains authoritative."
+  },
+  {
+    "assessment_id": null,
+    "prediction_enabled": true,
+    "status": "EXPERIMENTAL_BINARY_PREDICTION",
+    "model_candidate": "catboost",
+    "model_version": "catboost_multimodal_binary_v1",
+    "classes_supported": [
+      0,
+      1
+    ],
+    "predicted_class": 1,
+    "predicted_label": "Charity Eligible (Binary Class 1)",
+    "probabilities": {
+      "class_0_non_indigent": 0.3733,
+      "class_1_indigent": 0.6267
+    },
+    "top_explanations": [
+      {
+        "feature": "employment_status",
+        "value": "Self-Employed",
+        "contribution": -0.6774
+      },
+      {
+        "feature": "monthly_family_income",
+        "value": 12000.0,
+        "contribution": 0.6188
+      },
+      {
+        "feature": "monthly_household_obligations_expenses",
+        "value": 11500.0,
+        "contribution": 0.481
+      },
+      {
+        "feature": "diagnosis_severity",
+        "value": "Moderate",
+        "contribution": -0.475
+      },
+      {
+        "feature": "patient_clinical_type",
+        "value": "Charity",
+        "contribution": -0.4643
+      },
+      {
+        "feature": "doc_visual_mean",
+        "value": 0.1,
+        "contribution": -0.1733
+      }
+    ],
+    "api_classification": "INDIGENT",
+    "disagrees_with_api": false,
+    "requires_msw_review": true,
+    "prediction_timestamp": "2026-11-22T19:46:24.917862+00:00",
+    "provenance_note": "Supplementary binary multimodal prediction (experimental, not yet 4-tier calibrated). Does not override deterministic OFPHIL API classification."
+  },
+  {
+    "assessment_id": null,
+    "prediction_enabled": true,
+    "status": "EXPERIMENTAL_BINARY_PREDICTION",
+    "model_candidate": "ebm",
+    "model_version": "ebm_multimodal_binary_v1",
+    "classes_supported": [
+      0,
+      1
+    ],
+    "predicted_class": 1,
+    "predicted_label": "Charity Eligible (Binary Class 1)",
+    "probabilities": {
+      "class_0_non_indigent": 0.0437,
+      "class_1_indigent": 0.9563
+    },
+    "top_explanations": [
+      {
+        "feature": "diagnosis_severity",
+        "value": "Moderate",
+        "contribution": -1.104
+      },
+      {
+        "feature": "residence_status",
+        "value": "Rented",
+        "contribution": 0.7256
+      },
+      {
+        "feature": "employment_status",
+        "value": "Self-Employed",
+        "contribution": -0.4157
+      },
+      {
+        "feature": "cost_of_treatment",
+        "value": 25000.0,
+        "contribution": -0.3545
+      },
+      {
+        "feature": "doc_visual_mean",
+        "value": 0.1,
+        "contribution": -0.3059
+      },
+      {
+        "feature": "monthly_household_obligations_expenses",
+        "value": 11500.0,
+        "contribution": 0.2965
+      }
+    ],
+    "api_classification": "INDIGENT",
+    "disagrees_with_api": false,
+    "requires_msw_review": true,
+    "prediction_timestamp": "2026-11-22T19:46:23.476952+00:00",
+    "provenance_note": "Supplementary binary multimodal prediction (experimental, not yet 4-tier calibrated). Does not override deterministic OFPHIL API classification."
+  },
+  {
+    "prediction_enabled": false,
+    "status": "AWAITING_4TIER_VALIDATION",
+    "model_candidate": "ebm",
+    "model_version": "ebm_multimodal_binary_v1",
+    "classes_supported": [
+      0,
+      1
+    ],
+    "predicted_class": null,
+    "predicted_label": null,
+    "probabilities": null,
+    "top_explanations": [],
+    "api_classification": "INDIGENT",
+    "disagrees_with_api": null,
+    "requires_msw_review": true,
+    "prediction_timestamp": "2026-11-22T19:46:23.465008+00:00",
+    "provenance_note": "ML predictions are currently gated pending 4-tier OFPHIL clinical validation and institutional sign-off. Deterministic OFPHIL API classification remains authoritative."
+  },
+  {
+    "assessment_id": null,
+    "prediction_enabled": true,
+    "status": "EXPERIMENTAL_BINARY_PREDICTION",
+    "model_candidate": "catboost",
+    "model_version": "catboost_multimodal_binary_v1",
+    "classes_supported": [
+      0,
+      1
+    ],
+    "predicted_class": 1,
+    "predicted_label": "Charity Eligible (Binary Class 1)",
+    "probabilities": {
+      "class_0_non_indigent": 0.3733,
+      "class_1_indigent": 0.6267
+    },
+    "top_explanations": [
+      {
+        "feature": "employment_status",
+        "value": "Self-Employed",
+        "contribution": -0.6774
+      },
+      {
+        "feature": "monthly_family_income",
+        "value": 12000.0,
+        "contribution": 0.6188
+      },
+      {
+        "feature": "monthly_household_obligations_expenses",
+        "value": 11500.0,
+        "contribution": 0.481
+      },
+      {
+        "feature": "diagnosis_severity",
+        "value": "Moderate",
+        "contribution": -0.475
+      },
+      {
+        "feature": "patient_clinical_type",
+        "value": "Charity",
+        "contribution": -0.4643
+      },
+      {
+        "feature": "doc_visual_mean",
+        "value": 0.1,
+        "contribution": -0.1733
+      }
+    ],
+    "api_classification": "INDIGENT",
+    "disagrees_with_api": false,
+    "requires_msw_review": true,
+    "prediction_timestamp": "2026-11-22T19:41:14.453509+00:00",
+    "provenance_note": "Supplementary binary multimodal prediction (experimental, not yet 4-tier calibrated). Does not override deterministic OFPHIL API classification."
+  },
+  {
+    "assessment_id": null,
+    "prediction_enabled": true,
+    "status": "EXPERIMENTAL_BINARY_PREDICTION",
+    "model_candidate": "ebm",
+    "model_version": "ebm_multimodal_binary_v1",
+    "classes_supported": [
+      0,
+      1
+    ],
+    "predicted_class": 1,
+    "predicted_label": "Charity Eligible (Binary Class 1)",
+    "probabilities": {
+      "class_0_non_indigent": 0.0437,
+      "class_1_indigent": 0.9563
+    },
+    "top_explanations": [
+      {
+        "feature": "diagnosis_severity",
+        "value": "Moderate",
+        "contribution": -1.104
+      },
+      {
+        "feature": "residence_status",
+        "value": "Rented",
+        "contribution": 0.7256
+      },
+      {
+        "feature": "employment_status",
+        "value": "Self-Employed",
+        "contribution": -0.4157
+      },
+      {
+        "feature": "cost_of_treatment",
+        "value": 25000.0,
+        "contribution": -0.3545
+      },
+      {
+        "feature": "doc_visual_mean",
+        "value": 0.1,
+        "contribution": -0.3059
+      },
+      {
+        "feature": "monthly_household_obligations_expenses",
+        "value": 11500.0,
+        "contribution": 0.2965
+      }
+    ],
+    "api_classification": "INDIGENT",
+    "disagrees_with_api": false,
+    "requires_msw_review": true,
+    "prediction_timestamp": "2026-11-22T19:41:13.093952+00:00",
+    "provenance_note": "Supplementary binary multimodal prediction (experimental, not yet 4-tier calibrated). Does not override deterministic OFPHIL API classification."
+  },
+  {
+    "prediction_enabled": false,
+    "status": "AWAITING_4TIER_VALIDATION",
+    "model_candidate": "ebm",
+    "model_version": "ebm_multimodal_binary_v1",
+    "classes_supported": [
+      0,
+      1
+    ],
+    "predicted_class": null,
+    "predicted_label": null,
+    "probabilities": null,
+    "top_explanations": [],
+    "api_classification": "INDIGENT",
+    "disagrees_with_api": null,
+    "requires_msw_review": true,
+    "prediction_timestamp": "2026-11-22T19:41:13.081516+00:00",
+    "provenance_note": "ML predictions are currently gated pending 4-tier OFPHIL clinical validation and institutional sign-off. Deterministic OFPHIL API classification remains authoritative."
+  },
+  {
+    "assessment_id": null,
+    "prediction_enabled": true,
+    "status": "EXPERIMENTAL_BINARY_PREDICTION",
+    "model_candidate": "catboost",
+    "model_version": "catboost_multimodal_binary_v1",
+    "classes_supported": [
+      0,
+      1
+    ],
+    "predicted_class": 1,
+    "predicted_label": "Charity Eligible (Binary Class 1)",
+    "probabilities": {
+      "class_0_non_indigent": 0.3733,
+      "class_1_indigent": 0.6267
+    },
+    "top_explanations": [
+      {
+        "feature": "employment_status",
+        "value": "Self-Employed",
+        "contribution": -0.6774
+      },
+      {
+        "feature": "monthly_family_income",
+        "value": 12000.0,
+        "contribution": 0.6188
+      },
+      {
+        "feature": "monthly_household_obligations_expenses",
+        "value": 11500.0,
+        "contribution": 0.481
+      },
+      {
+        "feature": "diagnosis_severity",
+        "value": "Moderate",
+        "contribution": -0.475
+      },
+      {
+        "feature": "patient_clinical_type",
+        "value": "Charity",
+        "contribution": -0.4643
+      },
+      {
+        "feature": "doc_visual_mean",
+        "value": 0.1,
+        "contribution": -0.1733
+      }
+    ],
+    "api_classification": "INDIGENT",
+    "disagrees_with_api": false,
+    "requires_msw_review": true,
+    "prediction_timestamp": "2026-11-22T19:31:05.743899+00:00",
+    "provenance_note": "Supplementary binary multimodal prediction (experimental, not yet 4-tier calibrated). Does not override deterministic OFPHIL API classification."
+  },
+  {
+    "assessment_id": null,
+    "prediction_enabled": true,
+    "status": "EXPERIMENTAL_BINARY_PREDICTION",
+    "model_candidate": "ebm",
+    "model_version": "ebm_multimodal_binary_v1",
+    "classes_supported": [
+      0,
+      1
+    ],
+    "predicted_class": 1,
+    "predicted_label": "Charity Eligible (Binary Class 1)",
+    "probabilities": {
+      "class_0_non_indigent": 0.0437,
+      "class_1_indigent": 0.9563
+    },
+    "top_explanations": [
+      {
+        "feature": "diagnosis_severity",
+        "value": "Moderate",
+        "contribution": -1.104
+      },
+      {
+        "feature": "residence_status",
+        "value": "Rented",
+        "contribution": 0.7256
+      },
+      {
+        "feature": "employment_status",
+        "value": "Self-Employed",
+        "contribution": -0.4157
+      },
+      {
+        "feature": "cost_of_treatment",
+        "value": 25000.0,
+        "contribution": -0.3545
+      },
+      {
+        "feature": "doc_visual_mean",
+        "value": 0.1,
+        "contribution": -0.3059
+      },
+      {
+        "feature": "monthly_household_obligations_expenses",
+        "value": 11500.0,
+        "contribution": 0.2965
+      }
+    ],
+    "api_classification": "INDIGENT",
+    "disagrees_with_api": false,
+    "requires_msw_review": true,
+    "prediction_timestamp": "2026-11-22T19:31:04.170245+00:00",
+    "provenance_note": "Supplementary binary multimodal prediction (experimental, not yet 4-tier calibrated). Does not override deterministic OFPHIL API classification."
+  },
+  {
+    "prediction_enabled": false,
+    "status": "AWAITING_4TIER_VALIDATION",
+    "model_candidate": "ebm",
+    "model_version": "ebm_multimodal_binary_v1",
+    "classes_supported": [
+      0,
+      1
+    ],
+    "predicted_class": null,
+    "predicted_label": null,
+    "probabilities": null,
+    "top_explanations": [],
+    "api_classification": "INDIGENT",
+    "disagrees_with_api": null,
+    "requires_msw_review": true,
+    "prediction_timestamp": "2026-11-22T19:31:04.157362+00:00",
+    "provenance_note": "ML predictions are currently gated pending 4-tier OFPHIL clinical validation and institutional sign-off. Deterministic OFPHIL API classification remains authoritative."
+  },
+  {
+    "assessment_id": null,
+    "prediction_enabled": true,
+    "status": "EXPERIMENTAL_BINARY_PREDICTION",
+    "model_candidate": "catboost",
+    "model_version": "catboost_multimodal_binary_v1",
+    "classes_supported": [
+      0,
+      1
+    ],
+    "predicted_class": 1,
+    "predicted_label": "Charity Eligible (Binary Class 1)",
+    "probabilities": {
+      "class_0_non_indigent": 0.3733,
+      "class_1_indigent": 0.6267
+    },
+    "top_explanations": [
+      {
+        "feature": "employment_status",
+        "value": "Self-Employed",
+        "contribution": -0.6774
+      },
+      {
+        "feature": "monthly_family_income",
+        "value": 12000.0,
+        "contribution": 0.6188
+      },
+      {
+        "feature": "monthly_household_obligations_expenses",
+        "value": 11500.0,
+        "contribution": 0.481
+      },
+      {
+        "feature": "diagnosis_severity",
+        "value": "Moderate",
+        "contribution": -0.475
+      },
+      {
+        "feature": "patient_clinical_type",
+        "value": "Charity",
+        "contribution": -0.4643
+      },
+      {
+        "feature": "doc_visual_mean",
+        "value": 0.1,
+        "contribution": -0.1733
+      }
+    ],
+    "api_classification": "INDIGENT",
+    "disagrees_with_api": false,
+    "requires_msw_review": true,
+    "prediction_timestamp": "2026-11-22T19:25:46.149618+00:00",
+    "provenance_note": "Supplementary binary multimodal prediction (experimental, not yet 4-tier calibrated). Does not override deterministic OFPHIL API classification."
+  },
+  {
+    "assessment_id": null,
+    "prediction_enabled": true,
+    "status": "EXPERIMENTAL_BINARY_PREDICTION",
+    "model_candidate": "ebm",
+    "model_version": "ebm_multimodal_binary_v1",
+    "classes_supported": [
+      0,
+      1
+    ],
+    "predicted_class": 1,
+    "predicted_label": "Charity Eligible (Binary Class 1)",
+    "probabilities": {
+      "class_0_non_indigent": 0.0437,
+      "class_1_indigent": 0.9563
+    },
+    "top_explanations": [
+      {
+        "feature": "diagnosis_severity",
+        "value": "Moderate",
+        "contribution": -1.104
+      },
+      {
+        "feature": "residence_status",
+        "value": "Rented",
+        "contribution": 0.7256
+      },
+      {
+        "feature": "employment_status",
+        "value": "Self-Employed",
+        "contribution": -0.4157
+      },
+      {
+        "feature": "cost_of_treatment",
+        "value": 25000.0,
+        "contribution": -0.3545
+      },
+      {
+        "feature": "doc_visual_mean",
+        "value": 0.1,
+        "contribution": -0.3059
+      },
+      {
+        "feature": "monthly_household_obligations_expenses",
+        "value": 11500.0,
+        "contribution": 0.2965
+      }
+    ],
+    "api_classification": "INDIGENT",
+    "disagrees_with_api": false,
+    "requires_msw_review": true,
+    "prediction_timestamp": "2026-11-22T19:25:44.450200+00:00",
+    "provenance_note": "Supplementary binary multimodal prediction (experimental, not yet 4-tier calibrated). Does not override deterministic OFPHIL API classification."
+  },
+  {
+    "prediction_enabled": false,
+    "status": "AWAITING_4TIER_VALIDATION",
+    "model_candidate": "ebm",
+    "model_version": "ebm_multimodal_binary_v1",
+    "classes_supported": [
+      0,
+      1
+    ],
+    "predicted_class": null,
+    "predicted_label": null,
+    "probabilities": null,
+    "top_explanations": [],
+    "api_classification": "INDIGENT",
+    "disagrees_with_api": null,
+    "requires_msw_review": true,
+    "prediction_timestamp": "2026-11-22T19:25:44.433943+00:00",
+    "provenance_note": "ML predictions are currently gated pending 4-tier OFPHIL clinical validation and institutional sign-off. Deterministic OFPHIL API classification remains authoritative."
+  },
+  {
+    "assessment_id": null,
+    "prediction_enabled": true,
+    "status": "EXPERIMENTAL_BINARY_PREDICTION",
+    "model_candidate": "catboost",
+    "model_version": "catboost_multimodal_binary_v1",
+    "classes_supported": [
+      0,
+      1
+    ],
+    "predicted_class": 1,
+    "predicted_label": "Charity Eligible (Binary Class 1)",
+    "probabilities": {
+      "class_0_non_indigent": 0.3733,
+      "class_1_indigent": 0.6267
+    },
+    "top_explanations": [
+      {
+        "feature": "employment_status",
+        "value": "Self-Employed",
+        "contribution": -0.6774
+      },
+      {
+        "feature": "monthly_family_income",
+        "value": 12000.0,
+        "contribution": 0.6188
+      },
+      {
+        "feature": "monthly_household_obligations_expenses",
+        "value": 11500.0,
+        "contribution": 0.481
+      },
+      {
+        "feature": "diagnosis_severity",
+        "value": "Moderate",
+        "contribution": -0.475
+      },
+      {
+        "feature": "patient_clinical_type",
+        "value": "Charity",
+        "contribution": -0.4643
+      },
+      {
+        "feature": "doc_visual_mean",
+        "value": 0.1,
+        "contribution": -0.1733
+      }
+    ],
+    "api_classification": "INDIGENT",
+    "disagrees_with_api": false,
+    "requires_msw_review": true,
     "prediction_timestamp": "2026-11-22T19:05:59.189894+00:00",
     "provenance_note": "Supplementary binary multimodal prediction (experimental, not yet 4-tier calibrated). Does not override deterministic OFPHIL API classification."
   },

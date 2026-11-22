@@ -9,6 +9,7 @@ import { fetchApi } from '@/lib/api';
 import { toast } from 'sonner';
 import PasswordStrengthMeter from '@/components/PasswordStrengthMeter';
 import PsgcAddressSelector from '@/components/PsgcAddressSelector';
+import ProfilePasswordChangeCard from '@/components/ProfilePasswordChangeCard';
 
 function PatientPortalContent() {
   const searchParams = useSearchParams();
@@ -1679,41 +1680,117 @@ function PatientPortalContent() {
              ======================================================== */}
           {activeTab === 'profile' && (
             <div className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Left Column: Avatar Card */}
-                <div className="bg-white rounded-2xl border border-[#EEF2EF] shadow-xs p-6 flex flex-col items-center text-center">
-                  <div className="w-20 h-20 rounded-full bg-[#E6F1EA] text-[#0B6B3A] flex items-center justify-center text-3xl font-bold font-['Outfit'] mb-4 border-2 border-[#A7F3D0]">
-                    {patient.name.charAt(0)}
-                  </div>
-                  <h3 className="font-['Outfit'] text-lg font-bold text-[#10241A] mb-0.5">{patient.name}</h3>
-                  <div className="text-xs font-mono text-[#5A7466] mb-4">@{patient.username}</div>
+              {/* Breadcrumb Header (Matching Admin Profile Format) */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pb-2">
+                <div className="flex items-center gap-2 text-xs text-[#5A7466]">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('dashboard')}
+                    className="text-[#0B6B3A] font-semibold flex items-center gap-1 hover:underline bg-transparent border-0 cursor-pointer p-0"
+                  >
+                    <i className="fa-solid fa-house text-xs" />
+                    <span>Patient Portal</span>
+                  </button>
+                  <span>&bull;</span>
+                  <span className="text-[#10241A] font-medium">My Account Profile</span>
+                </div>
 
-                  <div className="w-full space-y-2.5 text-xs text-left pt-4 border-t border-[#EEF2EF]">
-                    <div className="flex justify-between items-center">
-                      <span className="text-[#5A7466]">User Role</span>
-                      <span className="px-2 py-0.5 rounded-md font-bold text-[10px] bg-[#E8F5EC] text-[#0B6B3A]">
-                        Patient Beneficiary
-                      </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('settings')}
+                    className="px-3.5 py-1.5 rounded-lg border border-[#D5E2D9] bg-white hover:bg-[#FAFBF8] font-semibold text-xs text-[#10241A] flex items-center gap-1.5 transition shadow-2xs cursor-pointer"
+                  >
+                    <i className="fa-solid fa-sliders text-xs text-[#0B6B3A]" />
+                    <span>Account Settings</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('dashboard')}
+                    className="px-3.5 py-1.5 rounded-lg bg-[#0B6B3A] hover:bg-[#064826] text-white font-semibold text-xs flex items-center gap-1.5 transition shadow-2xs border-0 cursor-pointer"
+                  >
+                    <i className="fa-solid fa-arrow-left text-xs" />
+                    <span>Back to Dashboard</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+                {/* Left Column: Compact Avatar & Quick Info Card + Separate Privacy Card */}
+                <div className="space-y-5">
+                  <div className="bg-white rounded-2xl border border-[#EEF2EF] shadow-xs p-6 flex flex-col items-center text-center">
+                    <div className="w-20 h-20 rounded-full bg-[#E8F5EC] text-[#0B6B3A] flex items-center justify-center text-3xl font-extrabold font-['Outfit'] mb-3 border-2 border-[#A7F3D0] shadow-sm">
+                      {patient.name.charAt(0)}
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-[#5A7466]">Patient ID</span>
-                      <span className="font-mono font-bold text-[#10241A]">{patient.patient_id}</span>
+                    <h2 className="font-['Outfit'] text-base font-bold text-[#10241A] m-0">{patient.name}</h2>
+                    <div className="font-mono text-xs text-[#5A7466] mb-3">@{patient.username}</div>
+
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E8F5EC] border border-[#A7F3D0] text-[#0B6B3A] font-bold text-xs mb-4">
+                      <i className="fa-solid fa-hospital-user text-xs" />
+                      <span>Patient Beneficiary</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-[#5A7466]">Category</span>
-                      <span className="font-bold text-[#10241A]">{patient.category}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-[#5A7466]">Account Status</span>
-                      <span className="font-bold text-[#0B6B3A] flex items-center gap-1">
-                        <i className="fa-solid fa-circle-check text-[11px]" /> Active
-                      </span>
+
+                    {/* Account Key Metrics (Matching Admin Profile Format) */}
+                    <div className="w-full space-y-2.5 pt-4 border-t border-[#EEF2EF] text-left text-xs">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[#5A7466] flex items-center gap-1.5">
+                          <i className="fa-solid fa-circle-check text-[#0B6B3A]" />
+                          <span>Account Status</span>
+                        </span>
+                        <span className="px-2 py-0.5 rounded-md font-bold text-[10.5px] bg-[#ECFDF5] text-[#0B6B3A]">
+                          Active
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between items-center">
+                        <span className="text-[#5A7466] flex items-center gap-1.5">
+                          <i className="fa-solid fa-hospital-user text-xs text-[#0B6B3A]" />
+                          <span>User Role</span>
+                        </span>
+                        <span className="font-bold text-[#0B6B3A]">Patient Beneficiary</span>
+                      </div>
+
+                      <div className="flex justify-between items-center">
+                        <span className="text-[#5A7466] flex items-center gap-1.5">
+                          <i className="fa-solid fa-id-card text-xs" />
+                          <span>Patient ID</span>
+                        </span>
+                        <span className="font-mono font-bold text-[#10241A]">{patient.patient_id}</span>
+                      </div>
+
+                      <div className="flex justify-between items-center">
+                        <span className="text-[#5A7466] flex items-center gap-1.5">
+                          <i className="fa-solid fa-tag text-xs text-[#0B6B3A]" />
+                          <span>Category</span>
+                        </span>
+                        <span className="font-bold text-[#10241A]">{patient.category}</span>
+                      </div>
+
+                      <div className="flex justify-between items-center">
+                        <span className="text-[#5A7466] flex items-center gap-1.5">
+                          <i className="fa-solid fa-cake-candles text-xs text-[#0B6B3A]" />
+                          <span>Birthday</span>
+                        </span>
+                        <span className="font-medium text-[#10241A]">{patient.birthdate}</span>
+                      </div>
+
+                      <div className="flex justify-between items-center">
+                        <span className="text-[#5A7466] flex items-center gap-1.5">
+                          <i className="fa-solid fa-location-dot text-xs text-[#0B6B3A]" />
+                          <span>City / Province</span>
+                        </span>
+                        <span className="font-medium text-[#10241A] text-right">
+                          {patient.perm_city}, {patient.perm_province}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="mt-6 p-3 rounded-xl bg-[#FAFBF8] border border-[#EEF2EF] text-[11px] text-[#5A7466] text-left leading-relaxed">
-                    <strong className="text-[#0B6B3A] block mb-1">
-                      <i className="fa-solid fa-shield-halved mr-1" /> Healthcare Privacy Protected
+                  {/* Separate Privacy Governance Card (Prevents Blank White Space) */}
+                  <div className="p-5 rounded-2xl bg-[#FAFBF8] border border-[#EEF2EF] text-[11px] text-[#5A7466] text-left leading-relaxed shadow-xs">
+                    <strong className="text-[#0B6B3A] flex items-center gap-1.5 mb-1.5 text-xs">
+                      <i className="fa-solid fa-shield-halved" />
+                      <span>Healthcare Privacy Protected</span>
                     </strong>
                     Your records are handled in strict compliance with Republic Act No. 10173 (Data Privacy Act of 2012).
                   </div>
@@ -1951,119 +2028,14 @@ function PatientPortalContent() {
                   </div>
 
                   {/* Change My Portal Password Card */}
-                  <div className="bg-white rounded-2xl border border-[#EEF2EF] shadow-xs p-6">
-                    <div className="mb-4">
-                      <h3 className="font-['Outfit'] text-base font-bold text-[#10241A] mb-1 flex items-center gap-2">
-                        <i className="fa-solid fa-key text-[#0B6B3A]" />
-                        <span>Change My Portal Password</span>
-                      </h3>
-                      <p className="text-xs text-[#5A7466]">
-                        Maintain strong credentials to protect sensitive ophthalmology patient records, consultation schedules, and clinical logs.
-                      </p>
-                    </div>
-
-                    <form onSubmit={handlePasswordSubmit} className="space-y-4 text-xs">
-                      <div>
-                        <label className="block font-semibold text-[#10241A] mb-1">
-                          Current Password <span className="text-red-500">*</span>
-                        </label>
-                        <div className="relative">
-                          <input
-                            type={showCurrentPass ? 'text' : 'password'}
-                            value={currentPassword}
-                            onChange={(e) => setCurrentPassword(e.target.value)}
-                            placeholder="Enter your existing account password"
-                            required
-                            className="w-full h-10 px-3.5 border border-[#D5E2D9] rounded-lg text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowCurrentPass(!showCurrentPass)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8F9E96]"
-                          >
-                            <i className={`fa-regular ${showCurrentPass ? 'fa-eye-slash' : 'fa-eye'}`} />
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
-                        <div>
-                          <label className="block font-semibold text-[#10241A] mb-1">
-                            New Password <span className="text-red-500">*</span>
-                          </label>
-                          <div className="relative">
-                            <input
-                              type={showNewPass ? 'text' : 'password'}
-                              value={newPassword}
-                              onChange={(e) => setNewPassword(e.target.value)}
-                              placeholder="At least 6 characters"
-                              required
-                              className="w-full h-11 pl-3.5 pr-10 border border-[#D5E2D9] rounded-xl text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowNewPass(!showNewPass)}
-                              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8F9E96] hover:text-[#10241A] bg-transparent border-0 cursor-pointer"
-                            >
-                              <i className={`fa-regular ${showNewPass ? 'fa-eye-slash' : 'fa-eye'}`} />
-                            </button>
-                          </div>
-                          <PasswordStrengthMeter password={newPassword} showChecks={true} />
-                        </div>
-                        <div>
-                          <label className="block font-semibold text-[#10241A] mb-1">
-                            Confirm New Password <span className="text-red-500">*</span>
-                          </label>
-                          <div className="relative">
-                            <input
-                              type={showConfirmPass ? 'text' : 'password'}
-                              value={confirmPassword}
-                              onChange={(e) => setConfirmPassword(e.target.value)}
-                              placeholder="Confirm new password"
-                              required
-                              className="w-full h-11 pl-3.5 pr-10 border border-[#D5E2D9] rounded-xl text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowConfirmPass(!showConfirmPass)}
-                              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8F9E96] hover:text-[#10241A] bg-transparent border-0 cursor-pointer"
-                            >
-                              <i className={`fa-regular ${showConfirmPass ? 'fa-eye-slash' : 'fa-eye'}`} />
-                            </button>
-                          </div>
-                          {confirmPassword.length > 0 && (
-                            <div className={`mt-1.5 text-[11px] font-semibold flex items-center gap-1.5 ${newPassword === confirmPassword ? 'text-[#0B6B3A]' : 'text-[#DC2626]'}`}>
-                              <i className={`fa-solid ${newPassword === confirmPassword ? 'fa-circle-check' : 'fa-circle-xmark'}`} />
-                              <span>{newPassword === confirmPassword ? 'Passwords match' : 'Passwords do not match'}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="pt-3 border-t border-[#EEF2EF] flex flex-wrap items-center justify-between gap-3">
-                        <button
-                          type="button"
-                          onClick={handleGeneratePortalPassword}
-                          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-[#CBD5E1] bg-white hover:bg-[#F8FAFC] text-xs font-semibold text-[#334155] transition cursor-pointer"
-                        >
-                          <i className="fa-solid fa-key text-xs text-[#0B6B3A]" />
-                          <span>Generate Secure Password</span>
-                        </button>
-                        {passUpdated && (
-                          <span className="text-[11px] text-[#0B6B3A] font-bold">
-                            ✓ Password updated successfully!
-                          </span>
-                        )}
-                        <button
-                          type="submit"
-                          className="ml-auto px-5 py-2.5 rounded-lg bg-[#0B6B3A] hover:bg-[#064826] text-white font-bold text-xs flex items-center gap-1.5 transition shadow-xs cursor-pointer"
-                        >
-                          <i className="fa-solid fa-shield-check text-[11px]" />
-                          <span>Update Password</span>
-                        </button>
-                      </div>
-                    </form>
-                  </div>
+                  <ProfilePasswordChangeCard
+                    role="patient"
+                    userId={patient.patient_id}
+                    defaultEmail={patient.email}
+                    defaultMobile={patient.contact}
+                    title="Change My Portal Password"
+                    subtitle="Maintain strong credentials to protect sensitive ophthalmology patient records, consultation schedules, and clinical logs."
+                  />
                 </div>
               </div>
             </div>
@@ -2247,103 +2219,16 @@ function PatientPortalContent() {
                       </div>
                     </div>
 
-                    <form onSubmit={handlePasswordSubmit} className="space-y-4 pt-4 border-t border-[#EEF2EF]">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
-                        <div>
-                          <label className="block font-semibold text-[#10241A] mb-1.5">
-                            Current Password <span className="text-red-500">*</span>
-                          </label>
-                          <div className="relative">
-                            <input
-                              type={showCurrentPass ? 'text' : 'password'}
-                              value={currentPassword}
-                              onChange={(e) => setCurrentPassword(e.target.value)}
-                              placeholder="Enter existing password"
-                              required
-                              className="w-full h-11 pl-3.5 pr-10 border border-[#D5E2D9] rounded-xl text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowCurrentPass(!showCurrentPass)}
-                              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8F9E96]"
-                            >
-                              <i className={`fa-regular ${showCurrentPass ? 'fa-eye-slash' : 'fa-eye'}`} />
-                            </button>
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="block font-semibold text-[#10241A] mb-1.5">
-                            New Password <span className="text-red-500">*</span>
-                          </label>
-                          <div className="relative">
-                            <input
-                              type={showNewPass ? 'text' : 'password'}
-                              value={newPassword}
-                              onChange={(e) => setNewPassword(e.target.value)}
-                              placeholder="At least 6 characters"
-                              required
-                              className="w-full h-11 pl-3.5 pr-10 border border-[#D5E2D9] rounded-xl text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowNewPass(!showNewPass)}
-                              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8F9E96]"
-                            >
-                              <i className={`fa-regular ${showNewPass ? 'fa-eye-slash' : 'fa-eye'}`} />
-                            </button>
-                          </div>
-                          <PasswordStrengthMeter password={newPassword} showChecks={true} />
-                        </div>
-
-                        <div>
-                          <label className="block font-semibold text-[#10241A] mb-1.5">
-                            Confirm New Password <span className="text-red-500">*</span>
-                          </label>
-                          <div className="relative">
-                            <input
-                              type={showConfirmPass ? 'text' : 'password'}
-                              value={confirmPassword}
-                              onChange={(e) => setConfirmPassword(e.target.value)}
-                              placeholder="Confirm new password"
-                              required
-                              className="w-full h-11 pl-3.5 pr-10 border border-[#D5E2D9] rounded-xl text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowConfirmPass(!showConfirmPass)}
-                              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8F9E96]"
-                            >
-                              <i className={`fa-regular ${showConfirmPass ? 'fa-eye-slash' : 'fa-eye'}`} />
-                            </button>
-                          </div>
-                          {confirmPassword.length > 0 && (
-                            <div className={`mt-1.5 text-[11px] font-semibold flex items-center gap-1.5 ${newPassword === confirmPassword ? 'text-[#0B6B3A]' : 'text-[#DC2626]'}`}>
-                              <i className={`fa-solid ${newPassword === confirmPassword ? 'fa-circle-check' : 'fa-circle-xmark'}`} />
-                              <span>{newPassword === confirmPassword ? 'Passwords match' : 'Passwords do not match'}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="pt-3 border-t border-[#EEF2EF] flex flex-wrap items-center justify-between gap-3">
-                        <button
-                          type="button"
-                          onClick={handleGeneratePortalPassword}
-                          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-[#CBD5E1] bg-white hover:bg-[#F8FAFC] text-xs font-semibold text-[#334155] transition cursor-pointer"
-                        >
-                          <i className="fa-solid fa-key text-xs text-[#0B6B3A]" />
-                          <span>Generate Secure Password</span>
-                        </button>
-                        <button
-                          type="submit"
-                          className="px-5 py-2.5 rounded-xl bg-[#0B6B3A] hover:bg-[#064826] text-white font-bold text-xs flex items-center gap-1.5 transition shadow-xs cursor-pointer border-0"
-                        >
-                          <i className="fa-solid fa-shield-check text-[11px]" />
-                          <span>Update Password</span>
-                        </button>
-                      </div>
-                    </form>
+                    <div className="pt-4 border-t border-[#EEF2EF]">
+                      <ProfilePasswordChangeCard
+                        role="patient"
+                        userId={patient.patient_id}
+                        defaultEmail={patient.email}
+                        defaultMobile={patient.contact}
+                        title="Update Portal Password"
+                        subtitle="Authorize password changes with 2-Factor OTP verification via Email or SMS."
+                      />
+                    </div>
                   </div>
                 )}
 

@@ -196,7 +196,7 @@ def get_email_html_template(role_title: str, recipient_identifier: str, reset_li
                 Password Reset Verification
               </h1>
               <p style="margin: 0 0 20px 0; font-size: 14px; line-height: 1.6; color: #5A7466;">
-                A password reset was requested for your account (<strong>{recipient_identifier}</strong>). Use the secure one-time verification code below or click the reset button to establish a new password.
+                A password reset was requested for your account (<strong>{recipient_identifier}</strong>). Enter the secure one-time verification code below on the recovery screen to establish a new password.
               </p>
 
               <!-- One-Time PIN Card -->
@@ -206,17 +206,6 @@ def get_email_html_template(role_title: str, recipient_identifier: str, reset_li
                     <div style="font-size: 12px; font-weight: 600; color: #0B6B3A; text-transform: uppercase; letter-spacing: 0.5px;">Your Security Verification Code</div>
                     <div style="font-size: 32px; font-weight: 800; letter-spacing: 6px; color: #064826; margin: 8px 0; font-family: monospace;">{code}</div>
                     <div style="font-size: 11px; color: #5A7466;">This code expires in 15 minutes. Never share this code with anyone.</div>
-                  </td>
-                </tr>
-              </table>
-
-              <!-- Direct CTA Button -->
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin: 28px 0 20px 0;">
-                <tr>
-                  <td align="center">
-                    <a href="{reset_link}" style="display: inline-block; background-color: #0B6B3A; color: #FFFFFF; font-size: 14px; font-weight: 600; text-decoration: none; padding: 12px 32px; border-radius: 8px; box-shadow: 0 2px 6px rgba(11, 107, 58, 0.25);">
-                      Reset Password Now &rarr;
-                    </a>
                   </td>
                 </tr>
               </table>
@@ -242,7 +231,7 @@ def get_email_html_template(role_title: str, recipient_identifier: str, reset_li
 """
 
 
-def send_password_reset_email(to_email: str, role_title: str, identifier: str, reset_link: str, code: str = "729415") -> bool:
+def send_password_reset_email(to_email: str, role_title: str, identifier: str, reset_link: str, code: str) -> bool:
     """Dispatches a password reset email via configured Brevo SMTP credentials with OFPHIL logo."""
     if not settings.MAIL_SERVER or not settings.MAIL_USERNAME or not settings.MAIL_PASSWORD:
         return False
@@ -272,6 +261,135 @@ def send_password_reset_email(to_email: str, role_title: str, identifier: str, r
         return True
     except Exception as e:
         print(f"[Brevo SMTP Error] Failed to dispatch email: {e}")
+        return False
+
+
+def get_profile_otp_email_template(
+    role_title: str,
+    recipient_name: str,
+    code: str,
+    delivery_method: str = "Email Address",
+) -> str:
+    """Returns a clinical responsive HTML email template for Profile Password Change Authorization."""
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OFPHIL Security - Profile Password Change Authorization</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #FAFBF8; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #10241A;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #FAFBF8; padding: 32px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" style="max-width: 560px; background-color: #FFFFFF; border: 1px solid #D5E2D9; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 16px rgba(6, 72, 38, 0.06);">
+          <!-- Top Brand Header with Logo -->
+          <tr>
+            <td style="background-color: #064826; padding: 24px 32px; text-align: left;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td style="width: 48px; vertical-align: middle;">
+                    <img src="{LOGO_URL}" alt="OFPHIL Logo" width="42" height="42" style="display: block; width: 42px; height: 42px; object-fit: contain; border-radius: 8px; background-color: #FFFFFF; padding: 3px;" />
+                  </td>
+                  <td style="padding-left: 14px; vertical-align: middle;">
+                    <div style="font-size: 20px; font-weight: 700; color: #FFFFFF; letter-spacing: 1px; line-height: 1.2;">OFPHIL</div>
+                    <div style="font-size: 11px; color: #9DBFA9; margin-top: 2px;">Ophthalmological Foundation of the Philippines</div>
+                  </td>
+                  <td align="right" style="vertical-align: middle;">
+                    <span style="display: inline-block; background-color: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.25); color: #86EFAC; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 999px; text-transform: uppercase;">
+                      {role_title}
+                    </span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Email Content Body -->
+          <tr>
+            <td style="padding: 32px;">
+              <h1 style="margin: 0 0 12px 0; font-size: 22px; font-weight: 700; color: #10241A; line-height: 1.3;">
+                Authorize Password Change
+              </h1>
+              <p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: #5A7466;">
+                Dear <strong>{recipient_name}</strong>,
+              </p>
+              <p style="margin: 0 0 20px 0; font-size: 14px; line-height: 1.6; color: #5A7466;">
+                A request to update your account password was initiated from your <strong>{role_title}</strong> profile settings. To authorize this change, please enter the one-time security verification code below:
+              </p>
+
+              <!-- One-Time PIN Card -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin: 24px 0;">
+                <tr>
+                  <td style="background-color: #E8F5EC; border: 1px dashed #0B6B3A; border-radius: 10px; padding: 18px 24px; text-align: center;">
+                    <div style="font-size: 12px; font-weight: 600; color: #0B6B3A; text-transform: uppercase; letter-spacing: 0.5px;">Profile Security Verification Code</div>
+                    <div style="font-size: 32px; font-weight: 800; letter-spacing: 6px; color: #064826; margin: 8px 0; font-family: monospace;">{code}</div>
+                    <div style="font-size: 11px; color: #5A7466;">Valid for 10 minutes. Authorized via {delivery_method}.</div>
+                  </td>
+                </tr>
+              </table>
+
+              <div style="background-color: #FEF3C7; border-left: 4px solid #D97706; padding: 12px 16px; border-radius: 6px; margin: 20px 0; font-size: 12.5px; color: #92400E; line-height: 1.5;">
+                <strong>Security Alert:</strong> If you did not initiate this change in your profile settings, someone may be attempting to access your account. Please notify the clinic administration immediately.
+              </div>
+
+              <p style="margin: 24px 0 0 0; font-size: 12px; line-height: 1.6; color: #8F9E96;">
+                Ophthalmological Foundation of the Philippines &bull; Patient Master Registry & Clinical Directory
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #F8FAFC; border-top: 1px solid #EEF2EF; padding: 18px 32px; text-align: center; font-size: 11px; color: #8F9E96;">
+              &copy; 2026 Ophthalmological Foundation of the Philippines (OFPHIL). Protected by Argon2id Cryptography.
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+"""
+
+
+def send_profile_password_otp_email(
+    to_email: str,
+    role_title: str,
+    recipient_name: str,
+    code: str,
+    delivery_method: str = "Email Address",
+) -> bool:
+    """Dispatches a Profile Password Change Authorization OTP email via configured Brevo SMTP credentials."""
+    if not settings.MAIL_SERVER or not settings.MAIL_USERNAME or not settings.MAIL_PASSWORD:
+        return False
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = f"OFPHIL Security - Authorize Password Change ({role_title})"
+    sender = settings.MAIL_DEFAULT_SENDER or settings.MAIL_USERNAME
+    msg["From"] = f"OFPHIL Foundation <{sender}>"
+    msg["To"] = to_email
+
+    html_content = get_profile_otp_email_template(
+        role_title=role_title,
+        recipient_name=recipient_name,
+        code=code,
+        delivery_method=delivery_method,
+    )
+    msg.attach(MIMEText(f"OFPHIL Password Change Verification Code: {code}", "plain", "utf-8"))
+    msg.attach(MIMEText(html_content, "html", "utf-8"))
+
+    try:
+        server = smtplib.SMTP(settings.MAIL_SERVER, settings.MAIL_PORT or 587, timeout=10)
+        if settings.MAIL_USE_TLS:
+            server.starttls()
+        server.login(settings.MAIL_USERNAME, settings.MAIL_PASSWORD)
+        server.sendmail(sender, [to_email], msg.as_string())
+        server.quit()
+        return True
+    except Exception as e:
+        print(f"[Brevo SMTP Error] Failed to dispatch profile OTP email: {e}")
         return False
 
 

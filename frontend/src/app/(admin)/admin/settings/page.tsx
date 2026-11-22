@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { fetchApi } from '@/lib/api';
 import { CautionModal } from '@/components/CautionModal';
 import PasswordStrengthMeter from '@/components/PasswordStrengthMeter';
+import ProfilePasswordChangeCard from '@/components/ProfilePasswordChangeCard';
 import { useNavigationBlocker } from '@/context/NavigationBlockerContext';
 import { useLoadingScreen } from '@/context/LoadingScreenContext';
 
@@ -39,7 +40,7 @@ export default function AdminSettingsPage() {
   const [maxLoginAttempts, setMaxLoginAttempts] = useState('5');
   const [lockoutMinutes, setLockoutMinutes] = useState('15');
   const [ipWhitelist, setIpWhitelist] = useState('192.168.1.0/24, 10.0.0.0/8');
-  const [minPasswordLength, setMinPasswordLength] = useState('8');
+  const [minPasswordLength, setMinPasswordLength] = useState('6');
   const [requireSpecialChars, setRequireSpecialChars] = useState(true);
   const [reauthSensitive, setReauthSensitive] = useState(true);
 
@@ -233,7 +234,7 @@ export default function AdminSettingsPage() {
             setMaxLoginAttempts(String(sec.auth_policies?.max_login_attempts || 5));
             setLockoutMinutes(String(sec.auth_policies?.lockout_duration_minutes || 15));
             setIpWhitelist(sec.session_policies?.ip_whitelist || '');
-            setMinPasswordLength(String(sec.auth_policies?.min_password_length || 8));
+            setMinPasswordLength(String(sec.auth_policies?.min_password_length || 6));
             setRequireSpecialChars(sec.auth_policies?.require_special_chars ?? true);
             setReauthSensitive(sec.auth_policies?.reauth_for_sensitive_actions ?? true);
           }
@@ -416,8 +417,8 @@ export default function AdminSettingsPage() {
     try {
       const payload = {
         auth_policies: {
-          min_password_length: parseInt(minPasswordLength, 10) || 8,
-          require_uppercase: true,
+          min_password_length: parseInt(minPasswordLength, 10) || 6,
+          require_uppercase: false,
           require_lowercase: true,
           require_numbers: true,
           require_special_chars: requireSpecialChars,
@@ -626,8 +627,8 @@ export default function AdminSettingsPage() {
       toast.error('New password and confirmation do not match.');
       return;
     }
-    if (newPassword.length < 8) {
-      toast.error('Password must be at least 8 characters long.');
+    if (newPassword.length < 6) {
+      toast.error('Password must be at least 6 characters long.');
       return;
     }
 
@@ -950,7 +951,7 @@ export default function AdminSettingsPage() {
                         </label>
                         <input
                           type="number"
-                          min="8"
+                          min="6"
                           max="32"
                           value={minPasswordLength}
                           onChange={(e) => {
@@ -1915,107 +1916,14 @@ export default function AdminSettingsPage() {
 
                 {/* Password Change Form */}
                 <div className="pt-6 border-t border-[#D5E2D9]">
-                  <h3 className="font-['Outfit'] text-sm font-bold text-[#10241A] m-0 mb-1 flex items-center gap-2">
-                    <i className="fa-solid fa-lock text-[#0B6B3A]" />
-                    <span>Change Administrator Credentials</span>
-                  </h3>
-                  <p className="text-[11px] text-[#5A7466] mb-4">
-                    Requires verification of your current password before updating your Argon2id hash.
-                  </p>
-
-                  <form onSubmit={handleChangePassword} className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
-                      <div>
-                        <label className="block text-xs font-medium text-[#334155] mb-2">Current Password *</label>
-                        <div className="relative">
-                          <input
-                            type={showCurrentPass ? 'text' : 'password'}
-                            required
-                            value={currentPassword}
-                            onChange={(e) => setCurrentPassword(e.target.value)}
-                            placeholder="Current password"
-                            className="w-full h-11 pl-4 pr-10 border border-[#CBD5E1] rounded-xl text-sm bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowCurrentPass(!showCurrentPass)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8F9E96] hover:text-[#10241A] bg-transparent border-0 cursor-pointer"
-                          >
-                            <i className={`fa-regular ${showCurrentPass ? 'fa-eye-slash' : 'fa-eye'}`} />
-                          </button>
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-medium text-[#334155] mb-2">New Password *</label>
-                        <div className="relative">
-                          <input
-                            type={showNewPass ? 'text' : 'password'}
-                            required
-                            value={newPassword}
-                            onChange={(e) => setNewPassword(e.target.value)}
-                            placeholder="At least 6 characters"
-                            className="w-full h-11 pl-4 pr-10 border border-[#CBD5E1] rounded-xl text-sm bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowNewPass(!showNewPass)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8F9E96] hover:text-[#10241A] bg-transparent border-0 cursor-pointer"
-                          >
-                            <i className={`fa-regular ${showNewPass ? 'fa-eye-slash' : 'fa-eye'}`} />
-                          </button>
-                        </div>
-                        <PasswordStrengthMeter password={newPassword} showChecks={true} />
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-medium text-[#334155] mb-2">Confirm New Password *</label>
-                        <div className="relative">
-                          <input
-                            type={showConfirmPass ? 'text' : 'password'}
-                            required
-                            value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)}
-                            placeholder="Repeat new password"
-                            className="w-full h-11 pl-4 pr-10 border border-[#CBD5E1] rounded-xl text-sm bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowConfirmPass(!showConfirmPass)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8F9E96] hover:text-[#10241A] bg-transparent border-0 cursor-pointer"
-                          >
-                            <i className={`fa-regular ${showConfirmPass ? 'fa-eye-slash' : 'fa-eye'}`} />
-                          </button>
-                        </div>
-                        {confirmPassword.length > 0 && (
-                          <div className={`mt-1.5 text-[11px] font-semibold flex items-center gap-1.5 ${newPassword === confirmPassword ? 'text-[#0B6B3A]' : 'text-[#DC2626]'}`}>
-                            <i className={`fa-solid ${newPassword === confirmPassword ? 'fa-circle-check' : 'fa-circle-xmark'}`} />
-                            <span>{newPassword === confirmPassword ? 'Passwords match' : 'Passwords do not match'}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-                      <button
-                        type="button"
-                        onClick={handleGenerateAdminPassword}
-                        className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-[#CBD5E1] bg-white hover:bg-[#F8FAFC] text-xs font-semibold text-[#334155] transition cursor-pointer"
-                      >
-                        <i className="fa-solid fa-key text-xs text-[#0B6B3A]" />
-                        <span>Generate Secure Password</span>
-                      </button>
-
-                      <button
-                        type="submit"
-                        disabled={isChangingPassword}
-                        className="px-5 py-2.5 rounded-xl bg-[#0B6B3A] hover:bg-[#064826] text-white text-xs font-bold transition flex items-center gap-2 cursor-pointer disabled:opacity-50 border-0 shadow-xs"
-                      >
-                        <i className={`fa-solid ${isChangingPassword ? 'fa-spinner fa-spin' : 'fa-shield-check'} text-xs`} />
-                        <span>{isChangingPassword ? 'Verifying & Hashing...' : 'Update Password'}</span>
-                      </button>
-                    </div>
-                  </form>
+                  <ProfilePasswordChangeCard
+                    role="admin"
+                    userId="admin_sys"
+                    defaultEmail="admin.updated@ofphil.org.ph"
+                    defaultMobile="0917 888 1678"
+                    title="Change Administrator Credentials"
+                    subtitle="Requires verification of your current password and 2FA OTP authorization."
+                  />
                 </div>
               </div>
             )}

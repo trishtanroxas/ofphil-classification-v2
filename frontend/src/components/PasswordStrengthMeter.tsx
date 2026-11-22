@@ -11,7 +11,7 @@ export interface PasswordStrengthResult {
     length: boolean;
     hasNumber: boolean;
     hasLetter: boolean;
-    hasSpecialOrUpper: boolean;
+    hasSpecial: boolean;
   };
 }
 
@@ -23,18 +23,15 @@ export function evaluatePasswordStrength(pwd: string): PasswordStrengthResult {
       color: '#94A3B8',
       bgColor: 'bg-slate-200',
       borderColor: 'border-slate-200',
-      checks: { length: false, hasNumber: false, hasLetter: false, hasSpecialOrUpper: false },
+      checks: { length: false, hasNumber: false, hasLetter: false, hasSpecial: false },
     };
   }
 
   const length = pwd.length >= 6;
   const longEnough = pwd.length >= 8;
   const hasNumber = /[0-9]/.test(pwd);
-  const hasLower = /[a-z]/.test(pwd);
-  const hasUpper = /[A-Z]/.test(pwd);
+  const hasLetter = /[a-zA-Z]/.test(pwd);
   const hasSpecial = /[^A-Za-z0-9]/.test(pwd);
-  const hasLetter = hasLower || hasUpper;
-  const hasSpecialOrUpper = hasUpper || hasSpecial;
 
   if (pwd.length < 6) {
     return {
@@ -43,7 +40,7 @@ export function evaluatePasswordStrength(pwd: string): PasswordStrengthResult {
       color: '#DC2626',
       bgColor: 'bg-red-500',
       borderColor: 'border-red-500',
-      checks: { length, hasNumber, hasLetter, hasSpecialOrUpper },
+      checks: { length, hasNumber, hasLetter, hasSpecial },
     };
   }
 
@@ -52,7 +49,7 @@ export function evaluatePasswordStrength(pwd: string): PasswordStrengthResult {
   if (longEnough) points += 1;
   if (hasNumber) points += 1;
   if (hasLetter) points += 1;
-  if (hasSpecialOrUpper) points += 1;
+  if (hasSpecial) points += 1;
 
   if (points <= 2) {
     return {
@@ -61,7 +58,7 @@ export function evaluatePasswordStrength(pwd: string): PasswordStrengthResult {
       color: '#EA580C', // Orange
       bgColor: 'bg-orange-500',
       borderColor: 'border-orange-500',
-      checks: { length, hasNumber, hasLetter, hasSpecialOrUpper },
+      checks: { length, hasNumber, hasLetter, hasSpecial },
     };
   } else if (points === 3) {
     return {
@@ -70,7 +67,7 @@ export function evaluatePasswordStrength(pwd: string): PasswordStrengthResult {
       color: '#D97706', // Amber/Yellow
       bgColor: 'bg-amber-500',
       borderColor: 'border-amber-500',
-      checks: { length, hasNumber, hasLetter, hasSpecialOrUpper },
+      checks: { length, hasNumber, hasLetter, hasSpecial },
     };
   } else {
     return {
@@ -79,7 +76,7 @@ export function evaluatePasswordStrength(pwd: string): PasswordStrengthResult {
       color: '#0B6B3A', // OFPHIL Deep Green
       bgColor: 'bg-[#0B6B3A]',
       borderColor: 'border-[#0B6B3A]',
-      checks: { length, hasNumber, hasLetter, hasSpecialOrUpper },
+      checks: { length, hasNumber, hasLetter, hasSpecial },
     };
   }
 }
@@ -138,8 +135,8 @@ export default function PasswordStrengthMeter({ password, className = '', showCh
         </div>
         <span className="text-[#64748B] text-[10.5px]">
           {strength.label === 'Strong' && '✓ Excellent password security'}
-          {strength.label === 'Medium' && 'Add uppercase or symbol for Strong'}
-          {strength.label === 'Weak' && 'Add letters, numbers & min 8 chars'}
+          {strength.label === 'Medium' && 'Add symbol or number for Strong'}
+          {strength.label === 'Weak' && 'Add letters, numbers & min 6 chars'}
           {strength.label === 'Too Short' && 'Min 6 characters required'}
         </span>
       </div>
@@ -158,9 +155,9 @@ export default function PasswordStrengthMeter({ password, className = '', showCh
             <i className={`fa-solid ${strength.checks.hasNumber ? 'fa-check text-emerald-600' : 'fa-circle-dot text-slate-300'}`} />
             <span>Contains numbers</span>
           </div>
-          <div className={`flex items-center gap-1 ${strength.checks.hasSpecialOrUpper ? 'text-[#0B6B3A] font-semibold' : ''}`}>
-            <i className={`fa-solid ${strength.checks.hasSpecialOrUpper ? 'fa-check text-emerald-600' : 'fa-circle-dot text-slate-300'}`} />
-            <span>Uppercase or symbol</span>
+          <div className={`flex items-center gap-1 ${strength.checks.hasSpecial ? 'text-[#0B6B3A] font-semibold' : ''}`}>
+            <i className={`fa-solid ${strength.checks.hasSpecial ? 'fa-check text-emerald-600' : 'fa-circle-dot text-slate-300'}`} />
+            <span>Special character</span>
           </div>
         </div>
       )}

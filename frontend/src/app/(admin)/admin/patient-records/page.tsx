@@ -538,7 +538,8 @@ export default function PatientRecordsPage(props: any) {
                   return (
                     <tr
                       key={p.id}
-                      onClick={() => {
+                      onClick={(e) => {
+                        if ((e.target as HTMLElement).closest('a, button, input, select')) return;
                         startProgress();
                         router.push(`/admin/patient-records/${p.patient_id}`);
                       }}
@@ -548,8 +549,7 @@ export default function PatientRecordsPage(props: any) {
                       <td className="py-3 px-4 font-mono font-bold text-[#10241A] whitespace-nowrap">
                         <Link
                           href={`/admin/patient-records/${p.patient_id}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
+                          onClick={() => {
                             startProgress();
                           }}
                           className="px-2 py-0.5 rounded bg-[#FAFBF8] border border-[#D5E2D9] group-hover:border-[#0B6B3A] group-hover:bg-white text-[#0B6B3A] font-semibold transition inline-flex items-center gap-1.5 hover:underline"
@@ -566,8 +566,7 @@ export default function PatientRecordsPage(props: any) {
                           </div>
                           <Link
                             href={`/admin/patient-records/${p.patient_id}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
+                            onClick={() => {
                               startProgress();
                             }}
                             className="font-semibold text-[#10241A] group-hover:text-[#0B6B3A] transition hover:underline"

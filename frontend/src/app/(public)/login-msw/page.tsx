@@ -1,28 +1,62 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import AuthLayout from '@/components/AuthLayout';
 import { useAuth } from '@/context/AuthContext';
 import { useLoadingScreen } from '@/context/LoadingScreenContext';
+import { fetchApi } from '@/lib/api';
 
 export default function LoginMswPage() {
   const router = useRouter();
-  const { login } = useAuth();
   const { showLoading } = useLoadingScreen();
 
   const [username, setUsername] = useState('msw_staff');
   const [password, setPassword] = useState('password123');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Ensure any previous or stale auth state is wiped out upon visiting the login page
+  useEffect(() => {
+    try {
+      localStorage.removeItem('ofphil_current_role');
+      sessionStorage.removeItem('ofphil_pending_2fa');
+      sessionStorage.setItem('ofphil_logged_out', 'true');
+    } catch (e) {}
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    showLoading('Authenticating MSW credentials and preparing security code verification...');
-    login('msw');
-    setTimeout(() => {
-      window.location.replace('/verify-otp?role=msw');
-    }, 200);
+    if (isSubmitting) return;
+    setErrorMessage(null);
+    setIsSubmitting(true);
+
+    try {
+      showLoading('Authenticating MSW credentials...');
+      const res = await fetchApi('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({
+          role: 'msw',
+          username: username.trim(),
+          password: password,
+        }),
+      });
+
+      if (res && res.status === '2fa_required') {
+        sessionStorage.setItem('ofphil_pending_2fa', JSON.stringify(res));
+        sessionStorage.removeItem('ofphil_logged_out');
+        showLoading('Credentials verified. Opening Two-Factor Authentication...');
+        window.location.replace(`/verify-otp?role=msw&session_id=${res.session_id}`);
+      }
+    } catch (err: any) {
+      setErrorMessage(
+        err.message || 'Invalid MSW staff credentials. Please check your username and password.'
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -42,6 +76,15 @@ export default function LoginMswPage() {
           Sign in with your registered MSW username and password to access clinical intake assessments, document audit, and eligibility evaluation.
         </p>
       </div>
+
+      {errorMessage && (
+        <div className="bg-[#FEF2F2] border border-[#FCA5A5] rounded-xl p-3.5 mb-5 flex items-start gap-2.5 text-xs text-[#991B1B] shadow-xs">
+          <div className="w-5 h-5 rounded-full bg-[#EF4444] text-white flex items-center justify-center shrink-0 font-bold text-[10px] mt-0.5">
+            !
+          </div>
+          <span className="font-medium leading-relaxed">{errorMessage}</span>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} id="mswLoginForm">
         {/* Username Input */}
@@ -116,10 +159,20 @@ export default function LoginMswPage() {
         {/* Sign In Button */}
         <button
           type="submit"
-          className="saas-btn-primary w-full h-12 rounded-xl bg-[#0B6B3A] hover:bg-[#084D2C] text-white text-[15px] font-semibold border-none cursor-pointer flex items-center justify-center gap-2.5 transition shadow-md"
+          disabled={isSubmitting}
+          className="saas-btn-primary w-full h-12 rounded-xl bg-[#0B6B3A] hover:bg-[#084D2C] disabled:opacity-65 text-white text-[15px] font-semibold border-none cursor-pointer flex items-center justify-center gap-2.5 transition shadow-md disabled:cursor-not-allowed"
         >
-          <span>Sign In to MSW Panel</span>
-          <i className="fa-solid fa-arrow-right text-xs" />
+          {isSubmitting ? (
+            <>
+              <i className="fa-solid fa-circle-notch fa-spin text-sm" />
+              <span>Verifying Credentials...</span>
+            </>
+          ) : (
+            <>
+              <span>Sign In to MSW Panel</span>
+              <i className="fa-solid fa-arrow-right text-xs" />
+            </>
+          )}
         </button>
       </form>
 

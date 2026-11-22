@@ -81,7 +81,7 @@ export default function PatientAppShell({
   } = useAccessibility();
 
   const { showLoading, isProgressBarActive, startProgress } = useLoadingScreen();
-  const { user, logout } = useAuth();
+  const { user, logout, isLoggingOut } = useAuth();
 
   useEffect(() => {
     if (pageTitle) {
@@ -400,19 +400,17 @@ export default function PatientAppShell({
 
           <button
             type="button"
+            disabled={isLoggingOut}
             onClick={() => {
               setMobileSidebarOpen(false);
-              showLoading('Signing out of beneficiary session...');
-              setTimeout(() => {
-                logout('/login-patient');
-              }, 150);
+              logout('/login-patient');
             }}
-            className="nav-link w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-[13.5px] font-medium text-[#E6F1EA]/80 hover:bg-white/10 hover:text-white no-underline transition bg-transparent border-0 cursor-pointer text-left"
+            className="nav-link w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-[13.5px] font-medium text-[#E6F1EA]/80 hover:bg-white/10 hover:text-white no-underline transition bg-transparent border-0 cursor-pointer text-left disabled:opacity-50 disabled:cursor-not-allowed"
             title="Sign Out"
             data-tooltip="Sign Out"
           >
-            <i className="fa-solid fa-arrow-right-from-bracket w-5 text-center text-[15px]" />
-            {!sidebarCollapsed && <span className="nav-text">Sign Out</span>}
+            <i className={`fa-solid ${isLoggingOut ? 'fa-spinner fa-spin' : 'fa-arrow-right-from-bracket'} w-5 text-center text-[15px]`} />
+            {!sidebarCollapsed && <span className="nav-text">{isLoggingOut ? 'Signing Out...' : 'Sign Out'}</span>}
           </button>
         </nav>
 
@@ -699,17 +697,15 @@ export default function PatientAppShell({
                   <div className="mt-2 pt-2 border-t border-[#EEF2EF]">
                     <button
                       type="button"
+                      disabled={isLoggingOut}
                       onClick={() => {
                         setProfileDropdownOpen(false);
-                        showLoading('Signing out of beneficiary session...');
-                        setTimeout(() => {
-                          logout('/login-patient');
-                        }, 150);
+                        logout('/login-patient');
                       }}
-                      className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold text-[#DC2626] hover:bg-[#FEF2F2] transition bg-transparent border-0 cursor-pointer text-left"
+                      className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold text-[#DC2626] hover:bg-[#FEF2F2] transition bg-transparent border-0 cursor-pointer text-left disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <i className="fa-solid fa-arrow-right-from-bracket text-[#DC2626] text-sm w-4 text-center" />
-                      <span>Sign Out</span>
+                      <i className={`fa-solid ${isLoggingOut ? 'fa-spinner fa-spin' : 'fa-arrow-right-from-bracket'} text-[#DC2626] text-sm w-4 text-center`} />
+                      <span>{isLoggingOut ? 'Signing Out...' : 'Sign Out'}</span>
                     </button>
                   </div>
                 </div>

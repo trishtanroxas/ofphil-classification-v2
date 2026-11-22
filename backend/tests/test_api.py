@@ -72,3 +72,23 @@ def test_classification_predict():
     data = response.json()
     assert "Eligible" in data["eligibility_prediction"]
     assert data["confidence_probability"] > 0.5
+
+
+def test_auth_logout():
+    payload = {
+        "role": "admin",
+        "user_id": "STF-ADM-0001",
+        "reason": "user_initiated"
+    }
+    response = client.post(
+        "/api/v1/auth/logout",
+        json=payload,
+        headers={"x-user-role": "admin", "x-user-id": "STF-ADM-0001"}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["role"] == "admin"
+    assert data["user_id"] == "STF-ADM-0001"
+    assert "terminated" in data["message"].lower()
+

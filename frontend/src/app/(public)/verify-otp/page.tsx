@@ -15,17 +15,28 @@ function VerifyOtpContent() {
   const { showLoading } = useLoadingScreen();
   // Derive effective role prioritizing explicit query param over context or storage
   const [effectiveRole, setEffectiveRole] = useState<UserRole>(roleParam || role || 'patient');
+  const [pendingSession, setPendingSession] = useState<any>(null);
 
   useEffect(() => {
-    if (roleParam) {
-      setEffectiveRole(roleParam);
-    } else {
-      try {
-        const stored = localStorage.getItem('ofphil_current_role') as UserRole;
-        if (stored) {
-          setEffectiveRole(stored);
-        }
-      } catch (e) {}
+    try {
+      const raw = sessionStorage.getItem('ofphil_pending_2fa');
+      if (!raw) {
+        // No authenticated credentials step -> redirect to login immediately
+        const target =
+          roleParam === 'admin'
+            ? '/login-admin'
+            : roleParam === 'msw'
+              ? '/login-msw'
+              : '/login-patient';
+        window.location.replace(target);
+        return;
+      }
+      const data = JSON.parse(raw);
+      setPendingSession(data);
+      if (data.role) setEffectiveRole(data.role as UserRole);
+      if (data.contact_display) setContactDisplay(data.contact_display);
+    } catch (e) {
+      window.location.replace('/login-patient');
     }
   }, [roleParam]);
 
@@ -78,7 +89,7 @@ function VerifyOtpContent() {
     setDigits(arr);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const enteredCode = digits.join('');
 
@@ -88,37 +99,46 @@ function VerifyOtpContent() {
       return;
     }
 
-    if (enteredCode !== demoCode) {
-      setErrorMessage('Invalid 6-digit security code. Please check and try again.');
+    if (!pendingSession || !pendingSession.session_id) {
+      setErrorMessage('Two-Factor Authentication session expired. Please sign in again.');
       return;
     }
 
-    // Determine target role strictly from query parameter 'role' if present, or effectiveRole state
-    const targetRole = roleParam || effectiveRole;
-    const validRoles: UserRole[] = ['admin', 'msw', 'patient', 'nurse'];
-    const resolvedRole: UserRole = validRoles.includes(targetRole) ? targetRole : 'patient';
+    try {
+      showLoading('Verifying Two-Factor Authentication security code...');
+      const res = await fetchApi('/auth/verify-2fa', {
+        method: 'POST',
+        body: JSON.stringify({
+          session_id: pendingSession.session_id,
+          otp_code: enteredCode,
+          role: effectiveRole,
+        }),
+      });
 
-    // Success: Log in with the authentic role and proceed to appropriate role workspace
-    setErrorMessage(null);
-    login(resolvedRole);
-
-    if (resolvedRole === 'admin' || resolvedRole === 'nurse') {
-      showLoading('Accessing Clinic Administration Master Records...');
-      setTimeout(() => {
-        window.location.replace('/admin/patient-records');
-      }, 200);
-    } else if (resolvedRole === 'msw') {
-      showLoading('Authenticating MSW Caseworker workspace...');
-      setTimeout(() => {
-        window.location.replace('/dashboard');
-      }, 200);
-    } else {
-      // Patient Portal
-      showLoading('Opening Patient Beneficiary Portal...');
-      setTimeout(() => {
-        window.location.replace('/portal?tab=dashboard');
-      }, 200);
+      if (res && res.status === 'authenticated') {
+        sessionStorage.removeItem('ofphil_pending_2fa');
+        sessionStorage.removeItem('ofphil_logged_out');
+        login(res.role || effectiveRole, res.user_name);
+        window.location.replace(res.redirect_url);
+      }
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Invalid 6-digit security code. Please check and try again.');
     }
+  };
+
+  const handleReturnToSignIn = () => {
+    try {
+      sessionStorage.removeItem('ofphil_pending_2fa');
+      localStorage.removeItem('ofphil_current_role');
+      sessionStorage.setItem('ofphil_logged_out', 'true');
+    } catch (e) {}
+    const target =
+      effectiveRole === 'patient'
+        ? '/login-patient'
+        : effectiveRole === 'msw'
+          ? '/login-msw'
+          : '/login-admin';
+    window.location.replace(target);
   };
 
   return (
@@ -204,12 +224,13 @@ function VerifyOtpContent() {
       </div>
 
       <div className="mt-5 text-center text-[12.5px]">
-        <Link
-          href={effectiveRole === 'patient' ? '/login-patient' : effectiveRole === 'msw' ? '/login-msw' : '/login-admin'}
-          className="text-[#64748B] hover:text-[#10241A] no-underline"
+        <button
+          type="button"
+          onClick={handleReturnToSignIn}
+          className="text-[#64748B] hover:text-[#10241A] bg-transparent border-0 cursor-pointer p-0 text-[12.5px]"
         >
           <i className="fa-solid fa-arrow-left mr-1" /> Return to Sign In
-        </Link>
+        </button>
       </div>
     </AuthLayout>
   );

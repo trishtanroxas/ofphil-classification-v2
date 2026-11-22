@@ -6,7 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 
 export default function RootLandingPage() {
   const { showLoading } = useLoadingScreen();
-  const { user, role, logout } = useAuth();
+  const { user, role, logout, isLoggingOut } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [inquirySubject, setInquirySubject] = useState('Assistance Application Inquiry');
   const [inquiryName, setInquiryName] = useState('');
@@ -253,16 +253,13 @@ export default function RootLandingPage() {
                 </Link>
                 <button
                   type="button"
+                  disabled={isLoggingOut}
                   onClick={() => {
-                    showLoading('Signing out of session...');
-                    logout();
-                    setTimeout(() => {
-                      window.location.reload();
-                    }, 200);
+                    logout('/');
                   }}
-                  className="px-3 py-2 text-[13px] font-medium text-[#24352B] hover:text-[#DC2626] transition whitespace-nowrap bg-transparent border-0 cursor-pointer"
+                  className="px-3 py-2 text-[13px] font-medium text-[#24352B] hover:text-[#DC2626] transition whitespace-nowrap bg-transparent border-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Sign Out
+                  {isLoggingOut ? 'Signing Out...' : 'Sign Out'}
                 </button>
               </>
             ) : (
@@ -344,18 +341,15 @@ export default function RootLandingPage() {
                     </Link>
                     <button
                       type="button"
+                      disabled={isLoggingOut}
                       onClick={() => {
                         setMobileMenuOpen(false);
-                        showLoading('Signing out of session...');
-                        logout();
-                        setTimeout(() => {
-                          window.location.reload();
-                        }, 200);
+                        logout('/');
                       }}
-                      className="mobile-action-secondary"
+                      className="mobile-action-secondary disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <i className="fa-solid fa-arrow-right-from-bracket" />
-                      <span>Sign Out</span>
+                      <i className={`fa-solid ${isLoggingOut ? 'fa-spinner fa-spin' : 'fa-arrow-right-from-bracket'}`} />
+                      <span>{isLoggingOut ? 'Signing Out...' : 'Sign Out'}</span>
                     </button>
                   </>
                 ) : (

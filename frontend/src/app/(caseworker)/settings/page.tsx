@@ -5,6 +5,7 @@ import { DashboardLayout } from '@/components/DashboardLayout';
 import { useAccessibility } from '@/context/AccessibilityContext';
 import { toast } from 'sonner';
 import PasswordStrengthMeter from '@/components/PasswordStrengthMeter';
+import ProfilePasswordChangeCard from '@/components/ProfilePasswordChangeCard';
 import { fetchApi } from '@/lib/api';
 
 export default function MSWSettingsPage() {
@@ -120,8 +121,8 @@ export default function MSWSettingsPage() {
       toast.error('Current password is required.');
       return;
     }
-    if (newPassword.length < 8) {
-      toast.error('New password must be at least 8 characters.');
+    if (newPassword.length < 6) {
+      toast.error('New password must be at least 6 characters.');
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -468,108 +469,16 @@ export default function MSWSettingsPage() {
               </div>
             </div>
 
-            {/* Change Password Form */}
+            {/* Change Password Form with OTP Verification */}
             <div className="pt-4 border-t border-[#D5E2D9]">
-              <h3 className="font-['Outfit'] text-sm font-bold text-[#10241A] m-0 mb-1 flex items-center gap-2">
-                <i className="fa-solid fa-lock text-[#0B6B3A]" />
-                <span>Change Caseworker Credentials</span>
-              </h3>
-              <p className="text-[11px] text-[#5A7466] mb-4">
-                Update your authentication password using server-enforced Argon2id cryptographic hashing.
-              </p>
-
-              <form onSubmit={handleUpdateMswPassword} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
-                  <div>
-                    <label className="block text-xs font-medium text-[#334155] mb-1.5">Current Password *</label>
-                    <div className="relative">
-                      <input
-                        type={showCurrentPass ? 'text' : 'password'}
-                        required
-                        value={currentPassword}
-                        onChange={(e) => setCurrentPassword(e.target.value)}
-                        placeholder="Current password"
-                        className="w-full h-11 pl-3.5 pr-10 border border-[#CBD5E1] rounded-xl text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowCurrentPass(!showCurrentPass)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8F9E96] hover:text-[#10241A] bg-transparent border-0 cursor-pointer"
-                      >
-                        <i className={`fa-regular ${showCurrentPass ? 'fa-eye-slash' : 'fa-eye'}`} />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-[#334155] mb-1.5">New Password *</label>
-                    <div className="relative">
-                      <input
-                        type={showNewPass ? 'text' : 'password'}
-                        required
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        placeholder="At least 8 characters"
-                        className="w-full h-11 pl-3.5 pr-10 border border-[#CBD5E1] rounded-xl text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowNewPass(!showNewPass)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8F9E96] hover:text-[#10241A] bg-transparent border-0 cursor-pointer"
-                      >
-                        <i className={`fa-regular ${showNewPass ? 'fa-eye-slash' : 'fa-eye'}`} />
-                      </button>
-                    </div>
-                    <PasswordStrengthMeter password={newPassword} showChecks={true} />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-[#334155] mb-1.5">Confirm New Password *</label>
-                    <div className="relative">
-                      <input
-                        type={showConfirmPass ? 'text' : 'password'}
-                        required
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        placeholder="Repeat new password"
-                        className="w-full h-11 pl-3.5 pr-10 border border-[#CBD5E1] rounded-xl text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirmPass(!showConfirmPass)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8F9E96] hover:text-[#10241A] bg-transparent border-0 cursor-pointer"
-                      >
-                        <i className={`fa-regular ${showConfirmPass ? 'fa-eye-slash' : 'fa-eye'}`} />
-                      </button>
-                    </div>
-                    {confirmPassword.length > 0 && (
-                      <div className={`mt-1.5 text-[11px] font-semibold flex items-center gap-1.5 ${newPassword === confirmPassword ? 'text-[#0B6B3A]' : 'text-[#DC2626]'}`}>
-                        <i className={`fa-solid ${newPassword === confirmPassword ? 'fa-circle-check' : 'fa-circle-xmark'}`} />
-                        <span>{newPassword === confirmPassword ? 'Passwords match' : 'Passwords do not match'}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={handleGeneratePassword}
-                    className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-[#CBD5E1] bg-white hover:bg-[#F8FAFC] text-xs font-semibold text-[#334155] transition cursor-pointer"
-                  >
-                    <i className="fa-solid fa-key text-xs text-[#0B6B3A]" />
-                    <span>Generate Secure Password</span>
-                  </button>
-
-                  <button
-                    type="submit"
-                    className="px-5 py-2.5 rounded-xl bg-[#0B6B3A] hover:bg-[#064826] text-white text-xs font-bold border-0 cursor-pointer flex items-center gap-1.5 transition shadow-xs"
-                  >
-                    <i className="fa-solid fa-shield-check text-xs" />
-                    <span>Update Password</span>
-                  </button>
-                </div>
-              </form>
+              <ProfilePasswordChangeCard
+                role="msw"
+                userId="msw_lead"
+                defaultEmail={email || "maria.santos@ofphil.org.ph"}
+                defaultMobile={contactNo || "0918 555 1234"}
+                title="Change Caseworker Credentials"
+                subtitle="Update your authentication password using server-enforced Argon2id cryptographic hashing and 2FA OTP."
+              />
             </div>
 
             {/* Recent MSW Security Events Table */}

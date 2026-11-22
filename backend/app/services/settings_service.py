@@ -54,8 +54,8 @@ class SettingsService:
             },
             "security": {
                 "auth_policies": {
-                    "min_password_length": 8,
-                    "require_uppercase": True,
+                    "min_password_length": 6,
+                    "require_uppercase": False,
                     "require_lowercase": True,
                     "require_numbers": True,
                     "require_special_chars": True,
@@ -190,6 +190,12 @@ class SettingsService:
                             self._cache[k] = stored[k]
                         else:
                             self._cache[k] = v
+                    # Normalize security policy defaults to min 6 chars and no uppercase requirement
+                    if "security" in self._cache and "auth_policies" in self._cache["security"]:
+                        pol = self._cache["security"]["auth_policies"]
+                        if pol.get("min_password_length", 6) > 6 and pol.get("min_password_length") == 8:
+                            pol["min_password_length"] = 6
+                        pol["require_uppercase"] = False
                     return
             except Exception as e:
                 print(f"[SettingsService] Error loading settings file: {e}")

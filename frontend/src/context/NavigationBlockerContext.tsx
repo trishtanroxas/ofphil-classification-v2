@@ -6,12 +6,14 @@ interface NavigationBlockerContextType {
   isDirty: boolean;
   setIsDirty: (dirty: boolean) => void;
   confirmNavigation: (targetUrl: string | (() => void)) => boolean;
+  handleLinkClick: (e: React.MouseEvent, href: string) => boolean;
 }
 
 const NavigationBlockerContext = createContext<NavigationBlockerContextType>({
   isDirty: false,
   setIsDirty: () => {},
   confirmNavigation: () => true,
+  handleLinkClick: () => true,
 });
 
 export function NavigationBlockerProvider({ children }: { children: React.ReactNode }) {
@@ -20,6 +22,7 @@ export function NavigationBlockerProvider({ children }: { children: React.ReactN
   const [modalOpen, setModalOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<string | (() => void) | null>(null);
 
+  // For programmatic buttons/actions that need unsaved-changes check before proceeding
   const confirmNavigation = useCallback(
     (target: string | (() => void)) => {
       if (!isDirty) {
@@ -35,6 +38,22 @@ export function NavigationBlockerProvider({ children }: { children: React.ReactN
       return false;
     },
     [isDirty, router]
+  );
+
+  // For standard Next.js <Link> elements to avoid duplicate concurrent router.push conflicts
+  const handleLinkClick = useCallback(
+    (e: React.MouseEvent, href: string) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.stopPropagation();
+        setPendingAction(() => href);
+        setModalOpen(true);
+        return false;
+      }
+      // When not dirty, let Next.js <Link> navigate naturally on a single click without competing router.push calls
+      return true;
+    },
+    [isDirty]
   );
 
   const handleConfirmDiscard = () => {
@@ -56,7 +75,7 @@ export function NavigationBlockerProvider({ children }: { children: React.ReactN
   };
 
   return (
-    <NavigationBlockerContext.Provider value={{ isDirty, setIsDirty, confirmNavigation }}>
+    <NavigationBlockerContext.Provider value={{ isDirty, setIsDirty, confirmNavigation, handleLinkClick }}>
       {children}
 
       {/* Reusable Clinical In-App Modal for Unsaved Changes (No Native Localhost Prompts) */}
