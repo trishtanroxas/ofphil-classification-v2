@@ -47,15 +47,15 @@ const DEFAULT_USERS: Record<UserRole, AuthUser> = {
 };
 
 const AuthContext = createContext<AuthContextType>({
-  user: DEFAULT_USERS.msw,
-  role: 'msw',
+  user: DEFAULT_USERS.admin,
+  role: 'admin',
   login: () => {},
   logout: () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [role, setRole] = useState<UserRole>('msw');
-  const [user, setUser] = useState<AuthUser | null>(DEFAULT_USERS.msw);
+  const [role, setRole] = useState<UserRole>('admin');
+  const [user, setUser] = useState<AuthUser | null>(DEFAULT_USERS.admin);
 
   useEffect(() => {
     try {
@@ -63,6 +63,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (savedRole && DEFAULT_USERS[savedRole]) {
         setRole(savedRole);
         setUser(DEFAULT_USERS[savedRole]);
+      } else {
+        setRole('admin');
+        setUser(DEFAULT_USERS.admin);
       }
     } catch (e) {
       // ignore

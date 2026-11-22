@@ -1,0 +1,31 @@
+# ==============================================================================
+# OFPHIL V2 — MACHINE LEARNING, DEEP LEARNING & OCR DEPENDENCIES
+# Gradient boosting, interpretable models, YOLO, OCR engines, and Transformers
+# ==============================================================================
+-r base.txt
+
+# --- Deep Learning & Transformers ---
+# PyTorch and Torchvision must be installed with CUDA 12.1 wheel index:
+# pip install torch==2.5.1+cu121 torchvision==0.20.1+cu121 --index-url https://download.pytorch.org/whl/cu121
+transformers>=4.45.0,<5.0.0
+tokenizers>=0.20.0
+safetensors>=0.4.5
+sentence-transformers>=3.1.0
+
+# --- OCR Engines ---
+# PaddlePaddle-GPU installed via wheel or pip install paddlepaddle-gpu==3.3.1
+paddleocr>=2.8.0
+easyocr>=1.7.2
+pypdfium2>=4.30.0
+
+# --- Computer Vision & Object Detection ---
+ultralytics>=8.3.0
+scikit-image>=0.24.0
+
+# --- Machine Learning, Boosting & Explainability ---
+catboost>=1.2.7
+xgboost>=2.1.0
+interpret>=0.7.0
+interpret-core>=0.7.0
+shap>=0.46.0
+imbalanced-learn>=0.12.0

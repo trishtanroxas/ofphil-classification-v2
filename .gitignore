@@ -33,7 +33,12 @@ wheels/
 .ipynb_checkpoints/
 */.ipynb_checkpoints/*
 
-# Storage & SQLite Databases
+# Storage & Security Log Exclusions
+security/audit_logs/*
+!security/audit_logs/.gitkeep
+backend/storage/settings/*
+!backend/storage/settings/.gitkeep
+*.tsbuildinfo
 *.db
 *.sqlite
 *.sqlite3
@@ -44,10 +49,8 @@ backend/scratch/*
 scratch/*
 !scratch/.gitkeep
 
-# Data Architecture Exclusions (Ignore all contents but preserve folder structure via .gitkeep)
-data/**
-!data/
-!data/**/
+# Data Architecture Exclusions
+data/
 !data/**/.gitkeep
 
 # Model Weight Artifacts Exclusions

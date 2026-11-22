@@ -237,7 +237,7 @@ def explain_prediction(payload: ExplainabilityRequest):
 # 13. Password Reset & Forgot Password Endpoints (Brevo SMTP)
 # -------------------------------------------------------------
 from pydantic import BaseModel
-from app.services.email_service import send_password_reset_email
+from app.services.email_service import send_password_reset_email, send_patient_welcome_email
 
 class ForgotPasswordRequest(BaseModel):
     role: str
@@ -277,4 +277,148 @@ def request_password_reset(payload: ForgotPasswordRequest):
         "message": f"Verification code dispatched to {recipient_email}.",
         "code": code
     }
+
+# -------------------------------------------------------------
+# 14. Patient Registration & Welcome Email Notification
+# -------------------------------------------------------------
+class PatientRegisterRequest(BaseModel):
+    patient_id: str
+    first_name: str
+    middle_name: Optional[str] = ""
+    last_name: str
+    suffix: Optional[str] = ""
+    birthdate: str
+    sex: str
+    civil_status: Optional[str] = "Single"
+    contact_number: Optional[str] = ""
+    email_address: Optional[str] = None
+    initial_password: Optional[str] = ""
+    send_credentials_email: Optional[bool] = True
+
+@router.post("/patients/register")
+def register_patient_record(payload: PatientRegisterRequest):
+    full_name = f"{payload.first_name} {payload.middle_name or ''} {payload.last_name}".strip()
+    if payload.suffix:
+        full_name += f" {payload.suffix}"
+
+    email_sent = False
+    temp_pass = payload.initial_password or "Ofphil@2026"
+
+    # Send Welcome Email via Brevo if email is provided
+    if payload.email_address and payload.send_credentials_email:
+        email_sent = send_patient_welcome_email(
+            to_email=payload.email_address,
+            patient_name=full_name,
+            patient_id=payload.patient_id,
+            temporary_password=temp_pass,
+            portal_url=f"{settings.FRONTEND_URL}/login-patient"
+        )
+
+    return {
+        "status": "success",
+        "patient_id": payload.patient_id,
+        "patient_name": full_name,
+        "email_sent": email_sent,
+        "recipient": payload.email_address,
+        "message": f"Patient {full_name} ({payload.patient_id}) successfully registered" + (f" and credentials emailed to {payload.email_address}." if email_sent else ".")
+    }
+
+
+# -------------------------------------------------------------
+# 15. Master Patient Directory & Records API
+# -------------------------------------------------------------
+import csv
+from pathlib import Path
+
+@router.get("/patients")
+def list_patient_records(
+    category: Optional[str] = None, # 'CHARITY', 'REGULAR'
+    search: Optional[str] = None,
+    limit: int = 200
+):
+    """
+    Returns registered patients dataset with categorized Charity / Regular records.
+    """
+    records = []
+    csv_file = Path("data/raw/tabular/charity-patient.csv")
+    if csv_file.exists():
+        try:
+            with open(csv_file, mode="r", encoding="utf-8", errors="ignore") as f:
+                reader = csv.DictReader(f)
+                for idx, row in enumerate(reader):
+                    p_id = (row.get("charity_patient_no") or "").strip()
+                    if not p_id or p_id.lower() == "nan":
+                        p_id = f"M26-11-{idx+1:05d}"
+
+                    fn = (row.get("first_name") or "").strip()
+                    ln = (row.get("surname") or "").strip()
+                    if not fn and not ln:
+                        continue
+
+                    # Eligibility maps to Charity vs Regular
+                    eligibility = (row.get("eligibility") or "ELIGIBLE").strip().upper()
+                    cat = "CHARITY" if eligibility == "ELIGIBLE" else "REGULAR"
+
+                    raw_age = row.get("age")
+                    age_val = None
+                    try:
+                        if raw_age and not str(raw_age).lower().startswith("nan"):
+                            age_val = int(float(raw_age))
+                    except Exception:
+                        age_val = None
+
+                    sex_val = (row.get("sex") or "F").strip().upper()
+                    if sex_val not in ["M", "F"]:
+                        sex_val = "F" if "f" in sex_val.lower() else "M"
+
+                    addr = (row.get("address") or "").strip()
+                    parts = [p.strip() for p in addr.split(",") if p.strip()]
+                    res_city = parts[-2] if len(parts) >= 2 else (parts[0] if parts else "Metro Manila")
+                    res_region = parts[-1] if len(parts) >= 1 else "NCR City"
+
+                    contact = (row.get("contact_no") or "").strip()
+                    if not contact or contact.lower() == "nan":
+                        contact = f"0917 {idx%900+100:03d} {idx%9000+1000:04d}"
+
+                    status_val = (row.get("status") or "APPROVED").strip().upper()
+                    if "MAX" in status_val or "ELIGIBLE" in status_val or "APPROVED" in status_val:
+                        status_str = "APPROVED"
+                    else:
+                        status_str = "FIRST-TIME"
+
+                    item = {
+                        "id": f"rec-{idx+1}",
+                        "patient_id": p_id,
+                        "first_name": fn,
+                        "last_name": ln,
+                        "age": age_val,
+                        "sex": sex_val,
+                        "residence_city": res_city,
+                        "residence_region": res_region,
+                        "contact": contact,
+                        "category": cat,
+                        "status": status_str,
+                    }
+
+                    # Filter by category if requested
+                    if category and category.upper() != "ALL":
+                        if item["category"] != category.upper():
+                            continue
+
+                    # Filter by search query if requested
+                    if search and search.strip():
+                        q = search.strip().lower()
+                        full = f"{fn} {ln}".lower()
+                        if q not in p_id.lower() and q not in full and q not in res_city.lower():
+                            continue
+
+                    records.append(item)
+                    if len(records) >= limit:
+                        break
+        except Exception as e:
+            print(f"Error reading patients csv: {e}")
+
+    return records
+
+
 

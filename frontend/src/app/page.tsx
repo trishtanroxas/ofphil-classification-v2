@@ -92,18 +92,18 @@ export default function RootLandingPage() {
           {/* Action Buttons (Desktop) */}
           <div className="landing-desktop-actions items-center gap-3 flex-shrink-0">
             <Link
-              href="/login-patient"
-              onClick={() => showLoading('Navigating to Patient Portal...')}
+              href="/login-admin"
+              onClick={() => showLoading('Navigating to Staff & Admin Console...')}
               className="px-3 py-2 text-[13px] font-medium text-[#24352B] hover:text-[#0B6B3A] transition whitespace-nowrap"
             >
-              Sign In
+              Staff Sign In
             </Link>
             <Link
-              href="/login-patient"
-              onClick={() => showLoading('Preparing Charity Assistance Intake Portal...')}
+              href="/login-admin"
+              onClick={() => showLoading('Preparing Admin Intake Console...')}
               className="inline-flex items-center gap-2 px-3.5 py-2 text-[13px] font-semibold text-white bg-[#0B6B3A] hover:bg-[#064826] rounded-full transition shadow-sm whitespace-nowrap"
             >
-              Apply for Assistance
+              Admin Portal
             </Link>
           </div>
 
@@ -1091,10 +1091,8 @@ export default function RootLandingPage() {
             <div className="footer-bento-card">
               <div className="font-heading font-bold text-sm text-white mb-3">Portals &amp; Sign In</div>
               <div className="flex flex-col space-y-2 text-emerald-100/80">
-                <Link href="/login-patient" className="hover:text-white transition">Patient Beneficiary Sign In</Link>
-                <Link href="/login-msw" className="hover:text-white transition">Medical Social Worker Login</Link>
                 <Link href="/login-admin" className="hover:text-white transition">Clinic Staff &amp; Administrator Login</Link>
-                <Link href="/dashboard" className="text-[#86EFAC] font-semibold hover:underline">V2 Research Dashboard &rarr;</Link>
+                <Link href="/admin/patient-records" className="text-[#86EFAC] font-semibold hover:underline">Admin Patient Records &rarr;</Link>
               </div>
             </div>
           </div>

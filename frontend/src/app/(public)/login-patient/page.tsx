@@ -13,7 +13,7 @@ export default function LoginPatientPage() {
 
   const [patientId, setPatientId] = useState('');
   const [birthdate, setBirthdate] = useState('');
-  const [password, setPassword] = useState('password123');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -21,8 +21,8 @@ export default function LoginPatientPage() {
     showLoading('Authenticating patient credentials and preparing security code verification...');
     login('patient');
     setTimeout(() => {
-      router.push('/verify-otp?role=patient');
-    }, 300);
+      window.location.href = '/verify-otp?role=patient';
+    }, 200);
   };
 
   return (

@@ -115,7 +115,7 @@ export default function ForgotPasswordPatientPage() {
                 id="patient_id"
                 name="patient_id"
                 className="saas-input w-full h-12 pl-10 pr-4 border border-[#D5E2D9] rounded-xl text-[14.5px] bg-white text-[#10241A] uppercase focus:outline-none focus:border-[#0B6B3A] focus:ring-2 focus:ring-[#0B6B3A]/15 transition"
-                placeholder="Enter your Patient ID (e.g., M26-11-00003)"
+                placeholder="e.g. M26-10-0001"
                 value={patientId}
                 onChange={(e) => setPatientId(e.target.value)}
                 required
@@ -182,32 +182,32 @@ export default function ForgotPasswordPatientPage() {
                 </div>
               </button>
 
-              <button
-                type="button"
-                onClick={() => setRecoveryMethod('sms')}
-                className={`p-3.5 rounded-xl border text-left transition cursor-pointer flex items-start gap-2.5 ${
-                  recoveryMethod === 'sms'
-                    ? 'border-[#0B6B3A] bg-[#E8F5EC] shadow-xs'
-                    : 'border-[#D5E2D9] bg-white hover:bg-[#FAFBF8]'
-                }`}
+              <div
+                className="p-3.5 rounded-xl border border-[#D5E2D9] bg-[#F8FAFC] opacity-60 cursor-not-allowed flex items-start gap-2.5 relative select-none"
+                title="SMS / Mobile recovery is coming soon"
               >
                 <input
                   type="radio"
                   name="recovery"
-                  checked={recoveryMethod === 'sms'}
-                  onChange={() => setRecoveryMethod('sms')}
-                  className="accent-[#0B6B3A] mt-0.5"
+                  disabled
+                  checked={false}
+                  className="mt-0.5 opacity-50 cursor-not-allowed"
                 />
-                <div>
-                  <div className="text-[13px] font-bold text-[#10241A] flex items-center gap-1.5">
-                    <i className="fa-solid fa-comment-sms text-xs text-[#0B6B3A]" />
-                    <span>SMS / Mobile</span>
+                <div className="flex-1">
+                  <div className="text-[13px] font-bold text-[#64748B] flex items-center justify-between gap-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <i className="fa-solid fa-comment-sms text-xs text-[#94A3B8]" />
+                      <span>SMS / Mobile</span>
+                    </div>
+                    <span className="text-[9.5px] uppercase tracking-wider font-extrabold bg-[#E2E8F0] text-[#64748B] px-1.5 py-0.5 rounded-md">
+                      Coming Soon
+                    </span>
                   </div>
-                  <div className="text-[11px] text-[#5A7466] mt-0.5">
+                  <div className="text-[11px] text-[#94A3B8] mt-0.5">
                     Send code via SMS OTP
                   </div>
                 </div>
-              </button>
+              </div>
             </div>
           </div>
 

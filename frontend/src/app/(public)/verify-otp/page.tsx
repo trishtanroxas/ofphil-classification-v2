@@ -58,21 +58,20 @@ function VerifyOtpContent() {
       return;
     }
 
+    // Restrict access: Only Admin role is active and allowed
+    if (effectiveRole !== 'admin' && effectiveRole !== 'nurse') {
+      setErrorMessage('Access restricted: Only verified Clinic Administrator credentials can access the system.');
+      return;
+    }
+
     // Success: Log in and proceed
     setErrorMessage(null);
-    login(effectiveRole);
-    showLoading();
+    login('admin');
+    showLoading('Accessing Clinic Master Records...');
 
-    // Route to correct destination based on role
     setTimeout(() => {
-      if (effectiveRole === 'patient') {
-        router.push('/portal');
-      } else if (effectiveRole === 'admin' || effectiveRole === 'nurse') {
-        router.push('/admin/patient-records');
-      } else {
-        router.push('/dashboard');
-      }
-    }, 400);
+      window.location.href = '/admin/patient-records';
+    }, 200);
   };
 
   return (

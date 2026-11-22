@@ -38,7 +38,7 @@ export default function AdminProfilePage() {
       title="Administrator Profile & Account"
       subtitle="Ophthalmological Foundation of the Philippines — AI-Assisted Patient Intake & Evaluation"
     >
-      <div className="max-w-5xl mx-auto space-y-6 text-xs font-sans">
+      <div className="w-full pb-12 space-y-6 text-xs font-sans">
         {/* Breadcrumb Header */}
         <div className="flex flex-wrap items-center justify-between gap-3 pb-2">
           <div className="flex items-center gap-2 text-xs text-[#5A7466]">

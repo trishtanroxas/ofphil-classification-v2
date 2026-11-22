@@ -1,0 +1,17 @@
+# ==============================================================================
+# OFPHIL V2 — BASE DEPENDENCIES
+# Common Python libraries, core math, data structures, and utilities
+# ==============================================================================
+numpy>=2.0.0,<2.4.0
+pandas>=2.2.0,<3.1.0
+scipy>=1.14.0,<1.19.0
+scikit-learn>=1.5.0,<2.0.0
+joblib>=1.4.0
+Pillow>=10.4.0,<13.0.0
+opencv-python>=4.10.0,<5.0.0
+pyyaml>=6.0.2
+requests>=2.32.0
+httpx>=0.27.0
+python-dotenv>=1.0.1
+tqdm>=4.66.0
+pydantic>=2.10.0,<3.0.0

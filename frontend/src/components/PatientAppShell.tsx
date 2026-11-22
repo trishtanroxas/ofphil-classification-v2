@@ -281,7 +281,7 @@ export default function PatientAppShell({
         </header>
 
         {/* Dynamic Page Content */}
-        <main className="content-container p-6 sm:p-8 flex-1 w-full box-border">
+        <main className="content-container p-6 sm:p-8 flex-1 w-full max-w-[1440px] mx-auto box-border">
           {children}
         </main>
       </div>

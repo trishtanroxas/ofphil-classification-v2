@@ -810,17 +810,17 @@ function PatientPortalContent() {
               TAB 4: SETTINGS & PREFERENCES (Matching User's Reference Screenshot)
              ======================================================== */}
           {activeTab === 'settings' && (
-            <div className="bg-white rounded-2xl border border-[#EEF2EF] shadow-xs p-6 sm:p-7 space-y-6">
-              {/* Horizontal 7-Tab Navigation Bar */}
-              <div className="border-b border-[#EEF2EF] overflow-x-auto">
-                <div className="flex items-center gap-1 pb-3 min-w-max text-xs font-semibold">
+            <div className="w-full pb-12">
+              {/* Horizontal 7-Tab Navigation Bar matching screenshot */}
+              <div className="bg-white border border-[#D5E2D9] rounded-2xl p-2 mb-6 shadow-xs overflow-x-auto">
+                <div className="flex items-center gap-1 sm:gap-2 min-w-max">
                   <button
                     type="button"
                     onClick={() => setSettingsActiveSubTab('profile')}
-                    className={`px-3.5 py-2 rounded-lg flex items-center gap-2 transition ${
+                    className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer border-0 ${
                       settingsActiveSubTab === 'profile'
-                        ? 'text-[#0B6B3A] bg-[#E8F5EC] font-bold'
-                        : 'text-[#5A7466] hover:text-[#10241A] hover:bg-[#FAFBF8]'
+                        ? 'text-[#0B6B3A] border-b-2 border-[#0B6B3A] bg-[#E8F5EC]/60 font-bold'
+                        : 'text-[#64748B] hover:text-[#10241A] hover:bg-[#F8FAFC]'
                     }`}
                   >
                     <i className="fa-solid fa-user text-xs" />
@@ -830,10 +830,10 @@ function PatientPortalContent() {
                   <button
                     type="button"
                     onClick={() => setSettingsActiveSubTab('security')}
-                    className={`px-3.5 py-2 rounded-lg flex items-center gap-2 transition ${
+                    className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer border-0 ${
                       settingsActiveSubTab === 'security'
-                        ? 'text-[#0B6B3A] bg-[#E8F5EC] font-bold'
-                        : 'text-[#5A7466] hover:text-[#10241A] hover:bg-[#FAFBF8]'
+                        ? 'text-[#0B6B3A] border-b-2 border-[#0B6B3A] bg-[#E8F5EC]/60 font-bold'
+                        : 'text-[#64748B] hover:text-[#10241A] hover:bg-[#F8FAFC]'
                     }`}
                   >
                     <i className="fa-solid fa-lock text-xs" />
@@ -843,23 +843,23 @@ function PatientPortalContent() {
                   <button
                     type="button"
                     onClick={() => setSettingsActiveSubTab('appointments')}
-                    className={`px-3.5 py-2 rounded-lg flex items-center gap-2 transition ${
+                    className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer border-0 ${
                       settingsActiveSubTab === 'appointments'
-                        ? 'text-[#0B6B3A] bg-[#E8F5EC] font-bold'
-                        : 'text-[#5A7466] hover:text-[#10241A] hover:bg-[#FAFBF8]'
+                        ? 'text-[#0B6B3A] border-b-2 border-[#0B6B3A] bg-[#E8F5EC]/60 font-bold'
+                        : 'text-[#64748B] hover:text-[#10241A] hover:bg-[#F8FAFC]'
                     }`}
                   >
-                    <i className="fa-solid fa-calendar-check text-xs" />
+                    <i className="fa-regular fa-calendar-check text-xs" />
                     <span>03. Appointment Preferences</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setSettingsActiveSubTab('notifications')}
-                    className={`px-3.5 py-2 rounded-lg flex items-center gap-2 transition ${
+                    className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer border-0 ${
                       settingsActiveSubTab === 'notifications'
-                        ? 'text-[#0B6B3A] bg-[#E8F5EC] font-bold'
-                        : 'text-[#5A7466] hover:text-[#10241A] hover:bg-[#FAFBF8]'
+                        ? 'text-[#0B6B3A] border-b-2 border-[#0B6B3A] bg-[#E8F5EC]/60 font-bold'
+                        : 'text-[#64748B] hover:text-[#10241A] hover:bg-[#F8FAFC]'
                     }`}
                   >
                     <i className="fa-solid fa-bell text-xs" />
@@ -869,10 +869,10 @@ function PatientPortalContent() {
                   <button
                     type="button"
                     onClick={() => setSettingsActiveSubTab('privacy')}
-                    className={`px-3.5 py-2 rounded-lg flex items-center gap-2 transition ${
+                    className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer border-0 ${
                       settingsActiveSubTab === 'privacy'
-                        ? 'text-[#0B6B3A] bg-[#E8F5EC] font-bold'
-                        : 'text-[#5A7466] hover:text-[#10241A] hover:bg-[#FAFBF8]'
+                        ? 'text-[#0B6B3A] border-b-2 border-[#0B6B3A] bg-[#E8F5EC]/60 font-bold'
+                        : 'text-[#64748B] hover:text-[#10241A] hover:bg-[#F8FAFC]'
                     }`}
                   >
                     <i className="fa-solid fa-shield-halved text-xs" />
@@ -882,10 +882,10 @@ function PatientPortalContent() {
                   <button
                     type="button"
                     onClick={() => setSettingsActiveSubTab('accessibility')}
-                    className={`px-3.5 py-2 rounded-lg flex items-center gap-2 transition ${
+                    className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer border-0 ${
                       settingsActiveSubTab === 'accessibility'
-                        ? 'text-[#0B6B3A] bg-[#E8F5EC] font-bold'
-                        : 'text-[#5A7466] hover:text-[#10241A] hover:bg-[#FAFBF8]'
+                        ? 'text-[#0B6B3A] border-b-2 border-[#0B6B3A] bg-[#E8F5EC]/60 font-bold'
+                        : 'text-[#64748B] hover:text-[#10241A] hover:bg-[#F8FAFC]'
                     }`}
                   >
                     <i className="fa-solid fa-universal-access text-xs" />
@@ -895,150 +895,156 @@ function PatientPortalContent() {
                   <button
                     type="button"
                     onClick={() => setSettingsActiveSubTab('account')}
-                    className={`px-3.5 py-2 rounded-lg flex items-center gap-2 transition ${
+                    className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer border-0 ${
                       settingsActiveSubTab === 'account'
-                        ? 'text-[#0B6B3A] bg-[#E8F5EC] font-bold'
-                        : 'text-[#5A7466] hover:text-[#10241A] hover:bg-[#FAFBF8]'
+                        ? 'text-[#0B6B3A] border-b-2 border-[#0B6B3A] bg-[#E8F5EC]/60 font-bold'
+                        : 'text-[#64748B] hover:text-[#10241A] hover:bg-[#F8FAFC]'
                     }`}
                   >
-                    <i className="fa-solid fa-user-xmark text-xs" />
+                    <i className="fa-solid fa-user-gear text-xs" />
                     <span>07. Account Management</span>
                   </button>
                 </div>
               </div>
 
-              {/* SUBTAB 01: Beneficiary Personal Details */}
-              {settingsActiveSubTab === 'profile' && (
-                <div className="space-y-5">
+              {/* Card Container */}
+              <div className="bg-white rounded-2xl border border-[#D5E2D9] p-6 sm:p-8 shadow-xs">
+                {/* SUBTAB 01: Beneficiary Personal Details */}
+                {settingsActiveSubTab === 'profile' && (
                   <div>
+                    <div className="mb-6">
+                      <h3 className="font-['Outfit'] text-lg font-bold text-[#10241A] flex items-center gap-2 m-0 mb-1.5">
+                        <i className="fa-solid fa-user text-[#0B6B3A] text-base" />
+                        <span>Beneficiary Personal Details</span>
+                      </h3>
+                      <p className="text-xs text-[#5A7466] m-0 leading-relaxed">
+                        Your verified patient details on file with the OFPHIL Eye Center. You may update your contact details and emergency relative below.
+                      </p>
+                    </div>
+
+                    <form onSubmit={handleSettingsProfileSubmit} className="space-y-6">
+                      {/* Row 1: Full Name & Email Address */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <label className="block text-xs font-medium text-[#334155] mb-2">
+                            Full Name
+                          </label>
+                          <input
+                            type="text"
+                            value={settingsFullName}
+                            onChange={(e) => setSettingsFullName(e.target.value)}
+                            required
+                            className="w-full h-12 px-4 border border-[#CBD5E1] rounded-xl text-sm bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A] focus:ring-2 focus:ring-[#0B6B3A]/15 transition"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-[#334155] mb-2">
+                            Email Address
+                          </label>
+                          <input
+                            type="email"
+                            value={settingsEmail}
+                            onChange={(e) => setSettingsEmail(e.target.value)}
+                            className="w-full h-12 px-4 border border-[#CBD5E1] rounded-xl text-sm bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A] focus:ring-2 focus:ring-[#0B6B3A]/15 transition"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Row 2: Assigned Patient ID & Contact Mobile Number */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <label className="block text-xs font-medium text-[#334155] mb-2">
+                            Assigned Patient ID No.
+                          </label>
+                          <input
+                            type="text"
+                            value={patient.patient_id}
+                            readOnly
+                            className="w-full h-12 px-4 border border-[#CBD5E1] rounded-xl text-sm font-mono bg-[#F8FAFC] text-[#5A7466] cursor-not-allowed"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-[#334155] mb-2">
+                            Contact Mobile Number (For OTP)
+                          </label>
+                          <input
+                            type="tel"
+                            value={settingsPhone}
+                            onChange={(e) => setSettingsPhone(e.target.value)}
+                            required
+                            className="w-full h-12 px-4 border border-[#CBD5E1] rounded-xl text-sm bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A] focus:ring-2 focus:ring-[#0B6B3A]/15 transition"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Row 3: Registered Home Address & Emergency Contact Relative */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <label className="block text-xs font-medium text-[#334155] mb-2">
+                            Registered Home Address
+                          </label>
+                          <input
+                            type="text"
+                            value={settingsAddress}
+                            onChange={(e) => setSettingsAddress(e.target.value)}
+                            className="w-full h-12 px-4 border border-[#CBD5E1] rounded-xl text-sm bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A] focus:ring-2 focus:ring-[#0B6B3A]/15 transition"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-[#334155] mb-2">
+                            Emergency Contact Relative
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Maria Magpantay (Daughter - 0917-000-1111)"
+                            value={settingsEmergency}
+                            onChange={(e) => setSettingsEmergency(e.target.value)}
+                            className="w-full h-12 px-4 border border-[#CBD5E1] rounded-xl text-sm bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A] focus:ring-2 focus:ring-[#0B6B3A]/15 transition"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Action Button matching screenshot */}
+                      <div className="flex items-center justify-between pt-4 border-t border-[#EEF2EF]">
+                        {settingsSaved ? (
+                          <span className="text-xs text-[#0B6B3A] font-bold">
+                            ✓ Details updated and recorded on file!
+                          </span>
+                        ) : <span />}
+
+                        <button
+                          type="submit"
+                          className="px-6 py-3 rounded-xl bg-[#0B6B3A] hover:bg-[#064826] text-white text-xs font-bold border-none cursor-pointer flex items-center gap-2 transition shadow-md"
+                        >
+                          <i className="fa-solid fa-floppy-disk text-xs" />
+                          <span>Save My Profile Details</span>
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                )}
+
+                {/* SUBTAB 02: Account Security */}
+                {settingsActiveSubTab === 'security' && (
+                  <div className="space-y-4 text-xs">
                     <h3 className="font-['Outfit'] text-[16px] font-bold text-[#10241A] flex items-center gap-2">
-                      <i className="fa-solid fa-user text-[#0B6B3A]" />
-                      <span>Beneficiary Personal Details</span>
+                      <i className="fa-solid fa-lock text-[#0B6B3A]" />
+                      <span>Account Security &amp; Sign-In Password</span>
                     </h3>
-                    <p className="text-xs text-[#5A7466] mt-1">
-                      Your verified patient details on file with the OFPHIL Eye Center. You may update your contact details and emergency relative below.
-                    </p>
-                  </div>
-
-                  <form onSubmit={handleSettingsProfileSubmit} className="space-y-4 text-xs">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block font-semibold text-[#10241A] mb-1">
-                          Full Name
-                        </label>
-                        <input
-                          type="text"
-                          value={settingsFullName}
-                          onChange={(e) => setSettingsFullName(e.target.value)}
-                          required
-                          className="w-full h-10 px-3.5 border border-[#D5E2D9] rounded-lg text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
-                        />
+                    <div className="p-4 rounded-xl bg-[#FAFBF8] border border-[#EEF2EF] space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[#5A7466]">Login Identifier:</span>
+                        <strong className="text-[#10241A] font-mono">{patient.patient_id}</strong>
                       </div>
-                      <div>
-                        <label className="block font-semibold text-[#10241A] mb-1">
-                          Email Address
-                        </label>
-                        <input
-                          type="email"
-                          value={settingsEmail}
-                          onChange={(e) => setSettingsEmail(e.target.value)}
-                          className="w-full h-10 px-3.5 border border-[#D5E2D9] rounded-lg text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block font-semibold text-[#10241A] mb-1">
-                          Assigned Patient ID No.
-                        </label>
-                        <input
-                          type="text"
-                          value={patient.patient_id}
-                          readOnly
-                          className="w-full h-10 px-3.5 border border-[#EEF2EF] rounded-lg text-xs bg-[#FAFBF8] text-[#5A7466] cursor-not-allowed"
-                        />
-                      </div>
-                      <div>
-                        <label className="block font-semibold text-[#10241A] mb-1">
-                          Contact Mobile Number (For OTP)
-                        </label>
-                        <input
-                          type="tel"
-                          value={settingsPhone}
-                          onChange={(e) => setSettingsPhone(e.target.value)}
-                          required
-                          className="w-full h-10 px-3.5 border border-[#D5E2D9] rounded-lg text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block font-semibold text-[#10241A] mb-1">
-                          Registered Home Address
-                        </label>
-                        <input
-                          type="text"
-                          value={settingsAddress}
-                          onChange={(e) => setSettingsAddress(e.target.value)}
-                          className="w-full h-10 px-3.5 border border-[#D5E2D9] rounded-lg text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
-                        />
-                      </div>
-                      <div>
-                        <label className="block font-semibold text-[#10241A] mb-1">
-                          Emergency Contact Relative
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="e.g. Maria Magpantay (Daughter - 0917-000-1111)"
-                          value={settingsEmergency}
-                          onChange={(e) => setSettingsEmergency(e.target.value)}
-                          className="w-full h-10 px-3.5 border border-[#D5E2D9] rounded-lg text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="pt-3 flex items-center justify-between">
-                      {settingsSaved && (
-                        <span className="text-xs text-[#0B6B3A] font-bold">
-                          ✓ Details updated and recorded on file!
+                      <div className="flex justify-between items-center">
+                        <span className="text-[#5A7466]">Account Verification:</span>
+                        <span className="px-2.5 py-0.5 rounded-md font-bold text-[11px] bg-[#E8F5EC] text-[#0B6B3A]">
+                          Verified Beneficiary (ID + DOB + OTP)
                         </span>
-                      )}
-                      <button
-                        type="submit"
-                        className="ml-auto px-5 py-2.5 rounded-lg bg-[#0B6B3A] hover:bg-[#064826] text-white font-bold text-xs flex items-center gap-1.5 transition shadow-xs"
-                      >
-                        <i className="fa-solid fa-floppy-disk text-xs" />
-                        <span>Save My Profile Details</span>
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              )}
-
-              {/* SUBTAB 02: Account Security */}
-              {settingsActiveSubTab === 'security' && (
-                <div className="space-y-4 text-xs">
-                  <h3 className="font-['Outfit'] text-[16px] font-bold text-[#10241A] flex items-center gap-2">
-                    <i className="fa-solid fa-lock text-[#0B6B3A]" />
-                    <span>Account Security &amp; Sign-In Password</span>
-                  </h3>
-                  <div className="p-4 rounded-xl bg-[#FAFBF8] border border-[#EEF2EF] space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-[#5A7466]">Login Identifier:</span>
-                      <strong className="text-[#10241A] font-mono">{patient.patient_id}</strong>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-[#5A7466]">Account Verification:</span>
-                      <span className="px-2.5 py-0.5 rounded-md font-bold text-[11px] bg-[#E8F5EC] text-[#0B6B3A]">
-                        Verified Beneficiary (ID + DOB + OTP)
-                      </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
-
+                )}
               {/* SUBTAB 03: Appointment Preferences */}
               {settingsActiveSubTab === 'appointments' && (
                 <div className="space-y-4 text-xs">
@@ -1153,7 +1159,7 @@ function PatientPortalContent() {
                   </p>
                   <div className="flex gap-3">
                     <Link
-                      href="/login"
+                      href="/login-patient"
                       className="px-4 py-2.5 rounded-lg border border-[#D5E2D9] text-[#10241A] font-semibold hover:bg-[#FAFBF8] transition"
                     >
                       Sign Out of Portal
@@ -1161,6 +1167,7 @@ function PatientPortalContent() {
                   </div>
                 </div>
               )}
+              </div>
             </div>
           )}
         </>

@@ -25,6 +25,10 @@ export function LoadingScreenProvider({ children }: { children: React.ReactNode 
   const showLoading = (message?: string) => {
     if (message) setLoadingMessage(message);
     setActive(true);
+    // Safety auto-dismiss fallback so overlay never gets stuck
+    setTimeout(() => {
+      setActive(false);
+    }, 2000);
   };
 
   const hideLoading = () => {

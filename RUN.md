@@ -1,29 +1,40 @@
 # Quick Start Guide: Running OFPHIL V2
 
-Follow these simple steps to run both the FastAPI Python Backend and the Next.js Frontend locally.
+Follow these practical steps to run the FastAPI backend, launch JupyterLab experiments, execute environment verification, or start the Next.js frontend.
 
 ---
 
-## 1. Terminal 1 — Start the FastAPI Backend (Port 8000)
+## 1. Python Environment & Verification
 
-Siguraduhing nasa root folder ka ng project (`ofphil-classification-v2`).
+### Activate Virtual Environment (`venv312`)
+From the project root (`ofphil-classification-v2`):
 
-### Option A: Standard Virtual Environment Activation (Recommended)
 ```powershell
-.\venv\Scripts\activate
+.\venv312\Scripts\Activate.ps1
+```
+
+### Run Full Hardware & Diagnostic Verification
+Verify GPU availability, PyTorch CUDA tensor computation, PaddlePaddle GPU detection, ML boosting engines, OCR pipelines, and FastAPI dependencies:
+
+```powershell
+.\venv312\Scripts\python.exe docs\environment-audit\verify_environment.py
+```
+
+---
+
+## 2. Terminal 1 — Start the FastAPI Backend (Port 8000)
+
+Ensure you are in the project root (`ofphil-classification-v2`):
+
+### Option A: Using the Activated `venv312` (Recommended)
+```powershell
+.\venv312\Scripts\Activate.ps1
 python -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000 --reload
 ```
 
-### Option B: Kung ikaw ay nasa loob ng `backend/` folder
+### Option B: Direct Python Execution
 ```powershell
-cd backend
-..\venv\Scripts\activate
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
-```
-
-### Option C: Direct Python Launcher (Gamit ang Python 3.12)
-```powershell
-py -3.12 -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000 --reload
+.\venv312\Scripts\python.exe -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000 --reload
 ```
 
 ### Backend URLs:
@@ -33,9 +44,23 @@ py -3.12 -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000 
 
 ---
 
-## 2. Terminal 2 — Start the Next.js Frontend (Port 3000)
+## 3. JupyterLab & Notebook Experimentation
 
-Magbukas ng pangalawang terminal at pumunta sa `frontend` folder:
+Launch JupyterLab from the project root using the V2 environment:
+
+```powershell
+.\venv312\Scripts\python.exe -m jupyterlab
+```
+
+### Kernel Selection:
+When opening any of the 41 research notebooks in `experiments/notebooks/`, select the registered kernel:
+> **Python 3.12 (OFPHIL V2)** (`ofphil-v2`)
+
+---
+
+## 4. Terminal 2 — Start the Next.js Frontend (Port 3000)
+
+Open a second terminal window and navigate to `frontend`:
 
 ```powershell
 cd frontend
@@ -48,9 +73,7 @@ npm run dev
 
 ---
 
-## 3. Verification
+## 5. System Verification
 
-Kapag tumatakbo na ang parehong server, buksan ang [http://localhost:3000](http://localhost:3000) sa iyong web browser.
-
-Makikita mo sa berdeng badge sa itaas:
+When both servers are active, visit [http://localhost:3000](http://localhost:3000). The top status badge will indicate:
 > **FastAPI: Connected (Port 8000)**
