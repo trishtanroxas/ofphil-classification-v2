@@ -5,6 +5,7 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
 import { AuthProvider } from '@/context/AuthContext';
+import { AccessibilityProvider } from '@/context/AccessibilityContext';
 import { LoadingScreenProvider } from '@/context/LoadingScreenContext';
 import { NavigationBlockerProvider } from '@/context/NavigationBlockerContext';
 
@@ -99,30 +100,32 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthProvider>
-      <LoadingScreenProvider>
-        <NavigationBlockerProvider>
-          <QueryClientProvider client={queryClient}>
-            <Suspense fallback={null}>
-              <DynamicPageTitleUpdater />
-            </Suspense>
-            {children}
-            <Toaster
-              position="top-right"
-              richColors
-              duration={3500}
-              toastOptions={{
-                className: 'animate-toast-fade-in',
-                style: {
-                  borderRadius: '12px',
-                  fontFamily: 'var(--font-sans, Figtree, sans-serif)',
-                  boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
-                  transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-                },
-              }}
-            />
-          </QueryClientProvider>
-        </NavigationBlockerProvider>
-      </LoadingScreenProvider>
+      <AccessibilityProvider>
+        <LoadingScreenProvider>
+          <NavigationBlockerProvider>
+            <QueryClientProvider client={queryClient}>
+              <Suspense fallback={null}>
+                <DynamicPageTitleUpdater />
+              </Suspense>
+              {children}
+              <Toaster
+                position="top-right"
+                richColors
+                duration={3500}
+                toastOptions={{
+                  className: 'animate-toast-fade-in',
+                  style: {
+                    borderRadius: '12px',
+                    fontFamily: 'var(--font-sans, Figtree, sans-serif)',
+                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+                    transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                  },
+                }}
+              />
+            </QueryClientProvider>
+          </NavigationBlockerProvider>
+        </LoadingScreenProvider>
+      </AccessibilityProvider>
     </AuthProvider>
   );
 }

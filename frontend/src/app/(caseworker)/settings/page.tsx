@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/DashboardLayout';
+import { useAccessibility } from '@/context/AccessibilityContext';
 import { toast } from 'sonner';
 import PasswordStrengthMeter from '@/components/PasswordStrengthMeter';
 import { fetchApi } from '@/lib/api';
@@ -211,6 +212,8 @@ export default function MSWSettingsPage() {
     toast.success('Casework preferences saved!');
   };
 
+  const { setFontSize: applyGlobalFontSize, setThemeMode: applyGlobalTheme, setFontFamily: applyGlobalFontFamily } = useAccessibility();
+
   const handleSaveAppearance = async (e: React.FormEvent) => {
     e.preventDefault();
     await persistPreferences({
@@ -221,6 +224,9 @@ export default function MSWSettingsPage() {
         date_format: dateFormat
       }
     });
+    applyGlobalTheme(themeMode === 'dark' ? 'Dark' : themeMode === 'high-contrast' ? 'High Contrast' : 'Light');
+    applyGlobalFontSize(`${fontScale}%` as any);
+    applyGlobalFontFamily(fontFamily === 'serif' ? 'Serif' : fontFamily === 'accessible-sans' ? 'Low-Vision' : 'Clinical');
     toast.success('Display & appearance preferences applied!');
   };
 

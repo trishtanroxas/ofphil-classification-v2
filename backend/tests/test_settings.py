@@ -238,3 +238,48 @@ def test_msw_security_and_privacy_endpoints():
     )
     assert res_priv_up.status_code == 200
     assert res_priv_up.json()["data"]["data_retention_years"] == 7
+
+
+def test_per_user_accessibility_preferences_isolation_and_reset():
+    # 1. MSW sets Dark mode, 120%, Serif, Compact
+    msw_hdrs = {"x-user-role": "msw", "x-user-id": "STF-MSW-0012"}
+    r_msw_put = client.put(
+        "/api/v1/admin/settings/accessibility",
+        headers=msw_hdrs,
+        json={"fontSize": "120%", "themeMode": "Dark", "fontFamily": "Serif", "tableDensity": "Compact"},
+    )
+    assert r_msw_put.status_code == 200
+    assert r_msw_put.json()["data"]["themeMode"] == "Dark"
+
+    # 2. Patient account should NOT inherit MSW's settings
+    pat_hdrs = {"x-user-role": "patient", "x-user-id": "M26-11-00001"}
+    r_pat_get = client.get("/api/v1/admin/settings/accessibility", headers=pat_hdrs)
+    assert r_pat_get.status_code == 200
+    assert r_pat_get.json()["themeMode"] == "Light"
+
+    # 3. Patient sets High Contrast, 130%, Low-Vision
+    r_pat_put = client.put(
+        "/api/v1/admin/settings/accessibility",
+        headers=pat_hdrs,
+        json={"fontSize": "130%", "themeMode": "High Contrast", "fontFamily": "Low-Vision", "tableDensity": "Comfortable"},
+    )
+    assert r_pat_put.status_code == 200
+
+    # 4. MSW still has Dark / 120% / Serif / Compact
+    r_msw_get = client.get("/api/v1/admin/settings/accessibility", headers=msw_hdrs)
+    assert r_msw_get.status_code == 200
+    assert r_msw_get.json() == {
+        "fontSize": "120%",
+        "themeMode": "Dark",
+        "fontFamily": "Serif",
+        "tableDensity": "Compact",
+    }
+
+    # 5. Reset MSW back to defaults
+    r_msw_reset = client.put(
+        "/api/v1/admin/settings/accessibility",
+        headers=msw_hdrs,
+        json={"fontSize": "100%", "themeMode": "Light", "fontFamily": "Clinical", "tableDensity": "Comfortable"},
+    )
+    assert r_msw_reset.status_code == 200
+    assert r_msw_reset.json()["data"]["fontSize"] == "100%"

@@ -884,5 +884,54 @@ class SettingsService:
         )
         return merged
 
+    def get_user_accessibility_preferences(self, actor_id: str, role: str) -> Dict[str, Any]:
+        defaults = {
+            "fontSize": "100%",
+            "themeMode": "Light",
+            "fontFamily": "Clinical",
+            "tableDensity": "Comfortable",
+        }
+        all_prefs = self._cache.get("user_accessibility", {})
+        key = f"{role.lower()}:{actor_id}"
+        saved = all_prefs.get(key)
+        if not isinstance(saved, dict):
+            return defaults
+        return {**defaults, **saved}
+
+    async def update_user_accessibility_preferences(
+        self, actor_id: str, role: str, prefs: Dict[str, Any], ip: str = "127.0.0.1"
+    ) -> Dict[str, Any]:
+        allowed_font_sizes = {"100%", "110%", "120%", "130%"}
+        allowed_themes = {"Light", "Dark", "High Contrast"}
+        allowed_fonts = {"Clinical", "Serif", "Low-Vision"}
+        allowed_densities = {"Comfortable", "Compact"}
+
+        current = self.get_user_accessibility_preferences(actor_id, role)
+        if prefs.get("fontSize") in allowed_font_sizes:
+            current["fontSize"] = prefs["fontSize"]
+        if prefs.get("themeMode") in allowed_themes:
+            current["themeMode"] = prefs["themeMode"]
+        if prefs.get("fontFamily") in allowed_fonts:
+            current["fontFamily"] = prefs["fontFamily"]
+        if prefs.get("tableDensity") in allowed_densities:
+            current["tableDensity"] = prefs["tableDensity"]
+
+        all_prefs = self._cache.get("user_accessibility", {})
+        key = f"{role.lower()}:{actor_id}"
+        all_prefs[key] = current
+        self._cache["user_accessibility"] = all_prefs
+        self._save_to_storage()
+
+        await self.record_audit_log(
+            action="UPDATE_ACCESSIBILITY_PREFERENCES",
+            actor_id=actor_id,
+            role=role,
+            resource=f"accessibility_preferences:{key}",
+            status="SUCCESS",
+            ip=ip,
+            details=current,
+        )
+        return current
+
 
 settings_service = SettingsService()

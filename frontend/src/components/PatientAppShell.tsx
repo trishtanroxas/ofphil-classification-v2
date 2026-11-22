@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useLoadingScreen } from '@/context/LoadingScreenContext';
 import { useAuth } from '@/context/AuthContext';
+import { useAccessibility } from '@/context/AccessibilityContext';
 
 interface PatientAppShellProps {
   children: React.ReactNode;
@@ -23,11 +24,18 @@ export default function PatientAppShell({
   const [a11yDropdownOpen, setA11yDropdownOpen] = useState(false);
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
 
-  // Quick Display & Reading Aid states
-  const [fontSize, setFontSize] = useState<'100%' | '110%' | '120%' | '130%'>('100%');
-  const [themeMode, setThemeMode] = useState<'Light' | 'Dark' | 'High Contrast'>('Light');
-  const [fontFamily, setFontFamily] = useState<'Clinical' | 'Serif' | 'Low-Vision'>('Clinical');
-  const [tableDensity, setTableDensity] = useState<'Comfortable' | 'Compact'>('Comfortable');
+  // Quick Display & Reading Aid global accessibility state
+  const {
+    fontSize,
+    themeMode,
+    fontFamily,
+    tableDensity,
+    setFontSize: handleFontSizeChange,
+    setThemeMode,
+    setFontFamily,
+    setTableDensity,
+    resetAccessibility: handleResetDisplay,
+  } = useAccessibility();
 
   const { showLoading, isProgressBarActive, startProgress } = useLoadingScreen();
   const { user, logout } = useAuth();
@@ -122,20 +130,7 @@ export default function PatientAppShell({
     };
   }, []);
 
-  const handleFontSizeChange = (size: '100%' | '110%' | '120%' | '130%') => {
-    setFontSize(size);
-    if (typeof document !== 'undefined') {
-      document.documentElement.style.fontSize =
-        size === '100%' ? '16px' : size === '110%' ? '17.6px' : size === '120%' ? '19.2px' : '20.8px';
-    }
-  };
-
-  const handleResetDisplay = () => {
-    handleFontSizeChange('100%');
-    setThemeMode('Light');
-    setFontFamily('Clinical');
-    setTableDensity('Comfortable');
-  };
+  // Accessibility handled globally by AccessibilityContext
 
   return (
     <div

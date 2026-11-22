@@ -52,95 +52,8 @@ def create_dataset(payload: DatasetCreate):
     return new_item
 
 # -------------------------------------------------------------
-# 3. Documents
+# 3. Documents (Managed by app.api.v1.endpoints.documents)
 # -------------------------------------------------------------
-@router.get("/documents", response_model=List[DocumentItem])
-def list_documents():
-    return db_store.documents
-
-@router.post("/documents/upload", response_model=DocumentItem, status_code=201)
-async def upload_document(
-    file: UploadFile = File(...),
-    document_type: str = Form("Barangay Indigency Certificate"),
-    patient_id: str = Form("M26-11-00001"),
-    patient_name: str = Form("Juan Dela Cruz"),
-    x_user_role: str = Header(default="msw"),
-    x_user_id: str = Header(default="msw_lead")
-):
-    if not file.filename:
-        raise HTTPException(status_code=400, detail="No file provided")
-    
-    from app.services.file_security import sanitize_filename, validate_file_upload
-    import hashlib
-
-    # 1. Sanitize filename against path traversal
-    clean_filename = sanitize_filename(file.filename)
-    
-    # 2. Read content and validate file size & magic signature
-    content = await file.read()
-    validate_file_upload(
-        filename=clean_filename,
-        file_size=len(content),
-        max_size_mb=settings.MAX_UPLOAD_SIZE_MB,
-        file_content=content
-    )
-
-    sha256 = hashlib.sha256(content).hexdigest()
-    today_str = datetime.datetime.now().strftime("%Y-%m-%d")
-
-    # Document authenticity & signature evaluation
-    doc_item = {
-        "id": f"doc-{uuid.uuid4().hex[:8]}",
-        "patient_id": patient_id,
-        "patient_name": patient_name,
-        "filename": clean_filename,
-        "document_type": document_type,
-        "file_size_bytes": len(content),
-        "sha256_hash": sha256,
-        "uploaded_at": today_str,
-        "status": "processed",
-        "ocr_processed": True,
-        "manipulation_risk": "clean",
-        "verification_status": "Verified Authentic",
-        "seal_detected": True,
-        "tamper_risk": "Low",
-        "signature_status": "SIGNATURE_DETECTED",
-        "extracted_text": f"Document {clean_filename} verified authentic for {patient_name} ({patient_id}). Official header, seals, and signatures validated."
-    }
-    db_store.documents.insert(0, doc_item)
-
-    # Persist audit log
-    from app.services.settings_service import settings_service
-    await settings_service.record_audit_log(
-        action="DOCUMENT_UPLOAD_AND_VERIFY",
-        actor_id=x_user_id,
-        role=x_user_role,
-        resource=f"patient_document:{doc_item['id']}",
-        status="SUCCESS",
-        details={
-            "document_id": doc_item["id"],
-            "patient_id": patient_id,
-            "filename": clean_filename,
-            "sha256": sha256,
-            "file_size": len(content),
-            "signature_status": "SIGNATURE_DETECTED"
-        }
-    )
-
-    return doc_item
-
-@router.delete("/documents/{doc_id}")
-def delete_document(doc_id: str):
-    for i, d in enumerate(db_store.documents):
-        if d.get("id") == doc_id:
-            removed = db_store.documents.pop(i)
-            return {"status": "success", "message": f"Document {doc_id} deleted successfully.", "deleted": removed}
-    raise HTTPException(status_code=404, detail="Document not found")
-
-@router.delete("/documents")
-def clear_all_documents():
-    db_store.documents.clear()
-    return {"status": "success", "message": "All documents cleared successfully."}
 
 # -------------------------------------------------------------
 # 4. OCR Processing (PaddleOCR)
@@ -474,7 +387,7 @@ REGISTERED_PATIENTS_REGISTRY: List[Dict[str, Any]] = [
         "email_verified": False,
         "category": "CHARITY",
         "status": "APPROVED",
-        "has_account": True,
+        "has_account": False,
         "registration_date": "2026-11-20",
         "diagnosis": "Senile Cataract, Immature (OS)",
         "assigned_msw": "Maria Santos, RSW (msw_lead)",

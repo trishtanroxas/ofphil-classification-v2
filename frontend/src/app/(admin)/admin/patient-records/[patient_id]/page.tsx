@@ -1678,10 +1678,17 @@ export default function PatientDossierPage() {
                   <div className="text-[10.5px] font-bold uppercase tracking-wider text-[#64748B] mb-1">
                     Portal Account &amp; Intake Date
                   </div>
-                  <div className="font-bold text-xs text-[#0B6B3A] flex items-center gap-1.5">
-                    <i className="fa-solid fa-id-badge" />
-                    <span>Active Portal Account</span>
-                  </div>
+                  {patientData?.has_account === true && patientData?.category !== 'CHARITY' ? (
+                    <div className="font-bold text-xs text-[#0B6B3A] flex items-center gap-1.5">
+                      <i className="fa-solid fa-id-badge" />
+                      <span>Active Portal Account</span>
+                    </div>
+                  ) : (
+                    <div className="font-bold text-xs text-[#64748B] flex items-center gap-1.5">
+                      <i className="fa-solid fa-user-xmark" />
+                      <span>No Portal Account (Charity / Walk-in)</span>
+                    </div>
+                  )}
                   <div className="text-[11px] text-[#5A7466] mt-0.5">
                     Registered: <strong>{patientData?.registration_date || '2026-11-22'}</strong>
                   </div>

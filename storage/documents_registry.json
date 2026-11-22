@@ -1,0 +1,96 @@
+{
+  "doc-001": {
+    "id": "doc-001",
+    "patient_id": "M26-11-00001",
+    "patient_name": "Juan Dela Cruz",
+    "filename": "Government_Valid_ID_DelaCruz.jpg",
+    "document_type": "Government Valid ID",
+    "file_size_bytes": 284100,
+    "uploaded_at": "2026-11-22",
+    "status": "processed",
+    "ocr_processed": true,
+    "manipulation_risk": "clean",
+    "verification_status": "Verified Authentic",
+    "seal_detected": true,
+    "tamper_risk": "Low",
+    "extracted_text": "REPUBLIC OF THE PHILIPPINES\nUNIFIED MULTI-PURPOSE ID (UMID)\nCRN: 0111-2948192-4\nNAME: DELA CRUZ, JUAN\nDATE OF BIRTH: MAY 15, 1978\nADDRESS: DISTRICT 4, SAMPALOC, MANILA",
+    "processing_state": {
+      "job_id": "seed-doc-001",
+      "processing_status": "COMPLETED",
+      "engine_version": "seed-v1",
+      "started_at": "2026-11-22",
+      "completed_at": "2026-11-22",
+      "processing_time_ms": 0.0,
+      "unavailable_checks": []
+    },
+    "ocr_result": {
+      "engine_used": "Seeded",
+      "engine_version": "seed-v1",
+      "extracted_text": "REPUBLIC OF THE PHILIPPINES\nUNIFIED MULTI-PURPOSE ID (UMID)\nCRN: 0111-2948192-4\nNAME: DELA CRUZ, JUAN\nDATE OF BIRTH: MAY 15, 1978\nADDRESS: DISTRICT 4, SAMPALOC, MANILA",
+      "confidence_score": null,
+      "fields_detected": {},
+      "missing_information": []
+    },
+    "signature_result": {
+      "signature_status": "NOT_CHECKED",
+      "signatures_detected_count": 1,
+      "regions": [],
+      "engine_version": "seed-v1"
+    },
+    "authenticity_result": {
+      "overall_status": "NO_ISSUE_DETECTED",
+      "tamper_risk_level": "Low",
+      "indicators": {},
+      "unavailable_checks": [],
+      "engine_version": "seed-v1"
+    },
+    "manual_review": null
+  },
+  "doc-002": {
+    "id": "doc-002",
+    "patient_id": "M26-11-00001",
+    "patient_name": "Juan Dela Cruz",
+    "filename": "Initial_Eye_Examination_Record.pdf",
+    "document_type": "Initial Clinic Examination Record",
+    "file_size_bytes": 195400,
+    "uploaded_at": "2026-11-22",
+    "status": "processed",
+    "ocr_processed": true,
+    "manipulation_risk": "clean",
+    "verification_status": "Verified Authentic",
+    "seal_detected": false,
+    "tamper_risk": "Low",
+    "extracted_text": "OFPHIL EYE CENTER - OUTPATIENT REGULAR CLINIC\nPATIENT: Juan Dela Cruz (M26-11-00001)\nCHIEF COMPLAINT: Blurring of vision on both eyes\nDIAGNOSIS: Bilateral Cataract, Senile Mature (OD > OS)\nATTENDING PHYSICIAN: Dr. J. E. Garcia, MD",
+    "processing_state": {
+      "job_id": "seed-doc-002",
+      "processing_status": "COMPLETED",
+      "engine_version": "seed-v1",
+      "started_at": "2026-11-22",
+      "completed_at": "2026-11-22",
+      "processing_time_ms": 0.0,
+      "unavailable_checks": []
+    },
+    "ocr_result": {
+      "engine_used": "Seeded",
+      "engine_version": "seed-v1",
+      "extracted_text": "OFPHIL EYE CENTER - OUTPATIENT REGULAR CLINIC\nPATIENT: Juan Dela Cruz (M26-11-00001)\nCHIEF COMPLAINT: Blurring of vision on both eyes\nDIAGNOSIS: Bilateral Cataract, Senile Mature (OD > OS)\nATTENDING PHYSICIAN: Dr. J. E. Garcia, MD",
+      "confidence_score": null,
+      "fields_detected": {},
+      "missing_information": []
+    },
+    "signature_result": {
+      "signature_status": "NOT_CHECKED",
+      "signatures_detected_count": 0,
+      "regions": [],
+      "engine_version": "seed-v1"
+    },
+    "authenticity_result": {
+      "overall_status": "NO_ISSUE_DETECTED",
+      "tamper_risk_level": "Low",
+      "indicators": {},
+      "unavailable_checks": [],
+      "engine_version": "seed-v1"
+    },
+    "manual_review": null
+  }
+}

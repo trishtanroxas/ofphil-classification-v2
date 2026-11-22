@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth, UserRole } from '@/context/AuthContext';
+import { useAccessibility } from '@/context/AccessibilityContext';
 import { useLoadingScreen } from '@/context/LoadingScreenContext';
 import { useNavigationBlocker } from '@/context/NavigationBlockerContext';
 
@@ -804,11 +805,18 @@ export function Header({
     };
   }, []);
 
-  // Quick Display & Reading Aid states
-  const [fontSize, setFontSize] = useState<'100%' | '110%' | '120%' | '130%'>('100%');
-  const [themeMode, setThemeMode] = useState<'Light' | 'Dark' | 'High Contrast'>('Light');
-  const [fontFamily, setFontFamily] = useState<'Clinical' | 'Serif' | 'Low-Vision'>('Clinical');
-  const [tableDensity, setTableDensity] = useState<'Comfortable' | 'Compact'>('Comfortable');
+  // Quick Display & Reading Aid global accessibility state
+  const {
+    fontSize,
+    themeMode,
+    fontFamily,
+    tableDensity,
+    setFontSize: handleFontSizeChange,
+    setThemeMode,
+    setFontFamily,
+    setTableDensity,
+    resetAccessibility: handleResetDisplay,
+  } = useAccessibility();
 
   const defaultTitle = isPatient
     ? 'Patient Dashboard'
@@ -818,22 +826,6 @@ export function Header({
 
   const defaultSubtitle =
     'Ophthalmological Foundation of the Philippines — Patient Master Registry & Clinical Directory';
-
-  // Apply display scaling effect
-  const handleFontSizeChange = (size: '100%' | '110%' | '120%' | '130%') => {
-    setFontSize(size);
-    if (typeof document !== 'undefined') {
-      document.documentElement.style.fontSize =
-        size === '100%' ? '16px' : size === '110%' ? '17.6px' : size === '120%' ? '19.2px' : '20.8px';
-    }
-  };
-
-  const handleResetDisplay = () => {
-    handleFontSizeChange('100%');
-    setThemeMode('Light');
-    setFontFamily('Clinical');
-    setTableDensity('Comfortable');
-  };
 
   return (
     <header className="sticky top-0 z-30 h-[72px] bg-white border-b border-[#D5E2D9] px-6 flex items-center justify-between shadow-xs relative">

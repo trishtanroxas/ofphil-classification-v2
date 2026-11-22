@@ -95,7 +95,7 @@ export default function PatientRecordsPage(props: any) {
       if (activeTab === 'charity' && p.category !== 'CHARITY') return false;
       if (activeTab === 'regular' && p.category !== 'REGULAR') return false;
       if (activeTab === 'with-accounts') {
-        const hasAcct = p.has_account === true || Boolean(p.email && p.email.trim());
+        const hasAcct = p.has_account === true && p.category !== 'CHARITY';
         if (!hasAcct) return false;
       }
 
@@ -120,7 +120,7 @@ export default function PatientRecordsPage(props: any) {
   const totalCount = patients.length;
   const charityCount = patients.filter((p) => p.category === 'CHARITY').length;
   const regularCount = patients.filter((p) => p.category === 'REGULAR').length;
-  const withAccountsCount = patients.filter((p) => p.has_account === true || Boolean(p.email && p.email.trim())).length;
+  const withAccountsCount = patients.filter((p) => p.has_account === true && p.category !== 'CHARITY').length;
 
   // CSV Export
   const handleExportCSV = () => {
@@ -548,7 +548,7 @@ export default function PatientRecordsPage(props: any) {
                           >
                             {p.last_name}, {p.first_name}
                           </Link>
-                          {(p.has_account === true || Boolean(p.email && p.email.trim())) && (
+                          {p.has_account === true && p.category !== 'CHARITY' && (
                             <span
                               className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9.5px] font-bold bg-blue-50 text-blue-700 border border-blue-200"
                               title="Active Patient Portal Account Provisioned"

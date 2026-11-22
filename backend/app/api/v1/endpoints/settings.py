@@ -442,3 +442,32 @@ async def update_msw_privacy_settings(
         updated_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),
         data=updated
     )
+
+
+@router.get("/accessibility", response_model=dict)
+def get_user_accessibility_preferences(
+    role: UserRole = Depends(require_roles([UserRole.ADMIN, UserRole.MSW, UserRole.NURSE, UserRole.PATIENT, UserRole.RESEARCHER])),
+    x_user_id: str = Header(default="guest"),
+):
+    """Retrieve per-user Quick Display & Reading Aid preferences."""
+    return settings_service.get_user_accessibility_preferences(actor_id=x_user_id, role=role.value)
+
+
+@router.put("/accessibility", response_model=SettingsOperationResponse)
+async def update_user_accessibility_preferences(
+    payload: dict,
+    request: Request,
+    role: UserRole = Depends(require_roles([UserRole.ADMIN, UserRole.MSW, UserRole.NURSE, UserRole.PATIENT, UserRole.RESEARCHER])),
+    x_user_id: str = Header(default="guest"),
+):
+    """Persist per-user Quick Display & Reading Aid preferences."""
+    ip = _get_client_ip(request)
+    updated = await settings_service.update_user_accessibility_preferences(
+        actor_id=x_user_id, role=role.value, prefs=payload, ip=ip
+    )
+    return SettingsOperationResponse(
+        success=True,
+        message="Accessibility preferences saved.",
+        updated_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        data=updated,
+    )
