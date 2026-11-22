@@ -1,12 +1,12 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import { useLoadingScreen } from '@/context/LoadingScreenContext';
+import { useAuth } from '@/context/AuthContext';
 
 interface PatientAppShellProps {
   children: React.ReactNode;
-  activeTab?: 'dashboard' | 'applications' | 'profile' | 'settings';
+  activeTab?: 'dashboard' | 'applications' | 'appointments' | 'notifications' | 'profile' | 'settings';
   pageTitle?: string;
   pageSubtitle?: string;
 }
@@ -15,21 +15,126 @@ export default function PatientAppShell({
   children,
   activeTab = 'dashboard',
   pageTitle = 'Patient Dashboard',
-  pageSubtitle = 'Ophthalmological Foundation of the Philippines — AI-Assisted Patient Intake & Evaluation',
+  pageSubtitle = 'Ophthalmological Foundation of the Philippines — Patient Master Registry & Clinical Directory',
 }: PatientAppShellProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const { showLoading } = useLoadingScreen();
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [a11yDropdownOpen, setA11yDropdownOpen] = useState(false);
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
 
-  // Beneficiary mock identity matching reference
+  // Quick Display & Reading Aid states
+  const [fontSize, setFontSize] = useState<'100%' | '110%' | '120%' | '130%'>('100%');
+  const [themeMode, setThemeMode] = useState<'Light' | 'Dark' | 'High Contrast'>('Light');
+  const [fontFamily, setFontFamily] = useState<'Clinical' | 'Serif' | 'Low-Vision'>('Clinical');
+  const [tableDensity, setTableDensity] = useState<'Comfortable' | 'Compact'>('Comfortable');
+
+  const { showLoading, isProgressBarActive, startProgress } = useLoadingScreen();
+  const { user, logout } = useAuth();
+
+  useEffect(() => {
+    if (pageTitle) {
+      document.title = `${pageTitle} · OFPHIL`;
+    }
+  }, [pageTitle]);
+
   const patient = {
-    name: 'Tarcila Magpantay',
-    username: 'MSW_FA_0125-01',
-    patient_id: 'PAT-PORTAL-99033A68',
-    sex: 'F',
-    residence: 'Block 4 Lot 12',
-    contact: '0918 123 4567',
-    email: 'tarcila.m@gmail.com',
+    name: user?.name || 'Juan Dela Cruz',
+    username: user?.username || 'M26-11-00001',
+    patient_id: user?.id || 'M26-11-00001',
+    sex: 'M',
+    residence: 'City of Manila, Metro Manila (NCR)',
+    contact: '0917 888 1678',
+    email: 'juan.delacruz@example.ph',
+  };
+
+  // Sync live unread notifications count for Patient (Urgent clinic notices + Scheduled/Pending appointments + Clinic replies)
+  useEffect(() => {
+    const syncPatientNotifs = () => {
+      try {
+        const pid = 'M26-11-00001';
+        const readIds: string[] = JSON.parse(localStorage.getItem(`ofphil_patient_read_notifs_${pid}`) || '[]');
+        const readSet = new Set(Array.isArray(readIds) ? readIds : []);
+
+        let unread = 0;
+
+        // 1. Urgent alerts from Admin / MSW
+        const urgentList = JSON.parse(localStorage.getItem(`ofphil_urgent_${pid}`) || '[]');
+        if (Array.isArray(urgentList)) {
+          urgentList.forEach((u: any, idx: number) => {
+            const nid = `urgent-${u.id || idx}`;
+            if (!u.isReadByPatient && !readSet.has(nid)) unread += 1;
+          });
+        }
+
+        // 2. Appointments & Schedule updates
+        const apptList = JSON.parse(localStorage.getItem(`ofphil_appointments_${pid}`) || '[]');
+        if (Array.isArray(apptList)) {
+          apptList.forEach((a: any, idx: number) => {
+            const nid = `appt-${a.id || idx}-${a.status}`;
+            if (!a.isReadByPatient && !readSet.has(nid)) unread += 1;
+          });
+        }
+
+        // 3. Clinic replies on patient's submitted inquiries
+        const inqList = JSON.parse(localStorage.getItem(`ofphil_inquiries_${pid}`) || '[]');
+        if (Array.isArray(inqList)) {
+          inqList.forEach((inq: any) => {
+            if (inq && inq.source === 'patient_portal' && Array.isArray(inq.replyHistory)) {
+              inq.replyHistory.forEach((rep: any, rIdx: number) => {
+                const nid = `reply-${inq.id}-${rIdx}`;
+                if (!readSet.has(nid)) unread += 1;
+              });
+            }
+          });
+        }
+
+        // 4. Logged clinical encounters / diagnoses
+        const encList = JSON.parse(localStorage.getItem(`ofphil_encounters_${pid}`) || '[]');
+        if (Array.isArray(encList)) {
+          encList.forEach((enc: any, idx: number) => {
+            const nid = `enc-${enc.assessment_id || enc.id || idx}`;
+            if (!readSet.has(nid)) unread += 1;
+          });
+        }
+
+        setUnreadNotificationsCount(unread);
+      } catch {
+        setUnreadNotificationsCount(0);
+      }
+    };
+
+    const deferred = () => setTimeout(syncPatientNotifs, 0);
+    syncPatientNotifs();
+    window.addEventListener('storage', deferred);
+    window.addEventListener('ofphil-patient-notifs-updated', deferred);
+    window.addEventListener('ofphil-appointments-updated', deferred);
+    window.addEventListener('ofphil-encounters-updated', deferred);
+    window.addEventListener('ofphil-inquiries-updated', deferred);
+    const interval = setInterval(syncPatientNotifs, 1500);
+    return () => {
+      window.removeEventListener('storage', deferred);
+      window.removeEventListener('ofphil-patient-notifs-updated', deferred);
+      window.removeEventListener('ofphil-appointments-updated', deferred);
+      window.removeEventListener('ofphil-encounters-updated', deferred);
+      window.removeEventListener('ofphil-inquiries-updated', deferred);
+      clearInterval(interval);
+    };
+  }, []);
+
+  const handleFontSizeChange = (size: '100%' | '110%' | '120%' | '130%') => {
+    setFontSize(size);
+    if (typeof document !== 'undefined') {
+      document.documentElement.style.fontSize =
+        size === '100%' ? '16px' : size === '110%' ? '17.6px' : size === '120%' ? '19.2px' : '20.8px';
+    }
+  };
+
+  const handleResetDisplay = () => {
+    handleFontSizeChange('100%');
+    setThemeMode('Light');
+    setFontFamily('Clinical');
+    setTableDensity('Comfortable');
   };
 
   return (
@@ -116,6 +221,7 @@ export default function PatientAppShell({
 
           <Link
             href="/portal?tab=dashboard"
+            onClick={() => startProgress()}
             className={`nav-link flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-[13.5px] font-medium no-underline transition ${
               activeTab === 'dashboard'
                 ? 'bg-[#0B6B3A] text-white shadow-xs'
@@ -130,6 +236,7 @@ export default function PatientAppShell({
 
           <Link
             href="/portal?tab=applications"
+            onClick={() => startProgress()}
             className={`nav-link flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-[13.5px] font-medium no-underline transition ${
               activeTab === 'applications'
                 ? 'bg-[#0B6B3A] text-white shadow-xs'
@@ -143,7 +250,57 @@ export default function PatientAppShell({
           </Link>
 
           <Link
+            href="/portal?tab=appointments"
+            onClick={() => startProgress()}
+            className={`nav-link flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-[13.5px] font-medium no-underline transition ${
+              activeTab === 'appointments'
+                ? 'bg-[#0B6B3A] text-white shadow-xs'
+                : 'text-[#E6F1EA]/80 hover:bg-white/10 hover:text-white'
+            }`}
+            title="Appointment History"
+            data-tooltip="Appointment History"
+          >
+            <i className="fa-solid fa-calendar-check w-5 text-center text-[15px]" />
+            {!sidebarCollapsed && <span className="nav-text">Appointment History</span>}
+          </Link>
+
+          {/* Notifications Navigation Item with Live Unread Badge */}
+          <Link
+            href="/portal?tab=notifications"
+            onClick={() => startProgress()}
+            className={`nav-link flex items-center justify-between px-3.5 py-2.5 rounded-lg text-[13.5px] font-medium no-underline transition ${
+              activeTab === 'notifications'
+                ? 'bg-[#0B6B3A] text-white shadow-xs'
+                : 'text-[#E6F1EA]/80 hover:bg-white/10 hover:text-white'
+            }`}
+            title="Notifications"
+            data-tooltip="Notifications"
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <i className="fa-solid fa-bell w-5 text-center text-[15px]" />
+              {!sidebarCollapsed && <span className="nav-text truncate">Notifications</span>}
+            </div>
+            {!sidebarCollapsed && (
+              <span
+                className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold leading-none transition ${
+                  unreadNotificationsCount > 0
+                    ? 'bg-[#DC2626] text-white shadow-2xs animate-pulse'
+                    : 'bg-white/15 text-[#D5E2D9]'
+                }`}
+                title={
+                  unreadNotificationsCount > 0
+                    ? `${unreadNotificationsCount} Unread Notification(s)`
+                    : '0 Unread Notifications'
+                }
+              >
+                {unreadNotificationsCount}
+              </span>
+            )}
+          </Link>
+
+          <Link
             href="/portal?tab=profile"
+            onClick={() => startProgress()}
             className={`nav-link flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-[13.5px] font-medium no-underline transition ${
               activeTab === 'profile'
                 ? 'bg-[#0B6B3A] text-white shadow-xs'
@@ -165,6 +322,7 @@ export default function PatientAppShell({
 
           <Link
             href="/portal?tab=settings"
+            onClick={() => startProgress()}
             className={`nav-link flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-[13.5px] font-medium no-underline transition ${
               activeTab === 'settings'
                 ? 'bg-[#0B6B3A] text-white shadow-xs'
@@ -184,16 +342,21 @@ export default function PatientAppShell({
             </div>
           )}
 
-          <Link
-            href="/login-patient"
-            onClick={() => showLoading('Signing out of beneficiary session...')}
-            className="nav-link flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-[13.5px] font-medium text-[#E6F1EA]/80 hover:bg-white/10 hover:text-white no-underline transition"
+          <button
+            type="button"
+            onClick={() => {
+              showLoading('Signing out of beneficiary session...');
+              setTimeout(() => {
+                logout('/login-patient');
+              }, 150);
+            }}
+            className="nav-link w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-[13.5px] font-medium text-[#E6F1EA]/80 hover:bg-white/10 hover:text-white no-underline transition bg-transparent border-0 cursor-pointer text-left"
             title="Sign Out"
             data-tooltip="Sign Out"
           >
             <i className="fa-solid fa-arrow-right-from-bracket w-5 text-center text-[15px]" />
             {!sidebarCollapsed && <span className="nav-text">Sign Out</span>}
-          </Link>
+          </button>
         </nav>
 
         {/* Sidebar Footer */}
@@ -201,12 +364,12 @@ export default function PatientAppShell({
           {!sidebarCollapsed ? (
             <div>
               <div className="font-semibold text-white">OFPHIL Foundation</div>
-              <div className="text-[10px] text-[#9DBFA9] opacity-75 mt-0.5">
-                Clinical Decision Support v2.5
+              <div className="text-[10px] text-[#9DBFA9] opacity-75 mt-0.5 leading-snug">
+                © 2026 Ophthalmological Foundation of the Philippines. All rights reserved.
               </div>
             </div>
           ) : (
-            <div className="text-center font-bold text-xs text-[#9DBFA9]">v2.5</div>
+            <div className="text-center font-bold text-[10px] text-[#9DBFA9]">© OFPHIL</div>
           )}
         </div>
       </aside>
@@ -217,8 +380,14 @@ export default function PatientAppShell({
           sidebarCollapsed ? 'lg:ml-[72px]' : 'lg:ml-[260px]'
         }`}
       >
-        {/* App Topbar Header */}
-        <header className="app-topbar h-[72px] px-6 sm:px-8 bg-white border-b border-[#D5E2D9] flex items-center justify-between sticky top-0 z-30 shadow-xs">
+        {/* App Topbar Header (Matching Admin & MSW Topbar Format!) */}
+        <header className="app-topbar h-[72px] px-6 sm:px-8 bg-white border-b border-[#D5E2D9] flex items-center justify-between sticky top-0 z-30 shadow-xs relative">
+          {isProgressBarActive && (
+            <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-[#E6F1EA] overflow-hidden z-50">
+              <div className="h-full bg-gradient-to-r from-[#0B6B3A] via-[#10B981] to-[#047857] shadow-sm animate-clinical-progress" />
+            </div>
+          )}
+
           <div className="topbar-left flex items-center gap-3 min-w-0">
             <button
               onClick={() => setMobileSidebarOpen(true)}
@@ -237,46 +406,258 @@ export default function PatientAppShell({
             </div>
           </div>
 
-          <div className="topbar-actions flex items-center gap-2.5 sm:gap-3 flex-shrink-0">
-            {/* Accessibility Quick Icon */}
-            <button
-              type="button"
-              className="w-9 h-9 rounded-full bg-[#F4F7F4] hover:bg-[#E6F1EA] text-[#0B6B3A] flex items-center justify-center border border-[#D5E2D9] transition"
-              title="Quick Display & Accessibility"
-              aria-label="Display & Accessibility Preferences"
-            >
-              <i className="fa-solid fa-universal-access text-sm" />
-            </button>
+          <div className="topbar-actions flex items-center gap-3 flex-shrink-0">
+            {/* Universal Accessibility / Quick Display & Reading Aid Button */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  setA11yDropdownOpen(!a11yDropdownOpen);
+                  setProfileDropdownOpen(false);
+                }}
+                className={`w-9 h-9 rounded-full transition flex items-center justify-center text-sm cursor-pointer border border-[#D5E2D9] ${
+                  a11yDropdownOpen
+                    ? 'bg-[#0B6B3A] text-white shadow-xs'
+                    : 'bg-white text-[#0B6B3A] hover:bg-[#E6F1EA]'
+                }`}
+                title="Display & Accessibility"
+                aria-label="Accessibility options"
+              >
+                <i className="fa-solid fa-universal-access text-base" />
+              </button>
 
-            {/* Notification Bell */}
-            <button
-              type="button"
-              className="w-9 h-9 rounded-full bg-[#F4F7F4] hover:bg-[#E6F1EA] text-[#5A7466] hover:text-[#0B6B3A] flex items-center justify-center border border-[#D5E2D9] transition relative"
-              title="Notifications"
-              aria-label="Urgent Notifications"
-            >
-              <i className="fa-regular fa-bell text-sm" />
-              <span className="w-2 h-2 rounded-full bg-[#0B6B3A] absolute top-2 right-2 border-2 border-white" />
-            </button>
+              {a11yDropdownOpen && (
+                <div className="absolute right-0 top-12 w-80 bg-white rounded-2xl shadow-xl border border-[#D5E2D9] p-4 z-50 animate-in fade-in zoom-in-95 duration-150 text-xs">
+                  <div className="flex items-center justify-between pb-3 border-b border-[#EEF2EF] mb-3.5">
+                    <div className="flex items-center gap-2 font-bold text-[#10241A] text-[13px]">
+                      <i className="fa-regular fa-eye text-[#0B6B3A] text-sm" />
+                      <span>Quick Display &amp; Reading Aid</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleResetDisplay}
+                      className="text-[11.5px] font-semibold text-[#0B6B3A] hover:underline bg-transparent border-0 cursor-pointer p-0"
+                    >
+                      Reset
+                    </button>
+                  </div>
 
-            {/* Patient Portal Badge */}
-            <div className="portal-badge hidden md:flex items-center gap-2 text-xs text-[#24352B] bg-[#F4F7F4] px-3.5 py-1.5 rounded-full font-semibold border border-[#D5E2D9]">
-              <i className="fa-solid fa-hospital-user text-[#2563EB]" />
-              <span>
-                Patient Portal (Beneficiary):{' '}
-                <span className="font-bold text-[#10241A]">{patient.name}</span>
-              </span>
+                  <div className="mb-4">
+                    <label className="block text-[11px] font-bold text-[#334155] mb-2">
+                      Font Size &amp; Scaling
+                    </label>
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {(['100%', '110%', '120%', '130%'] as const).map((size) => (
+                        <button
+                          key={size}
+                          type="button"
+                          onClick={() => handleFontSizeChange(size)}
+                          className={`py-2 rounded-xl font-bold text-xs border transition cursor-pointer ${
+                            fontSize === size
+                              ? 'bg-[#0B6B3A] text-white border-[#0B6B3A] shadow-xs'
+                              : 'bg-[#F8FAFC] text-[#334155] border-[#E2E8F0] hover:bg-[#F1F5F9]'
+                          }`}
+                        >
+                          {size}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="block text-[11px] font-bold text-[#334155] mb-2">
+                      Theme &amp; Contrast Mode
+                    </label>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {(['Light', 'Dark', 'High Contrast'] as const).map((mode) => (
+                        <button
+                          key={mode}
+                          type="button"
+                          onClick={() => setThemeMode(mode)}
+                          className={`py-2 px-1 text-center rounded-xl font-bold text-[11px] border transition cursor-pointer ${
+                            themeMode === mode
+                              ? 'bg-[#0B6B3A] text-white border-[#0B6B3A] shadow-xs'
+                              : 'bg-[#F8FAFC] text-[#334155] border-[#E2E8F0] hover:bg-[#F1F5F9]'
+                          }`}
+                        >
+                          {mode}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="block text-[11px] font-bold text-[#334155] mb-2">
+                      Font Family Style
+                    </label>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {(['Clinical', 'Serif', 'Low-Vision'] as const).map((fam) => (
+                        <button
+                          key={fam}
+                          type="button"
+                          onClick={() => setFontFamily(fam)}
+                          className={`py-2 px-1 text-center rounded-xl font-bold text-[11px] border transition cursor-pointer ${
+                            fontFamily === fam
+                              ? 'bg-[#0B6B3A] text-white border-[#0B6B3A] shadow-xs'
+                              : 'bg-[#F8FAFC] text-[#334155] border-[#E2E8F0] hover:bg-[#F1F5F9]'
+                          }`}
+                        >
+                          {fam}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#334155] mb-2">
+                      Table Row Density
+                    </label>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {(['Comfortable', 'Compact'] as const).map((density) => (
+                        <button
+                          key={density}
+                          type="button"
+                          onClick={() => setTableDensity(density)}
+                          className={`py-2 rounded-xl font-bold text-[11.5px] border transition cursor-pointer ${
+                            tableDensity === density
+                              ? 'bg-[#0B6B3A] text-white border-[#0B6B3A] shadow-xs'
+                              : 'bg-[#F8FAFC] text-[#334155] border-[#E2E8F0] hover:bg-[#F1F5F9]'
+                          }`}
+                        >
+                          {density}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Logout Button */}
-            <Link
-              href="/login-patient"
-              onClick={() => showLoading('Signing out of beneficiary session...')}
-              className="px-3.5 py-1.5 rounded-lg border border-[#D5E2D9] hover:bg-slate-50 text-xs font-semibold text-[#24352B] flex items-center gap-1.5 transition no-underline shadow-xs"
-            >
-              <i className="fa-solid fa-arrow-right-from-bracket text-[11px]" />
-              <span>Logout</span>
-            </Link>
+            {/* Interactive User Pill Profile Dropdown (Exact Replica of Image 2!) */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  setProfileDropdownOpen(!profileDropdownOpen);
+                  setA11yDropdownOpen(false);
+                }}
+                className={`flex items-center gap-2.5 px-3 py-1.5 rounded-full border text-xs transition cursor-pointer ${
+                  profileDropdownOpen
+                    ? 'bg-[#E8F5EC] border-[#0B6B3A] shadow-xs ring-2 ring-[#0B6B3A]/20'
+                    : 'bg-[#FAFBF8] hover:bg-[#E8F5EC] border-[#D5E2D9]'
+                }`}
+                title="Patient Profile Menu"
+              >
+                <div className="w-6 h-6 rounded-full bg-[#064826] text-white flex items-center justify-center font-bold text-[11px] shrink-0 leading-none">
+                  {patient.name.charAt(0).toUpperCase()}
+                </div>
+                <div className="text-left">
+                  <div className="font-bold text-[#10241A] leading-tight">{patient.name}</div>
+                  <div className="text-[10px] text-[#5A7466] leading-tight flex items-center gap-1">
+                    <i className="fa-solid fa-hospital-user text-[9px] text-[#0B6B3A]" />
+                    <span>Patient Beneficiary</span>
+                  </div>
+                </div>
+                <i
+                  className={`fa-solid fa-chevron-up text-[10px] text-gray-500 ml-1 transition-transform ${
+                    profileDropdownOpen ? '' : 'rotate-180'
+                  }`}
+                />
+              </button>
+
+              {/* Profile Dropdown Menu Card (Exact Layout of Image 2) */}
+              {profileDropdownOpen && (
+                <div className="absolute right-0 top-12 w-64 bg-white rounded-2xl shadow-xl border border-[#D5E2D9] p-3 z-50 animate-in fade-in zoom-in-95 duration-150">
+                  {/* Profile Card Header */}
+                  <div className="p-2 pb-3 mb-2 border-b border-[#EEF2EF] flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-[#E6F1EA] text-[#0B6B3A] flex items-center justify-center font-bold text-base border border-[#BBF7D0]">
+                      {patient.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-bold text-[#10241A] text-[13px] truncate">
+                        {patient.name}
+                      </div>
+                      <div className="text-[11px] text-[#64748B] truncate">
+                        {patient.email}
+                      </div>
+                      <div className="mt-1">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold bg-[#E6F1EA] text-[#0B6B3A]">
+                          Patient Beneficiary &bull; Active
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Menu Links */}
+                  <div className="space-y-1">
+                    <Link
+                      href="/portal?tab=profile"
+                      onClick={() => {
+                        startProgress();
+                        setProfileDropdownOpen(false);
+                      }}
+                      className="flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold text-[#1E293B] hover:bg-[#F8FAFC] transition no-underline"
+                    >
+                      <i className="fa-solid fa-address-card text-[#0B6B3A] text-sm w-4 text-center" />
+                      <span>My Profile</span>
+                    </Link>
+
+                    <Link
+                      href="/portal?tab=settings"
+                      onClick={() => {
+                        startProgress();
+                        setProfileDropdownOpen(false);
+                      }}
+                      className="flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold text-[#1E293B] hover:bg-[#F8FAFC] transition no-underline"
+                    >
+                      <i className="fa-solid fa-sliders text-[#0B6B3A] text-sm w-4 text-center" />
+                      <span>Account Settings</span>
+                    </Link>
+
+                    <Link
+                      href="/portal?tab=notifications"
+                      onClick={() => {
+                        startProgress();
+                        setProfileDropdownOpen(false);
+                      }}
+                      className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-[#1E293B] hover:bg-[#F8FAFC] transition no-underline"
+                    >
+                      <div className="flex items-center gap-3">
+                        <i className="fa-solid fa-bell text-[#0B6B3A] text-sm w-4 text-center" />
+                        <span>Notifications</span>
+                      </div>
+                      <span
+                        className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold transition ${
+                          unreadNotificationsCount > 0
+                            ? 'bg-[#DC2626] text-white animate-pulse'
+                            : 'bg-[#E2E8F0] text-[#475569]'
+                        }`}
+                      >
+                        {unreadNotificationsCount}
+                      </span>
+                    </Link>
+                  </div>
+
+                  {/* Sign Out Action */}
+                  <div className="mt-2 pt-2 border-t border-[#EEF2EF]">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setProfileDropdownOpen(false);
+                        showLoading('Signing out of beneficiary session...');
+                        setTimeout(() => {
+                          logout('/login-patient');
+                        }, 150);
+                      }}
+                      className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold text-[#DC2626] hover:bg-[#FEF2F2] transition bg-transparent border-0 cursor-pointer text-left"
+                    >
+                      <i className="fa-solid fa-arrow-right-from-bracket text-[#DC2626] text-sm w-4 text-center" />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </header>
 

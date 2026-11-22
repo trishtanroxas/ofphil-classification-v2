@@ -3,40 +3,79 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 
 interface LoadingScreenContextType {
+  active: boolean;
   showLoading: (message?: string) => void;
   hideLoading: () => void;
+  startProgress: () => void;
+  stopProgress: () => void;
+  isProgressBarActive: boolean;
 }
 
 const LoadingScreenContext = createContext<LoadingScreenContextType>({
+  active: false,
   showLoading: () => {},
   hideLoading: () => {},
+  startProgress: () => {},
+  stopProgress: () => {},
+  isProgressBarActive: false,
 });
 
 export function LoadingScreenProvider({ children }: { children: React.ReactNode }) {
   const [active, setActive] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('Loading OFPHIL Clinical System...');
+  const [isProgressBarActive, setIsProgressBarActive] = useState(false);
   const pathname = usePathname();
 
-  // Route-change auto dismissal
+  // Route-change auto dismissal and instant top progress bar pulse
   useEffect(() => {
     setActive(false);
+    setIsProgressBarActive(true);
+    const timer = setTimeout(() => {
+      setIsProgressBarActive(false);
+    }, 250);
+    return () => clearTimeout(timer);
   }, [pathname]);
 
   const showLoading = (message?: string) => {
     if (message) setLoadingMessage(message);
     setActive(true);
+    setIsProgressBarActive(true);
     // Safety auto-dismiss fallback so overlay never gets stuck
     setTimeout(() => {
       setActive(false);
+      setIsProgressBarActive(false);
     }, 2000);
   };
 
   const hideLoading = () => {
     setActive(false);
+    setIsProgressBarActive(false);
+  };
+
+  // Instant trigger for immediate feedback on clicks (e.g. tabs, links, actions)
+  const startProgress = () => {
+    setIsProgressBarActive(true);
+    // Auto reset after 500ms if not explicitly stopped
+    setTimeout(() => {
+      setIsProgressBarActive(false);
+    }, 500);
+  };
+
+  const stopProgress = () => {
+    setIsProgressBarActive(false);
   };
 
   return (
-    <LoadingScreenContext.Provider value={{ showLoading, hideLoading }}>
+    <LoadingScreenContext.Provider
+      value={{
+        active,
+        showLoading,
+        hideLoading,
+        startProgress,
+        stopProgress,
+        isProgressBarActive,
+      }}
+    >
       {children}
 
       {/* Modern Clinical Transition Overlay Loading Screen - Logo Only */}

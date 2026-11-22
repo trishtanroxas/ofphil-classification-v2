@@ -64,6 +64,29 @@
   --radius-pill: 999px;
 }
 
+@keyframes clinicalHeaderProgress {
+  0% {
+    transform: translateX(-100%);
+    width: 25%;
+  }
+  40% {
+    transform: translateX(20%);
+    width: 60%;
+  }
+  80% {
+    transform: translateX(80%);
+    width: 50%;
+  }
+  100% {
+    transform: translateX(110%);
+    width: 35%;
+  }
+}
+
+.animate-clinical-progress {
+  animation: clinicalHeaderProgress 0.75s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+}
+
 body {
   font-family: 'Figtree', sans-serif;
   background-color: var(--bg-main);
@@ -141,8 +164,117 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
+/* ==========================================================================
+   Smooth Fade-in & Fade-out Animation Effects for Toasts & Modals
+   ========================================================================== */
+
+/* Toast Slide-In & Slide-Out Animations */
+@keyframes toastSlideIn {
+  0% {
+    opacity: 0;
+    transform: translate3d(115%, 0, 0) scale(0.96);
+  }
+  70% {
+    opacity: 1;
+    transform: translate3d(-4px, 0, 0) scale(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes toastSlideOut {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(120%, 0, 0) scale(0.95);
+  }
+}
+
+.animate-toast-slide-in,
+.animate-toast-fade-in {
+  animation: toastSlideIn 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-toast-slide-out {
+  animation: toastSlideOut 0.32s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+[data-sonner-toast] {
+  animation: toastSlideIn 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+
+[data-sonner-toast][data-mounted="false"],
+[data-sonner-toast][data-removed="true"] {
+  animation: toastSlideOut 0.32s cubic-bezier(0.4, 0, 1, 1) forwards !important;
+}
+
+/* Modal Backdrop & Dialog Animations */
+@keyframes modalBackdropFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modalBackdropFadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes modalContentFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes modalContentFadeOut {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.94) translateY(8px);
+  }
+}
+
+.modal-backdrop-animate {
+  animation: modalBackdropFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.modal-content-animate {
+  animation: modalContentFadeIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Any fixed overlay backdrop automatically benefits from smooth fade-in */
+.fixed.inset-0.bg-black\/50,
+.fixed.inset-0.bg-black\/60,
+.fixed.inset-0.bg-black\/40 {
+  animation: modalBackdropFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .skeleton::after {
+  .skeleton::after,
+  .animate-toast-fade-in,
+  .modal-backdrop-animate,
+  .modal-content-animate,
+  [data-sonner-toast] {
     animation: none !important;
   }
 }

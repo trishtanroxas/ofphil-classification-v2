@@ -4,8 +4,11 @@ import './globals.css';
 import { Providers } from '@/providers/Providers';
 
 export const metadata: Metadata = {
-  title: 'OFPHIL V2 — Clinical Management & Eligibility System',
-  description: 'Ophthalmological Foundation Decision Support System — Experimental Multimodal Classifier & OCR Benchmarks',
+  title: {
+    default: 'OFPHIL — Ophthalmological Foundation of the Philippines',
+    template: '%s · OFPHIL',
+  },
+  description: 'Ophthalmological Foundation of the Philippines — Patient Master Registry & Clinical Directory',
 };
 
 export default function RootLayout({

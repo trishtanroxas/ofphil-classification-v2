@@ -19,7 +19,32 @@ def sanitize_filename(filename: str) -> str:
     return clean_name
 
 
-def validate_file_upload(filename: str, file_size: int, max_size_mb: int = 20) -> None:
+MAGIC_SIGNATURES = {
+    b"%PDF": "application/pdf",
+    b"\x89PNG\r\n\x1a\n": "image/png",
+    b"\xff\xd8\xff": "image/jpeg",
+    b"II*\x00": "image/tiff",
+    b"MM\x00*": "image/tiff"
+}
+
+
+def validate_file_signature(content: bytes) -> str:
+    """Validates real file magic bytes to prevent renamed malicious payloads."""
+    if not content:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File content cannot be empty."
+        )
+    for magic, mime in MAGIC_SIGNATURES.items():
+        if content.startswith(magic):
+            return mime
+    raise HTTPException(
+        status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+        detail="Invalid file signature (magic bytes mismatch). Only authentic PDF, PNG, JPG, and TIFF documents are accepted."
+    )
+
+
+def validate_file_upload(filename: str, file_size: int, max_size_mb: int = 20, file_content: bytes = None) -> None:
     """Validates file extension, size, and detects path traversal attempts."""
     if not filename:
         raise HTTPException(
@@ -50,3 +75,6 @@ def validate_file_upload(filename: str, file_size: int, max_size_mb: int = 20) -
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
             detail=f"File exceeds maximum upload size limit of {max_size_mb}MB."
         )
+
+    if file_content is not None and len(file_content) > 0:
+        validate_file_signature(file_content)

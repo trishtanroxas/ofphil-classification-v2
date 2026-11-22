@@ -2,9 +2,11 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useLoadingScreen } from '@/context/LoadingScreenContext';
+import { useAuth } from '@/context/AuthContext';
 
 export default function RootLandingPage() {
   const { showLoading } = useLoadingScreen();
+  const { user, role, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [inquirySubject, setInquirySubject] = useState('Assistance Application Inquiry');
   const [inquiryName, setInquiryName] = useState('');
@@ -13,46 +15,182 @@ export default function RootLandingPage() {
   const [submitting, setSubmitting] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastSuccess, setToastSuccess] = useState(true);
+  const [toastClosing, setToastClosing] = useState(false);
 
-  // Attachment state
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const triggerToast = (msg: string, isSuccess = true) => {
+    setToastClosing(false);
+    setToastSuccess(isSuccess);
+    setToastMessage(msg);
+  };
+
+  const dismissToast = () => {
+    setToastClosing(true);
+    setTimeout(() => {
+      setToastMessage(null);
+      setToastClosing(false);
+    }, 320);
+  };
+
+  React.useEffect(() => {
+    if (!toastMessage) return;
+    const timer = setTimeout(() => {
+      dismissToast();
+    }, 5200);
+    return () => clearTimeout(timer);
+  }, [toastMessage]);
+
+  // Multi-file Attachment State (Max 5 files, 10MB each)
+  const MAX_FILES = 5;
+  const MAX_SIZE_BYTES = 10 * 1024 * 1024;
+  const [selectedFiles, setSelectedFiles] = useState<
+    Array<{ id: string; file: File; previewSrc: string | null }>
+  >([]);
   const [previewSrc, setPreviewSrc] = useState<string | null>(null);
   const [imageModalOpen, setImageModalOpen] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setSelectedFile(file);
-      if (file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-          setPreviewSrc(ev.target?.result as string);
-        };
-        reader.readAsDataURL(file);
-      } else {
-        setPreviewSrc(null);
-      }
+    const fileList = e.target.files;
+    if (!fileList || fileList.length === 0) return;
+
+    const incoming = Array.from(fileList);
+    const remainingSlots = MAX_FILES - selectedFiles.length;
+
+    if (remainingSlots <= 0) {
+      triggerToast(`Maximum limit of ${MAX_FILES} attachments reached. Remove a file to add another.`, false);
+      e.target.value = '';
+      return;
     }
+
+    if (incoming.length > remainingSlots) {
+      triggerToast(`You can only attach up to ${MAX_FILES} files total (${remainingSlots} slot(s) left).`, false);
+    }
+
+    const toProcess = incoming.slice(0, remainingSlots);
+
+    toProcess.forEach((file) => {
+      const isAllowed =
+        file.type.startsWith('image/') ||
+        file.type === 'application/pdf' ||
+        file.name.toLowerCase().endsWith('.pdf') ||
+        file.name.toLowerCase().endsWith('.png') ||
+        file.name.toLowerCase().endsWith('.jpg') ||
+        file.name.toLowerCase().endsWith('.jpeg');
+
+      if (!isAllowed) {
+        triggerToast(`"${file.name}" is not a valid format. Only PNG, JPG, or PDF files are allowed.`, false);
+        return;
+      }
+
+      if (file.size > MAX_SIZE_BYTES) {
+        triggerToast(`"${file.name}" exceeds the 10MB maximum file size limit.`, false);
+        return;
+      }
+
+      const id = `${file.name}-${file.size}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        setSelectedFiles((prev) => {
+          if (prev.length >= MAX_FILES) return prev;
+          return [...prev, { id, file, previewSrc: (ev.target?.result as string) || null }];
+        });
+      };
+      reader.readAsDataURL(file);
+    });
+
+    e.target.value = '';
+  };
+
+  const handleRemoveSingleFile = (id: string) => {
+    setSelectedFiles((prev) => prev.filter((item) => item.id !== id));
   };
 
   const handleClearFile = () => {
-    setSelectedFile(null);
+    setSelectedFiles([]);
     setPreviewSrc(null);
   };
 
-  const handleInquirySubmit = (e: React.FormEvent) => {
+  const handleInquirySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-    setTimeout(() => {
-      setSubmitting(false);
-      setToastSuccess(true);
-      setToastMessage('Maraming salamat! Your inquiry message has been delivered to the OFPHIL Medical Social Work desk.');
-      setInquiryName('');
-      setInquiryEmail('');
-      setInquiryMessage('');
-      handleClearFile();
-      setTimeout(() => setToastMessage(null), 6000);
-    }, 700);
+
+    const inqId = `INQ-2026-${Math.floor(100 + Math.random() * 900)}`;
+    const senderName = inquiryName.trim() || 'Public Visitor';
+    const senderEmail = inquiryEmail.trim() || 'roxas.t.bscs@gmail.com';
+    const msgText = inquiryMessage.trim();
+
+    const formattedAttachments = selectedFiles.map((item) => ({
+      name: item.file.name,
+      type: (item.file.type.includes('pdf') || item.file.name.toLowerCase().endsWith('.pdf') ? 'pdf' : 'image') as 'pdf' | 'image',
+      url: item.previewSrc || '',
+      dataUrl: item.previewSrc || '',
+      size:
+        item.file.size > 1024 * 1024
+          ? `${(item.file.size / (1024 * 1024)).toFixed(1)} MB`
+          : `${Math.round(item.file.size / 1024)} KB`,
+    }));
+
+    const newPublicInq = {
+      id: inqId,
+      source: 'public_landing' as const,
+      name: senderName,
+      email: senderEmail,
+      contactNumber: '0917 800 2026',
+      subject: inquirySubject,
+      date: new Date().toLocaleString('en-US', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
+      status: 'New' as const,
+      isRead: false,
+      message: msgText,
+      patientAttachments: formattedAttachments,
+      replyHistory: [],
+    };
+
+    try {
+      const existing = JSON.parse(localStorage.getItem('ofphil_public_inquiries') || '[]');
+      localStorage.setItem('ofphil_public_inquiries', JSON.stringify([newPublicInq, ...existing]));
+      window.dispatchEvent(new Event('ofphil-inquiries-updated'));
+    } catch (err) {}
+
+    let emailDispatched = false;
+    try {
+      const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1';
+      const res = await fetch(`${apiBase}/inquiries/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          inquiry_id: inqId,
+          name: senderName,
+          email: senderEmail,
+          subject: inquirySubject,
+          message: msgText,
+          attachment_names: formattedAttachments.map((a) => a.name),
+          attachments: formattedAttachments,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        emailDispatched = Boolean(data.email_sent);
+      }
+    } catch (err) {
+      console.warn('Inquiry SMTP call failed:', err);
+    }
+
+    setSubmitting(false);
+    triggerToast(
+      emailDispatched
+        ? `Maraming salamat! Inquiry ${inqId} (with viewable files) sent to ${senderEmail} & OFPHIL Clinic Desk.`
+        : `Maraming salamat! Your inquiry (${inqId}) has been delivered to the OFPHIL Clinic Inquiries Desk.`,
+      true
+    );
+    setInquiryName('');
+    setInquiryEmail('');
+    setInquiryMessage('');
+    handleClearFile();
   };
 
   return (
@@ -91,20 +229,60 @@ export default function RootLandingPage() {
 
           {/* Action Buttons (Desktop) */}
           <div className="landing-desktop-actions items-center gap-3 flex-shrink-0">
-            <Link
-              href="/login-admin"
-              onClick={() => showLoading('Navigating to Staff & Admin Console...')}
-              className="px-3 py-2 text-[13px] font-medium text-[#24352B] hover:text-[#0B6B3A] transition whitespace-nowrap"
-            >
-              Staff Sign In
-            </Link>
-            <Link
-              href="/login-admin"
-              onClick={() => showLoading('Preparing Admin Intake Console...')}
-              className="inline-flex items-center gap-2 px-3.5 py-2 text-[13px] font-semibold text-white bg-[#0B6B3A] hover:bg-[#064826] rounded-full transition shadow-sm whitespace-nowrap"
-            >
-              Admin Portal
-            </Link>
+            {user ? (
+              <>
+                <Link
+                  href={
+                    role === 'admin' || role === 'nurse'
+                      ? '/admin/patient-records'
+                      : role === 'msw'
+                      ? '/dashboard'
+                      : '/portal?tab=dashboard'
+                  }
+                  onClick={() => showLoading('Navigating to your dashboard...')}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-[13px] font-semibold text-white bg-[#0B6B3A] hover:bg-[#064826] rounded-full transition shadow-sm whitespace-nowrap"
+                >
+                  <i className="fa-solid fa-table-columns text-xs" />
+                  <span>
+                    {role === 'admin' || role === 'nurse'
+                      ? 'Admin Dashboard'
+                      : role === 'msw'
+                      ? 'Caseworker Dashboard'
+                      : 'Patient Dashboard'}
+                  </span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => {
+                    showLoading('Signing out of session...');
+                    logout();
+                    setTimeout(() => {
+                      window.location.reload();
+                    }, 200);
+                  }}
+                  className="px-3 py-2 text-[13px] font-medium text-[#24352B] hover:text-[#DC2626] transition whitespace-nowrap bg-transparent border-0 cursor-pointer"
+                >
+                  Sign Out
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/login-patient"
+                  onClick={() => showLoading('Navigating to Patient Sign In...')}
+                  className="px-3 py-2 text-[13px] font-medium text-[#24352B] hover:text-[#0B6B3A] transition whitespace-nowrap"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  href="/login-patient"
+                  onClick={() => showLoading('Preparing Charity Assistance Intake Portal...')}
+                  className="inline-flex items-center gap-2 px-3.5 py-2 text-[13px] font-semibold text-white bg-[#0B6B3A] hover:bg-[#064826] rounded-full transition shadow-sm whitespace-nowrap"
+                >
+                  Apply for Assistance
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile Hamburger Toggle Button */}
@@ -139,12 +317,57 @@ export default function RootLandingPage() {
                 </a>
               </div>
               <div className="landing-mobile-actions">
-                <Link href="/login-patient" onClick={() => setMobileMenuOpen(false)} className="mobile-action-primary">
-                  <i className="fa-solid fa-hand-holding-heart"></i> Apply for Assistance
-                </Link>
-                <Link href="/login-patient" onClick={() => setMobileMenuOpen(false)} className="mobile-action-secondary">
-                  <i className="fa-solid fa-lock"></i> Sign In to Portal
-                </Link>
+                {user ? (
+                  <>
+                    <Link
+                      href={
+                        role === 'admin' || role === 'nurse'
+                          ? '/admin/patient-records'
+                          : role === 'msw'
+                          ? '/dashboard'
+                          : '/portal?tab=dashboard'
+                      }
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        showLoading('Navigating to your dashboard...');
+                      }}
+                      className="mobile-action-primary"
+                    >
+                      <i className="fa-solid fa-table-columns" />
+                      <span>
+                        {role === 'admin' || role === 'nurse'
+                          ? 'Admin Dashboard'
+                          : role === 'msw'
+                          ? 'Caseworker Dashboard'
+                          : 'Patient Dashboard'}
+                      </span>
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        showLoading('Signing out of session...');
+                        logout();
+                        setTimeout(() => {
+                          window.location.reload();
+                        }, 200);
+                      }}
+                      className="mobile-action-secondary"
+                    >
+                      <i className="fa-solid fa-arrow-right-from-bracket" />
+                      <span>Sign Out</span>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link href="/login-patient" onClick={() => setMobileMenuOpen(false)} className="mobile-action-primary">
+                      <i className="fa-solid fa-hand-holding-heart"></i> Apply for Assistance
+                    </Link>
+                    <Link href="/login-patient" onClick={() => setMobileMenuOpen(false)} className="mobile-action-secondary">
+                      <i className="fa-solid fa-lock"></i> Sign In to Portal
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -819,7 +1042,7 @@ export default function RootLandingPage() {
                     <span className="text-xs font-semibold px-3 py-1 bg-[#E8F5EC] text-[#0B6B3A] rounded-full">Direct Clinic Desk</span>
                   </div>
                   <span className="section-eyebrow">SEND AN INQUIRY</span>
-                  <h2 className="text-2xl font-bold font-['Outfit'] text-[#24352B] m-0">Patient &amp; Public Inquiry Form</h2>
+                  <h2 className="text-2xl font-bold font-['Outfit'] text-[#24352B] m-0">Public Inquiry Form</h2>
                   <p className="text-xs sm:text-sm text-[#66756B] mt-1 mb-5 leading-relaxed">
                     Have questions regarding surgery sponsorship, medical quotation verification, or indigency documentary requirements? Fill out this form and our medical social work desk will respond.
                   </p>
@@ -887,25 +1110,34 @@ export default function RootLandingPage() {
                     />
                   </div>
 
-                  {/* Attachment Box */}
+                  {/* Multi-File Attachment Box (Up to 5 files, max 10MB each) */}
                   <div className="form-field-group mt-3" style={{ marginBottom: '12px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                       <label style={{ fontSize: '12px', fontWeight: 700, color: '#24352B', display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <i className="fa-solid fa-paperclip" style={{ color: '#0B6B3A' }} />
-                        <span>Attach Photo or Document <span style={{ fontWeight: 400, color: '#66756B' }}>(Optional)</span></span>
+                        <span>
+                          Attach Photos or Documents{' '}
+                          <span style={{ fontWeight: 400, color: '#66756B' }}>
+                            (Optional &bull; {selectedFiles.length}/{MAX_FILES} files)
+                          </span>
+                        </span>
                       </label>
-                      <span style={{ fontSize: '11px', color: '#88998E' }}>PNG, JPG, PDF &bull; max 10MB</span>
+                      <span style={{ fontSize: '11px', color: '#88998E' }}>
+                        PNG, JPG, PDF &bull; Max {MAX_FILES} files (10MB each)
+                      </span>
                     </div>
 
                     <input
                       type="file"
                       id="inquiryAttachment"
                       accept="image/*,.pdf"
+                      multiple
                       style={{ display: 'none' }}
                       onChange={handleFileChange}
                     />
 
-                    {!selectedFile ? (
+                    {/* Upload Dropzone Trigger (Visible while under MAX_FILES limit) */}
+                    {selectedFiles.length < MAX_FILES ? (
                       <div
                         onClick={() => document.getElementById('inquiryAttachment')?.click()}
                         style={{
@@ -917,61 +1149,219 @@ export default function RootLandingPage() {
                           display: 'flex',
                           alignItems: 'center',
                           gap: '14px',
-                          transition: 'all 0.2s ease'
+                          transition: 'all 0.2s ease',
                         }}
                       >
-                        <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#E8F5EC', color: '#0B6B3A', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0 }}>
-                          <i className="fa-regular fa-image" />
+                        <div
+                          style={{
+                            width: '38px',
+                            height: '38px',
+                            borderRadius: '8px',
+                            background: '#E8F5EC',
+                            color: '#0B6B3A',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '16px',
+                            flexShrink: 0,
+                          }}
+                        >
+                          <i className="fa-regular fa-images" />
                         </div>
                         <div style={{ flex: 1, textAlign: 'left' }}>
-                          <div style={{ fontSize: '12.5px', fontWeight: 600, color: '#10241A' }}>Click to upload document or photo</div>
-                          <div style={{ fontSize: '11px', color: '#66756B' }}>Reseta, clinical quotation, o litrato ng katanungan</div>
+                          <div style={{ fontSize: '12.5px', fontWeight: 600, color: '#10241A' }}>
+                            {selectedFiles.length === 0
+                              ? 'Click to upload documents or photos (up to 5 files)'
+                              : `Add more files (${MAX_FILES - selectedFiles.length} remaining)`}
+                          </div>
+                          <div style={{ fontSize: '11px', color: '#66756B' }}>
+                            Reseta, clinical quotation, Barangay Indigency, o litrato ng katanungan
+                          </div>
                         </div>
-                        <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#0B6B3A', background: '#FFFFFF', border: '1px solid #D5E2D9', padding: '6px 12px', borderRadius: '6px' }}>
-                          Browse File
+                        <span
+                          style={{
+                            fontSize: '11.5px',
+                            fontWeight: 700,
+                            color: '#0B6B3A',
+                            background: '#FFFFFF',
+                            border: '1px solid #D5E2D9',
+                            padding: '6px 12px',
+                            borderRadius: '6px',
+                          }}
+                        >
+                          Browse Files
                         </span>
                       </div>
                     ) : (
-                      <div style={{ marginTop: '8px', padding: '10px 14px', background: '#FFFFFF', border: '1.5px solid #0B6B3A', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        {previewSrc ? (
-                          <img
-                            src={previewSrc}
-                            alt="Thumbnail"
-                            onClick={() => setImageModalOpen(true)}
-                            title="Click to view full image"
-                            style={{ width: '44px', height: '44px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #DCE5DF', cursor: 'pointer', flexShrink: 0 }}
-                          />
-                        ) : (
-                          <div style={{ width: '44px', height: '44px', borderRadius: '6px', background: '#E8F5EC', color: '#0B6B3A', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0 }}>
-                            <i className="fa-regular fa-file-pdf" />
-                          </div>
-                        )}
-                        <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
-                          <div style={{ fontSize: '12.5px', fontWeight: 700, color: '#10241A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {selectedFile.name}
-                          </div>
-                          <div style={{ fontSize: '11px', color: '#66756B' }}>
-                            {(selectedFile.size / 1024).toFixed(1)} KB
-                          </div>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          {previewSrc && (
-                            <button
-                              type="button"
-                              onClick={() => setImageModalOpen(true)}
-                              style={{ background: '#E8F5EC', color: '#0B6B3A', border: 'none', fontSize: '11px', fontWeight: 700, padding: '6px 10px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                      <div
+                        style={{
+                          padding: '10px 14px',
+                          borderRadius: '10px',
+                          background: '#F0FDF4',
+                          border: '1px solid #BBF7D0',
+                          fontSize: '11.5px',
+                          color: '#166534',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                        }}
+                      >
+                        <span>
+                          <i className="fa-solid fa-circle-check mr-1.5" />
+                          Maximum of {MAX_FILES} attachments reached.
+                        </span>
+                        <button
+                          type="button"
+                          onClick={handleClearFile}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: '#DC2626',
+                            fontWeight: 700,
+                            fontSize: '11px',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Clear All
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Attached Files List */}
+                    {selectedFiles.length > 0 && (
+                      <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {selectedFiles.map((item) => {
+                          const isPdfFile =
+                            item.file.type === 'application/pdf' ||
+                            item.file.name.toLowerCase().endsWith('.pdf') ||
+                            (item.previewSrc && item.previewSrc.startsWith('data:application/pdf'));
+
+                          return (
+                            <div
+                              key={item.id}
+                              style={{
+                                padding: '8px 12px',
+                                background: '#FFFFFF',
+                                border: '1.5px solid #0B6B3A',
+                                borderRadius: '10px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '12px',
+                              }}
                             >
-                              <i className="fa-regular fa-eye" /> View
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            onClick={handleClearFile}
-                            style={{ background: '#FEE2E2', color: '#DC2626', border: 'none', fontSize: '11px', fontWeight: 700, padding: '6px 10px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                          >
-                            <i className="fa-solid fa-xmark" /> Remove
-                          </button>
-                        </div>
+                              {!isPdfFile && item.previewSrc ? (
+                                <img
+                                  src={item.previewSrc}
+                                  alt="Thumbnail"
+                                  onClick={() => {
+                                    setPreviewSrc(item.previewSrc);
+                                    setImageModalOpen(true);
+                                  }}
+                                  title="Click to view full image"
+                                  style={{
+                                    width: '40px',
+                                    height: '40px',
+                                    objectFit: 'cover',
+                                    borderRadius: '6px',
+                                    border: '1px solid #DCE5DF',
+                                    cursor: 'pointer',
+                                    flexShrink: 0,
+                                  }}
+                                />
+                              ) : (
+                                <div
+                                  onClick={() => {
+                                    if (item.previewSrc) {
+                                      setPreviewSrc(item.previewSrc);
+                                      setImageModalOpen(true);
+                                    }
+                                  }}
+                                  title="Click to preview PDF document"
+                                  style={{
+                                    width: '40px',
+                                    height: '40px',
+                                    borderRadius: '8px',
+                                    background: '#FEF2F2',
+                                    border: '1px solid #FECACA',
+                                    color: '#DC2626',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: '18px',
+                                    flexShrink: 0,
+                                    cursor: item.previewSrc ? 'pointer' : 'default',
+                                  }}
+                                >
+                                  <i className="fa-solid fa-file-pdf" />
+                                </div>
+                              )}
+                              <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+                                <div
+                                  style={{
+                                    fontSize: '12px',
+                                    fontWeight: 700,
+                                    color: '#10241A',
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                  }}
+                                >
+                                  {item.file.name}
+                                </div>
+                                <div style={{ fontSize: '10.5px', color: '#66756B' }}>
+                                  {item.file.size > 1024 * 1024
+                                    ? `${(item.file.size / (1024 * 1024)).toFixed(2)} MB`
+                                    : `${(item.file.size / 1024).toFixed(1)} KB`}
+                                </div>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                {item.previewSrc && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setPreviewSrc(item.previewSrc);
+                                      setImageModalOpen(true);
+                                    }}
+                                    style={{
+                                      background: '#E8F5EC',
+                                      color: '#0B6B3A',
+                                      border: 'none',
+                                      fontSize: '11px',
+                                      fontWeight: 700,
+                                      padding: '5px 9px',
+                                      borderRadius: '6px',
+                                      cursor: 'pointer',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '4px',
+                                    }}
+                                  >
+                                    <i className="fa-regular fa-eye" /> View
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveSingleFile(item.id)}
+                                  style={{
+                                    background: '#FEE2E2',
+                                    color: '#DC2626',
+                                    border: 'none',
+                                    fontSize: '11px',
+                                    fontWeight: 700,
+                                    padding: '5px 9px',
+                                    borderRadius: '6px',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                  }}
+                                >
+                                  <i className="fa-solid fa-xmark" /> Remove
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -1103,7 +1493,7 @@ export default function RootLandingPage() {
         </div>
       </footer>
 
-      {/* Lightbox / Image Viewer Modal */}
+      {/* Lightbox / Document & Image Viewer Modal */}
       {imageModalOpen && previewSrc && (
         <div
           style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
@@ -1113,33 +1503,52 @@ export default function RootLandingPage() {
             <button
               type="button"
               onClick={() => setImageModalOpen(false)}
-              style={{ position: 'absolute', top: '-14px', right: '-14px', background: '#FFFFFF', color: '#10241A', width: '34px', height: '34px', borderRadius: '50%', border: 'none', fontWeight: 700, fontSize: '18px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              style={{ position: 'absolute', top: '-14px', right: '-14px', background: '#FFFFFF', color: '#10241A', width: '34px', height: '34px', borderRadius: '50%', border: 'none', fontWeight: 700, fontSize: '18px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}
             >
               &times;
             </button>
-            <img
-              src={previewSrc}
-              alt="Attachment Full View"
-              style={{ maxWidth: '90vw', maxHeight: '85vh', borderRadius: '8px', objectFit: 'contain' }}
-            />
+            {previewSrc.startsWith('data:application/pdf') ? (
+              <iframe
+                src={previewSrc}
+                title="PDF Document Preview"
+                style={{ width: '85vw', maxWidth: '920px', height: '82vh', borderRadius: '10px', background: '#FFFFFF', border: 'none' }}
+              />
+            ) : (
+              <img
+                src={previewSrc}
+                alt="Attachment Full View"
+                style={{ maxWidth: '90vw', maxHeight: '85vh', borderRadius: '8px', objectFit: 'contain' }}
+              />
+            )}
           </div>
         </div>
       )}
 
-      {/* Floating Feedback Toast Notification */}
+      {/* Floating Feedback Toast Notification with Slide-In and Slide-Out Animation */}
       {toastMessage && (
-        <div className="fixed top-6 right-6 z-[10000] flex items-start gap-3 p-4 rounded-xl border border-[#DCE5DF] bg-white text-[#24352B] shadow-xl max-w-sm">
-          <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-sm shrink-0 mt-0.5 ${toastSuccess ? 'bg-[#E8F5EC] text-[#0B6B3A]' : 'bg-red-50 text-red-600'}`}>
+        <div
+          className={`fixed top-6 right-6 z-[10000] flex items-start gap-3 p-4 rounded-xl border bg-white text-[#24352B] shadow-2xl max-w-sm ${
+            toastSuccess ? 'border-[#A7F3D0]' : 'border-red-200'
+          } ${toastClosing ? 'animate-toast-slide-out' : 'animate-toast-slide-in'}`}
+        >
+          <div
+            className={`w-7 h-7 rounded-lg flex items-center justify-center text-sm shrink-0 mt-0.5 ${
+              toastSuccess ? 'bg-[#E8F5EC] text-[#0B6B3A]' : 'bg-red-50 text-red-600'
+            }`}
+          >
             <i className={`fa-solid ${toastSuccess ? 'fa-circle-check' : 'fa-circle-exclamation'}`} />
           </div>
           <div className="flex-1 text-xs">
-            <div className="font-bold text-sm text-[#24352B] mb-0.5">Notification</div>
+            <div className="font-bold text-sm text-[#24352B] mb-0.5">
+              {toastSuccess ? 'Notification' : 'Upload Notice'}
+            </div>
             <div className="text-[#66756B] leading-relaxed">{toastMessage}</div>
           </div>
           <button
             type="button"
-            onClick={() => setToastMessage(null)}
-            className="text-[#66756B] hover:text-[#24352B] p-1 text-sm leading-none"
+            onClick={dismissToast}
+            className="text-[#66756B] hover:text-[#24352B] p-1 text-sm leading-none cursor-pointer bg-transparent border-0"
+            aria-label="Close Notification"
           >
             &times;
           </button>

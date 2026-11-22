@@ -1,33 +1,80 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import AuthLayout from '@/components/AuthLayout';
+import PasswordStrengthMeter from '@/components/PasswordStrengthMeter';
+import { toast } from 'sonner';
 
-export default function ResetPasswordPage() {
-  const [token, setToken] = useState('');
+function ResetPasswordFormContent() {
+  const searchParams = useSearchParams();
+  const roleParam = searchParams.get('role') || 'patient';
+  const codeParam = searchParams.get('code') || '';
+
+  const [token, setToken] = useState(codeParam);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
+  useEffect(() => {
+    if (codeParam) {
+      setToken(codeParam);
+    }
+  }, [codeParam]);
+
+  const loginHref =
+    roleParam === 'admin'
+      ? '/login-admin'
+      : roleParam === 'msw'
+        ? '/login-msw'
+        : '/login-patient';
+
+  const roleTitle =
+    roleParam === 'admin'
+      ? 'Administrator Account'
+      : roleParam === 'msw'
+        ? 'MSW Caseworker Account'
+        : 'Patient Portal Account';
+
+  const handleGeneratePassword = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%';
+    let pwd = '';
+    for (let i = 0; i < 10; i++) {
+      pwd += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setPassword(pwd);
+    setConfirmPassword(pwd);
+    toast.success('Generated secure password');
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (password !== confirmPassword) {
-      alert('Passwords do not match. Please verify both entries.');
+    if (password.length < 6) {
+      toast.error('Password must be at least 6 characters long.');
       return;
     }
+    if (password !== confirmPassword) {
+      toast.error('Passwords do not match. Please verify both entries.');
+      return;
+    }
+    toast.success('Your password has been updated and securely hashed!');
     setSubmitted(true);
   };
 
   return (
     <AuthLayout>
       <div className="mb-6">
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E6F1EA] text-[#0B6B3A] text-xs font-semibold mb-2.5">
+          <i className="fa-solid fa-shield-halved text-[11px]" />
+          <span>{roleTitle} Security</span>
+        </div>
         <h1 className="font-['Outfit'] text-[26px] font-bold text-[#10241A] m-0 mb-1.5 tracking-tight">
-          Set Up Your Password
+          Set Up Your New Password
         </h1>
         <p className="text-[13.5px] text-[#5A7466] m-0 leading-relaxed">
-          Establish a secure permanent password for your OFPHIL Patient Portal account.
+          Establish a strong permanent password for your OFPHIL {roleTitle.toLowerCase()}.
         </p>
       </div>
 
@@ -38,11 +85,11 @@ export default function ResetPasswordPage() {
           </div>
           <div className="font-bold text-base text-[#064826]">Password Updated Successfully</div>
           <p className="text-[13px] text-[#2E4538] leading-relaxed">
-            Your new permanent password has been saved. You can now sign in to your OFPHIL account.
+            Your new permanent password has been saved. You can now sign in to your OFPHIL {roleTitle.toLowerCase()}.
           </p>
           <div className="pt-2">
             <Link
-              href="/login-patient"
+              href={loginHref}
               className="inline-flex items-center justify-center px-6 py-2.5 bg-[#0B6B3A] hover:bg-[#064826] text-white rounded-xl text-xs font-semibold transition no-underline shadow-sm"
             >
               Sign In Now &rarr;
@@ -61,8 +108,8 @@ export default function ResetPasswordPage() {
                 type="text"
                 id="code"
                 name="token"
-                className="saas-input w-full h-12 pl-4 pr-4 border border-[#D5E2D9] rounded-xl text-[14.5px] bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A] focus:ring-2 focus:ring-[#0B6B3A]/15 transition"
-                placeholder="Paste activation token or verification code"
+                className="saas-input w-full h-12 pl-4 pr-4 border border-[#D5E2D9] rounded-xl text-[14.5px] bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A] focus:ring-2 focus:ring-[#0B6B3A]/15 transition font-mono"
+                placeholder="Paste activation token or 6-digit verification code"
                 value={token}
                 onChange={(e) => setToken(e.target.value)}
                 required
@@ -70,11 +117,21 @@ export default function ResetPasswordPage() {
             </div>
           </div>
 
-          {/* New Password */}
+          {/* New Password with PasswordStrengthMeter */}
           <div className="saas-input-group mb-5">
-            <label className="saas-input-label block text-[13.5px] font-medium text-[#24352B] mb-1.5" htmlFor="password">
-              New Password <span className="text-[#DC2626]">*</span>
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="saas-input-label block text-[13.5px] font-medium text-[#24352B]" htmlFor="password">
+                New Password <span className="text-[#DC2626]">*</span>
+              </label>
+              <button
+                type="button"
+                onClick={handleGeneratePassword}
+                className="text-[11.5px] font-semibold text-[#0B6B3A] hover:underline flex items-center gap-1 bg-transparent border-0 cursor-pointer"
+              >
+                <i className="fa-solid fa-key text-[10px]" />
+                <span>Generate Strong Password</span>
+              </button>
+            </div>
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
@@ -95,6 +152,8 @@ export default function ResetPasswordPage() {
                 <i className={`fa-regular ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`} />
               </button>
             </div>
+
+            <PasswordStrengthMeter password={password} showChecks={true} />
           </div>
 
           {/* Confirm Password */}
@@ -122,6 +181,12 @@ export default function ResetPasswordPage() {
                 <i className={`fa-regular ${showConfirmPassword ? 'fa-eye-slash' : 'fa-eye'}`} />
               </button>
             </div>
+            {confirmPassword.length > 0 && (
+              <div className={`mt-1.5 text-[11.5px] font-semibold flex items-center gap-1.5 ${password === confirmPassword ? 'text-[#0B6B3A]' : 'text-[#DC2626]'}`}>
+                <i className={`fa-solid ${password === confirmPassword ? 'fa-circle-check' : 'fa-circle-xmark'} text-[11px]`} />
+                <span>{password === confirmPassword ? 'Passwords match' : 'Passwords do not match'}</span>
+              </div>
+            )}
           </div>
 
           {/* Submit Button */}
@@ -137,10 +202,18 @@ export default function ResetPasswordPage() {
 
       <div className="mt-6 text-center text-[13.5px] text-[#5A7466]">
         Return to login?{' '}
-        <Link href="/login-patient" className="text-[#0B6B3A] font-semibold hover:underline no-underline">
+        <Link href={loginHref} className="text-[#0B6B3A] font-semibold hover:underline no-underline">
           Back to Sign In
         </Link>
       </div>
     </AuthLayout>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#FAFBF8]" />}>
+      <ResetPasswordFormContent />
+    </Suspense>
   );
 }

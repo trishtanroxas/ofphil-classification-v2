@@ -1,9 +1,10 @@
 'use client';
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { useAuth } from '@/context/AuthContext';
+import { useLoadingScreen } from '@/context/LoadingScreenContext';
 import { toast } from 'sonner';
 import { fetchApi } from '@/lib/api';
 
@@ -19,22 +20,36 @@ export interface PatientRecordItem {
   contact: string;
   category: 'CHARITY' | 'REGULAR';
   status: 'APPROVED' | 'FIRST-TIME';
+  email?: string;
+  civil_status?: string;
+  birthdate?: string;
+  diagnosis?: string;
+  assigned_msw?: string;
+  registration_date?: string;
+  has_account?: boolean;
 }
 
-interface PatientRecordsPageProps {
-  initialTab?: 'all' | 'charity' | 'regular';
-}
-
-export default function PatientRecordsPage({ initialTab }: PatientRecordsPageProps) {
+export default function PatientRecordsPage(props: any) {
+  const initialTab = props?.initialTab;
+  const router = useRouter();
   const { role } = useAuth();
+  const { startProgress } = useLoadingScreen();
   const searchParams = useSearchParams();
   const tabFromQuery = searchParams?.get('tab');
 
-  const defaultTab = initialTab || (tabFromQuery === 'charity' ? 'charity' : tabFromQuery === 'regular' || tabFromQuery === 'non-charity' ? 'regular' : 'all');
+  const defaultTab = initialTab || (
+    tabFromQuery === 'charity'
+      ? 'charity'
+      : tabFromQuery === 'regular' || tabFromQuery === 'non-charity'
+        ? 'regular'
+        : tabFromQuery === 'with-accounts' || tabFromQuery === 'accounts'
+          ? 'with-accounts'
+          : 'all'
+  );
 
   const [patients, setPatients] = useState<PatientRecordItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'all' | 'charity' | 'regular'>(defaultTab);
+  const [activeTab, setActiveTab] = useState<'all' | 'charity' | 'regular' | 'with-accounts'>(defaultTab);
   const [searchQuery, setSearchQuery] = useState('');
   const [sexFilter, setSexFilter] = useState('All');
   const [categoryFilter, setCategoryFilter] = useState('All');
@@ -50,6 +65,8 @@ export default function PatientRecordsPage({ initialTab }: PatientRecordsPagePro
       setActiveTab('charity');
     } else if (tabFromQuery === 'regular' || tabFromQuery === 'non-charity') {
       setActiveTab('regular');
+    } else if (tabFromQuery === 'with-accounts' || tabFromQuery === 'accounts') {
+      setActiveTab('with-accounts');
     }
   }, [initialTab, tabFromQuery]);
 
@@ -77,6 +94,10 @@ export default function PatientRecordsPage({ initialTab }: PatientRecordsPagePro
       // Tab filter
       if (activeTab === 'charity' && p.category !== 'CHARITY') return false;
       if (activeTab === 'regular' && p.category !== 'REGULAR') return false;
+      if (activeTab === 'with-accounts') {
+        const hasAcct = p.has_account === true || Boolean(p.email && p.email.trim());
+        if (!hasAcct) return false;
+      }
 
       // Dropdown filters
       if (sexFilter !== 'All' && p.sex !== sexFilter) return false;
@@ -99,6 +120,7 @@ export default function PatientRecordsPage({ initialTab }: PatientRecordsPagePro
   const totalCount = patients.length;
   const charityCount = patients.filter((p) => p.category === 'CHARITY').length;
   const regularCount = patients.filter((p) => p.category === 'REGULAR').length;
+  const withAccountsCount = patients.filter((p) => p.has_account === true || Boolean(p.email && p.email.trim())).length;
 
   // CSV Export
   const handleExportCSV = () => {
@@ -183,6 +205,7 @@ export default function PatientRecordsPage({ initialTab }: PatientRecordsPagePro
   const getPageTitle = () => {
     if (activeTab === 'charity') return 'Charity Patient Records Directory';
     if (activeTab === 'regular') return 'Regular Patient Records Directory';
+    if (activeTab === 'with-accounts') return 'Registered Patient Accounts Directory';
     return 'Patient Records Directory';
   };
 
@@ -193,7 +216,10 @@ export default function PatientRecordsPage({ initialTab }: PatientRecordsPagePro
     if (activeTab === 'regular') {
       return 'Ophthalmological Foundation of the Philippines — Private & Direct Clinical Patients';
     }
-    return 'Ophthalmological Foundation of the Philippines — AI-Assisted Patient Intake & Evaluation';
+    if (activeTab === 'with-accounts') {
+      return 'Ophthalmological Foundation of the Philippines — Patients with Active Portal Accounts & Digital Records';
+    }
+    return 'Ophthalmological Foundation of the Philippines — Patient Master Registry & Clinical Directory';
   };
 
   return (
@@ -217,8 +243,10 @@ export default function PatientRecordsPage({ initialTab }: PatientRecordsPagePro
                 {activeTab === 'charity'
                   ? 'Charity Patients Masterlist'
                   : activeTab === 'regular'
-                  ? 'Regular Patients Masterlist'
-                  : 'Registered Patient Database'}
+                    ? 'Regular Patients Masterlist'
+                    : activeTab === 'with-accounts'
+                      ? 'Patients with Active Portal Accounts'
+                      : 'Registered Patient Database'}
               </span>
             </h2>
             <span className="text-[11px] text-[#5A7466] border-l border-[#D5E2D9] pl-3 hidden sm:inline">
@@ -230,11 +258,10 @@ export default function PatientRecordsPage({ initialTab }: PatientRecordsPagePro
             <button
               type="button"
               onClick={() => setActiveTab('all')}
-              className={`px-3.5 py-1.5 rounded-lg border font-semibold flex items-center gap-1.5 transition shadow-2xs cursor-pointer ${
-                activeTab === 'all'
-                  ? 'bg-[#E8F5EC] border-[#0B6B3A] text-[#0B6B3A]'
-                  : 'border-[#D5E2D9] bg-white hover:bg-[#FAFBF8] text-[#10241A]'
-              }`}
+              className={`px-3.5 py-1.5 rounded-lg border font-semibold flex items-center gap-1.5 transition shadow-2xs cursor-pointer ${activeTab === 'all'
+                ? 'bg-[#E8F5EC] border-[#0B6B3A] text-[#0B6B3A]'
+                : 'border-[#D5E2D9] bg-white hover:bg-[#FAFBF8] text-[#10241A]'
+                }`}
             >
               <i className="fa-solid fa-table-list text-xs" />
               <span>Masterlist</span>
@@ -294,6 +321,12 @@ export default function PatientRecordsPage({ initialTab }: PatientRecordsPagePro
                 Regular: <strong className="text-[#10241A] font-bold">{regularCount}</strong>
               </span>
             </span>
+            <span className="flex items-center gap-2 font-medium text-[#5A7466]">
+              <span className="w-2 h-2 rounded-full bg-[#2563EB] inline-block" />
+              <span>
+                With Accounts: <strong className="text-[#10241A] font-bold">{withAccountsCount}</strong>
+              </span>
+            </span>
           </div>
 
           <div className="text-[11.5px] text-[#5A7466]">
@@ -308,214 +341,274 @@ export default function PatientRecordsPage({ initialTab }: PatientRecordsPagePro
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setActiveTab('all')}
-                className={`px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition text-xs cursor-pointer ${
-                  activeTab === 'all'
-                    ? 'bg-[#E8F5EC] text-[#0B6B3A] font-bold'
-                    : 'text-[#5A7466] hover:text-[#10241A]'
-                }`}
+                onClick={() => {
+                  startProgress();
+                  setActiveTab('all');
+                }}
+                className={`px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition text-xs cursor-pointer border ${activeTab === 'all'
+                  ? 'bg-[#E8F5EC] border-[#0B6B3A] text-[#0B6B3A] font-bold shadow-xs'
+                  : 'border-transparent text-[#5A7466] hover:text-[#10241A] hover:bg-white'
+                  }`}
               >
                 <i className="fa-solid fa-users text-xs" />
                 <span>All Patients</span>
-                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-white border border-[#D5E2D9]">
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${activeTab === 'all' ? 'bg-[#0B6B3A] text-white' : 'bg-white border border-[#D5E2D9]'}`}>
                   {totalCount}
                 </span>
               </button>
 
               <button
                 type="button"
-                onClick={() => setActiveTab('charity')}
-                className={`px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition text-xs cursor-pointer ${
-                  activeTab === 'charity'
-                    ? 'bg-[#E8F5EC] text-[#0B6B3A] font-bold'
-                    : 'text-[#5A7466] hover:text-[#10241A]'
-                }`}
+                onClick={() => {
+                  startProgress();
+                  setActiveTab('charity');
+                }}
+                className={`px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition text-xs cursor-pointer border ${activeTab === 'charity'
+                  ? 'bg-[#E8F5EC] border-[#0B6B3A] text-[#0B6B3A] font-bold shadow-xs'
+                  : 'border-transparent text-[#5A7466] hover:text-[#10241A] hover:bg-white'
+                  }`}
               >
                 <i className="fa-solid fa-hand-holding-heart text-xs" />
                 <span>Charity Patients</span>
-                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-white border border-[#D5E2D9]">
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${activeTab === 'charity' ? 'bg-[#0B6B3A] text-white' : 'bg-white border border-[#D5E2D9]'}`}>
                   {charityCount}
                 </span>
               </button>
 
               <button
                 type="button"
-                onClick={() => setActiveTab('regular')}
-                className={`px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition text-xs cursor-pointer ${
-                  activeTab === 'regular'
-                    ? 'bg-[#E8F5EC] text-[#0B6B3A] font-bold'
-                    : 'text-[#5A7466] hover:text-[#10241A]'
-                }`}
+                onClick={() => {
+                  startProgress();
+                  setActiveTab('regular');
+                }}
+                className={`px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition text-xs cursor-pointer border ${activeTab === 'regular'
+                  ? 'bg-[#E8F5EC] border-[#0B6B3A] text-[#0B6B3A] font-bold shadow-xs'
+                  : 'border-transparent text-[#5A7466] hover:text-[#10241A] hover:bg-white'
+                  }`}
               >
                 <i className="fa-solid fa-user-shield text-xs" />
                 <span>Regular Patients</span>
-                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-white border border-[#D5E2D9]">
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${activeTab === 'regular' ? 'bg-[#0B6B3A] text-white' : 'bg-white border border-[#D5E2D9]'}`}>
                   {regularCount}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  startProgress();
+                  setActiveTab('with-accounts');
+                }}
+                className={`px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition text-xs cursor-pointer border ${activeTab === 'with-accounts'
+                  ? 'bg-[#E8F5EC] border-[#0B6B3A] text-[#0B6B3A] font-bold shadow-xs'
+                  : 'border-transparent text-[#5A7466] hover:text-[#10241A] hover:bg-white'
+                  }`}
+              >
+                <i className="fa-solid fa-id-badge text-xs text-[#2563EB]" />
+                <span>With Accounts</span>
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${activeTab === 'with-accounts' ? 'bg-[#0B6B3A] text-white' : 'bg-white border border-[#D5E2D9]'}`}>
+                  {withAccountsCount}
                 </span>
               </button>
             </div>
 
-            {/* Quick Search */}
-            <div className="relative min-w-[220px]">
-              <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs" />
-              <input
-                type="text"
-                placeholder="Search patient, ID, or city..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-8 pl-8 pr-3 text-xs bg-white border border-[#D5E2D9] rounded-lg focus:outline-none focus:border-[#0B6B3A]"
-              />
-            </div>
+          {/* Quick Search */}
+          <div className="relative min-w-[220px]">
+            <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs" />
+            <input
+              type="text"
+              placeholder="Search patient, ID, or city..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full h-8 pl-8 pr-3 text-xs bg-white border border-[#D5E2D9] rounded-lg focus:outline-none focus:border-[#0B6B3A]"
+            />
           </div>
-
-          {/* Masterlist Data Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead className="bg-[#FAFBF8] text-[#5A7466] uppercase text-[10.5px] tracking-wider border-b border-[#EEF2EF]">
-                <tr>
-                  <th className="py-2.5 px-4 font-semibold whitespace-nowrap"># Patient ID</th>
-                  <th className="py-2.5 px-4 font-semibold whitespace-nowrap">Patient Name</th>
-                  <th className="py-2.5 px-4 font-semibold whitespace-nowrap">Age</th>
-                  <th className="py-2.5 px-4 font-semibold whitespace-nowrap">
-                    Sex:{' '}
-                    <select
-                      value={sexFilter}
-                      onChange={(e) => setSexFilter(e.target.value)}
-                      className="ml-1 text-[10px] bg-transparent border-0 font-bold text-[#10241A] focus:outline-none cursor-pointer"
-                    >
-                      <option value="All">All ▼</option>
-                      <option value="M">M</option>
-                      <option value="F">F</option>
-                    </select>
-                  </th>
-                  <th className="py-2.5 px-4 font-semibold whitespace-nowrap">Residence</th>
-                  <th className="py-2.5 px-4 font-semibold whitespace-nowrap">Contact</th>
-                  <th className="py-2.5 px-4 font-semibold whitespace-nowrap">
-                    Category:{' '}
-                    <select
-                      value={categoryFilter}
-                      onChange={(e) => setCategoryFilter(e.target.value)}
-                      className="ml-1 text-[10px] bg-transparent border-0 font-bold text-[#10241A] focus:outline-none cursor-pointer"
-                    >
-                      <option value="All">All ▼</option>
-                      <option value="CHARITY">Charity</option>
-                      <option value="REGULAR">Regular</option>
-                    </select>
-                  </th>
-                  <th className="py-2.5 px-4 font-semibold whitespace-nowrap">
-                    Status:{' '}
-                    <select
-                      value={statusFilter}
-                      onChange={(e) => setStatusFilter(e.target.value)}
-                      className="ml-1 text-[10px] bg-transparent border-0 font-bold text-[#10241A] focus:outline-none cursor-pointer"
-                    >
-                      <option value="All">All ▼</option>
-                      <option value="APPROVED">Approved</option>
-                      <option value="FIRST-TIME">First-Time</option>
-                    </select>
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#EEF2EF]">
-                {isLoading ? (
-                  <tr>
-                    <td colSpan={8} className="py-12 text-center text-[#64748B]">
-                      <div className="flex flex-col items-center justify-center gap-2">
-                        <i className="fa-solid fa-circle-notch fa-spin text-lg text-[#0B6B3A]" />
-                        <span className="font-semibold text-xs text-[#334155]">Loading patient records...</span>
-                      </div>
-                    </td>
-                  </tr>
-                ) : filteredPatients.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} className="py-12 text-center text-[#64748B]">
-                      <div className="flex flex-col items-center justify-center gap-2">
-                        <div className="w-12 h-12 rounded-full bg-[#F1F5F9] text-[#94A3B8] flex items-center justify-center text-lg">
-                          <i className="fa-solid fa-folder-open" />
-                        </div>
-                        <span className="font-semibold text-sm text-[#334155]">
-                          {activeTab === 'charity'
-                            ? 'No Charity Patient Records Found'
-                            : activeTab === 'regular'
-                            ? 'No Regular Patient Records Found'
-                            : 'No Patient Records Found'}
-                        </span>
-                        <p className="text-xs text-[#94A3B8] max-w-sm m-0">
-                          Click <strong>Register Patient</strong> to create an account or <strong>Import</strong> to upload a CSV/Excel sheet.
-                        </p>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  filteredPatients.map((p) => {
-                    const initials = `${p.first_name.charAt(0)}${p.last_name.charAt(0)}`;
-                    return (
-                      <tr key={p.id} className="hover:bg-[#FAFBF8] transition">
-                        <td className="py-3 px-4 font-mono font-bold text-[#10241A] whitespace-nowrap">
-                          <span className="px-2 py-0.5 rounded bg-[#FAFBF8] border border-[#EEF2EF]">
-                            {p.patient_id}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 whitespace-nowrap">
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-[#E6F1EA] text-[#0B6B3A] font-bold text-[10px] flex items-center justify-center shrink-0">
-                              {initials}
-                            </div>
-                            <span className="font-semibold text-[#10241A]">
-                              {p.last_name}, {p.first_name}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 text-[#5A7466] whitespace-nowrap">
-                          {p.age !== null ? p.age : '—'}
-                        </td>
-                        <td className="py-3 px-4 text-[#5A7466] whitespace-nowrap">
-                          {p.sex}
-                        </td>
-                        <td className="py-3 px-4 whitespace-nowrap">
-                          <div className="font-medium text-[#10241A]">{p.residence_city}</div>
-                          <div className="text-[10px] text-[#5A7466]">{p.residence_region}</div>
-                        </td>
-                        <td className="py-3 px-4 text-[#5A7466] font-mono whitespace-nowrap">
-                          {p.contact}
-                        </td>
-                        <td className="py-3 px-4 whitespace-nowrap">
-                          {p.category === 'CHARITY' ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#E8F5EC] text-[#0B6B3A]">
-                              <i className="fa-solid fa-heart text-[8px]" />
-                              <span>CHARITY</span>
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#FAFBF8] text-[#475569] border border-[#D5E2D9]">
-                              <span className="w-1.5 h-1.5 rounded-full bg-slate-500 inline-block" />
-                              <span>REGULAR</span>
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-3 px-4 whitespace-nowrap">
-                          {p.status === 'APPROVED' ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                              <i className="fa-solid fa-check text-[9px]" />
-                              <span>APPROVED</span>
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                              <span className="w-1.5 h-1.5 rounded-full bg-amber-600 inline-block" />
-                              <span>FIRST-TIME</span>
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Bottom Green Visual Divider Line */}
-          <div className="h-1 bg-[#0B6B3A] w-full" />
         </div>
+
+        {/* Masterlist Data Table */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead className="bg-[#FAFBF8] text-[#5A7466] uppercase text-[10.5px] tracking-wider border-b border-[#EEF2EF]">
+              <tr>
+                <th className="py-2.5 px-4 font-semibold whitespace-nowrap"># Patient ID</th>
+                <th className="py-2.5 px-4 font-semibold whitespace-nowrap">Patient Name</th>
+                <th className="py-2.5 px-4 font-semibold whitespace-nowrap">Age</th>
+                <th className="py-2.5 px-4 font-semibold whitespace-nowrap">
+                  Sex:{' '}
+                  <select
+                    value={sexFilter}
+                    onChange={(e) => setSexFilter(e.target.value)}
+                    className="ml-1 text-[10px] bg-transparent border-0 font-bold text-[#10241A] focus:outline-none cursor-pointer"
+                  >
+                    <option value="All">All ▼</option>
+                    <option value="M">M</option>
+                    <option value="F">F</option>
+                  </select>
+                </th>
+                <th className="py-2.5 px-4 font-semibold whitespace-nowrap">Residence</th>
+                <th className="py-2.5 px-4 font-semibold whitespace-nowrap">Contact</th>
+                <th className="py-2.5 px-4 font-semibold whitespace-nowrap">
+                  Category:{' '}
+                  <select
+                    value={categoryFilter}
+                    onChange={(e) => setCategoryFilter(e.target.value)}
+                    className="ml-1 text-[10.5px] bg-[#FAFBF8] border border-[#CBD5E1] rounded px-1.5 py-0.5 font-bold text-[#10241A] focus:outline-none focus:border-[#0B6B3A] cursor-pointer"
+                  >
+                    <option value="All">All ▼</option>
+                    <option value="CHARITY">Charity</option>
+                    <option value="REGULAR">Regular</option>
+                  </select>
+                </th>
+                <th className="py-2.5 px-4 font-semibold whitespace-nowrap">
+                  Status:{' '}
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="ml-1 text-[10px] bg-transparent border-0 font-bold text-[#10241A] focus:outline-none cursor-pointer"
+                  >
+                    <option value="All">All ▼</option>
+                    <option value="APPROVED">Approved</option>
+                    <option value="FIRST-TIME">First-Time</option>
+                  </select>
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#EEF2EF]">
+              {isLoading ? (
+                <tr>
+                  <td colSpan={8} className="py-12 text-center text-[#64748B]">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <i className="fa-solid fa-circle-notch fa-spin text-lg text-[#0B6B3A]" />
+                      <span className="font-semibold text-xs text-[#334155]">Loading patient records...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : filteredPatients.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="py-12 text-center text-[#64748B]">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <div className="w-12 h-12 rounded-full bg-[#F1F5F9] text-[#94A3B8] flex items-center justify-center text-lg">
+                        <i className="fa-solid fa-folder-open" />
+                      </div>
+                      <span className="font-semibold text-sm text-[#334155]">
+                        {activeTab === 'charity'
+                          ? 'No Charity Patient Records Found'
+                          : activeTab === 'regular'
+                            ? 'No Regular Patient Records Found'
+                            : activeTab === 'with-accounts'
+                              ? 'No Patients with Active Accounts Found'
+                              : 'No Patient Records Found'}
+                      </span>
+                      <p className="text-xs text-[#94A3B8] max-w-sm m-0">
+                        Click <strong>Register Patient</strong> to create an account or <strong>Import</strong> to upload a CSV/Excel sheet.
+                      </p>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                filteredPatients.map((p) => {
+                  const initials = `${p.first_name.charAt(0)}${p.last_name.charAt(0)}`;
+                  return (
+                    <tr
+                      key={p.id}
+                      onClick={() => {
+                        startProgress();
+                        router.push(`/admin/patient-records/${p.patient_id}`);
+                      }}
+                      className="hover:bg-[#EBF5EE] transition cursor-pointer group"
+                      title={`Open Beneficiary Profile & Clinical Assistance Dossier for ${p.last_name}, ${p.first_name}`}
+                    >
+                      <td className="py-3 px-4 font-mono font-bold text-[#10241A] whitespace-nowrap">
+                        <Link
+                          href={`/admin/patient-records/${p.patient_id}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            startProgress();
+                          }}
+                          className="px-2 py-0.5 rounded bg-[#FAFBF8] border border-[#D5E2D9] group-hover:border-[#0B6B3A] group-hover:bg-white text-[#0B6B3A] font-semibold transition inline-flex items-center gap-1.5 hover:underline"
+                          title={`Open ${p.patient_id} Dossier`}
+                        >
+                          <span>{p.patient_id}</span>
+                          <i className="fa-solid fa-arrow-up-right-from-square text-[9px] text-[#0B6B3A]" />
+                        </Link>
+                      </td>
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full bg-[#E6F1EA] text-[#0B6B3A] font-bold text-[10px] flex items-center justify-center shrink-0">
+                            {initials}
+                          </div>
+                          <Link
+                            href={`/admin/patient-records/${p.patient_id}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              startProgress();
+                            }}
+                            className="font-semibold text-[#10241A] group-hover:text-[#0B6B3A] transition hover:underline"
+                            title={`Open full dossier for ${p.last_name}, ${p.first_name}`}
+                          >
+                            {p.last_name}, {p.first_name}
+                          </Link>
+                          {(p.has_account === true || Boolean(p.email && p.email.trim())) && (
+                            <span
+                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9.5px] font-bold bg-blue-50 text-blue-700 border border-blue-200"
+                              title="Active Patient Portal Account Provisioned"
+                            >
+                              <i className="fa-solid fa-id-badge text-[9px]" />
+                              <span>Account</span>
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-[#5A7466] whitespace-nowrap">
+                        {p.age !== null ? p.age : '—'}
+                      </td>
+                      <td className="py-3 px-4 text-[#5A7466] whitespace-nowrap">
+                        {p.sex}
+                      </td>
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        <div className="font-medium text-[#10241A]">{p.residence_city}</div>
+                        <div className="text-[10px] text-[#5A7466]">{p.residence_region}</div>
+                      </td>
+                      <td className="py-3 px-4 text-[#5A7466] font-mono whitespace-nowrap">
+                        {p.contact}
+                      </td>
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        {p.category === 'CHARITY' ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#E8F5EC] text-[#0B6B3A] border border-[#A8DAC0]">
+                            <i className="fa-solid fa-heart text-[8px]" />
+                            <span>CHARITY</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#FAFBF8] text-[#475569] border border-[#D5E2D9]">
+                            <span className="w-1.5 h-1.5 rounded-full bg-slate-500 inline-block" />
+                            <span>REGULAR</span>
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        {p.status === 'APPROVED' ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <i className="fa-solid fa-check text-[9px]" />
+                            <span>APPROVED</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-600 inline-block" />
+                            <span>FIRST-TIME</span>
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Bottom Green Visual Divider Line */}
+        <div className="h-1 bg-[#0B6B3A] w-full" />
+      </div>
       </div>
     </DashboardLayout>
   );

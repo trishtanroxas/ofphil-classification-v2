@@ -173,6 +173,17 @@ class AccountProfile(BaseModel):
     department: str
     theme_preference: str = "light"
     notify_email: bool = True
+    license_no: Optional[str] = None
+    contact: Optional[str] = None
+    birthdate: Optional[str] = None
+    sex: Optional[str] = None
+    civil_status: Optional[str] = None
+    province: Optional[str] = None
+    city: Optional[str] = None
+    barangay: Optional[str] = None
+    street: Optional[str] = None
+    education: Optional[str] = None
+    occupation: Optional[str] = None
 
 
 class AccountProfileUpdate(BaseModel):
@@ -181,6 +192,56 @@ class AccountProfileUpdate(BaseModel):
     department: Optional[str] = None
     theme_preference: Optional[str] = "light"
     notify_email: Optional[bool] = True
+    license_no: Optional[str] = None
+    contact: Optional[str] = None
+    birthdate: Optional[str] = None
+    sex: Optional[str] = None
+    civil_status: Optional[str] = None
+    province: Optional[str] = None
+    city: Optional[str] = None
+    barangay: Optional[str] = None
+    street: Optional[str] = None
+    education: Optional[str] = None
+    occupation: Optional[str] = None
+
+
+class MSWPreferences(BaseModel):
+    notifications: Optional[Dict[str, Any]] = None
+    work_preferences: Optional[Dict[str, Any]] = None
+    casework: Optional[Dict[str, Any]] = None
+    accessibility: Optional[Dict[str, Any]] = None
+    data_privacy: Optional[Dict[str, Any]] = None
+
+
+class MSWSessionItem(BaseModel):
+    id: str
+    device: str
+    browser: str
+    ip_address: str
+    location: str
+    last_active: str
+    is_current: bool = False
+
+
+class MSWSecurityStatusResponse(BaseModel):
+    mfa_enforced: bool
+    mfa_method: str
+    last_password_change: str
+    active_sessions: List[MSWSessionItem]
+    recent_security_events: List[Dict[str, Any]]
+    login_rate_limit: Dict[str, Any]
+    rbac_permissions: List[str]
+
+
+class MSWPrivacySettings(BaseModel):
+    mask_patient_identities: bool = True
+    mask_contact_numbers: bool = True
+    mask_government_ids: bool = True
+    mask_financial_ledgers: bool = True
+    consent_verification_required: bool = True
+    data_retention_years: int = 7
+    allow_patient_export: bool = False
+    assigned_records_only: bool = True
 
 
 class PasswordChangeRequest(BaseModel):

@@ -267,7 +267,7 @@ async def clear_audit_logs(
     return SettingsOperationResponse(
         success=True,
         message="Administrative security audit logs successfully cleared.",
-        timestamp=datetime.datetime.now().isoformat()
+        updated_at=datetime.datetime.now(datetime.timezone.utc).isoformat()
     )
 
 
@@ -318,3 +318,127 @@ async def change_password(
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+# ==============================================================================
+# MSW Caseworker Account & Preference Endpoints
+# ==============================================================================
+@router.get("/msw/account", response_model=AccountProfile)
+def get_msw_account_profile():
+    """Retrieve profile and credentials metadata for the MSW Caseworker."""
+    return settings_service.get_msw_account_profile()
+
+
+@router.put("/msw/account/profile", response_model=SettingsOperationResponse)
+async def update_msw_profile(
+    payload: AccountProfileUpdate,
+    request: Request,
+    x_user_id: str = Header(default="msw_lead")
+):
+    """Update MSW Caseworker profile details."""
+    ip = _get_client_ip(request)
+    updated = await settings_service.update_msw_account_profile(
+        payload=payload, actor_id=x_user_id, ip=ip
+    )
+    return SettingsOperationResponse(
+        success=True,
+        message="MSW Caseworker profile updated and saved to persistent storage.",
+        updated_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        data=updated.model_dump()
+    )
+
+
+@router.post("/msw/account/change-password", response_model=SettingsOperationResponse)
+async def change_msw_password(
+    payload: PasswordChangeRequest,
+    request: Request,
+    x_user_id: str = Header(default="msw_lead")
+):
+    """Secure MSW password change with verification of current password and Argon2id hashing."""
+    ip = _get_client_ip(request)
+    try:
+        await settings_service.change_msw_password(req=payload, actor_id=x_user_id, ip=ip)
+        return SettingsOperationResponse(
+            success=True,
+            message="MSW credentials updated and Argon2id rehashed successfully.",
+            updated_at=datetime.datetime.now(datetime.timezone.utc).isoformat()
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.get("/msw/preferences")
+def get_msw_preferences():
+    """Retrieve MSW workflow, notification, and display preferences."""
+    return settings_service.get_msw_preferences()
+
+
+@router.put("/msw/preferences", response_model=SettingsOperationResponse)
+async def update_msw_preferences(
+    payload: dict,
+    request: Request,
+    x_user_id: str = Header(default="msw_lead")
+):
+    """Persist MSW workflow, notification, and display preferences."""
+    ip = _get_client_ip(request)
+    updated = await settings_service.update_msw_preferences(
+        prefs=payload, actor_id=x_user_id, ip=ip
+    )
+    return SettingsOperationResponse(
+        success=True,
+        message="MSW preferences updated successfully.",
+        updated_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        data=updated
+    )
+
+
+@router.get("/msw/security-status", response_model=dict)
+def get_msw_security_status(
+    role: UserRole = Depends(require_roles([UserRole.ADMIN, UserRole.MSW]))
+):
+    """Retrieve live security, session information, and audit indicators for the MSW panel."""
+    return settings_service.get_msw_security_status()
+
+
+@router.post("/msw/sessions/terminate-others", response_model=SettingsOperationResponse)
+async def terminate_other_msw_sessions(
+    request: Request,
+    role: UserRole = Depends(require_roles([UserRole.ADMIN, UserRole.MSW])),
+    x_user_id: str = Header(default="msw_lead")
+):
+    """Terminate other active caseworker sessions across clinic workstations."""
+    ip = _get_client_ip(request)
+    await settings_service.terminate_other_msw_sessions(actor_id=x_user_id, ip=ip)
+    return SettingsOperationResponse(
+        success=True,
+        message="All concurrent workstation sessions terminated successfully.",
+        updated_at=datetime.datetime.now(datetime.timezone.utc).isoformat()
+    )
+
+
+@router.get("/msw/privacy", response_model=dict)
+def get_msw_privacy_settings(
+    role: UserRole = Depends(require_roles([UserRole.ADMIN, UserRole.MSW]))
+):
+    """Retrieve confidential patient data masking and institutional privacy rules."""
+    return settings_service.get_msw_privacy_settings()
+
+
+@router.put("/msw/privacy", response_model=SettingsOperationResponse)
+async def update_msw_privacy_settings(
+    payload: dict,
+    request: Request,
+    role: UserRole = Depends(require_roles([UserRole.ADMIN, UserRole.MSW])),
+    x_user_id: str = Header(default="msw_lead")
+):
+    """Update patient privacy, masking, and consent governance parameters for MSW."""
+    ip = _get_client_ip(request)
+    updated = await settings_service.update_msw_privacy_settings(
+        payload=payload, actor_id=x_user_id, ip=ip
+    )
+    return SettingsOperationResponse(
+        success=True,
+        message="Data privacy controls and masking policies updated successfully.",
+        updated_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        data=updated
+    )

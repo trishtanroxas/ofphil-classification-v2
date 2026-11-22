@@ -35,6 +35,8 @@ class DatasetItem(BaseModel):
 
 class DocumentItem(BaseModel):
     id: str
+    patient_id: Optional[str] = "M26-11-00001"
+    patient_name: Optional[str] = "Juan Dela Cruz"
     filename: str
     document_type: str
     file_size_bytes: int
@@ -42,6 +44,12 @@ class DocumentItem(BaseModel):
     status: str
     ocr_processed: bool = False
     manipulation_risk: Optional[str] = "clean"
+    verification_status: Optional[str] = "Verified Authentic"
+    seal_detected: Optional[bool] = True
+    tamper_risk: Optional[str] = "Low"
+    signature_status: Optional[str] = "NOT_CHECKED"
+    sha256_hash: Optional[str] = None
+    extracted_text: Optional[str] = None
 
 
 class OCRProcessingRequest(BaseModel):

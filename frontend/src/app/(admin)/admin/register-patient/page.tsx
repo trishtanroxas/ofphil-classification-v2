@@ -1,9 +1,11 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { toast } from 'sonner';
+import PasswordStrengthMeter from '@/components/PasswordStrengthMeter';
+import { getProvinces, getCitiesMunicipalities, getBarangays, GeoItem } from '@/lib/psgc';
 
 // Geographic Reference Data for Philippine Provinces, Cities/Municipalities, and Barangays
 const PHILIPPINE_GEO_DATA: Record<
@@ -154,8 +156,78 @@ const PROVINCE_OPTIONS = Object.keys(PHILIPPINE_GEO_DATA);
 export default function RegisterPatientPage() {
   const router = useRouter();
 
-  // Section 1: Assigned Identifier State
-  const [patientId, setPatientId] = useState('M26-11-00001');
+  // Section 1: Assigned Identifier State (Auto-incremented after M26-11-00001 Juan Dela Cruz)
+  const [patientId, setPatientId] = useState('M26-11-00002');
+  const [existingPatients, setExistingPatients] = useState<Array<{ patient_id: string; first_name: string; last_name: string }>>([
+    { patient_id: 'M26-11-00001', first_name: 'Juan', last_name: 'Dela Cruz' },
+  ]);
+
+  // Helper to compute next available non-duplicate M26-11-XXXXX sequence ID
+  const computeNextPatientId = (records: Array<{ patient_id: string }>) => {
+    const usedIds = new Set(records.map((r) => (r.patient_id || '').trim().toUpperCase()));
+    let maxSeq = 1; // M26-11-00001 is reserved for Juan Dela Cruz
+    records.forEach((r) => {
+      const m = (r.patient_id || '').trim().toUpperCase().match(/^M\d{2}-\d{2}-(\d+)$/);
+      if (m) {
+        const num = parseInt(m[1], 10);
+        if (!isNaN(num) && num > maxSeq) {
+          maxSeq = num;
+        }
+      }
+    });
+    let nextSeq = maxSeq + 1;
+    let candidate = `M26-11-${String(nextSeq).padStart(5, '0')}`;
+    while (usedIds.has(candidate)) {
+      nextSeq++;
+      candidate = `M26-11-${String(nextSeq).padStart(5, '0')}`;
+    }
+    return candidate;
+  };
+
+  // Fetch existing patients from backend + localStorage on mount to auto-assign next sequence ID
+  useEffect(() => {
+    async function loadExistingPatientsForSeq() {
+      const combined: Array<{ patient_id: string; first_name: string; last_name: string }> = [
+        { patient_id: 'M26-11-00001', first_name: 'Juan', last_name: 'Dela Cruz' },
+      ];
+      try {
+        const res = await fetch('http://localhost:8000/api/v1/patients');
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            data.forEach((p: any) => {
+              if (p.patient_id && !combined.some((c) => c.patient_id.toUpperCase() === String(p.patient_id).toUpperCase())) {
+                combined.push({
+                  patient_id: String(p.patient_id),
+                  first_name: String(p.first_name || ''),
+                  last_name: String(p.last_name || ''),
+                });
+              }
+            });
+          }
+        }
+      } catch {}
+
+      try {
+        const localSaved = JSON.parse(localStorage.getItem('ofphil_registered_patients') || '[]');
+        if (Array.isArray(localSaved)) {
+          localSaved.forEach((p: any) => {
+            if (p.patient_id && !combined.some((c) => c.patient_id.toUpperCase() === String(p.patient_id).toUpperCase())) {
+              combined.push({
+                patient_id: String(p.patient_id),
+                first_name: String(p.first_name || ''),
+                last_name: String(p.last_name || ''),
+              });
+            }
+          });
+        }
+      } catch {}
+
+      setExistingPatients(combined);
+      setPatientId(computeNextPatientId(combined));
+    }
+    loadExistingPatientsForSeq();
+  }, []);
 
   // Section 2: Patient Identity & Demographics State
   const [firstName, setFirstName] = useState('');
@@ -166,6 +238,14 @@ export default function RegisterPatientPage() {
   const [sex, setSex] = useState<'Female (F)' | 'Male (M)'>('Female (F)');
   const [civilStatus, setCivilStatus] = useState('Single');
   const [numDependents, setNumDependents] = useState('0');
+
+  // PSGC API Dynamic Reference State
+  const [provincesList, setProvincesList] = useState<GeoItem[]>([]);
+  const [permCitiesList, setPermCitiesList] = useState<GeoItem[]>([]);
+  const [permBarangaysList, setPermBarangaysList] = useState<GeoItem[]>([]);
+  const [altCitiesList, setAltCitiesList] = useState<GeoItem[]>([]);
+  const [altBarangaysList, setAltBarangaysList] = useState<GeoItem[]>([]);
+  const [isLoadingGeo, setIsLoadingGeo] = useState(false);
 
   // Address 1: Permanent Address State
   const [permStreet, setPermStreet] = useState('');
@@ -211,46 +291,167 @@ export default function RegisterPatientPage() {
     toast.success('Generated secure temporary password');
   };
 
-  // Permanent Address dropdown handlers
-  const handlePermProvinceChange = (prov: string) => {
-    setPermProvince(prov);
-    const citiesObj = PHILIPPINE_GEO_DATA[prov]?.cities || {};
-    const firstCity = Object.keys(citiesObj)[0] || '';
-    setPermCity(firstCity);
-    const firstBgy = citiesObj[firstCity]?.[0] || '';
-    setPermBarangay(firstBgy);
+  // Initialize Provinces from PSGC Open API
+  useEffect(() => {
+    async function initGeo() {
+      setIsLoadingGeo(true);
+      try {
+        const provs = await getProvinces();
+        setProvincesList(provs);
+
+        // Default to NCR (code: 130000000)
+        const defaultProv = provs.find((p) => p.code === '130000000') || provs[0];
+        if (defaultProv) {
+          setPermProvince(defaultProv.name);
+          setAltProvince(defaultProv.name);
+
+          // Fetch cities for default province
+          const cities = await getCitiesMunicipalities(defaultProv.code);
+          setPermCitiesList(cities);
+          setAltCitiesList(cities);
+
+          const defaultCity = cities.find((c) => c.name.toLowerCase().includes('manila')) || cities[0];
+          if (defaultCity) {
+            setPermCity(defaultCity.name);
+            setAltCity(defaultCity.name);
+
+            // Fetch barangays for default city
+            const bgys = await getBarangays(defaultCity.code);
+            setPermBarangaysList(bgys);
+            setAltBarangaysList(bgys);
+            if (bgys.length > 0) {
+              setPermBarangay(bgys[0].name);
+              setAltBarangay(bgys[0].name);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load PSGC data:', err);
+      } finally {
+        setIsLoadingGeo(false);
+      }
+    }
+    initGeo();
+  }, []);
+
+  // Permanent Address dropdown handlers (PSGC API)
+  const handlePermProvinceChange = async (provName: string) => {
+    setPermProvince(provName);
+    const foundProv = provincesList.find((p) => p.name === provName);
+    if (!foundProv) return;
+
+    try {
+      const cities = await getCitiesMunicipalities(foundProv.code);
+      setPermCitiesList(cities);
+      if (cities.length > 0) {
+        setPermCity(cities[0].name);
+        const bgys = await getBarangays(cities[0].code);
+        setPermBarangaysList(bgys);
+        if (bgys.length > 0) {
+          setPermBarangay(bgys[0].name);
+        } else {
+          setPermBarangay('Poblacion');
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
   };
 
-  const handlePermCityChange = (city: string) => {
-    setPermCity(city);
-    const bgys = PHILIPPINE_GEO_DATA[permProvince]?.cities[city] || [];
-    setPermBarangay(bgys[0] || '');
+  const handlePermCityChange = async (cityName: string) => {
+    setPermCity(cityName);
+    const foundCity = permCitiesList.find((c) => c.name === cityName);
+    if (!foundCity) return;
+
+    try {
+      const bgys = await getBarangays(foundCity.code);
+      setPermBarangaysList(bgys);
+      if (bgys.length > 0) {
+        setPermBarangay(bgys[0].name);
+      } else {
+        setPermBarangay('Poblacion');
+      }
+    } catch (e) {
+      console.error(e);
+    }
   };
 
-  // Alternative Address dropdown handlers
-  const handleAltProvinceChange = (prov: string) => {
-    setAltProvince(prov);
-    const citiesObj = PHILIPPINE_GEO_DATA[prov]?.cities || {};
-    const firstCity = Object.keys(citiesObj)[0] || '';
-    setAltCity(firstCity);
-    const firstBgy = citiesObj[firstCity]?.[0] || '';
-    setAltBarangay(firstBgy);
+  // Alternative Address dropdown handlers (PSGC API)
+  const handleAltProvinceChange = async (provName: string) => {
+    setAltProvince(provName);
+    const foundProv = provincesList.find((p) => p.name === provName);
+    if (!foundProv) return;
+
+    try {
+      const cities = await getCitiesMunicipalities(foundProv.code);
+      setAltCitiesList(cities);
+      if (cities.length > 0) {
+        setAltCity(cities[0].name);
+        const bgys = await getBarangays(cities[0].code);
+        setAltBarangaysList(bgys);
+        if (bgys.length > 0) {
+          setAltBarangay(bgys[0].name);
+        } else {
+          setAltBarangay('Poblacion');
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
   };
 
-  const handleAltCityChange = (city: string) => {
-    setAltCity(city);
-    const bgys = PHILIPPINE_GEO_DATA[altProvince]?.cities[city] || [];
-    setAltBarangay(bgys[0] || '');
+  const handleAltCityChange = async (cityName: string) => {
+    setAltCity(cityName);
+    const foundCity = altCitiesList.find((c) => c.name === cityName);
+    if (!foundCity) return;
+
+    try {
+      const bgys = await getBarangays(foundCity.code);
+      setAltBarangaysList(bgys);
+      if (bgys.length > 0) {
+        setAltBarangay(bgys[0].name);
+      } else {
+        setAltBarangay('Poblacion');
+      }
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sendWelcomeEmail, setSendWelcomeEmail] = useState(true);
+
+  // Live duplicate checks for Assigned Patient ID and Patient Full Name
+  const duplicateIdRecord = existingPatients.find(
+    (p) => p.patient_id.trim().toUpperCase() === patientId.trim().toUpperCase()
+  );
+
+  const duplicateNameRecord =
+    firstName.trim().length > 0 && lastName.trim().length > 0
+      ? existingPatients.find(
+          (p) =>
+            p.first_name.trim().toLowerCase() === firstName.trim().toLowerCase() &&
+            p.last_name.trim().toLowerCase() === lastName.trim().toLowerCase()
+        )
+      : undefined;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!firstName.trim() || !lastName.trim()) {
       toast.error('First Name and Last Name are required.');
+      return;
+    }
+    if (duplicateIdRecord) {
+      toast.error(
+        `Duplicate Patient ID: ${patientId} is already assigned to ${duplicateIdRecord.first_name} ${duplicateIdRecord.last_name}.`
+      );
+      return;
+    }
+    if (duplicateNameRecord) {
+      toast.error(
+        `Duplicate Patient Name: "${firstName.trim()} ${lastName.trim()}" is already registered under Patient ID ${duplicateNameRecord.patient_id}.`
+      );
       return;
     }
     if (!birthdate) {
@@ -274,39 +475,127 @@ export default function RegisterPatientPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          patient_id: patientId,
-          first_name: firstName,
-          middle_name: middleName,
-          last_name: lastName,
+          patient_id: patientId.trim().toUpperCase(),
+          first_name: firstName.trim(),
+          middle_name: middleName.trim(),
+          last_name: lastName.trim(),
           suffix: suffix,
           birthdate: birthdate,
           sex: sex,
           civil_status: civilStatus,
+          num_dependents: numDependents,
+          perm_province: permProvince,
+          perm_city: permCity,
+          perm_barangay: permBarangay,
+          perm_street: permStreet.trim(),
+          same_address: sameAddress,
+          alt_province: sameAddress ? permProvince : altProvince,
+          alt_city: sameAddress ? permCity : altCity,
+          alt_barangay: sameAddress ? permBarangay : altBarangay,
+          alt_street: sameAddress ? permStreet.trim() : altStreet.trim(),
+          educational_attainment: educationalAttainment,
+          employment_status: employmentStatus,
+          occupation: occupation.trim(),
           contact_number: mobileNumber,
           email_address: emailAddress.trim() || null,
+          phone_verified: phoneVerified,
+          email_verified: emailVerified,
           initial_password: initialPassword || 'Ofphil@2026',
           send_credentials_email: sendWelcomeEmail,
         }),
       });
 
       const data = await response.json();
-      if (response.ok) {
-        if (data.email_sent) {
-          toast.success(`Patient registered & credentials emailed to ${emailAddress}!`, { id: toastId });
-        } else {
-          toast.success(`Patient ${firstName} ${lastName} (${patientId}) successfully registered!`, { id: toastId });
-        }
-      } else {
-        toast.success(`Patient ${firstName} ${lastName} (${patientId}) registered into masterlist!`, { id: toastId });
+      if (!response.ok) {
+        toast.error(data.detail || 'Registration rejected due to duplicate record.', { id: toastId });
+        setIsSubmitting(false);
+        return;
       }
-    } catch {
-      // Offline fallback: save state successfully
-      toast.success(`Patient ${firstName} ${lastName} (${patientId}) registered into local masterlist!`, { id: toastId });
-    } finally {
-      setIsSubmitting(false);
+
+      // Persist in localStorage to keep frontend sequence counter in sync
+      try {
+        const localSaved = JSON.parse(localStorage.getItem('ofphil_registered_patients') || '[]');
+        localSaved.push({
+          patient_id: patientId.trim().toUpperCase(),
+          first_name: firstName.trim(),
+          middle_name: middleName.trim(),
+          last_name: lastName.trim(),
+          suffix: suffix,
+          birthdate: birthdate,
+          sex: sex.includes('Female') ? 'F' : 'M',
+          civil_status: civilStatus,
+          num_dependents: numDependents,
+          perm_province: permProvince,
+          perm_city: permCity,
+          perm_barangay: permBarangay,
+          perm_street: permStreet.trim(),
+          same_address: sameAddress,
+          alt_province: sameAddress ? permProvince : altProvince,
+          alt_city: sameAddress ? permCity : altCity,
+          alt_barangay: sameAddress ? permBarangay : altBarangay,
+          alt_street: sameAddress ? permStreet.trim() : altStreet.trim(),
+          educational_attainment: educationalAttainment,
+          employment_status: employmentStatus,
+          occupation: occupation.trim(),
+          contact: mobileNumber,
+          email: emailAddress.trim() || '',
+          phone_verified: phoneVerified,
+          email_verified: emailVerified,
+          residence_city: permCity,
+          residence_region: permProvince,
+        });
+        localStorage.setItem('ofphil_registered_patients', JSON.stringify(localSaved));
+      } catch {}
+
+      if (data.email_sent) {
+        toast.success(`Patient registered & credentials emailed to ${emailAddress}!`, { id: toastId });
+      } else {
+        toast.success(`Patient ${firstName} ${lastName} (${patientId}) successfully registered!`, { id: toastId });
+      }
       setTimeout(() => {
         router.push('/admin/patient-records');
       }, 1200);
+    } catch {
+      // Offline fallback: save state locally
+      try {
+        const localSaved = JSON.parse(localStorage.getItem('ofphil_registered_patients') || '[]');
+        localSaved.push({
+          patient_id: patientId.trim().toUpperCase(),
+          first_name: firstName.trim(),
+          middle_name: middleName.trim(),
+          last_name: lastName.trim(),
+          suffix: suffix,
+          birthdate: birthdate,
+          sex: sex.includes('Female') ? 'F' : 'M',
+          civil_status: civilStatus,
+          num_dependents: numDependents,
+          perm_province: permProvince,
+          perm_city: permCity,
+          perm_barangay: permBarangay,
+          perm_street: permStreet.trim(),
+          same_address: sameAddress,
+          alt_province: sameAddress ? permProvince : altProvince,
+          alt_city: sameAddress ? permCity : altCity,
+          alt_barangay: sameAddress ? permBarangay : altBarangay,
+          alt_street: sameAddress ? permStreet.trim() : altStreet.trim(),
+          educational_attainment: educationalAttainment,
+          employment_status: employmentStatus,
+          occupation: occupation.trim(),
+          contact: mobileNumber,
+          email: emailAddress.trim() || '',
+          phone_verified: phoneVerified,
+          email_verified: emailVerified,
+          residence_city: permCity,
+          residence_region: permProvince,
+        });
+        localStorage.setItem('ofphil_registered_patients', JSON.stringify(localSaved));
+      } catch {}
+      toast.success(`Patient ${firstName} ${lastName} (${patientId}) registered into local masterlist!`, { id: toastId });
+      setTimeout(() => {
+        router.push('/admin/patient-records');
+      }, 1200);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -378,22 +667,67 @@ export default function RegisterPatientPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
               {/* Assigned ID Box */}
               <div className="space-y-2">
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#64748B]">
-                  ASSIGNED PATIENT ID (FORMAT: M[YY]-[MM]-[SEQ])
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-[#64748B]">
+                    ASSIGNED PATIENT ID (FORMAT: M[YY]-[MM]-[SEQ])
+                  </label>
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-bold ${duplicateIdRecord ? 'bg-[#FEF2F2] text-[#DC2626] border border-[#FECACA]' : 'bg-[#ECFDF5] text-[#0B6B3A] border border-[#A7F3D0]'}`}>
+                    <i className={`fa-solid ${duplicateIdRecord ? 'fa-triangle-exclamation' : 'fa-circle-check'} text-[10px]`} />
+                    <span>{duplicateIdRecord ? 'Duplicate ID Detected' : 'Unique Sequence ID'}</span>
+                  </span>
+                </div>
 
                 <div className="flex items-center gap-2.5">
                   <input
                     type="text"
                     value={patientId}
                     onChange={(e) => setPatientId(e.target.value)}
-                    className="h-12 px-4 font-mono text-base font-bold text-[#0B6B3A] bg-[#F8FAFC] border-2 border-[#CBD5E1] rounded-xl tracking-wider w-full focus:outline-none focus:border-[#0B6B3A]"
+                    className={`h-12 px-4 font-mono text-base font-bold bg-[#F8FAFC] border-2 rounded-xl tracking-wider w-full focus:outline-none transition ${
+                      duplicateIdRecord
+                        ? 'text-[#DC2626] border-[#DC2626] bg-[#FEF2F2]/50 focus:border-[#DC2626]'
+                        : 'text-[#0B6B3A] border-[#CBD5E1] focus:border-[#0B6B3A]'
+                    }`}
                   />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextId = computeNextPatientId(existingPatients);
+                      setPatientId(nextId);
+                      toast.success(`Assigned next available Patient ID: ${nextId}`);
+                    }}
+                    title="Auto-generate next available non-duplicate Patient ID"
+                    className="h-12 px-3.5 rounded-xl border border-[#CBD5E1] bg-white hover:bg-[#F8FAFC] text-[#0B6B3A] font-semibold text-xs flex items-center gap-1.5 shrink-0 cursor-pointer transition"
+                  >
+                    <i className="fa-solid fa-rotate text-xs" />
+                    <span>Next ID</span>
+                  </button>
                 </div>
 
-                <div className="text-[11.5px] text-[#64748B]">
-                  Authoritative collision-resistant Patient ID generated by OFPHIL backend.
-                </div>
+                {duplicateIdRecord ? (
+                  <div className="p-2.5 rounded-xl bg-[#FEF2F2] border border-[#FECACA] text-[#DC2626] text-[11.5px] font-medium flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <i className="fa-solid fa-circle-exclamation shrink-0" />
+                      <span>
+                        <strong>{patientId.trim().toUpperCase()}</strong> is already assigned to{' '}
+                        <strong>{duplicateIdRecord.first_name} {duplicateIdRecord.last_name}</strong>. Duplication is not allowed.
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setPatientId(computeNextPatientId(existingPatients))}
+                      className="px-2.5 py-1 rounded-lg bg-[#DC2626] hover:bg-[#B91C1C] text-white text-[10.5px] font-bold shrink-0 border-0 cursor-pointer"
+                    >
+                      Use {computeNextPatientId(existingPatients)}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="text-[11.5px] text-[#64748B] flex items-center gap-1.5">
+                    <i className="fa-solid fa-shield-halved text-[#0B6B3A] text-[11px]" />
+                    <span>
+                      Auto-incremented after existing record <strong>M26-11-00001 (Juan Dela Cruz)</strong> to prevent ID duplication.
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Linking Existing Records Info */}
@@ -487,6 +821,26 @@ export default function RegisterPatientPage() {
                 </div>
               </div>
 
+              {/* Real-time Duplicate Patient Name Warning */}
+              {duplicateNameRecord && (
+                <div className="p-3.5 rounded-xl bg-[#FEF2F2] border border-[#FECACA] text-[#DC2626] text-xs flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <i className="fa-solid fa-user-slash text-sm shrink-0" />
+                    <span>
+                      <strong>Duplicate Patient Name Detected:</strong> A patient named{' '}
+                      <strong>&ldquo;{duplicateNameRecord.first_name} {duplicateNameRecord.last_name}&rdquo;</strong> is already registered under Patient ID{' '}
+                      <strong className="font-mono underline">{duplicateNameRecord.patient_id}</strong>. Duplicate patient records are not permitted.
+                    </span>
+                  </div>
+                  <Link
+                    href={`/admin/patient-records/${duplicateNameRecord.patient_id}`}
+                    className="px-3 py-1.5 rounded-lg bg-white border border-[#FCA5A5] text-[#DC2626] hover:bg-[#FEE2E2] font-bold text-[11px] shrink-0 no-underline transition"
+                  >
+                    View Existing Record &rarr;
+                  </Link>
+                </div>
+              )}
+
               {/* Row 2: Birthday, Sex, Civil Status, No. of Dependents */}
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
@@ -575,11 +929,19 @@ export default function RegisterPatientPage() {
                       value={permProvince}
                       onChange={(e) => handlePermProvinceChange(e.target.value)}
                     >
-                      {PROVINCE_OPTIONS.map((prov) => (
-                        <option key={prov} value={prov}>
-                          {prov}
-                        </option>
-                      ))}
+                      {provincesList.length > 0 ? (
+                        provincesList.map((p) => (
+                          <option key={p.code} value={p.name}>
+                            {p.name}
+                          </option>
+                        ))
+                      ) : (
+                        PROVINCE_OPTIONS.map((prov) => (
+                          <option key={prov} value={prov}>
+                            {prov}
+                          </option>
+                        ))
+                      )}
                     </select>
                   </div>
 
@@ -593,11 +955,19 @@ export default function RegisterPatientPage() {
                       value={permCity}
                       onChange={(e) => handlePermCityChange(e.target.value)}
                     >
-                      {permAvailableCities.map((city) => (
-                        <option key={city} value={city}>
-                          {city}
-                        </option>
-                      ))}
+                      {permCitiesList.length > 0 ? (
+                        permCitiesList.map((c) => (
+                          <option key={c.code} value={c.name}>
+                            {c.name}
+                          </option>
+                        ))
+                      ) : (
+                        permAvailableCities.map((city) => (
+                          <option key={city} value={city}>
+                            {city}
+                          </option>
+                        ))
+                      )}
                     </select>
                   </div>
 
@@ -611,11 +981,19 @@ export default function RegisterPatientPage() {
                       value={permBarangay}
                       onChange={(e) => setPermBarangay(e.target.value)}
                     >
-                      {permAvailableBarangays.map((bgy) => (
-                        <option key={bgy} value={bgy}>
-                          {bgy}
-                        </option>
-                      ))}
+                      {permBarangaysList.length > 0 ? (
+                        permBarangaysList.map((b) => (
+                          <option key={b.code} value={b.name}>
+                            {b.name}
+                          </option>
+                        ))
+                      ) : (
+                        permAvailableBarangays.map((bgy) => (
+                          <option key={bgy} value={bgy}>
+                            {bgy}
+                          </option>
+                        ))
+                      )}
                     </select>
                   </div>
                 </div>
@@ -679,11 +1057,19 @@ export default function RegisterPatientPage() {
                         value={altProvince}
                         onChange={(e) => handleAltProvinceChange(e.target.value)}
                       >
-                        {PROVINCE_OPTIONS.map((prov) => (
-                          <option key={prov} value={prov}>
-                            {prov}
-                          </option>
-                        ))}
+                        {provincesList.length > 0 ? (
+                          provincesList.map((p) => (
+                            <option key={p.code} value={p.name}>
+                              {p.name}
+                            </option>
+                          ))
+                        ) : (
+                          PROVINCE_OPTIONS.map((prov) => (
+                            <option key={prov} value={prov}>
+                              {prov}
+                            </option>
+                          ))
+                        )}
                       </select>
                     </div>
 
@@ -697,11 +1083,19 @@ export default function RegisterPatientPage() {
                         value={altCity}
                         onChange={(e) => handleAltCityChange(e.target.value)}
                       >
-                        {altAvailableCities.map((city) => (
-                          <option key={city} value={city}>
-                            {city}
-                          </option>
-                        ))}
+                        {altCitiesList.length > 0 ? (
+                          altCitiesList.map((c) => (
+                            <option key={c.code} value={c.name}>
+                              {c.name}
+                            </option>
+                          ))
+                        ) : (
+                          altAvailableCities.map((city) => (
+                            <option key={city} value={city}>
+                              {city}
+                            </option>
+                          ))
+                        )}
                       </select>
                     </div>
 
@@ -715,11 +1109,19 @@ export default function RegisterPatientPage() {
                         value={altBarangay}
                         onChange={(e) => setAltBarangay(e.target.value)}
                       >
-                        {altAvailableBarangays.map((bgy) => (
-                          <option key={bgy} value={bgy}>
-                            {bgy}
-                          </option>
-                        ))}
+                        {altBarangaysList.length > 0 ? (
+                          altBarangaysList.map((b) => (
+                            <option key={b.code} value={b.name}>
+                              {b.name}
+                            </option>
+                          ))
+                        ) : (
+                          altAvailableBarangays.map((bgy) => (
+                            <option key={bgy} value={bgy}>
+                              {bgy}
+                            </option>
+                          ))
+                        )}
                       </select>
                     </div>
                   </div>
@@ -929,9 +1331,7 @@ export default function RegisterPatientPage() {
                     <i className={`fa-regular ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`} />
                   </button>
                 </div>
-                <div className="text-[11px] text-[#94A3B8] mt-1 text-right">
-                  {initialPassword.length > 0 && initialPassword.length < 6 ? 'Too short' : ''}
-                </div>
+                <PasswordStrengthMeter password={initialPassword} showChecks={true} />
               </div>
 
               {/* Confirm Password */}

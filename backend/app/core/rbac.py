@@ -14,6 +14,8 @@ class UserRole(str, Enum):
     ADMIN = "admin"
     MSW = "msw"
     RESEARCHER = "researcher"
+    PATIENT = "patient"
+    NURSE = "nurse"
 
 
 def get_current_user_role(

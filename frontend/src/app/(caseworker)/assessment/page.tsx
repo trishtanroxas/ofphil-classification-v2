@@ -1,20 +1,62 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { toast } from 'sonner';
+import { fetchApi } from '@/lib/api';
 
-export default function MSWAssessmentPage() {
+function MSWAssessmentContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const patientIdParam = searchParams?.get('patient_id') || 'M26-11-00001';
+
   // Stages: 1 = Case Study & Profile, 2 = MSW Assessment, 3 = Supporting Documents, 4 = Eligibility Grant Tier
   const [activeStage, setActiveStage] = useState<1 | 2 | 3 | 4>(1);
 
   // Common Header & Encounter metadata
-  const applicationEncounterNo = 'M26-11-00001';
-  const mswNumber = '0125-01';
-  const [interviewDate, setInterviewDate] = useState('11/22/2026');
+  const [applicationEncounterNo, setApplicationEncounterNo] = useState(patientIdParam);
+  const [mswNumber, setMswNumber] = useState('MSW_FA_0125-01');
+  const [interviewDate, setInterviewDate] = useState('2026-11-22');
   const [timeStarted, setTimeStarted] = useState('09:00 AM');
   const [timeEnded, setTimeEnded] = useState('09:45 AM');
   const [sourceOfReferral, setSourceOfReferral] = useState('EYE CLINIC REFERRAL');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Dynamic patient loading from database
+  useEffect(() => {
+    async function loadPatientDetails() {
+      if (!patientIdParam) return;
+      try {
+        const res = await fetchApi(`/patients/${patientIdParam}`);
+        if (res && res.patient) {
+          const p = res.patient;
+          setApplicationEncounterNo(p.patient_id || patientIdParam);
+          if (p.patient_id && (p.patient_id.startsWith('MSW_FA_') || p.category === 'CHARITY')) {
+            setMswNumber(p.patient_id);
+          }
+          setPatFirstName(p.first_name || '');
+          setPatMiddleName(p.middle_name || '');
+          setPatLastName(p.last_name || '');
+          setPatSuffix(p.suffix || 'None');
+          setPatAge(p.age ? String(p.age) : '48');
+          setPatDob(p.birthdate || '1978-05-15');
+          setPatSex(p.sex === 'M' ? 'Male' : p.sex === 'F' ? 'Female' : (p.sex || 'Male'));
+          setPatCivilStatus(p.civil_status || 'Married');
+          setPatContact(p.contact || '');
+          setPatOccupation(p.occupation || 'Public Utility Driver');
+          setPatEducation(p.educational_attainment || 'High School');
+          if (p.diagnosis) {
+            setAdmittingDiagnosis(p.diagnosis);
+            setFinalDiagnosis(p.diagnosis);
+          }
+        }
+      } catch (e) {
+        // Fallback to default Juan Dela Cruz
+      }
+    }
+    loadPatientDetails();
+  }, [patientIdParam]);
 
   // STAGE 1: Informant / Representative State
   const [infLastName, setInfLastName] = useState('');
@@ -119,13 +161,67 @@ export default function MSWAssessmentPage() {
   const [presentTreatmentPlan, setPresentTreatmentPlan] = useState('Phacoemulsification with Foldable IOL (OS)');
   const [healthAccessibilityProblem, setHealthAccessibilityProblem] = useState('');
 
-  // Health Factors Checklist
+  // Health Factors Checklist (DOH-PIE Clinical Rubric)
   const [healthFactors, setHealthFactors] = useState([
-    { factor: 'Absence of adequate health services', status: 'Yes (Absent)', obs: 'Describe health service accessibility constraints...' },
-    { factor: 'Inaccessibility of Health Services', status: 'Yes (Inaccess)', obs: 'Specify barriers (e.g. distance, physical disability, transport cost)...' },
-    { factor: 'Absence of support services needed to use health services', status: 'Yes (Support)', obs: 'Specify caregiver or logistical support deficit...' },
-    { factor: 'Absence of adequate Mental Health services', status: 'No (Adequat)', obs: 'Specify psychiatric or counseling service availability...' },
+    { factor: 'Absence of adequate health services', severity: 4, duration: 3, coping: 4, obs: 'High surgical fee barrier; nearest specialty tertiary hospital requires substantial out-of-pocket payment' },
+    { factor: 'Inaccessibility of Health Services', severity: 4, duration: 4, coping: 4, obs: 'No direct ophthalmic subspecialist in local municipality; requires long travel with escort' },
+    { factor: 'Absence of support services needed to use health services', severity: 3, duration: 3, coping: 3, obs: 'Limited caregiver capacity; primary earner cannot take leave without wage loss' },
+    { factor: 'Absence of adequate Mental Health / Psychosocial Support services', severity: 2, duration: 2, coping: 2, obs: 'Mild anxiety over deteriorating sight; community social worker supportive' },
   ]);
+
+  // Discrimination, Safety & Environmental Rubrics
+  const [discrimSeverity, setDiscrimSeverity] = useState(3);
+  const [discrimCoping, setDiscrimCoping] = useState(3);
+  const [safetySeverity, setSafetySeverity] = useState(3);
+  const [safetyCoping, setSafetyCoping] = useState(3);
+  const [roleSeverity, setRoleSeverity] = useState(4);
+  const [roleCoping, setRoleCoping] = useState(4);
+  const [envSeverity, setEnvSeverity] = useState(4);
+
+  // Live Rubric Calculations
+  const averageSeverity = Number(
+    ((healthFactors.reduce((acc, h) => acc + h.severity, 0) / healthFactors.length +
+      discrimSeverity + safetySeverity + roleSeverity + envSeverity) / 5).toFixed(2)
+  );
+
+  const averageCoping = Number(
+    ((healthFactors.reduce((acc, h) => acc + h.coping, 0) / healthFactors.length +
+      discrimCoping + safetyCoping + roleCoping) / 4).toFixed(2)
+  );
+
+  // Total Risk Formula: (Average Severity * 8.5) + (Average Coping * 5.0)
+  const totalRisk = Number(((averageSeverity * 8.5) + (averageCoping * 5.0)).toFixed(1));
+
+  // Total Household Income
+  const totalHouseholdIncome = Number(infIncome || 0) + Number(patIncome || 0) +
+    familyMembers.reduce((acc, f) => acc + (Number(f.income) || 0), 0);
+
+  // Evaluate MSW Classification based on Trigger Condition rubric:
+  // 1. Indigent: Average Severity >= 3.8 OR Average Coping >= 3.8 OR Total Risk >= 65.0% (or Total Household Income <= ₱14,000 on initial load)
+  // 2. Financially Incapacitated (B1): Average Severity >= 2.8 OR Average Coping >= 2.8 OR Total Risk >= 45.0%
+  // 3. Financially Incapacitated (B2): Total Risk >= 30.0% (or Total Household Income <= ₱25,000 on initial load)
+  // 4. Financially Capacitated (Full Pay): All scores below thresholds above
+  let mswClassification = 'Financially Capacitated (Full Pay)';
+  let subsidyLevel = 'Full Pay (Non-Charity)';
+  let badgeColor = 'bg-[#F1F5F9] text-[#475569] border-[#CBD5E1]';
+  let bannerColor = 'bg-[#F8FAFC] border-[#CBD5E1] text-[#334155]';
+
+  if (averageSeverity >= 3.8 || averageCoping >= 3.8 || totalRisk >= 65.0 || totalHouseholdIncome <= 14000) {
+    mswClassification = 'Indigent';
+    subsidyLevel = '100% Full Charity Subsidy';
+    badgeColor = 'bg-[#E8F5EC] text-[#0B6B3A] border-[#86EFAC]';
+    bannerColor = 'bg-[#F0FDF4] border-[#86EFAC] text-[#14532D]';
+  } else if (averageSeverity >= 2.8 || averageCoping >= 2.8 || totalRisk >= 45.0) {
+    mswClassification = 'Financially Incapacitated (B1)';
+    subsidyLevel = 'High Partial Charity Subsidy';
+    badgeColor = 'bg-[#EFF6FF] text-[#1D4ED8] border-[#93C5FD]';
+    bannerColor = 'bg-[#EFF6FF] border-[#BFDBFE] text-[#1E40AF]';
+  } else if (totalRisk >= 30.0 || totalHouseholdIncome <= 25000) {
+    mswClassification = 'Financially Incapacitated (B2)';
+    subsidyLevel = 'Moderate Partial Subsidy';
+    badgeColor = 'bg-[#FFFBEB] text-[#B45309] border-[#FDE68A]';
+    bannerColor = 'bg-[#FFFBEB] border-[#FDE68A] text-[#92400E]';
+  }
 
   // STAGE 3: Supporting Documents Checklist State
   const [docStatuses, setDocStatuses] = useState<Record<string, 'Pending' | 'Submitted' | 'Verified' | 'N/A'>>({
@@ -1154,6 +1250,107 @@ export default function MSWAssessmentPage() {
                 </div>
               </div>
 
+              {/* LIVE DOH-PIE COMPOSITE SCORING & MSW CLASSIFICATION DASHBOARD */}
+              <div className="p-4 rounded-xl border border-[#0B6B3A]/30 bg-[#F0FDF4] space-y-4 shadow-sm">
+                <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-[#BBF7D0]">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-[#0B6B3A] text-white flex items-center justify-center text-sm font-bold shadow-xs">
+                      <i className="fa-solid fa-chart-line" />
+                    </div>
+                    <div>
+                      <h4 className="font-['Outfit'] font-bold text-sm text-[#14532D] m-0">
+                        Live DOH-PIE Clinical Scoring &amp; Decision Advisory
+                      </h4>
+                      <p className="text-[11px] text-[#166534] m-0">
+                        Evaluated from live rubric factors and household income thresholds
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold text-[#14532D]">MSW Classification:</span>
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold border ${badgeColor} shadow-2xs`}>
+                      {mswClassification}
+                    </span>
+                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-[#0B6B3A] text-white shadow-2xs">
+                      {subsidyLevel}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 4 Metric Cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                  <div className="p-3 bg-white border border-[#CBD5E1] rounded-xl shadow-2xs">
+                    <div className="text-[10px] font-bold text-[#64748B] uppercase">Average Severity</div>
+                    <div className="text-xl font-extrabold text-[#0B6B3A] my-0.5">{averageSeverity.toFixed(2)}</div>
+                    <div className="text-[10px] text-[#94A3B8]">Threshold &ge; 3.8 / 2.8</div>
+                  </div>
+
+                  <div className="p-3 bg-white border border-[#CBD5E1] rounded-xl shadow-2xs">
+                    <div className="text-[10px] font-bold text-[#64748B] uppercase">Average Coping</div>
+                    <div className="text-xl font-extrabold text-[#0284C7] my-0.5">{averageCoping.toFixed(2)}</div>
+                    <div className="text-[10px] text-[#94A3B8]">Threshold &ge; 3.8 / 2.8</div>
+                  </div>
+
+                  <div className="p-3 bg-white border border-[#CBD5E1] rounded-xl shadow-2xs">
+                    <div className="text-[10px] font-bold text-[#64748B] uppercase">Total Risk Score</div>
+                    <div className="text-xl font-extrabold text-[#0F766E] my-0.5">{totalRisk.toFixed(1)}%</div>
+                    <div className="text-[10px] text-[#94A3B8]">(Sev &times; 8.5) + (Cop &times; 5)</div>
+                  </div>
+
+                  <div className="p-3 bg-white border border-[#CBD5E1] rounded-xl shadow-2xs">
+                    <div className="text-[10px] font-bold text-[#64748B] uppercase">Total Household Income</div>
+                    <div className="text-xl font-extrabold text-[#10241A] my-0.5">₱{totalHouseholdIncome.toLocaleString()}</div>
+                    <div className="text-[10px] text-[#94A3B8]">Initial Load: &le; ₱14k / &le; ₱25k</div>
+                  </div>
+                </div>
+
+                {/* Official Trigger Condition Reference Table Banner */}
+                <div className="bg-white border border-[#CBD5E1] rounded-xl p-3 text-xs overflow-x-auto">
+                  <div className="font-bold text-[11px] uppercase tracking-wide text-[#0B6B3A] mb-2 flex items-center gap-1.5">
+                    <i className="fa-solid fa-table-list" />
+                    <span>Official OFPHIL MSW Classification Rubric &amp; Trigger Conditions</span>
+                  </div>
+                  <table className="w-full text-left border-collapse text-[11px]">
+                    <thead>
+                      <tr className="bg-[#FAFBF8] border-b border-[#E2E8F0] text-[#64748B]">
+                        <th className="py-1.5 px-2.5">MSW Classification</th>
+                        <th className="py-1.5 px-2.5">Trigger Condition (Live Rubric &amp; Initial Load)</th>
+                        <th className="py-1.5 px-2.5">Subsidy Level</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#EEF2EF]">
+                      <tr className={mswClassification === 'Indigent' ? 'bg-[#F0FDF4] font-bold text-[#14532D]' : ''}>
+                        <td className="py-1.5 px-2.5">Indigent</td>
+                        <td className="py-1.5 px-2.5 font-mono text-[10.5px]">
+                          Average Severity &ge; 3.8 <strong className="text-[#0B6B3A]">OR</strong> Average Coping &ge; 3.8 <strong className="text-[#0B6B3A]">OR</strong> Total Risk &ge; 65.0% (or Total Household Income &le; ₱14,000 on initial load)
+                        </td>
+                        <td className="py-1.5 px-2.5">100% Full Charity Subsidy</td>
+                      </tr>
+                      <tr className={mswClassification === 'Financially Incapacitated (B1)' ? 'bg-[#EFF6FF] font-bold text-[#1E40AF]' : ''}>
+                        <td className="py-1.5 px-2.5">Financially Incapacitated (B1)</td>
+                        <td className="py-1.5 px-2.5 font-mono text-[10.5px]">
+                          Average Severity &ge; 2.8 <strong className="text-[#0B6B3A]">OR</strong> Average Coping &ge; 2.8 <strong className="text-[#0B6B3A]">OR</strong> Total Risk &ge; 45.0%
+                        </td>
+                        <td className="py-1.5 px-2.5">High Partial Charity Subsidy</td>
+                      </tr>
+                      <tr className={mswClassification === 'Financially Incapacitated (B2)' ? 'bg-[#FFFBEB] font-bold text-[#92400E]' : ''}>
+                        <td className="py-1.5 px-2.5">Financially Incapacitated (B2)</td>
+                        <td className="py-1.5 px-2.5 font-mono text-[10.5px]">
+                          Total Risk &ge; 30.0% (or Total Household Income &le; ₱25,000 on initial load)
+                        </td>
+                        <td className="py-1.5 px-2.5">Moderate Partial Subsidy</td>
+                      </tr>
+                      <tr className={mswClassification === 'Financially Capacitated (Full Pay)' ? 'bg-[#F8FAFC] font-bold text-[#334155]' : ''}>
+                        <td className="py-1.5 px-2.5">Financially Capacitated (Full Pay)</td>
+                        <td className="py-1.5 px-2.5 font-mono text-[10.5px]">All scores below the thresholds above</td>
+                        <td className="py-1.5 px-2.5">Full Pay (Non-Charity)</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
               {/* V. HEALTH (PHYSICAL & MENTAL HEALTH SERVICES / ACCESS) */}
               <div className="p-4 rounded-xl border border-[#E2E8F0] bg-white space-y-4">
                 <div className="flex items-center justify-between pb-2 border-b border-[#EEF2EF]">
@@ -1171,7 +1368,8 @@ export default function MSWAssessmentPage() {
                     <thead className="bg-[#FAFBF8] text-[#64748B] uppercase text-[10px] tracking-wider border-b border-[#EEF2EF]">
                       <tr>
                         <th className="py-2.5 px-3">HEALTH SERVICE / ACCESSIBILITY FACTOR</th>
-                        <th className="py-2.5 px-3 w-40">STATUS</th>
+                        <th className="py-2.5 px-3 w-28">SEVERITY (1-6)</th>
+                        <th className="py-2.5 px-3 w-28">COPING (1-6)</th>
                         <th className="py-2.5 px-3">MSW CLINICAL OBSERVATIONS &amp; SPECIFIC DETAILS</th>
                       </tr>
                     </thead>
@@ -1181,18 +1379,36 @@ export default function MSWAssessmentPage() {
                           <td className="py-3 px-3 font-medium text-[#1E293B]">{hf.factor}</td>
                           <td className="py-3 px-3">
                             <select
-                              value={hf.status}
+                              value={hf.severity}
                               onChange={(e) => {
                                 const updated = [...healthFactors];
-                                updated[i].status = e.target.value;
+                                updated[i].severity = Number(e.target.value);
                                 setHealthFactors(updated);
                               }}
-                              className="w-full h-8 px-2 border border-[#CBD5E1] rounded text-[11px] bg-white"
+                              className="w-full h-8 px-2 border border-[#CBD5E1] rounded text-xs bg-white font-bold text-[#0B6B3A]"
                             >
-                              <option value="Yes (Absent)">Yes (Absent)</option>
-                              <option value="Yes (Inaccess)">Yes (Inaccess)</option>
-                              <option value="Yes (Support)">Yes (Support)</option>
-                              <option value="No (Adequat)">No (Adequat)</option>
+                              {[1, 2, 3, 4, 5, 6].map((num) => (
+                                <option key={num} value={num}>
+                                  {num} - {num <= 2 ? 'Low' : num <= 4 ? 'Moderate' : 'Severe'}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                          <td className="py-3 px-3">
+                            <select
+                              value={hf.coping}
+                              onChange={(e) => {
+                                const updated = [...healthFactors];
+                                updated[i].coping = Number(e.target.value);
+                                setHealthFactors(updated);
+                              }}
+                              className="w-full h-8 px-2 border border-[#CBD5E1] rounded text-xs bg-white font-bold text-[#0284C7]"
+                            >
+                              {[1, 2, 3, 4, 5, 6].map((num) => (
+                                <option key={num} value={num}>
+                                  {num} - {num <= 2 ? 'Adequate' : num <= 4 ? 'Inadequate' : 'No Coping'}
+                                </option>
+                              ))}
                             </select>
                           </td>
                           <td className="py-3 px-3">
@@ -1211,6 +1427,102 @@ export default function MSWAssessmentPage() {
                       ))}
                     </tbody>
                   </table>
+                </div>
+              </div>
+
+              {/* VI to IX SUBTOPIC ADJUSTERS */}
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 p-4 bg-white border border-[#E2E8F0] rounded-xl text-xs">
+                <div>
+                  <label className="block text-[11px] font-semibold text-[#475569] mb-1">
+                    VI. Discrimination Burden
+                  </label>
+                  <div className="flex gap-1.5">
+                    <select
+                      value={discrimSeverity}
+                      onChange={(e) => setDiscrimSeverity(Number(e.target.value))}
+                      className="w-full h-8 px-2 border border-[#CBD5E1] rounded text-xs font-bold text-[#0B6B3A]"
+                    >
+                      {[1, 2, 3, 4, 5, 6].map((n) => (
+                        <option key={n} value={n}>Sev: {n}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={discrimCoping}
+                      onChange={(e) => setDiscrimCoping(Number(e.target.value))}
+                      className="w-full h-8 px-2 border border-[#CBD5E1] rounded text-xs font-bold text-[#0284C7]"
+                    >
+                      {[1, 2, 3, 4, 5, 6].map((n) => (
+                        <option key={n} value={n}>Cop: {n}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-[#475569] mb-1">
+                    VII. Safety / Hazards
+                  </label>
+                  <div className="flex gap-1.5">
+                    <select
+                      value={safetySeverity}
+                      onChange={(e) => setSafetySeverity(Number(e.target.value))}
+                      className="w-full h-8 px-2 border border-[#CBD5E1] rounded text-xs font-bold text-[#0B6B3A]"
+                    >
+                      {[1, 2, 3, 4, 5, 6].map((n) => (
+                        <option key={n} value={n}>Sev: {n}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={safetyCoping}
+                      onChange={(e) => setSafetyCoping(Number(e.target.value))}
+                      className="w-full h-8 px-2 border border-[#CBD5E1] rounded text-xs font-bold text-[#0284C7]"
+                    >
+                      {[1, 2, 3, 4, 5, 6].map((n) => (
+                        <option key={n} value={n}>Cop: {n}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-[#475569] mb-1">
+                    VIII. Social Roles
+                  </label>
+                  <div className="flex gap-1.5">
+                    <select
+                      value={roleSeverity}
+                      onChange={(e) => setRoleSeverity(Number(e.target.value))}
+                      className="w-full h-8 px-2 border border-[#CBD5E1] rounded text-xs font-bold text-[#0B6B3A]"
+                    >
+                      {[1, 2, 3, 4, 5, 6].map((n) => (
+                        <option key={n} value={n}>Sev: {n}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={roleCoping}
+                      onChange={(e) => setRoleCoping(Number(e.target.value))}
+                      className="w-full h-8 px-2 border border-[#CBD5E1] rounded text-xs font-bold text-[#0284C7]"
+                    >
+                      {[1, 2, 3, 4, 5, 6].map((n) => (
+                        <option key={n} value={n}>Cop: {n}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-[#475569] mb-1">
+                    IX. Environment Basic Needs
+                  </label>
+                  <select
+                    value={envSeverity}
+                    onChange={(e) => setEnvSeverity(Number(e.target.value))}
+                    className="w-full h-8 px-2 border border-[#CBD5E1] rounded text-xs font-bold text-[#0B6B3A]"
+                  >
+                    {[1, 2, 3, 4, 5, 6].map((n) => (
+                      <option key={n} value={n}>Sev: {n}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>
@@ -1346,18 +1658,47 @@ export default function MSWAssessmentPage() {
              ======================================================== */}
           {activeStage === 4 && (
             <div className="space-y-6">
-              <div className="p-6 rounded-2xl bg-[#F0FDF4] border border-[#86EFAC] text-center space-y-3">
-                <div className="w-12 h-12 rounded-full bg-[#E6F1EA] text-[#0B6B3A] flex items-center justify-center text-xl mx-auto font-bold">
+              <div className={`p-6 rounded-2xl border ${bannerColor} text-center space-y-4 shadow-sm`}>
+                <div className="w-14 h-14 rounded-full bg-white text-[#0B6B3A] flex items-center justify-center text-2xl mx-auto font-bold shadow-xs">
                   <i className="fa-solid fa-award" />
                 </div>
-                <h3 className="font-['Outfit'] text-lg font-bold text-[#10241A] m-0">
-                  Eligibility Grant Tier Recommendation
-                </h3>
-                <p className="text-xs text-[#5A7466] max-w-md mx-auto m-0">
-                  Based on DOH AO 2017-0024 and OFPHIL Charity Guidelines, applicant qualifies for Class A Full Subsidy.
-                </p>
-                <div className="inline-block px-4 py-1.5 rounded-full bg-[#0B6B3A] text-white font-bold text-xs">
-                  Class A (100% Charity Subsidy)
+                <div>
+                  <h3 className="font-['Outfit'] text-xl font-bold text-[#10241A] m-0">
+                    Official MSW Eligibility Grant Recommendation
+                  </h3>
+                  <p className="text-xs text-[#5A7466] max-w-lg mx-auto mt-1 mb-0 leading-relaxed">
+                    Evaluated against DOH Administrative Order &amp; OFPHIL Charity Guidelines using composite clinical severity, coping capacity, total risk score, and household income.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                  <div className={`inline-flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold border ${badgeColor} shadow-xs`}>
+                    <i className="fa-solid fa-id-card-clip" />
+                    <span>Classification: {mswClassification}</span>
+                  </div>
+                  <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-[#0B6B3A] text-white text-sm font-bold shadow-xs">
+                    <i className="fa-solid fa-hand-holding-heart" />
+                    <span>Subsidy Level: {subsidyLevel}</span>
+                  </div>
+                </div>
+
+                <div className="max-w-xl mx-auto pt-4 border-t border-[#CBD5E1]/60 grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
+                  <div className="p-2.5 bg-white/80 rounded-xl border border-[#CBD5E1]">
+                    <div className="text-[10px] text-[#64748B] font-bold">AVG SEVERITY</div>
+                    <div className="text-sm font-black text-[#0B6B3A] mt-0.5">{averageSeverity.toFixed(2)}</div>
+                  </div>
+                  <div className="p-2.5 bg-white/80 rounded-xl border border-[#CBD5E1]">
+                    <div className="text-[10px] text-[#64748B] font-bold">AVG COPING</div>
+                    <div className="text-sm font-black text-[#0284C7] mt-0.5">{averageCoping.toFixed(2)}</div>
+                  </div>
+                  <div className="p-2.5 bg-white/80 rounded-xl border border-[#CBD5E1]">
+                    <div className="text-[10px] text-[#64748B] font-bold">TOTAL RISK</div>
+                    <div className="text-sm font-black text-[#0F766E] mt-0.5">{totalRisk.toFixed(1)}%</div>
+                  </div>
+                  <div className="p-2.5 bg-white/80 rounded-xl border border-[#CBD5E1]">
+                    <div className="text-[10px] text-[#64748B] font-bold">TOTAL INCOME</div>
+                    <div className="text-sm font-black text-[#10241A] mt-0.5">₱{totalHouseholdIncome.toLocaleString()}</div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1398,18 +1739,57 @@ export default function MSWAssessmentPage() {
 
             <button
               type="button"
-              onClick={() => {
-                if (activeStage < 4) {
-                  setActiveStage((activeStage + 1) as any);
-                  toast.success(`Advanced to Stage ${activeStage + 1}!`);
-                } else {
-                  toast.success('Assessment completed & submitted to clinical director!');
+              disabled={isSubmitting}
+              onClick={async () => {
+                setIsSubmitting(true);
+                try {
+                  await fetchApi(`/patients/${applicationEncounterNo}/assessments`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                      patient_id: applicationEncounterNo,
+                      encounter_no: `ENC-${applicationEncounterNo}`,
+                      interview_date: interviewDate,
+                      socioeconomic_data: {
+                        monthly_income: totalHouseholdIncome || 12000,
+                        household_size: familyMembers.length + 1,
+                        dependents: familyMembers.length,
+                        housing_type: 'Rented',
+                        philhealth_category: 'Indigent'
+                      },
+                      clinical_evaluation: {
+                        diagnosis: finalDiagnosis || admittingDiagnosis || 'Cataract',
+                        procedure: presentTreatmentPlan || 'Phacoemulsification with Foldable IOL Implant',
+                        notes: 'Comprehensive casework evaluation completed.'
+                      },
+                      eligibility_grant: {
+                        tier_name: mswClassification,
+                        subsidy_percentage: subsidyLevel.includes('100%') ? 100 : subsidyLevel.includes('75%') ? 75 : subsidyLevel.includes('50%') ? 50 : 25
+                      },
+                      msw_assessor: 'Maria Santos, RSW'
+                    })
+                  });
+
+                  if (activeStage < 4) {
+                    setActiveStage((activeStage + 1) as any);
+                    toast.success(`Advanced to Stage ${activeStage + 1} and progress saved!`);
+                  } else {
+                    toast.success('Assessment completed, saved to database, and subsidy grant issued!');
+                    router.push('/patients?tab=charity');
+                  }
+                } catch (err: any) {
+                  toast.error(err.message || 'Failed to submit assessment to backend.');
+                } finally {
+                  setIsSubmitting(false);
                 }
               }}
-              className="px-5 py-2.5 rounded-xl bg-[#0B6B3A] hover:bg-[#064826] text-white text-xs font-bold flex items-center gap-2 transition shadow-md cursor-pointer border-0"
+              className="px-5 py-2.5 rounded-xl bg-[#0B6B3A] hover:bg-[#064826] text-white text-xs font-bold flex items-center gap-2 transition shadow-md cursor-pointer border-0 disabled:opacity-50"
             >
               <i className="fa-solid fa-circle-check text-xs" />
-              <span>Approve Step 1 &amp; Proceed to Documents</span>
+              <span>
+                {activeStage === 4
+                  ? 'Complete & Finalize Charity Grant'
+                  : `Approve Step ${activeStage} & Proceed`}
+              </span>
             </button>
           </div>
         </div>
@@ -1421,5 +1801,22 @@ export default function MSWAssessmentPage() {
         </div>
       </div>
     </DashboardLayout>
+  );
+}
+
+export default function MSWAssessmentPage() {
+  return (
+    <Suspense
+      fallback={
+        <DashboardLayout>
+          <div className="py-20 text-center">
+            <i className="fa-solid fa-circle-notch fa-spin text-3xl text-[#0B6B3A] mb-3" />
+            <p className="text-xs font-semibold text-[#64748B]">Loading assessment tool...</p>
+          </div>
+        </DashboardLayout>
+      }
+    >
+      <MSWAssessmentContent />
+    </Suspense>
   );
 }

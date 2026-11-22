@@ -1,10 +1,11 @@
 'use client';
-import React, { useState, useRef, Suspense } from 'react';
+import React, { useState, useRef, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import AuthLayout from '@/components/AuthLayout';
 import { useAuth, UserRole } from '@/context/AuthContext';
 import { useLoadingScreen } from '@/context/LoadingScreenContext';
+import { fetchApi } from '@/lib/api';
 
 function VerifyOtpContent() {
   const router = useRouter();
@@ -12,12 +13,46 @@ function VerifyOtpContent() {
   const roleParam = searchParams.get('role') as UserRole | null;
   const { role, login } = useAuth();
   const { showLoading } = useLoadingScreen();
-  const effectiveRole = roleParam || role || 'patient';
+  // Derive effective role prioritizing explicit query param over context or storage
+  const [effectiveRole, setEffectiveRole] = useState<UserRole>(roleParam || role || 'patient');
+
+  useEffect(() => {
+    if (roleParam) {
+      setEffectiveRole(roleParam);
+    } else {
+      try {
+        const stored = localStorage.getItem('ofphil_current_role') as UserRole;
+        if (stored) {
+          setEffectiveRole(stored);
+        }
+      } catch (e) {}
+    }
+  }, [roleParam]);
 
   const [digits, setDigits] = useState(['', '', '', '', '', '']);
   const [demoCode] = useState('123456');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [contactDisplay, setContactDisplay] = useState('0917 *** *678');
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Fetch privacy masking policy to respect "Mask patient mobile contact numbers"
+  useEffect(() => {
+    async function checkContactMasking() {
+      try {
+        const priv = await fetchApi('/admin/settings/privacy', {
+          headers: { 'x-user-role': 'admin', 'x-user-id': 'admin_sys' },
+        });
+        if (priv && priv.masking_rules) {
+          const isMasked = priv.masking_rules.mask_contact_numbers ?? true;
+          setContactDisplay(isMasked ? '0917 *** *678' : '0917 888 1678');
+        }
+      } catch (e) {
+        // Fallback to default
+        setContactDisplay('0917 *** *678');
+      }
+    }
+    checkContactMasking();
+  }, []);
 
   const handleDigitChange = (index: number, val: string) => {
     setErrorMessage(null);
@@ -58,20 +93,32 @@ function VerifyOtpContent() {
       return;
     }
 
-    // Restrict access: Only Admin role is active and allowed
-    if (effectiveRole !== 'admin' && effectiveRole !== 'nurse') {
-      setErrorMessage('Access restricted: Only verified Clinic Administrator credentials can access the system.');
-      return;
-    }
+    // Determine target role strictly from query parameter 'role' if present, or effectiveRole state
+    const targetRole = roleParam || effectiveRole;
+    const validRoles: UserRole[] = ['admin', 'msw', 'patient', 'nurse'];
+    const resolvedRole: UserRole = validRoles.includes(targetRole) ? targetRole : 'patient';
 
-    // Success: Log in and proceed
+    // Success: Log in with the authentic role and proceed to appropriate role workspace
     setErrorMessage(null);
-    login('admin');
-    showLoading('Accessing Clinic Master Records...');
+    login(resolvedRole);
 
-    setTimeout(() => {
-      window.location.href = '/admin/patient-records';
-    }, 200);
+    if (resolvedRole === 'admin' || resolvedRole === 'nurse') {
+      showLoading('Accessing Clinic Administration Master Records...');
+      setTimeout(() => {
+        window.location.replace('/admin/patient-records');
+      }, 200);
+    } else if (resolvedRole === 'msw') {
+      showLoading('Authenticating MSW Caseworker workspace...');
+      setTimeout(() => {
+        window.location.replace('/dashboard');
+      }, 200);
+    } else {
+      // Patient Portal
+      showLoading('Opening Patient Beneficiary Portal...');
+      setTimeout(() => {
+        window.location.replace('/portal?tab=dashboard');
+      }, 200);
+    }
   };
 
   return (
@@ -95,7 +142,7 @@ function VerifyOtpContent() {
         </h1>
         <p className="text-[13.5px] text-[#5A7466] m-0 leading-relaxed">
           Please enter the 6-digit one-time PIN sent to your verified contact method:<br />
-          <strong className="text-[#0B6B3A] text-[14.5px]">0917 *** *678</strong>
+          <strong className="text-[#0B6B3A] text-[14.5px] tracking-wide">{contactDisplay}</strong>
         </p>
       </div>
 

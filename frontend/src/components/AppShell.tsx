@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth, UserRole } from '@/context/AuthContext';
 import { useLoadingScreen } from '@/context/LoadingScreenContext';
+import { useNavigationBlocker } from '@/context/NavigationBlockerContext';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -20,9 +21,100 @@ export function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname();
   const { role, user, logout } = useAuth();
-  const { showLoading } = useLoadingScreen();
+  const { showLoading, startProgress } = useLoadingScreen();
+  const { confirmNavigation } = useNavigationBlocker();
   const [internalCollapsed, setInternalCollapsed] = useState(false);
   const [patientRecordsOpen, setPatientRecordsOpen] = useState(true);
+  const [unreadInquiriesCount, setUnreadInquiriesCount] = useState(0);
+  const [upcomingApptsCount, setUpcomingApptsCount] = useState(0);
+
+  React.useEffect(() => {
+    const syncInquiriesCount = () => {
+      try {
+        // Check global public inquiries + Juan Dela Cruz's inquiries + pending appointments against ofphil_admin_read_notifs
+        const readList: string[] = JSON.parse(localStorage.getItem('ofphil_admin_read_notifs') || '[]');
+        const readSet = new Set(Array.isArray(readList) ? readList : []);
+
+        const globalInqs = JSON.parse(localStorage.getItem('ofphil_public_inquiries') || '[]');
+        const juanInqs = JSON.parse(localStorage.getItem('ofphil_inquiries_M26-11-00001') || '[]');
+        const allInqs = [...globalInqs, ...juanInqs];
+        const seen = new Set<string>();
+        let unread = 0;
+        for (const item of allInqs) {
+          if (!item || !item.id || seen.has(item.id)) continue;
+          seen.add(item.id);
+          if (!readSet.has(`inq-${item.id}`)) {
+            unread += 1;
+          }
+        }
+
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith('ofphil_appointments_')) {
+            try {
+              const list = JSON.parse(localStorage.getItem(k) || '[]');
+              if (Array.isArray(list)) {
+                list.forEach((a: any) => {
+                  if (a && a.id && a.status === 'Pending Nurse Approval' && !readSet.has(`apt-${a.id}`)) {
+                    unread += 1;
+                  }
+                });
+              }
+            } catch {}
+          }
+        }
+        setUnreadInquiriesCount(unread);
+
+        // Count all upcoming scheduled appointments across patients
+        let apptCount = 0;
+        const seenAppts = new Set<string>();
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith('ofphil_appointments_')) {
+            const list = JSON.parse(localStorage.getItem(k) || '[]');
+            if (Array.isArray(list)) {
+              for (const a of list) {
+                if (a && a.id && !seenAppts.has(a.id) && (a.status === 'Scheduled' || a.status === 'Pending Nurse Approval')) {
+                  seenAppts.add(a.id);
+                  apptCount += 1;
+                }
+              }
+            }
+          }
+        }
+        setUpcomingApptsCount(apptCount);
+      } catch (e) {
+        setUnreadInquiriesCount(0);
+        setUpcomingApptsCount(0);
+      }
+    };
+
+    const deferredSync = () => {
+      setTimeout(syncInquiriesCount, 0);
+    };
+    syncInquiriesCount();
+    window.addEventListener('storage', deferredSync);
+    window.addEventListener('ofphil-inquiries-updated', deferredSync);
+    window.addEventListener('ofphil-appointments-updated', deferredSync);
+    const interval = setInterval(syncInquiriesCount, 1500);
+    return () => {
+      window.removeEventListener('storage', deferredSync);
+      window.removeEventListener('ofphil-inquiries-updated', deferredSync);
+      window.removeEventListener('ofphil-appointments-updated', deferredSync);
+      clearInterval(interval);
+    };
+  }, [pathname]);
+
+  // Helper for safe link navigation when unsaved changes exist
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    if (pathname === href) return;
+    startProgress();
+    const allowed = confirmNavigation(href);
+    if (!allowed) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  };
 
   // Controlled or uncontrolled collapse state
   const isControlled = externalCollapsed !== undefined;
@@ -179,6 +271,7 @@ export function Sidebar({
               {/* Register Patient */}
               <Link
                 href="/admin/register-patient"
+                onClick={(e) => handleNavClick(e, '/admin/register-patient')}
                 className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${pathname.startsWith('/admin/register-patient')
                   ? 'bg-[#0B6B3A] text-white font-semibold shadow-xs'
                   : 'text-[#D5E2D9] hover:bg-white/10 hover:text-white'
@@ -193,6 +286,7 @@ export function Sidebar({
               <div className="space-y-0.5">
                 <Link
                   href="/admin/patient-records"
+                  onClick={(e) => handleNavClick(e, '/admin/patient-records')}
                   className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${pathname.startsWith('/admin/patient-records')
                     ? 'bg-[#0B6B3A] text-white font-semibold shadow-xs'
                     : 'text-[#D5E2D9] hover:bg-white/10 hover:text-white'
@@ -220,49 +314,122 @@ export function Sidebar({
                   <div className="pl-6 pr-1 py-1 space-y-0.5 border-l border-white/15 ml-4 mt-1">
                     <Link
                       href="/admin/patient-records"
-                      className={`flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition ${pathname === '/admin/patient-records'
-                        ? 'text-white font-semibold bg-white/15'
-                        : 'text-[#B4CEBE] hover:text-white hover:bg-white/5'
-                        }`}
+                      onClick={(e) => handleNavClick(e, '/admin/patient-records')}
+                      className={`flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition ${
+                        pathname === '/admin/patient-records'
+                          ? 'text-white font-semibold bg-white/20 shadow-xs'
+                          : 'text-[#B4CEBE] hover:text-white hover:bg-white/5'
+                      }`}
                     >
                       <i className="fa-solid fa-users text-[10px] w-3 text-center" />
                       <span>All Patients</span>
                     </Link>
                     <Link
-                      href="/admin/patient-records?tab=charity"
-                      className={`flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition ${pathname === '/admin/patient-records/charity' || pathname === '/admin/patient-records?tab=charity'
-                        ? 'text-white font-semibold bg-white/15'
-                        : 'text-[#B4CEBE] hover:text-white hover:bg-white/5'
-                        }`}
+                      href="/admin/patient-records/charity"
+                      onClick={(e) => handleNavClick(e, '/admin/patient-records/charity')}
+                      className={`flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition ${
+                        pathname === '/admin/patient-records/charity'
+                          ? 'text-white font-semibold bg-white/20 shadow-xs ring-1 ring-white/25'
+                          : 'text-[#B4CEBE] hover:text-white hover:bg-white/5'
+                      }`}
                     >
                       <i className="fa-solid fa-hand-holding-heart text-[10px] w-3 text-center text-[#86EFAC]" />
                       <span>Charity Patients</span>
                     </Link>
                     <Link
-                      href="/admin/patient-records?tab=regular"
-                      className={`flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition ${pathname === '/admin/patient-records/regular' || pathname === '/admin/patient-records?tab=regular'
-                        ? 'text-white font-semibold bg-white/15'
-                        : 'text-[#B4CEBE] hover:text-white hover:bg-white/5'
-                        }`}
+                      href="/admin/patient-records/regular"
+                      onClick={(e) => handleNavClick(e, '/admin/patient-records/regular')}
+                      className={`flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition ${
+                        pathname === '/admin/patient-records/regular'
+                          ? 'text-white font-semibold bg-white/20 shadow-xs ring-1 ring-white/25'
+                          : 'text-[#B4CEBE] hover:text-white hover:bg-white/5'
+                      }`}
                     >
                       <i className="fa-solid fa-user-shield text-[10px] w-3 text-center" />
                       <span>Regular Patients</span>
+                    </Link>
+                    <Link
+                      href="/admin/patient-records/with-accounts"
+                      onClick={(e) => handleNavClick(e, '/admin/patient-records/with-accounts')}
+                      className={`flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition ${
+                        pathname === '/admin/patient-records/with-accounts'
+                          ? 'text-white font-semibold bg-white/20 shadow-xs ring-1 ring-white/25'
+                          : 'text-[#B4CEBE] hover:text-white hover:bg-white/5'
+                      }`}
+                    >
+                      <i className="fa-solid fa-id-badge text-[10px] w-3 text-center text-[#93C5FD]" />
+                      <span>Patients with Accounts</span>
                     </Link>
                   </div>
                 )}
               </div>
 
-              {/* Patient Inquiries */}
+
+
+              {/* Upcoming Appointments (With Live Scheduled Count Badge) */}
+              <Link
+                href="/admin/appointments"
+                onClick={(e) => handleNavClick(e, '/admin/appointments')}
+                className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${
+                  pathname.startsWith('/admin/appointments')
+                    ? 'bg-[#0B6B3A] text-white font-semibold shadow-xs'
+                    : 'text-[#D5E2D9] hover:bg-white/10 hover:text-white'
+                }`}
+                title="Upcoming Appointments"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <i className="fa-solid fa-calendar-check text-sm shrink-0 w-4 text-center" />
+                  {!collapsed && <span className="truncate">Upcoming Appointments</span>}
+                </div>
+                {!collapsed && (
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold leading-none transition ${
+                      upcomingApptsCount > 0
+                        ? 'bg-[#10B981] text-white shadow-2xs'
+                        : 'bg-white/15 text-[#D5E2D9]'
+                    }`}
+                    title={
+                      upcomingApptsCount > 0
+                        ? `${upcomingApptsCount} Upcoming Patient Appointment(s)`
+                        : '0 Upcoming Appointments'
+                    }
+                  >
+                    {upcomingApptsCount}
+                  </span>
+                )}
+              </Link>
+
+              {/* Patient Inquiries (With Live Unread Notification Badge) */}
               <Link
                 href="/admin/inquiries"
-                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${pathname.startsWith('/admin/inquiries')
-                  ? 'bg-[#0B6B3A] text-white font-semibold shadow-xs'
-                  : 'text-[#D5E2D9] hover:bg-white/10 hover:text-white'
-                  }`}
-                title="Patient Inquiries"
+                onClick={(e) => handleNavClick(e, '/admin/inquiries')}
+                className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${
+                  pathname.startsWith('/admin/inquiries')
+                    ? 'bg-[#0B6B3A] text-white font-semibold shadow-xs'
+                    : 'text-[#D5E2D9] hover:bg-white/10 hover:text-white'
+                }`}
+                title="Notifications"
               >
-                <i className="fa-solid fa-envelope-open-text text-sm shrink-0 w-4 text-center" />
-                {!collapsed && <span className="truncate">Patient Inquiries</span>}
+                <div className="flex items-center gap-3 min-w-0">
+                  <i className="fa-solid fa-bell text-sm shrink-0 w-4 text-center" />
+                  {!collapsed && <span className="truncate">Notifications</span>}
+                </div>
+                {!collapsed && (
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold leading-none transition ${
+                      unreadInquiriesCount > 0
+                        ? 'bg-[#DC2626] text-white shadow-2xs animate-pulse'
+                        : 'bg-white/15 text-[#D5E2D9]'
+                    }`}
+                    title={
+                      unreadInquiriesCount > 0
+                        ? `${unreadInquiriesCount} Unread Notification(s)`
+                        : '0 Unread Notifications'
+                    }
+                  >
+                    {unreadInquiriesCount}
+                  </span>
+                )}
               </Link>
 
               {/* SECTION: SYSTEM & GOVERNANCE */}
@@ -273,6 +440,7 @@ export function Sidebar({
               )}
               <Link
                 href="/admin/settings"
+                onClick={(e) => handleNavClick(e, '/admin/settings')}
                 className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${pathname === '/admin/settings'
                   ? 'bg-[#0B6B3A] text-white font-semibold shadow-xs'
                   : 'text-[#D5E2D9] hover:bg-white/10 hover:text-white'
@@ -285,6 +453,7 @@ export function Sidebar({
 
               <Link
                 href="/admin/role-management"
+                onClick={(e) => handleNavClick(e, '/admin/role-management')}
                 className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${pathname === '/admin/role-management'
                   ? 'bg-[#0B6B3A] text-white font-semibold shadow-xs'
                   : 'text-[#D5E2D9] hover:bg-white/10 hover:text-white'
@@ -303,6 +472,7 @@ export function Sidebar({
               )}
               <Link
                 href="/admin/profile"
+                onClick={(e) => handleNavClick(e, '/admin/profile')}
                 className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${pathname === '/admin/profile'
                   ? 'bg-[#0B6B3A] text-white font-semibold shadow-xs'
                   : 'text-[#D5E2D9] hover:bg-white/10 hover:text-white'
@@ -383,8 +553,18 @@ export function Sidebar({
                         : 'text-[#B4CEBE] hover:text-white hover:bg-white/5'
                         }`}
                     >
-                      <i className="fa-solid fa-users text-[10px] w-3 text-center" />
-                      <span>All Patients</span>
+                      <i className="fa-solid fa-hand-holding-heart text-[10px] w-3 text-center text-[#86EFAC]" />
+                      <span>Charity Patients</span>
+                    </Link>
+                    <Link
+                      href="/patients/referrals"
+                      className={`flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition ${pathname === '/patients/referrals'
+                        ? 'text-white font-semibold bg-white/15'
+                        : 'text-[#B4CEBE] hover:text-white hover:bg-white/5'
+                        }`}
+                    >
+                      <i className="fa-solid fa-file-invoice-dollar text-[10px] w-3 text-center text-white" />
+                      <span>Financial Assistance Referrals</span>
                     </Link>
                     <Link
                       href="/patients?tab=pending"
@@ -394,15 +574,28 @@ export function Sidebar({
                       <span>Pending Approvals</span>
                     </Link>
                     <Link
-                      href="/patients?tab=charity"
+                      href="/patients?tab=promissory"
                       className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[11px] font-medium text-[#B4CEBE] hover:text-white hover:bg-white/5 transition"
                     >
-                      <i className="fa-solid fa-hand-holding-heart text-[10px] w-3 text-center" />
-                      <span>Charity Patients</span>
+                      <i className="fa-solid fa-file-signature text-[10px] w-3 text-center text-white" />
+                      <span>Disapproved / Promissory</span>
                     </Link>
                   </div>
                 )}
               </div>
+
+              {/* Dedicated Menu Item: Referrals for Financial Assistance */}
+              <Link
+                href="/patients/referrals"
+                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${pathname === '/patients/referrals'
+                  ? 'bg-[#0B6B3A] text-white font-semibold shadow-xs'
+                  : 'text-[#D5E2D9] hover:bg-white/10 hover:text-white'
+                  }`}
+                title="Referrals for Financial Assistance"
+              >
+                <i className="fa-solid fa-file-invoice-dollar text-sm shrink-0 w-4 text-center text-white" />
+                {!collapsed && <span className="truncate">Financial Referrals</span>}
+              </Link>
 
               {/* Evidential Documents */}
               <Link
@@ -415,6 +608,32 @@ export function Sidebar({
               >
                 <i className="fa-solid fa-file-invoice text-sm shrink-0 w-4 text-center" />
                 {!collapsed && <span className="truncate">Document Audit</span>}
+              </Link>
+
+              {/* Caseworker Notifications Feed */}
+              <Link
+                href="/admin/inquiries"
+                className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${pathname.startsWith('/admin/inquiries')
+                  ? 'bg-[#0B6B3A] text-white font-semibold shadow-xs'
+                  : 'text-[#D5E2D9] hover:bg-white/10 hover:text-white'
+                  }`}
+                title="Notifications"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <i className="fa-solid fa-bell text-sm shrink-0 w-4 text-center" />
+                  {!collapsed && <span className="truncate">Notifications</span>}
+                </div>
+                {!collapsed && (
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold leading-none transition ${
+                      unreadInquiriesCount > 0
+                        ? 'bg-[#DC2626] text-white shadow-2xs animate-pulse'
+                        : 'bg-white/15 text-[#D5E2D9]'
+                    }`}
+                  >
+                    {unreadInquiriesCount}
+                  </span>
+                )}
               </Link>
 
               {/* SECTION: ACCOUNT (Caseworker) */}
@@ -457,25 +676,30 @@ export function Sidebar({
               Account
             </div>
           )}
-          <Link
-            href={isCaseworker ? '/login-msw' : '/login-admin'}
+          <button
+            type="button"
             onClick={() => {
               showLoading('Signing out of session...');
-              logout();
+              const target = isCaseworker ? '/login-msw' : isPatient ? '/login-patient' : '/login-admin';
+              setTimeout(() => {
+                logout(target);
+              }, 150);
             }}
-            className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-[#D5E2D9] hover:bg-white/10 hover:text-white transition-all"
+            className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-[#D5E2D9] hover:bg-white/10 hover:text-white transition-all bg-transparent border-0 cursor-pointer text-left"
             title="Sign Out"
           >
             <i className="fa-solid fa-arrow-right-from-bracket text-sm shrink-0 w-4 text-center" />
             {!collapsed && <span className="truncate">Sign Out</span>}
-          </Link>
+          </button>
         </div>
 
         {/* Footer */}
         {!collapsed && (
           <div className="p-4 border-t border-white/10 bg-[#04331B]/50 shrink-0">
             <div className="text-[11px] font-semibold text-white">OFPHIL Foundation</div>
-            <div className="text-[9.5px] text-[#A3C7B3] mt-0.5">Clinical Decision Support v2.5</div>
+            <div className="text-[9.5px] text-[#A3C7B3] mt-0.5 leading-snug">
+              © 2026 Ophthalmological Foundation of the Philippines. All rights reserved.
+            </div>
           </div>
         )}
       </aside>
@@ -493,7 +717,8 @@ export function Header({
   subtitle?: string;
 }) {
   const { role, user, logout } = useAuth();
-  const { showLoading } = useLoadingScreen();
+  const { showLoading, isProgressBarActive, startProgress } = useLoadingScreen();
+  const { confirmNavigation } = useNavigationBlocker();
 
   const isPatient = role === 'patient';
   const isAdmin = role === 'admin' || role === 'nurse';
@@ -502,6 +727,82 @@ export function Header({
   // Dropdown states
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [a11yDropdownOpen, setA11yDropdownOpen] = useState(false);
+  const [unreadInquiriesCount, setUnreadInquiriesCount] = useState(0);
+  const [upcomingApptsCount, setUpcomingApptsCount] = useState(0);
+
+  React.useEffect(() => {
+    const syncHeaderNotifications = () => {
+      try {
+        const readList: string[] = JSON.parse(localStorage.getItem('ofphil_admin_read_notifs') || '[]');
+        const readSet = new Set(Array.isArray(readList) ? readList : []);
+
+        const globalInqs = JSON.parse(localStorage.getItem('ofphil_public_inquiries') || '[]');
+        const juanInqs = JSON.parse(localStorage.getItem('ofphil_inquiries_M26-11-00001') || '[]');
+        const allInqs = [...globalInqs, ...juanInqs];
+        const seen = new Set<string>();
+        let unread = 0;
+        for (const item of allInqs) {
+          if (!item || !item.id || seen.has(item.id)) continue;
+          seen.add(item.id);
+          if (!readSet.has(`inq-${item.id}`)) {
+            unread += 1;
+          }
+        }
+
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith('ofphil_appointments_')) {
+            try {
+              const list = JSON.parse(localStorage.getItem(k) || '[]');
+              if (Array.isArray(list)) {
+                list.forEach((a: any) => {
+                  if (a && a.id && a.status === 'Pending Nurse Approval' && !readSet.has(`apt-${a.id}`)) {
+                    unread += 1;
+                  }
+                });
+              }
+            } catch {}
+          }
+        }
+        setUnreadInquiriesCount(unread);
+
+        // Count all upcoming scheduled appointments across patients
+        let apptCount = 0;
+        const seenAppts = new Set<string>();
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith('ofphil_appointments_')) {
+            const list = JSON.parse(localStorage.getItem(k) || '[]');
+            if (Array.isArray(list)) {
+              for (const a of list) {
+                if (a && a.id && !seenAppts.has(a.id) && (a.status === 'Scheduled' || a.status === 'Pending Nurse Approval')) {
+                  seenAppts.add(a.id);
+                  apptCount += 1;
+                }
+              }
+            }
+          }
+        }
+        setUpcomingApptsCount(apptCount);
+      } catch (e) {
+        setUnreadInquiriesCount(0);
+        setUpcomingApptsCount(0);
+      }
+    };
+
+    const deferredHeaderSync = () => {
+      setTimeout(syncHeaderNotifications, 0);
+    };
+    syncHeaderNotifications();
+    window.addEventListener('storage', deferredHeaderSync);
+    window.addEventListener('ofphil-inquiries-updated', deferredHeaderSync);
+    const interval = setInterval(syncHeaderNotifications, 1500);
+    return () => {
+      window.removeEventListener('storage', deferredHeaderSync);
+      window.removeEventListener('ofphil-inquiries-updated', deferredHeaderSync);
+      clearInterval(interval);
+    };
+  }, []);
 
   // Quick Display & Reading Aid states
   const [fontSize, setFontSize] = useState<'100%' | '110%' | '120%' | '130%'>('100%');
@@ -516,7 +817,7 @@ export function Header({
       : 'Clinical Casework & Eligibility Dashboard';
 
   const defaultSubtitle =
-    'Ophthalmological Foundation of the Philippines — AI-Assisted Patient Intake & Evaluation';
+    'Ophthalmological Foundation of the Philippines — Patient Master Registry & Clinical Directory';
 
   // Apply display scaling effect
   const handleFontSizeChange = (size: '100%' | '110%' | '120%' | '130%') => {
@@ -535,7 +836,14 @@ export function Header({
   };
 
   return (
-    <header className="sticky top-0 z-30 h-[72px] bg-white border-b border-[#D5E2D9] px-6 flex items-center justify-between shadow-xs">
+    <header className="sticky top-0 z-30 h-[72px] bg-white border-b border-[#D5E2D9] px-6 flex items-center justify-between shadow-xs relative">
+      {/* Sleek Clinical Progress Loading Bar Attached Underneath Header */}
+      {isProgressBarActive && (
+        <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-[#E6F1EA] overflow-hidden z-50">
+          <div className="h-full bg-gradient-to-r from-[#0B6B3A] via-[#10B981] to-[#047857] shadow-sm animate-clinical-progress" />
+        </div>
+      )}
+
       <div className="flex items-center gap-3 min-w-0">
         <button
           onClick={onMenuClick}
@@ -698,16 +1006,27 @@ export function Header({
           >
             <div className="w-6 h-6 rounded-full bg-[#064826] text-white flex items-center justify-center font-bold text-[11px] shrink-0 leading-none">
               <span className="flex items-center justify-center w-full h-full text-center">
-                {isAdmin ? 'C' : isPatient ? 'P' : 'M'}
+                {(user?.name || (isAdmin ? 'Roberto Reyes' : isPatient ? 'Juan Dela Cruz' : 'Maria Santos'))
+                  .replace(/^Dr\.\s*/i, '')
+                  .charAt(0)
+                  .toUpperCase()}
               </span>
             </div>
             <div className="text-left">
               <div className="font-bold text-[#10241A] leading-tight">
-                {isAdmin ? 'Clinic Administrator' : isPatient ? 'Patient Beneficiary' : 'Maria Santos, RSW'}
+                {user?.name || (isAdmin ? 'Dr. Roberto Reyes' : isPatient ? 'Juan Dela Cruz' : 'Maria Santos, RSW')}
               </div>
               <div className="text-[10px] text-[#5A7466] leading-tight flex items-center gap-1">
                 <i className="fa-solid fa-user-shield text-[9px] text-[#0B6B3A]" />
-                <span>{isAdmin ? 'Administrator' : isPatient ? 'Patient' : 'MSW Caseworker'}</span>
+                <span>
+                  {role === 'nurse'
+                    ? 'Clinic Nurse'
+                    : isAdmin
+                      ? 'Clinic Administrator'
+                      : isPatient
+                        ? 'Patient Beneficiary'
+                        : 'MSW Caseworker'}
+                </span>
               </div>
             </div>
             <i
@@ -722,18 +1041,28 @@ export function Header({
               {/* Profile Card Header */}
               <div className="p-2 pb-3 mb-2 border-b border-[#EEF2EF] flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-[#E6F1EA] text-[#0B6B3A] flex items-center justify-center font-bold text-base border border-[#BBF7D0]">
-                  {isAdmin ? 'C' : isPatient ? 'P' : 'M'}
+                  {(user?.name || (isAdmin ? 'Roberto Reyes' : isPatient ? 'Juan Dela Cruz' : 'Maria Santos'))
+                    .replace(/^Dr\.\s*/i, '')
+                    .charAt(0)
+                    .toUpperCase()}
                 </div>
                 <div className="min-w-0">
                   <div className="font-bold text-[#10241A] text-[13px] truncate">
-                    {isAdmin ? 'Clinic Administrator' : isPatient ? 'Patient Beneficiary' : 'Maria Santos, RSW'}
+                    {user?.name || (isAdmin ? 'Dr. Roberto Reyes' : isPatient ? 'Juan Dela Cruz' : 'Maria Santos, RSW')}
                   </div>
                   <div className="text-[11px] text-[#64748B] truncate">
-                    {isAdmin ? 'admin@ofphil.org' : isPatient ? 'patient@ofphil.org' : 'msw@ofphil.org'}
+                    {isAdmin ? 'admin.reyes@ofphil.org.ph' : isPatient ? 'juan.delacruz@example.ph' : 'maria.santos@ofphil.org.ph'}
                   </div>
                   <div className="mt-1">
                     <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold bg-[#E6F1EA] text-[#0B6B3A]">
-                      Admin &bull; Active
+                      {role === 'nurse'
+                        ? 'Clinic Nurse'
+                        : isAdmin
+                          ? 'Clinic Administrator'
+                          : isPatient
+                            ? 'Patient Beneficiary'
+                            : 'MSW Caseworker'}{' '}
+                      &bull; Active
                     </span>
                   </div>
                 </div>
@@ -743,7 +1072,15 @@ export function Header({
               <div className="space-y-1">
                 <Link
                   href={isAdmin ? '/admin/profile' : isPatient ? '/portal?tab=profile' : '/profile'}
-                  onClick={() => setProfileDropdownOpen(false)}
+                  onClick={(e) => {
+                    startProgress();
+                    const target = isAdmin ? '/admin/profile' : isPatient ? '/portal?tab=profile' : '/profile';
+                    if (!confirmNavigation(target)) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }
+                    setProfileDropdownOpen(false);
+                  }}
                   className="flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold text-[#1E293B] hover:bg-[#F8FAFC] transition no-underline"
                 >
                   <i className="fa-solid fa-address-card text-[#0B6B3A] text-sm w-4 text-center" />
@@ -752,7 +1089,15 @@ export function Header({
 
                 <Link
                   href={isAdmin ? '/admin/settings' : isCaseworker ? '/settings' : '/portal?tab=settings'}
-                  onClick={() => setProfileDropdownOpen(false)}
+                  onClick={(e) => {
+                    startProgress();
+                    const target = isAdmin ? '/admin/settings' : isCaseworker ? '/settings' : '/portal?tab=settings';
+                    if (!confirmNavigation(target)) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }
+                    setProfileDropdownOpen(false);
+                  }}
                   className="flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold text-[#1E293B] hover:bg-[#F8FAFC] transition no-underline"
                 >
                   <i className="fa-solid fa-sliders text-[#0B6B3A] text-sm w-4 text-center" />
@@ -761,15 +1106,28 @@ export function Header({
 
                 <Link
                   href="/admin/inquiries"
-                  onClick={() => setProfileDropdownOpen(false)}
+                  onClick={(e) => {
+                    startProgress();
+                    if (!confirmNavigation('/admin/inquiries')) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }
+                    setProfileDropdownOpen(false);
+                  }}
                   className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-[#1E293B] hover:bg-[#F8FAFC] transition no-underline"
                 >
                   <div className="flex items-center gap-3">
                     <i className="fa-solid fa-bell text-[#0B6B3A] text-sm w-4 text-center" />
                     <span>Notifications</span>
                   </div>
-                  <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-[#DC2626] text-white">
-                    3
+                  <span
+                    className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold transition ${
+                      unreadInquiriesCount > 0
+                        ? 'bg-[#DC2626] text-white animate-pulse'
+                        : 'bg-[#E2E8F0] text-[#475569]'
+                    }`}
+                  >
+                    {unreadInquiriesCount}
                   </span>
                 </Link>
               </div>
@@ -781,10 +1139,10 @@ export function Header({
                   onClick={() => {
                     setProfileDropdownOpen(false);
                     showLoading('Signing out of session...');
-                    logout();
+                    const target = isCaseworker ? '/login-msw' : isPatient ? '/login-patient' : '/login-admin';
                     setTimeout(() => {
-                      window.location.href = isCaseworker ? '/login-msw' : '/login-admin';
-                    }, 250);
+                      logout(target);
+                    }, 150);
                   }}
                   className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold text-[#DC2626] hover:bg-[#FEF2F2] transition bg-transparent border-0 cursor-pointer text-left"
                 >

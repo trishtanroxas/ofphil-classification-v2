@@ -190,3 +190,51 @@ def test_personal_account_and_password_validation():
         }
     )
     assert right_pwd.status_code == 200
+
+
+def test_msw_security_and_privacy_endpoints():
+    # 1. MSW account profile retrieval
+    res_prof = client.get("/api/v1/admin/settings/msw/account")
+    assert res_prof.status_code == 200
+    assert res_prof.json()["username"] == "msw_lead"
+
+    # 2. MSW security status & RBAC verification
+    res_sec_forbidden = client.get(
+        "/api/v1/admin/settings/msw/security-status",
+        headers={"x-user-role": "researcher"}
+    )
+    assert res_sec_forbidden.status_code == 403
+
+    res_sec = client.get(
+        "/api/v1/admin/settings/msw/security-status",
+        headers={"x-user-role": "msw"}
+    )
+    assert res_sec.status_code == 200
+    sec_data = res_sec.json()
+    assert sec_data["mfa_enforced"] is True
+    assert "active_sessions" in sec_data
+    assert len(sec_data["active_sessions"]) >= 1
+
+    # 3. Terminate other sessions
+    res_term = client.post(
+        "/api/v1/admin/settings/msw/sessions/terminate-others",
+        headers={"x-user-role": "msw", "x-user-id": "msw_lead"}
+    )
+    assert res_term.status_code == 200
+    assert res_term.json()["success"] is True
+
+    # 4. Privacy settings retrieval and update
+    res_priv = client.get(
+        "/api/v1/admin/settings/msw/privacy",
+        headers={"x-user-role": "msw"}
+    )
+    assert res_priv.status_code == 200
+    assert res_priv.json()["mask_patient_identities"] is True
+
+    res_priv_up = client.put(
+        "/api/v1/admin/settings/msw/privacy",
+        headers={"x-user-role": "msw", "x-user-id": "msw_lead"},
+        json={"mask_patient_identities": True, "mask_contact_numbers": True, "data_retention_years": 7}
+    )
+    assert res_priv_up.status_code == 200
+    assert res_priv_up.json()["data"]["data_retention_years"] == 7

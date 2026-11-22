@@ -3,12 +3,22 @@ import React, { useState, useEffect, useTransition } from 'react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { toast } from 'sonner';
 import { fetchApi } from '@/lib/api';
+import { CautionModal } from '@/components/CautionModal';
+import PasswordStrengthMeter from '@/components/PasswordStrengthMeter';
+import { useNavigationBlocker } from '@/context/NavigationBlockerContext';
+import { useLoadingScreen } from '@/context/LoadingScreenContext';
 
 export default function AdminSettingsPage() {
   const [activeTab, setActiveTab] = useState('org_profile');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [dirtyTabs, setDirtyTabs] = useState<Record<string, boolean>>({});
+  const { isDirty, setIsDirty, confirmNavigation } = useNavigationBlocker();
+  const { startProgress } = useLoadingScreen();
+
+  // Tab switch confirmation modal state
+  const [pendingTabChange, setPendingTabChange] = useState<string | null>(null);
+  const [unsavedTabModalOpen, setUnsavedTabModalOpen] = useState(false);
 
   // ---------------------------------------------------------------------------
   // Tab 1: Organization Profile State
@@ -96,9 +106,56 @@ export default function AdminSettingsPage() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPass, setShowCurrentPass] = useState(false);
+  const [showNewPass, setShowNewPass] = useState(false);
+  const [showConfirmPass, setShowConfirmPass] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  const handleGenerateAdminPassword = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%';
+    let pwd = '';
+    for (let i = 0; i < 10; i++) {
+      pwd += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setNewPassword(pwd);
+    setConfirmPassword(pwd);
+    toast.success('Generated secure administrator password');
+  };
   const [clearAuditModalOpen, setClearAuditModalOpen] = useState(false);
   const [isClearingLogs, setIsClearingLogs] = useState(false);
+
+  // Caution Modal State for Disabling Controls/Policies
+  const [cautionModalOpen, setCautionModalOpen] = useState(false);
+  const [pendingDisableAction, setPendingDisableAction] = useState<{
+    settingName: string;
+    description?: string;
+    warningDetails?: string;
+    confirmLabel?: string;
+    onConfirm: () => void;
+  } | null>(null);
+
+  const requestToggleOff = (
+    settingName: string,
+    description: string,
+    warningDetails: string,
+    onConfirm: () => void,
+    confirmLabel?: string
+  ) => {
+    setPendingDisableAction({
+      settingName,
+      description,
+      warningDetails,
+      confirmLabel,
+      onConfirm,
+    });
+    setCautionModalOpen(true);
+  };
+
+  // Sync global navigation blocker when dirtyTabs changes
+  useEffect(() => {
+    const hasDirty = Object.values(dirtyTabs).some(Boolean);
+    setIsDirty(hasDirty);
+  }, [dirtyTabs, setIsDirty]);
 
   // Mark active tab dirty
   const markDirty = (tab: string) => {
@@ -109,18 +166,40 @@ export default function AdminSettingsPage() {
     setDirtyTabs((prev) => ({ ...prev, [tab]: false }));
   };
 
-  // Safe Tab Navigation
+  // Safe Tab Navigation with In-App Modal Dialog
   const handleTabChange = (newTab: string) => {
+    if (newTab === activeTab) return;
+    startProgress();
     if (dirtyTabs[activeTab]) {
-      const confirmLeave = window.confirm(
-        'You have unsaved changes in this tab. Navigating away may discard your edits. Do you wish to proceed?'
-      );
-      if (!confirmLeave) return;
+      setPendingTabChange(newTab);
+      setUnsavedTabModalOpen(true);
+      return;
     }
     setActiveTab(newTab);
   };
 
-  // ---------------------------------------------------------------------------
+  const confirmTabSwitch = () => {
+    if (pendingTabChange) {
+      // Discard current active tab dirty status
+      setDirtyTabs((prev) => ({ ...prev, [activeTab]: false }));
+      setActiveTab(pendingTabChange);
+      setPendingTabChange(null);
+    }
+    setUnsavedTabModalOpen(false);
+  };
+
+  const cancelTabSwitch = () => {
+    setPendingTabChange(null);
+    setUnsavedTabModalOpen(false);
+  };
+
+  // Clean up dirty state on unmount
+  useEffect(() => {
+    return () => {
+      setIsDirty(false);
+    };
+  }, [setIsDirty]);
+
   // Initial Data Fetching from FastAPI Backend
   // ---------------------------------------------------------------------------
   useEffect(() => {
@@ -984,8 +1063,20 @@ export default function AdminSettingsPage() {
                           type="checkbox"
                           checked={enforce2FA}
                           onChange={(e) => {
-                            setEnforce2FA(e.target.checked);
-                            markDirty('security');
+                            if (!e.target.checked) {
+                              requestToggleOff(
+                                'Mandatory Two-Factor OTP Verification',
+                                'Turning off two-factor authentication leaves administrative and clinical accounts protected by single-factor passwords only.',
+                                'Accounts will no longer require a 6-digit one-time PIN upon login, increasing vulnerability to credential compromise.',
+                                () => {
+                                  setEnforce2FA(false);
+                                  markDirty('security');
+                                }
+                              );
+                            } else {
+                              setEnforce2FA(true);
+                              markDirty('security');
+                            }
                           }}
                           className="accent-[#0B6B3A] w-4 h-4 rounded"
                         />
@@ -999,8 +1090,20 @@ export default function AdminSettingsPage() {
                           type="checkbox"
                           checked={reauthSensitive}
                           onChange={(e) => {
-                            setReauthSensitive(e.target.checked);
-                            markDirty('security');
+                            if (!e.target.checked) {
+                              requestToggleOff(
+                                'Require Password Re-authentication',
+                                'Turning off re-authentication permits immediate bulk patient dataset downloads without verifying the active user identity.',
+                                'Any unmonitored or unattended terminal session could export confidential patient master records without providing a password.',
+                                () => {
+                                  setReauthSensitive(false);
+                                  markDirty('security');
+                                }
+                              );
+                            } else {
+                              setReauthSensitive(true);
+                              markDirty('security');
+                            }
                           }}
                           className="accent-[#0B6B3A] w-4 h-4 rounded"
                         />
@@ -1168,8 +1271,20 @@ export default function AdminSettingsPage() {
                             type="checkbox"
                             checked={maskNames}
                             onChange={(e) => {
-                              setMaskNames(e.target.checked);
-                              markDirty('privacy');
+                              if (!e.target.checked) {
+                                requestToggleOff(
+                                  'Enforce Patient Name Masking',
+                                  'Turning off patient name masking will display full, unmasked legal names to all staff accounts.',
+                                  'Non-clinical administrative personnel and research assistants will see identifiable full names, increasing exposure of confidential patient identity.',
+                                  () => {
+                                    setMaskNames(false);
+                                    markDirty('privacy');
+                                  }
+                                );
+                              } else {
+                                setMaskNames(true);
+                                markDirty('privacy');
+                              }
                             }}
                             className="accent-[#0B6B3A] w-4 h-4 rounded"
                           />
@@ -1183,8 +1298,20 @@ export default function AdminSettingsPage() {
                             type="checkbox"
                             checked={maskContacts}
                             onChange={(e) => {
-                              setMaskContacts(e.target.checked);
-                              markDirty('privacy');
+                              if (!e.target.checked) {
+                                requestToggleOff(
+                                  'Mask Patient Mobile Contact Numbers',
+                                  'Disabling mobile number masking exposes real contact numbers across patient records and authentication flows (such as 2FA).',
+                                  'Phone numbers will be rendered in full plaintext (e.g., 0917 888 1678) rather than obscured digits (0917 *** *678).',
+                                  () => {
+                                    setMaskContacts(false);
+                                    markDirty('privacy');
+                                  }
+                                );
+                              } else {
+                                setMaskContacts(true);
+                                markDirty('privacy');
+                              }
                             }}
                             className="accent-[#0B6B3A] w-4 h-4 rounded"
                           />
@@ -1198,8 +1325,20 @@ export default function AdminSettingsPage() {
                             type="checkbox"
                             checked={deidentifyResearch}
                             onChange={(e) => {
-                              setDeidentifyResearch(e.target.checked);
-                              markDirty('privacy');
+                              if (!e.target.checked) {
+                                requestToggleOff(
+                                  'Automatic De-identification on Research CSV Exports',
+                                  'Disabling de-identification will allow raw CSV dataset downloads containing direct patient identifiers.',
+                                  'Clinical research exports might include full names, phone numbers, and identifying demographic attributes without k-anonymity safeguards.',
+                                  () => {
+                                    setDeidentifyResearch(false);
+                                    markDirty('privacy');
+                                  }
+                                );
+                              } else {
+                                setDeidentifyResearch(true);
+                                markDirty('privacy');
+                              }
                             }}
                             className="accent-[#0B6B3A] w-4 h-4 rounded"
                           />
@@ -1213,8 +1352,20 @@ export default function AdminSettingsPage() {
                             type="checkbox"
                             checked={auditLogging}
                             onChange={(e) => {
-                              setAuditLogging(e.target.checked);
-                              markDirty('privacy');
+                              if (!e.target.checked) {
+                                requestToggleOff(
+                                  'Enable Immutable Cryptographic Audit Trails',
+                                  'Disabling cryptographic audit trails halts logging of patient master record modifications and administrative overrides.',
+                                  'System updates, privilege changes, and patient data views will no longer produce cryptographic audit log entries, preventing forensic traceability.',
+                                  () => {
+                                    setAuditLogging(false);
+                                    markDirty('privacy');
+                                  }
+                                );
+                              } else {
+                                setAuditLogging(true);
+                                markDirty('privacy');
+                              }
                             }}
                             className="accent-[#0B6B3A] w-4 h-4 rounded"
                           />
@@ -1342,8 +1493,21 @@ export default function AdminSettingsPage() {
                         type="checkbox"
                         checked={allowWalkIns}
                         onChange={(e) => {
-                          setAllowWalkIns(e.target.checked);
-                          markDirty('queue');
+                          if (!e.target.checked) {
+                            requestToggleOff(
+                              'Permit Unscheduled Walk-In Patients',
+                              'Disabling walk-ins restricts queue triage exclusively to patients with pre-scheduled appointments.',
+                              'Emergency or walk-in ophthalmic cases will not be admitted through automatic queue triage without administrative override.',
+                              () => {
+                                setAllowWalkIns(false);
+                                markDirty('queue');
+                              },
+                              'Yes, Disable Walk-Ins'
+                            );
+                          } else {
+                            setAllowWalkIns(true);
+                            markDirty('queue');
+                          }
                         }}
                         className="accent-[#0B6B3A] w-4 h-4 rounded"
                       />
@@ -1397,8 +1561,21 @@ export default function AdminSettingsPage() {
                       type="checkbox"
                       checked={emailAlertsActive}
                       onChange={(e) => {
-                        setEmailAlertsActive(e.target.checked);
-                        markDirty('notifications');
+                        if (!e.target.checked) {
+                          requestToggleOff(
+                            'Brevo SMTP Email Relay Gateway',
+                            'Disabling the SMTP email gateway stops automated email delivery across the entire clinic system.',
+                            'Password reset links, security alerts, and patient intake welcome notifications will fail to dispatch via email.',
+                            () => {
+                              setEmailAlertsActive(false);
+                              markDirty('notifications');
+                            },
+                            'Yes, Disable Email Relay'
+                          );
+                        } else {
+                          setEmailAlertsActive(true);
+                          markDirty('notifications');
+                        }
                       }}
                       className="accent-[#0B6B3A] w-5 h-5 rounded"
                     />
@@ -1438,8 +1615,21 @@ export default function AdminSettingsPage() {
                       type="checkbox"
                       checked={adminDailyDigest}
                       onChange={(e) => {
-                        setAdminDailyDigest(e.target.checked);
-                        markDirty('notifications');
+                        if (!e.target.checked) {
+                          requestToggleOff(
+                            'Daily Clinical Administration Digest',
+                            'Disabling the daily summary will stop automated end-of-day clinic admissions and subsidy digests from being sent.',
+                            'Administrators will not receive the automated 5:00 PM operational overview email.',
+                            () => {
+                              setAdminDailyDigest(false);
+                              markDirty('notifications');
+                            },
+                            'Yes, Disable Daily Digest'
+                          );
+                        } else {
+                          setAdminDailyDigest(true);
+                          markDirty('notifications');
+                        }
                       }}
                       className="accent-[#0B6B3A] w-5 h-5 rounded"
                     />
@@ -1734,51 +1924,94 @@ export default function AdminSettingsPage() {
                   </p>
 
                   <form onSubmit={handleChangePassword} className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
                       <div>
-                        <label className="block text-xs font-medium text-[#334155] mb-2">Current Password</label>
-                        <input
-                          type="password"
-                          required
-                          value={currentPassword}
-                          onChange={(e) => setCurrentPassword(e.target.value)}
-                          placeholder="Current password"
-                          className="w-full h-11 px-4 border border-[#CBD5E1] rounded-xl text-sm bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
-                        />
+                        <label className="block text-xs font-medium text-[#334155] mb-2">Current Password *</label>
+                        <div className="relative">
+                          <input
+                            type={showCurrentPass ? 'text' : 'password'}
+                            required
+                            value={currentPassword}
+                            onChange={(e) => setCurrentPassword(e.target.value)}
+                            placeholder="Current password"
+                            className="w-full h-11 pl-4 pr-10 border border-[#CBD5E1] rounded-xl text-sm bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowCurrentPass(!showCurrentPass)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8F9E96] hover:text-[#10241A] bg-transparent border-0 cursor-pointer"
+                          >
+                            <i className={`fa-regular ${showCurrentPass ? 'fa-eye-slash' : 'fa-eye'}`} />
+                          </button>
+                        </div>
                       </div>
 
                       <div>
-                        <label className="block text-xs font-medium text-[#334155] mb-2">New Password</label>
-                        <input
-                          type="password"
-                          required
-                          value={newPassword}
-                          onChange={(e) => setNewPassword(e.target.value)}
-                          placeholder="At least 8 characters"
-                          className="w-full h-11 px-4 border border-[#CBD5E1] rounded-xl text-sm bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
-                        />
+                        <label className="block text-xs font-medium text-[#334155] mb-2">New Password *</label>
+                        <div className="relative">
+                          <input
+                            type={showNewPass ? 'text' : 'password'}
+                            required
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            placeholder="At least 6 characters"
+                            className="w-full h-11 pl-4 pr-10 border border-[#CBD5E1] rounded-xl text-sm bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowNewPass(!showNewPass)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8F9E96] hover:text-[#10241A] bg-transparent border-0 cursor-pointer"
+                          >
+                            <i className={`fa-regular ${showNewPass ? 'fa-eye-slash' : 'fa-eye'}`} />
+                          </button>
+                        </div>
+                        <PasswordStrengthMeter password={newPassword} showChecks={true} />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-medium text-[#334155] mb-2">Confirm New Password</label>
-                        <input
-                          type="password"
-                          required
-                          value={confirmPassword}
-                          onChange={(e) => setConfirmPassword(e.target.value)}
-                          placeholder="Repeat new password"
-                          className="w-full h-11 px-4 border border-[#CBD5E1] rounded-xl text-sm bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
-                        />
+                        <label className="block text-xs font-medium text-[#334155] mb-2">Confirm New Password *</label>
+                        <div className="relative">
+                          <input
+                            type={showConfirmPass ? 'text' : 'password'}
+                            required
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            placeholder="Repeat new password"
+                            className="w-full h-11 pl-4 pr-10 border border-[#CBD5E1] rounded-xl text-sm bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowConfirmPass(!showConfirmPass)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8F9E96] hover:text-[#10241A] bg-transparent border-0 cursor-pointer"
+                          >
+                            <i className={`fa-regular ${showConfirmPass ? 'fa-eye-slash' : 'fa-eye'}`} />
+                          </button>
+                        </div>
+                        {confirmPassword.length > 0 && (
+                          <div className={`mt-1.5 text-[11px] font-semibold flex items-center gap-1.5 ${newPassword === confirmPassword ? 'text-[#0B6B3A]' : 'text-[#DC2626]'}`}>
+                            <i className={`fa-solid ${newPassword === confirmPassword ? 'fa-circle-check' : 'fa-circle-xmark'}`} />
+                            <span>{newPassword === confirmPassword ? 'Passwords match' : 'Passwords do not match'}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
 
-                    <div className="flex justify-end pt-2">
+                    <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                      <button
+                        type="button"
+                        onClick={handleGenerateAdminPassword}
+                        className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-[#CBD5E1] bg-white hover:bg-[#F8FAFC] text-xs font-semibold text-[#334155] transition cursor-pointer"
+                      >
+                        <i className="fa-solid fa-key text-xs text-[#0B6B3A]" />
+                        <span>Generate Secure Password</span>
+                      </button>
+
                       <button
                         type="submit"
                         disabled={isChangingPassword}
-                        className="px-5 py-2.5 rounded-xl bg-[#FAFBF8] border border-[#CBD5E1] hover:border-[#0B6B3A] text-[#10241A] hover:text-[#0B6B3A] text-xs font-bold transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                        className="px-5 py-2.5 rounded-xl bg-[#0B6B3A] hover:bg-[#064826] text-white text-xs font-bold transition flex items-center gap-2 cursor-pointer disabled:opacity-50 border-0 shadow-xs"
                       >
-                        <i className={`fa-solid ${isChangingPassword ? 'fa-spinner fa-spin' : 'fa-key'} text-xs`} />
+                        <i className={`fa-solid ${isChangingPassword ? 'fa-spinner fa-spin' : 'fa-shield-check'} text-xs`} />
                         <span>{isChangingPassword ? 'Verifying & Hashing...' : 'Update Password'}</span>
                       </button>
                     </div>
@@ -1833,6 +2066,70 @@ export default function AdminSettingsPage() {
             </div>
           </div>
         )}
+
+        {/* Custom Confirmation Modal for Unsaved Tab Changes */}
+        {unsavedTabModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
+            <div className="bg-white rounded-2xl max-w-md w-full border border-[#D5E2D9] shadow-2xl p-6 text-xs font-sans animate-in zoom-in-95 duration-150">
+              <div className="flex items-start gap-3.5 mb-4">
+                <div className="w-11 h-11 rounded-2xl bg-[#FEF3C7] border border-[#FDE68A] text-[#D97706] flex items-center justify-center text-lg shrink-0">
+                  <i className="fa-solid fa-triangle-exclamation" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-['Outfit'] text-base font-bold text-[#10241A] m-0 mb-1">
+                    Unsaved Tab Changes
+                  </h3>
+                  <p className="text-xs text-[#5A7466] m-0 leading-relaxed">
+                    You have unsaved changes in this tab. Switching tabs now will discard your recent adjustments.
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-[#FAFBF8] border border-[#EEF2EF] rounded-xl p-3 mb-5 text-[11.5px] text-[#475569] flex items-center gap-2">
+                <i className="fa-solid fa-circle-info text-[#0B6B3A] shrink-0" />
+                <span>Save your settings before switching if you wish to keep them.</span>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-[#EEF2EF]">
+                <button
+                  type="button"
+                  onClick={cancelTabSwitch}
+                  className="px-4 py-2 rounded-xl border border-[#D5E2D9] hover:bg-slate-50 text-[#64748B] font-semibold text-xs cursor-pointer transition bg-transparent"
+                >
+                  Stay in Current Tab
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmTabSwitch}
+                  className="px-5 py-2 rounded-xl bg-[#DC2626] hover:bg-[#B91C1C] text-white font-bold text-xs border-0 cursor-pointer shadow-sm flex items-center gap-2 transition"
+                >
+                  <i className="fa-solid fa-arrow-right-from-bracket text-xs" />
+                  <span>Discard &amp; Switch Tab</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Global Caution Modal for Disabling Controls / Security Policies */}
+        <CautionModal
+          isOpen={cautionModalOpen}
+          settingName={pendingDisableAction?.settingName || 'Institutional Control'}
+          description={pendingDisableAction?.description}
+          warningDetails={pendingDisableAction?.warningDetails}
+          confirmLabel={pendingDisableAction?.confirmLabel || 'Yes, Turn Off Protection'}
+          onConfirm={() => {
+            if (pendingDisableAction) {
+              pendingDisableAction.onConfirm();
+            }
+            setCautionModalOpen(false);
+            setPendingDisableAction(null);
+          }}
+          onCancel={() => {
+            setCautionModalOpen(false);
+            setPendingDisableAction(null);
+          }}
+        />
       </div>
     </DashboardLayout>
   );

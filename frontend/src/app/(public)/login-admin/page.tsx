@@ -21,7 +21,7 @@ export default function LoginAdminPage() {
     showLoading('Authenticating administrative credentials and preparing security code verification...');
     login('admin');
     setTimeout(() => {
-      window.location.href = '/verify-otp?role=admin';
+      window.location.replace('/verify-otp?role=admin');
     }, 200);
   };
 

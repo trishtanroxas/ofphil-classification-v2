@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sidebar, Header } from './AppShell';
 
 interface DashboardLayoutProps {
@@ -11,10 +11,17 @@ interface DashboardLayoutProps {
 export function DashboardLayout({
   children,
   title = 'Clinical Casework & Eligibility Dashboard',
-  subtitle = 'Ophthalmological Foundation of the Philippines — AI-Assisted Patient Intake & Evaluation',
+  subtitle = 'Ophthalmological Foundation of the Philippines — Patient Master Registry & Clinical Directory',
 }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  useEffect(() => {
+    if (title) {
+      const cleanTitle = title.split('·')[0].trim();
+      document.title = `${cleanTitle} · OFPHIL`;
+    }
+  }, [title]);
 
   return (
     <div className="min-h-screen bg-[#FAFBF8] flex">

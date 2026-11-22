@@ -33,6 +33,24 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
   const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
   const [animating, setAnimating] = useState(false);
 
+  // Lock browser history when logged out so pressing Back button never returns to a protected dashboard
+  useEffect(() => {
+    try {
+      const isLoggedOut =
+        sessionStorage.getItem('ofphil_logged_out') === 'true' ||
+        !localStorage.getItem('ofphil_current_role');
+
+      if (isLoggedOut && window.location.pathname.startsWith('/login')) {
+        window.history.pushState(null, '', window.location.href);
+        const handlePopState = () => {
+          window.history.pushState(null, '', window.location.href);
+        };
+        window.addEventListener('popstate', handlePopState);
+        return () => window.removeEventListener('popstate', handlePopState);
+      }
+    } catch (e) {}
+  }, []);
+
   useEffect(() => {
     const timer = setInterval(() => {
       setAnimating(true);

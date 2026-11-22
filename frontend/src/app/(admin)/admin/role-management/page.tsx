@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { toast } from 'sonner';
+import PasswordStrengthMeter from '@/components/PasswordStrengthMeter';
 
 export interface StaffUser {
   id: string;
@@ -11,6 +12,8 @@ export interface StaffUser {
   role: 'Administrator' | 'Medical Social Worker' | 'Intake Nurse' | 'Ophthalmologist';
   status: 'Active' | 'Suspended';
   department: string;
+  contactNumber?: string;
+  initialPassword?: string;
   licenseNo?: string;
   permissions: {
     canRegisterPatients: boolean;
@@ -27,6 +30,7 @@ const INITIAL_STAFF_LIST: StaffUser[] = [
     name: 'Dr. Roberto Reyes',
     username: 'admin_sys',
     email: 'admin.reyes@ofphil.org.ph',
+    contactNumber: '0917 888 1678',
     role: 'Administrator',
     status: 'Active',
     department: 'Clinic Operations & Governance',
@@ -35,6 +39,24 @@ const INITIAL_STAFF_LIST: StaffUser[] = [
       canEvaluateAssessments: true,
       canManageRoles: true,
       canAuditLogs: true,
+      canExportReports: true,
+    },
+  },
+  {
+    id: '2',
+    name: 'Maria Santos, RSW',
+    username: 'msw_lead',
+    email: 'msw.santos@ofphil.org.ph',
+    contactNumber: '0918 555 4321',
+    role: 'Medical Social Worker',
+    status: 'Active',
+    department: 'Medical Social Services & Charity Admissions',
+    licenseNo: 'RSW-0048291',
+    permissions: {
+      canRegisterPatients: true,
+      canEvaluateAssessments: true,
+      canManageRoles: false,
+      canAuditLogs: false,
       canExportReports: true,
     },
   },
@@ -52,6 +74,22 @@ export default function AdminRoleManagementPage() {
   const [newRole, setNewRole] = useState<StaffUser['role']>('Intake Nurse');
   const [newDepartment, setNewDepartment] = useState('Patient Admissions');
   const [newLicenseNo, setNewLicenseNo] = useState('');
+  const [newContactNumber, setNewContactNumber] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const handleGenerateStaffPassword = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%';
+    let pwd = '';
+    for (let i = 0; i < 10; i++) {
+      pwd += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setNewPassword(pwd);
+    setConfirmPassword(pwd);
+    toast.success('Generated secure staff temporary password');
+  };
 
   // Handle Edit Access Modal opening
   const handleOpenEdit = (staff: StaffUser) => {
@@ -77,6 +115,14 @@ export default function AdminRoleManagementPage() {
       toast.error('Please fill in required fields (Name, Username, Email).');
       return;
     }
+    if (newPassword && newPassword.length < 6) {
+      toast.error('Password must be at least 6 characters.');
+      return;
+    }
+    if (newPassword && newPassword !== confirmPassword) {
+      toast.error('Passwords do not match.');
+      return;
+    }
 
     const newStaff: StaffUser = {
       id: `${Date.now()}`,
@@ -86,6 +132,8 @@ export default function AdminRoleManagementPage() {
       role: newRole,
       status: 'Active',
       department: newDepartment,
+      contactNumber: newContactNumber.trim() || undefined,
+      initialPassword: newPassword || undefined,
       licenseNo: newLicenseNo.trim() || undefined,
       permissions: {
         canRegisterPatients: newRole === 'Administrator' || newRole === 'Intake Nurse' || newRole === 'Medical Social Worker',
@@ -107,6 +155,9 @@ export default function AdminRoleManagementPage() {
     setNewRole('Intake Nurse');
     setNewDepartment('Patient Admissions');
     setNewLicenseNo('');
+    setNewContactNumber('');
+    setNewPassword('');
+    setConfirmPassword('');
   };
 
   // Toggle user active/suspended status
@@ -177,7 +228,15 @@ export default function AdminRoleManagementPage() {
                     {/* Staff Name & Email */}
                     <td className="py-4 px-6 font-semibold text-[#10241A]">
                       <div className="font-bold text-[13px] text-[#10241A]">{staff.name}</div>
-                      <div className="text-[11px] text-[#64748B] font-normal">{staff.email}</div>
+                      <div className="text-[11px] text-[#64748B] font-normal flex items-center gap-2 flex-wrap">
+                        <span>{staff.email}</span>
+                        {staff.contactNumber && (
+                          <span className="text-[#0B6B3A] font-mono font-medium flex items-center gap-1">
+                            <i className="fa-solid fa-phone text-[9px]" />
+                            <span>{staff.contactNumber}</span>
+                          </span>
+                        )}
+                      </div>
                     </td>
 
                     {/* Username */}
@@ -579,6 +638,95 @@ export default function AdminRoleManagementPage() {
                     className="w-full h-9 px-3 border border-[#D5E2D9] rounded-lg text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
                   />
                 </div>
+              </div>
+
+              {/* Mobile Phone Number */}
+              <div>
+                <label className="block text-[11px] font-bold text-[#334155] mb-1">
+                  Mobile Phone Number <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                    <i className="fa-solid fa-phone text-xs" />
+                  </div>
+                  <input
+                    type="tel"
+                    placeholder="0917 888 1678"
+                    value={newContactNumber}
+                    onChange={(e) => setNewContactNumber(e.target.value)}
+                    className="w-full pl-9 pr-3 h-9 border border-[#D5E2D9] rounded-lg text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Staff Password & Password Strength Meter */}
+              <div className="p-3 bg-[#FAFBF8] border border-[#D5E2D9] rounded-xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-[#10241A] flex items-center gap-1.5">
+                    <i className="fa-solid fa-key text-[#0B6B3A]" />
+                    <span>Account Credentials & Password Security</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleGenerateStaffPassword}
+                    className="text-[10.5px] font-semibold text-[#0B6B3A] hover:underline cursor-pointer bg-transparent border-0 flex items-center gap-1"
+                  >
+                    <i className="fa-solid fa-wand-magic-sparkles text-[9px]" />
+                    <span>Auto-Generate Password</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div>
+                    <label className="block text-[10.5px] font-bold text-[#334155] mb-1">
+                      Staff Password <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder="Min 6 characters"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        className="w-full h-9 pl-3 pr-8 border border-[#D5E2D9] rounded-lg text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#8F9E96] hover:text-[#10241A] text-xs bg-transparent border-none cursor-pointer"
+                      >
+                        <i className={`fa-regular ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10.5px] font-bold text-[#334155] mb-1">
+                      Confirm Password <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        placeholder="Repeat password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="w-full h-9 pl-3 pr-8 border border-[#D5E2D9] rounded-lg text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#8F9E96] hover:text-[#10241A] text-xs bg-transparent border-none cursor-pointer"
+                      >
+                        <i className={`fa-regular ${showConfirmPassword ? 'fa-eye-slash' : 'fa-eye'}`} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Password Strength Meter */}
+                <PasswordStrengthMeter password={newPassword} showChecks={true} />
               </div>
 
               {/* Modal Actions */}

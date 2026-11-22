@@ -11,8 +11,8 @@ export default function LoginMswPage() {
   const { login } = useAuth();
   const { showLoading } = useLoadingScreen();
 
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('msw_staff');
+  const [password, setPassword] = useState('password123');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
 
@@ -21,7 +21,7 @@ export default function LoginMswPage() {
     showLoading('Authenticating MSW credentials and preparing security code verification...');
     login('msw');
     setTimeout(() => {
-      window.location.href = '/verify-otp?role=msw';
+      window.location.replace('/verify-otp?role=msw');
     }, 200);
   };
 

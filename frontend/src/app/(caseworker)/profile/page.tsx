@@ -1,8 +1,12 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
+import PasswordStrengthMeter from '@/components/PasswordStrengthMeter';
+import PsgcAddressSelector from '@/components/PsgcAddressSelector';
+import { toast } from 'sonner';
+import { fetchApi } from '@/lib/api';
 
 export default function CaseworkerProfilePage() {
   const { user } = useAuth();
@@ -11,33 +15,140 @@ export default function CaseworkerProfilePage() {
   const [contact, setContact] = useState('0918 555 1234');
   const [department, setDepartment] = useState('Medical Social Services Department (MSWD)');
   const [licenseNo, setLicenseNo] = useState('PRC-RSW-004921');
+  const [birthdate, setBirthdate] = useState('1988-03-14');
+  const [sex, setSex] = useState('Female (F)');
+  const [civilStatus, setCivilStatus] = useState('Married');
+  const [province, setProvince] = useState('Metro Manila (NCR)');
+  const [city, setCity] = useState('Quezon City');
+  const [barangay, setBarangay] = useState('Diliman');
+  const [street, setStreet] = useState('Blk 8 Lot 15, Teachers Village East');
+  const [education, setEducation] = useState('Bachelor of Science in Social Work (BSSW) • Registered Social Worker');
+  const [occupation, setOccupation] = useState('Lead Medical Social Worker (MSWD)');
   const [profileSaved, setProfileSaved] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Password fields
   const [currentPass, setCurrentPass] = useState('');
   const [newPass, setNewPass] = useState('');
   const [confirmPass, setConfirmPass] = useState('');
+  const [showCurrentPass, setShowCurrentPass] = useState(false);
+  const [showNewPass, setShowNewPass] = useState(false);
+  const [showConfirmPass, setShowConfirmPass] = useState(false);
   const [passUpdated, setPassUpdated] = useState(false);
 
-  const handleSaveProfile = (e: React.FormEvent) => {
-    e.preventDefault();
-    setProfileSaved(true);
-    setTimeout(() => setProfileSaved(false), 3000);
+  // Load persistent profile from backend on mount
+  useEffect(() => {
+    async function loadMswProfile() {
+      try {
+        const data = await fetchApi('/admin/settings/msw/account');
+        if (data) {
+          if (data.full_name) setFullName(data.full_name);
+          if (data.email) setEmail(data.email);
+          if (data.contact) setContact(data.contact);
+          if (data.department) setDepartment(data.department);
+          if (data.license_no) setLicenseNo(data.license_no);
+          if (data.birthdate) setBirthdate(data.birthdate);
+          if (data.sex) setSex(data.sex);
+          if (data.civil_status) setCivilStatus(data.civil_status);
+          if (data.province) setProvince(data.province);
+          if (data.city) setCity(data.city);
+          if (data.barangay) setBarangay(data.barangay);
+          if (data.street) setStreet(data.street);
+          if (data.education) setEducation(data.education);
+          if (data.occupation) setOccupation(data.occupation);
+        }
+      } catch (e) {
+        // Fallback to local defaults if unconfigured
+      }
+    }
+    loadMswProfile();
+  }, []);
+
+  const handleGeneratePassword = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%';
+    let pwd = '';
+    for (let i = 0; i < 10; i++) {
+      pwd += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setNewPass(pwd);
+    setConfirmPass(pwd);
+    toast.success('Generated secure staff password');
   };
 
-  const handleUpdatePassword = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    setPassUpdated(true);
-    setCurrentPass('');
-    setNewPass('');
-    setConfirmPass('');
-    setTimeout(() => setPassUpdated(false), 3000);
+    setIsSaving(true);
+    try {
+      await fetchApi('/admin/settings/msw/account/profile', {
+        method: 'PUT',
+        body: JSON.stringify({
+          full_name: fullName,
+          email,
+          contact,
+          department,
+          license_no: licenseNo,
+          birthdate,
+          sex,
+          civil_status: civilStatus,
+          province,
+          city,
+          barangay,
+          street,
+          education,
+          occupation,
+          theme_preference: 'light',
+          notify_email: true
+        })
+      });
+      setProfileSaved(true);
+      toast.success('Caseworker profile updated and saved to persistent database!');
+      setTimeout(() => setProfileSaved(false), 3000);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to persist caseworker profile.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentPass) {
+      toast.error('Please enter your current password to verify identity.');
+      return;
+    }
+    if (newPass.length < 8) {
+      toast.error('New password must be at least 8 characters long.');
+      return;
+    }
+    if (newPass !== confirmPass) {
+      toast.error('New password and confirmation do not match.');
+      return;
+    }
+
+    try {
+      await fetchApi('/admin/settings/msw/account/change-password', {
+        method: 'POST',
+        body: JSON.stringify({
+          current_password: currentPass,
+          new_password: newPass,
+          confirm_password: confirmPass
+        })
+      });
+      setPassUpdated(true);
+      toast.success('MSW Caseworker password updated & Argon2id hashed successfully!');
+      setCurrentPass('');
+      setNewPass('');
+      setConfirmPass('');
+      setTimeout(() => setPassUpdated(false), 3000);
+    } catch (err: any) {
+      toast.error(err.message || 'Password update failed. Verify current password.');
+    }
   };
 
   return (
     <DashboardLayout
       title="Medical Social Worker Profile & Account"
-      subtitle="Ophthalmological Foundation of the Philippines — AI-Assisted Patient Intake & Evaluation"
+      subtitle="Ophthalmological Foundation of the Philippines — Patient Master Registry & Clinical Directory"
     >
       <div className="w-full pb-12 space-y-6 text-xs font-sans">
         {/* Breadcrumb Header */}
@@ -96,6 +207,14 @@ export default function CaseworkerProfilePage() {
 
                 <div className="flex justify-between items-center">
                   <span className="text-[#5A7466] flex items-center gap-1">
+                    <i className="fa-solid fa-user-doctor text-xs text-[#0B6B3A]" />
+                    <span>User Role</span>
+                  </span>
+                  <span className="font-bold text-[#0B6B3A]">MSW Caseworker</span>
+                </div>
+
+                <div className="flex justify-between items-center">
+                  <span className="text-[#5A7466] flex items-center gap-1">
                     <i className="fa-solid fa-id-card text-xs" />
                     <span>Staff ID</span>
                   </span>
@@ -120,10 +239,18 @@ export default function CaseworkerProfilePage() {
 
                 <div className="flex justify-between items-center">
                   <span className="text-[#5A7466] flex items-center gap-1">
-                    <i className="fa-solid fa-clock-rotate-left text-xs" />
-                    <span>Active Session</span>
+                    <i className="fa-solid fa-cake-candles text-xs text-[#0B6B3A]" />
+                    <span>Birthday</span>
                   </span>
-                  <span className="font-medium text-[#10241A]">Today (Clinic Intake)</span>
+                  <span className="font-medium text-[#10241A]">{birthdate}</span>
+                </div>
+
+                <div className="flex justify-between items-center">
+                  <span className="text-[#5A7466] flex items-center gap-1">
+                    <i className="fa-solid fa-location-dot text-xs text-[#0B6B3A]" />
+                    <span>City / Province</span>
+                  </span>
+                  <span className="font-medium text-[#10241A] text-right">{city}, {province}</span>
                 </div>
               </div>
             </div>
@@ -205,6 +332,18 @@ export default function CaseworkerProfilePage() {
                   </div>
                 </div>
 
+                <div>
+                  <label className="block font-semibold text-[#10241A] mb-1">
+                    User Role / Designation
+                  </label>
+                  <input
+                    type="text"
+                    value="MSW Caseworker — Licensed Social Worker (RSW)"
+                    readOnly
+                    className="w-full h-10 px-3.5 border border-[#EEF2EF] rounded-lg text-xs bg-[#FAFBF8] text-[#0B6B3A] font-bold cursor-not-allowed"
+                  />
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block font-semibold text-[#10241A] mb-1">
@@ -225,6 +364,95 @@ export default function CaseworkerProfilePage() {
                       type="text"
                       value={licenseNo}
                       onChange={(e) => setLicenseNo(e.target.value)}
+                      className="w-full h-10 px-3.5 border border-[#D5E2D9] rounded-lg text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
+                    />
+                  </div>
+                </div>
+
+                {/* Birthday, Sex, Civil Status */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block font-semibold text-[#10241A] mb-1">
+                      Birthday / Date of Birth <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      value={birthdate}
+                      onChange={(e) => setBirthdate(e.target.value)}
+                      required
+                      className="w-full h-10 px-3.5 border border-[#D5E2D9] rounded-lg text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-[#10241A] mb-1">
+                      Sex <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={sex}
+                      onChange={(e) => setSex(e.target.value)}
+                      className="w-full h-10 px-3.5 border border-[#D5E2D9] rounded-lg text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
+                    >
+                      <option value="Female (F)">Female (F)</option>
+                      <option value="Male (M)">Male (M)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-[#10241A] mb-1">
+                      Civil Status <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={civilStatus}
+                      onChange={(e) => setCivilStatus(e.target.value)}
+                      className="w-full h-10 px-3.5 border border-[#D5E2D9] rounded-lg text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
+                    >
+                      <option value="Single">Single</option>
+                      <option value="Married">Married</option>
+                      <option value="Widowed">Widowed</option>
+                      <option value="Separated">Separated</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* PSGC Province, City, Barangay & Street Address */}
+                <div className="p-4 rounded-xl bg-[#FAFBF8] border border-[#D5E2D9] space-y-2">
+                  <div className="font-bold text-xs text-[#0B6B3A] flex items-center gap-1.5 mb-1">
+                    <i className="fa-solid fa-map-location-dot" />
+                    <span>Official Residence &amp; Address (PSGC Verified)</span>
+                  </div>
+                  <PsgcAddressSelector
+                    province={province}
+                    city={city}
+                    barangay={barangay}
+                    street={street}
+                    onProvinceChange={setProvince}
+                    onCityChange={setCity}
+                    onBarangayChange={setBarangay}
+                    onStreetChange={setStreet}
+                    streetLabel="House No., Street Name, Subd. / Building Address"
+                  />
+                </div>
+
+                {/* Educational Attainment & Occupation */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-semibold text-[#10241A] mb-1">
+                      Educational Attainment / Social Work Degree
+                    </label>
+                    <input
+                      type="text"
+                      value={education}
+                      onChange={(e) => setEducation(e.target.value)}
+                      className="w-full h-10 px-3.5 border border-[#D5E2D9] rounded-lg text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-[#10241A] mb-1">
+                      Occupation / Clinical Designation
+                    </label>
+                    <input
+                      type="text"
+                      value={occupation}
+                      onChange={(e) => setOccupation(e.target.value)}
                       className="w-full h-10 px-3.5 border border-[#D5E2D9] rounded-lg text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
                     />
                   </div>
@@ -264,46 +492,88 @@ export default function CaseworkerProfilePage() {
                   <label className="block font-semibold text-[#10241A] mb-1">
                     Current Password <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="password"
-                    value={currentPass}
-                    onChange={(e) => setCurrentPass(e.target.value)}
-                    placeholder="Enter current account password"
-                    required
-                    className="w-full h-10 px-3.5 border border-[#D5E2D9] rounded-lg text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showCurrentPass ? 'text' : 'password'}
+                      value={currentPass}
+                      onChange={(e) => setCurrentPass(e.target.value)}
+                      placeholder="Enter current account password"
+                      required
+                      className="w-full h-11 pl-3.5 pr-10 border border-[#D5E2D9] rounded-xl text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrentPass(!showCurrentPass)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8F9E96] hover:text-[#10241A] bg-transparent border-0 cursor-pointer"
+                    >
+                      <i className={`fa-regular ${showCurrentPass ? 'fa-eye-slash' : 'fa-eye'}`} />
+                    </button>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
                   <div>
                     <label className="block font-semibold text-[#10241A] mb-1">
                       New Password <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      type="password"
-                      value={newPass}
-                      onChange={(e) => setNewPass(e.target.value)}
-                      placeholder="At least 6 characters"
-                      required
-                      className="w-full h-10 px-3.5 border border-[#D5E2D9] rounded-lg text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
-                    />
+                    <div className="relative">
+                      <input
+                        type={showNewPass ? 'text' : 'password'}
+                        value={newPass}
+                        onChange={(e) => setNewPass(e.target.value)}
+                        placeholder="At least 6 characters"
+                        required
+                        className="w-full h-11 pl-3.5 pr-10 border border-[#D5E2D9] rounded-xl text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPass(!showNewPass)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8F9E96] hover:text-[#10241A] bg-transparent border-0 cursor-pointer"
+                      >
+                        <i className={`fa-regular ${showNewPass ? 'fa-eye-slash' : 'fa-eye'}`} />
+                      </button>
+                    </div>
+                    <PasswordStrengthMeter password={newPass} showChecks={true} />
                   </div>
                   <div>
                     <label className="block font-semibold text-[#10241A] mb-1">
                       Confirm New Password <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      type="password"
-                      value={confirmPass}
-                      onChange={(e) => setConfirmPass(e.target.value)}
-                      placeholder="Confirm new password"
-                      required
-                      className="w-full h-10 px-3.5 border border-[#D5E2D9] rounded-lg text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
-                    />
+                    <div className="relative">
+                      <input
+                        type={showConfirmPass ? 'text' : 'password'}
+                        value={confirmPass}
+                        onChange={(e) => setConfirmPass(e.target.value)}
+                        placeholder="Confirm new password"
+                        required
+                        className="w-full h-11 pl-3.5 pr-10 border border-[#D5E2D9] rounded-xl text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPass(!showConfirmPass)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8F9E96] hover:text-[#10241A] bg-transparent border-0 cursor-pointer"
+                      >
+                        <i className={`fa-regular ${showConfirmPass ? 'fa-eye-slash' : 'fa-eye'}`} />
+                      </button>
+                    </div>
+                    {confirmPass.length > 0 && (
+                      <div className={`mt-1.5 text-[11px] font-semibold flex items-center gap-1.5 ${newPass === confirmPass ? 'text-[#0B6B3A]' : 'text-[#DC2626]'}`}>
+                        <i className={`fa-solid ${newPass === confirmPass ? 'fa-circle-check' : 'fa-circle-xmark'}`} />
+                        <span>{newPass === confirmPass ? 'Passwords match' : 'Passwords do not match'}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                <div className="pt-2 flex items-center justify-between">
+                <div className="pt-2 flex flex-wrap items-center justify-between gap-3">
+                  <button
+                    type="button"
+                    onClick={handleGeneratePassword}
+                    className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-[#CBD5E1] bg-white hover:bg-[#F8FAFC] text-xs font-semibold text-[#334155] transition cursor-pointer"
+                  >
+                    <i className="fa-solid fa-key text-xs text-[#0B6B3A]" />
+                    <span>Generate Secure Password</span>
+                  </button>
                   {passUpdated && (
                     <span className="text-xs text-[#0B6B3A] font-bold">
                       ✓ Password updated successfully!

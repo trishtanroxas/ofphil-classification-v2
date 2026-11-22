@@ -29,34 +29,36 @@ class MockDatabase:
 
         self.documents: List[Dict[str, Any]] = [
             {
-                "id": "doc-syn-101",
-                "filename": "synthetic_barangay_indigency_001.pdf",
-                "document_type": "Barangay Indigency Certificate",
-                "file_size_bytes": 142850,
-                "uploaded_at": "2026-11-18 10:20:00",
+                "id": "doc-001",
+                "patient_id": "M26-11-00001",
+                "patient_name": "Juan Dela Cruz",
+                "filename": "Government_Valid_ID_DelaCruz.jpg",
+                "document_type": "Government Valid ID",
+                "file_size_bytes": 284100,
+                "uploaded_at": "2026-11-22",
                 "status": "processed",
                 "ocr_processed": True,
-                "manipulation_risk": "low"
+                "manipulation_risk": "clean",
+                "verification_status": "Verified Authentic",
+                "seal_detected": True,
+                "tamper_risk": "Low",
+                "extracted_text": "REPUBLIC OF THE PHILIPPINES\nUNIFIED MULTI-PURPOSE ID (UMID)\nCRN: 0111-2948192-4\nNAME: DELA CRUZ, JUAN\nDATE OF BIRTH: MAY 15, 1978\nADDRESS: DISTRICT 4, SAMPALOC, MANILA"
             },
             {
-                "id": "doc-syn-102",
-                "filename": "synthetic_clinical_abstract_002.png",
-                "document_type": "Clinical Abstract / Referral",
-                "file_size_bytes": 284900,
-                "uploaded_at": "2026-11-18 11:45:00",
+                "id": "doc-002",
+                "patient_id": "M26-11-00001",
+                "patient_name": "Juan Dela Cruz",
+                "filename": "Initial_Eye_Examination_Record.pdf",
+                "document_type": "Initial Clinic Examination Record",
+                "file_size_bytes": 195400,
+                "uploaded_at": "2026-11-22",
                 "status": "processed",
                 "ocr_processed": True,
-                "manipulation_risk": "clean"
-            },
-            {
-                "id": "doc-syn-103",
-                "filename": "synthetic_income_declaration_003.pdf",
-                "document_type": "Certificate of Low Income",
-                "file_size_bytes": 98400,
-                "uploaded_at": "2026-11-19 08:10:00",
-                "status": "pending",
-                "ocr_processed": False,
-                "manipulation_risk": "clean"
+                "manipulation_risk": "clean",
+                "verification_status": "Verified Authentic",
+                "seal_detected": False,
+                "tamper_risk": "Low",
+                "extracted_text": "OFPHIL EYE CENTER - OUTPATIENT REGULAR CLINIC\nPATIENT: Juan Dela Cruz (M26-11-00001)\nCHIEF COMPLAINT: Blurring of vision on both eyes\nDIAGNOSIS: Bilateral Cataract, Senile Mature (OD > OS)\nATTENDING PHYSICIAN: Dr. J. E. Garcia, MD"
             }
         ]
 

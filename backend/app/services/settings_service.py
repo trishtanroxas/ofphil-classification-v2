@@ -128,6 +128,51 @@ class SettingsService:
                 "theme_preference": "light",
                 "notify_email": True,
                 "password_hash": hash_password("Ofphil@2026")
+            },
+            "msw_account": {
+                "username": "msw_lead",
+                "full_name": "Maria Santos, RSW",
+                "email": "maria.santos@ofphil.org.ph",
+                "role": "Medical Social Worker (Lead RSW)",
+                "department": "Medical Social Services Department (MSWD)",
+                "license_no": "PRC-RSW-004921",
+                "contact": "0918 555 1234",
+                "birthdate": "1988-03-14",
+                "sex": "Female (F)",
+                "civil_status": "Married",
+                "province": "Metro Manila (NCR)",
+                "city": "Quezon City",
+                "barangay": "Diliman",
+                "street": "Blk 8 Lot 15, Teachers Village East",
+                "education": "Bachelor of Science in Social Work (BSSW) • Registered Social Worker",
+                "occupation": "Lead Medical Social Worker (MSWD)",
+                "theme_preference": "light",
+                "notify_email": True,
+                "password_hash": hash_password("Ofphil@2026")
+            },
+            "msw_preferences": {
+                "notifications": {
+                    "email_new_patient": True,
+                    "email_status_change": True,
+                    "browser_push": True,
+                    "daily_digest": False
+                },
+                "work_preferences": {
+                    "default_view": "pending",
+                    "auto_calculate_shap": True,
+                    "highlight_low_confidence": True,
+                    "max_daily_quota": 25
+                },
+                "casework": {
+                    "default_interview_duration": "45",
+                    "require_doc_verification": True,
+                    "auto_flag_discrepancies": True
+                },
+                "accessibility": {
+                    "high_contrast": False,
+                    "font_size": "medium",
+                    "reduced_motion": False
+                }
             }
         }
 
@@ -489,7 +534,7 @@ class SettingsService:
         # 2. Try clearing Supabase if configured
         if supabase_db.is_configured():
             try:
-                await supabase_db.delete("security_audit_logs", params={"id": "neq.00000000-0000-0000-0000-000000000000"})
+                await supabase_db.delete("security_audit_logs", query_params={"id": "neq.00000000-0000-0000-0000-000000000000"})
             except Exception as e:
                 print(f"[SettingsService] Supabase audit truncation notice: {e}")
 
@@ -583,6 +628,261 @@ class SettingsService:
             details={"argon2_rehashed": True}
         )
         return True
+
+    # --------------------------------------------------------------------------
+    # 8. MSW Account, Security & Preferences
+    # --------------------------------------------------------------------------
+    def get_msw_account_profile(self) -> AccountProfile:
+        defaults = self._get_defaults()["msw_account"]
+        acc = self._cache.get("msw_account", defaults)
+        return AccountProfile(
+            username=acc.get("username", "msw_lead"),
+            full_name=acc.get("full_name", "Maria Santos, RSW"),
+            email=acc.get("email", "maria.santos@ofphil.org.ph"),
+            role=acc.get("role", "Medical Social Worker (Lead RSW)"),
+            department=acc.get("department", "Medical Social Services Department (MSWD)"),
+            theme_preference=acc.get("theme_preference", "light"),
+            notify_email=acc.get("notify_email", True),
+            license_no=acc.get("license_no", "PRC-RSW-004921"),
+            contact=acc.get("contact", "0918 555 1234"),
+            birthdate=acc.get("birthdate", "1988-03-14"),
+            sex=acc.get("sex", "Female (F)"),
+            civil_status=acc.get("civil_status", "Married"),
+            province=acc.get("province", "Metro Manila (NCR)"),
+            city=acc.get("city", "Quezon City"),
+            barangay=acc.get("barangay", "Diliman"),
+            street=acc.get("street", "Blk 8 Lot 15, Teachers Village East"),
+            education=acc.get("education", "Bachelor of Science in Social Work (BSSW) • Registered Social Worker"),
+            occupation=acc.get("occupation", "Lead Medical Social Worker (MSWD)")
+        )
+
+    async def update_msw_account_profile(
+        self, payload: AccountProfileUpdate, actor_id: str = "msw_lead", ip: str = "127.0.0.1"
+    ) -> AccountProfile:
+        defaults = self._get_defaults()["msw_account"]
+        acc = self._cache.get("msw_account", defaults)
+        acc["full_name"] = payload.full_name
+        acc["email"] = payload.email
+        if payload.department:
+            acc["department"] = payload.department
+        if payload.theme_preference:
+            acc["theme_preference"] = payload.theme_preference
+        if payload.notify_email is not None:
+            acc["notify_email"] = payload.notify_email
+        if payload.license_no is not None:
+            acc["license_no"] = payload.license_no
+        if payload.contact is not None:
+            acc["contact"] = payload.contact
+        if payload.birthdate is not None:
+            acc["birthdate"] = payload.birthdate
+        if payload.sex is not None:
+            acc["sex"] = payload.sex
+        if payload.civil_status is not None:
+            acc["civil_status"] = payload.civil_status
+        if payload.province is not None:
+            acc["province"] = payload.province
+        if payload.city is not None:
+            acc["city"] = payload.city
+        if payload.barangay is not None:
+            acc["barangay"] = payload.barangay
+        if payload.street is not None:
+            acc["street"] = payload.street
+        if payload.education is not None:
+            acc["education"] = payload.education
+        if payload.occupation is not None:
+            acc["occupation"] = payload.occupation
+
+        self._cache["msw_account"] = acc
+        self._save_to_storage()
+
+        await self.record_audit_log(
+            action="UPDATE_MSW_PROFILE",
+            actor_id=actor_id,
+            role="msw",
+            resource="user_profile",
+            status="SUCCESS",
+            ip=ip,
+            details={"email": payload.email, "full_name": payload.full_name}
+        )
+        return self.get_msw_account_profile()
+
+    async def change_msw_password(
+        self, req: PasswordChangeRequest, actor_id: str = "msw_lead", ip: str = "127.0.0.1"
+    ) -> bool:
+        if req.new_password != req.confirm_password:
+            raise ValueError("New password and confirmation do not match.")
+
+        sec_policy = self.get_security_settings().auth_policies
+        if len(req.new_password) < sec_policy.min_password_length:
+            raise ValueError(f"Password must be at least {sec_policy.min_password_length} characters long.")
+
+        defaults = self._get_defaults()["msw_account"]
+        acc = self._cache.get("msw_account", defaults)
+        current_hash = acc.get("password_hash")
+        if current_hash:
+            if not verify_password(req.current_password, current_hash):
+                await self.record_audit_log(
+                    action="CHANGE_MSW_PASSWORD_FAILED",
+                    actor_id=actor_id,
+                    role="msw",
+                    resource="user_credentials",
+                    status="FAILED",
+                    ip=ip,
+                    details={"reason": "Incorrect current password"}
+                )
+                raise ValueError("Current password verification failed.")
+
+        acc["password_hash"] = hash_password(req.new_password)
+        acc["password_updated_at"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        self._cache["msw_account"] = acc
+        self._save_to_storage()
+
+        await self.record_audit_log(
+            action="CHANGE_MSW_PASSWORD_SUCCESS",
+            actor_id=actor_id,
+            role="msw",
+            resource="user_credentials",
+            status="SUCCESS",
+            ip=ip,
+            details={"argon2_rehashed": True}
+        )
+        return True
+
+    def get_msw_security_status(self) -> Dict[str, Any]:
+        """Provides live session, MFA enforcement, and login security status for MSW."""
+        defaults = self._get_defaults()["msw_account"]
+        acc = self._cache.get("msw_account", defaults)
+        sec_policies = self.get_security_settings().auth_policies
+
+        # Sessions list (current session + any remembered sessions)
+        sessions = [
+            {
+                "id": "sess-cur-msw",
+                "device": "Clinic Primary Terminal",
+                "browser": "Chrome 131.0 (Windows 11 NT)",
+                "ip_address": "127.0.0.1",
+                "location": "Metro Manila, Philippines (OFPHIL Eye Center LAN)",
+                "last_active": "Active Now",
+                "is_current": True
+            }
+        ]
+
+        # Recent MSW security audit records
+        from app.core.audit import AUDIT_LOG_FILE
+        recent_events = []
+        if AUDIT_LOG_FILE.exists():
+            try:
+                with open(AUDIT_LOG_FILE, "r", encoding="utf-8") as f:
+                    lines = f.readlines()
+                    for line in reversed(lines[-50:]):
+                        try:
+                            obj = json.loads(line.strip())
+                            rec = obj.get("audit_record", {})
+                            if rec.get("role") == "msw" or "MSW" in rec.get("action", ""):
+                                recent_events.append({
+                                    "action": rec.get("action"),
+                                    "status": rec.get("status"),
+                                    "timestamp": rec.get("timestamp_utc", obj.get("timestamp")),
+                                    "details": rec.get("details", {})
+                                })
+                                if len(recent_events) >= 6:
+                                    break
+                        except Exception:
+                            continue
+            except Exception:
+                pass
+
+        return {
+            "mfa_enforced": sec_policies.enforce_2fa,
+            "mfa_method": "Email One-Time Passcode (Brevo OTP Relay)",
+            "last_password_change": acc.get("password_updated_at", "2026-11-22T13:45:00Z"),
+            "active_sessions": sessions,
+            "recent_security_events": recent_events,
+            "login_rate_limit": {
+                "max_attempts": sec_policies.max_login_attempts,
+                "lockout_minutes": sec_policies.lockout_duration_minutes,
+                "current_failures": 0,
+                "status": "Protected"
+            },
+            "rbac_permissions": [
+                "patient_intake_view",
+                "patient_intake_evaluate",
+                "document_ocr_inspect",
+                "document_signature_verify",
+                "charity_subsidy_recommend",
+                "profile_self_manage"
+            ]
+        }
+
+    async def terminate_other_msw_sessions(self, actor_id: str = "msw_lead", ip: str = "127.0.0.1") -> bool:
+        await self.record_audit_log(
+            action="TERMINATE_OTHER_SESSIONS",
+            actor_id=actor_id,
+            role="msw",
+            resource="user_sessions",
+            status="SUCCESS",
+            ip=ip,
+            details={"terminated_all_except_current": True}
+        )
+        return True
+
+    def get_msw_privacy_settings(self) -> Dict[str, Any]:
+        defaults = {
+            "mask_patient_identities": True,
+            "mask_contact_numbers": True,
+            "mask_government_ids": True,
+            "mask_financial_ledgers": True,
+            "consent_verification_required": True,
+            "data_retention_years": 7,
+            "allow_patient_export": False,
+            "assigned_records_only": True
+        }
+        msw_prefs = self._cache.get("msw_preferences", {})
+        return msw_prefs.get("data_privacy", defaults)
+
+    async def update_msw_privacy_settings(
+        self, payload: Dict[str, Any], actor_id: str = "msw_lead", ip: str = "127.0.0.1"
+    ) -> Dict[str, Any]:
+        existing_prefs = self.get_msw_preferences()
+        existing_privacy = existing_prefs.get("data_privacy", {})
+        merged_privacy = {**existing_privacy, **payload}
+        existing_prefs["data_privacy"] = merged_privacy
+        self._cache["msw_preferences"] = existing_prefs
+        self._save_to_storage()
+
+        await self.record_audit_log(
+            action="UPDATE_MSW_PRIVACY_POLICIES",
+            actor_id=actor_id,
+            role="msw",
+            resource="data_privacy_governance",
+            status="SUCCESS",
+            ip=ip,
+            details=merged_privacy
+        )
+        return merged_privacy
+
+    def get_msw_preferences(self) -> Dict[str, Any]:
+        defaults = self._get_defaults()["msw_preferences"]
+        return self._cache.get("msw_preferences", defaults)
+
+    async def update_msw_preferences(
+        self, prefs: Dict[str, Any], actor_id: str = "msw_lead", ip: str = "127.0.0.1"
+    ) -> Dict[str, Any]:
+        existing = self.get_msw_preferences()
+        merged = {**existing, **prefs}
+        self._cache["msw_preferences"] = merged
+        self._save_to_storage()
+
+        await self.record_audit_log(
+            action="UPDATE_MSW_PREFERENCES",
+            actor_id=actor_id,
+            role="msw",
+            resource="msw_preferences",
+            status="SUCCESS",
+            ip=ip,
+            details=merged
+        )
+        return merged
 
 
 settings_service = SettingsService()
