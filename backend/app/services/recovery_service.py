@@ -213,7 +213,7 @@ class PasswordRecoveryService:
         # role == "admin"
         acct = settings_service._cache.get("account", {})
         reg_user = str(acct.get("username", "admin_sys")).strip()
-        reg_email = str(acct.get("email") or "trishtanroxas@gmail.com").strip()
+        reg_email = str(acct.get("email") or "roxas.t.bscs@gmail.com").strip()
         reg_mobile = str(acct.get("contact") or "0917 000 0001").strip()
 
         if ident.lower() != reg_user.lower():
@@ -562,7 +562,7 @@ class PasswordRecoveryService:
                 role = "admin"
                 user_id = "STF-ADM-0001"
                 user_name = adm_acc.get("full_name") or "Dr. Roberto Reyes, MD"
-                raw_email = str(adm_acc.get("email", "trishtanroxas@gmail.com") or "").strip()
+                raw_email = str(adm_acc.get("email", "roxas.t.bscs@gmail.com") or "").strip()
                 verified_email = raw_email if (raw_email and "@" in raw_email) else ""
                 raw_mobile = str(adm_acc.get("contact", "0917 000 0001") or "").strip()
                 verified_mobile = raw_mobile if len(normalize_ph_mobile(raw_mobile)) >= 10 else ""
@@ -923,7 +923,7 @@ class PasswordRecoveryService:
 
             role_title = "Clinic Administrator"
             recipient_name = adm_acc.get("full_name") or "Dr. Roberto Reyes, MD"
-            target_email = str(adm_acc.get("email") or "trishtanroxas@gmail.com").strip()
+            target_email = str(adm_acc.get("email") or "roxas.t.bscs@gmail.com").strip()
             target_mobile = str(adm_acc.get("contact") or "0917 000 0001").strip()
 
         else:

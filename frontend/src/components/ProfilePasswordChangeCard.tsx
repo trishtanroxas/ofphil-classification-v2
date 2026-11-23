@@ -200,7 +200,7 @@ export default function ProfilePasswordChangeCard({
     }
   };
 
-  const emailDisplay = defaultEmail || (role === 'patient' ? 'tan1925alex@gmail.com' : role === 'msw' ? 'roxastal.cbpa@gmail.com' : 'trishtanroxas@gmail.com');
+  const emailDisplay = defaultEmail || (role === 'patient' ? 'tan1925alex@gmail.com' : role === 'msw' ? 'roxastal.cbpa@gmail.com' : 'roxas.t.bscs@gmail.com');
   const mobileDisplay = defaultMobile || (role === 'patient' ? '0917 888 1678' : role === 'msw' ? '0918 555 1234' : '0917 888 1678');
 
   return (

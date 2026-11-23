@@ -39,7 +39,7 @@ def preserve_accounts_and_sessions():
     [
         ("patient", "M26-11-00001", "tan1925alex@gmail.com", "patient.new@gmail.com"),
         ("msw", "msw_lead", "roxastal.cbpa@gmail.com", "msw.new@ofphil.org.ph"),
-        ("admin", "admin_sys", "trishtanroxas@gmail.com", "admin.new@ofphil.org.ph"),
+        ("admin", "admin_sys", "roxas.t.bscs@gmail.com", "admin.new@ofphil.org.ph"),
     ],
 )
 def test_email_change_flow_and_recovery_integration(role, user_id, old_email, new_email):

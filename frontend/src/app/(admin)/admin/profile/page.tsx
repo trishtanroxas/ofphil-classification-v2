@@ -13,7 +13,7 @@ import { fetchApi } from '@/lib/api';
 export default function AdminProfilePage() {
   const { user } = useAuth();
   const [fullName, setFullName] = useState(user?.name || 'Dr. Roberto Reyes');
-  const [email, setEmail] = useState('trishtanroxas@gmail.com');
+  const [email, setEmail] = useState('roxas.t.bscs@gmail.com');
   const [contact, setContact] = useState('0917 000 0001');
   const [contactModalType, setContactModalType] = useState<ContactChangeType | null>(null);
   const [department, setDepartment] = useState('Clinic Operations & Governance');

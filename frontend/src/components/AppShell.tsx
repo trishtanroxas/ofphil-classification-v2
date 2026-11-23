@@ -1389,7 +1389,7 @@ export function Header({
                     {user?.name || (isAdmin ? 'Dr. Roberto Reyes' : isPatient ? 'Juan Dela Cruz' : 'Maria Santos, RSW')}
                   </div>
                   <div className="text-[11px] text-[#64748B] truncate">
-                    {isAdmin ? 'trishtanroxas@gmail.com' : isPatient ? 'tan1925alex@gmail.com' : 'roxastal.cbpa@gmail.com'}
+                    {isAdmin ? 'roxas.t.bscs@gmail.com' : isPatient ? 'tan1925alex@gmail.com' : 'roxastal.cbpa@gmail.com'}
                   </div>
                   <div className="mt-1">
                     <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold bg-[#E6F1EA] text-[#0B6B3A]">

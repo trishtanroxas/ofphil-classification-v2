@@ -81,7 +81,7 @@ export default function AdminSettingsPage() {
   const [notifyQueueUpdate, setNotifyQueueUpdate] = useState(true);
   const [notifySecurityAlert, setNotifySecurityAlert] = useState(true);
   const [notifyPasswordChange, setNotifyPasswordChange] = useState(true);
-  const [testEmailRecipient, setTestEmailRecipient] = useState('trishtanroxas@gmail.com');
+  const [testEmailRecipient, setTestEmailRecipient] = useState('roxas.t.bscs@gmail.com');
   const [isSendingTest, setIsSendingTest] = useState(false);
 
   // ---------------------------------------------------------------------------
@@ -100,7 +100,7 @@ export default function AdminSettingsPage() {
   // ---------------------------------------------------------------------------
   const [staffUsername, setStaffUsername] = useState('admin_sys');
   const [staffFullName, setStaffFullName] = useState('Dr. Roberto Reyes');
-  const [staffEmail, setStaffEmail] = useState('trishtanroxas@gmail.com');
+  const [staffEmail, setStaffEmail] = useState('roxas.t.bscs@gmail.com');
   const [staffRole, setStaffRole] = useState('Clinic Administrator (Super-Admin Authority)');
   const [staffDepartment, setStaffDepartment] = useState('Clinic Operations & Governance');
   const [themePreference, setThemePreference] = useState('light');
@@ -306,11 +306,11 @@ export default function AdminSettingsPage() {
           if (acc) {
             setStaffUsername(acc.username || 'admin_sys');
             setStaffFullName(acc.full_name || 'Dr. Roberto Reyes');
-            setStaffEmail(acc.email || 'trishtanroxas@gmail.com');
+            setStaffEmail(acc.email || 'roxas.t.bscs@gmail.com');
             setStaffRole(acc.role || 'Clinic Administrator (Super-Admin Authority)');
             setStaffDepartment(acc.department || 'Clinic Operations & Governance');
             setThemePreference(acc.theme_preference || 'light');
-            setTestEmailRecipient(acc.email || 'trishtanroxas@gmail.com');
+            setTestEmailRecipient(acc.email || 'roxas.t.bscs@gmail.com');
           }
         } catch (e) {
           console.warn('Failed loading personal account profile:', e);

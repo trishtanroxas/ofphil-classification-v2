@@ -29,7 +29,7 @@ const INITIAL_STAFF_LIST: StaffUser[] = [
     id: '1',
     name: 'Dr. Roberto Reyes',
     username: 'admin_sys',
-    email: 'trishtanroxas@gmail.com',
+    email: 'roxas.t.bscs@gmail.com',
     contactNumber: '0917 000 0001',
     role: 'Administrator',
     status: 'Active',

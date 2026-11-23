@@ -122,7 +122,7 @@ class SettingsService:
             "account": {
                 "username": "admin_sys",
                 "full_name": "Dr. Roberto Reyes",
-                "email": "trishtanroxas@gmail.com",
+                "email": "roxas.t.bscs@gmail.com",
                 "role": "Clinic Administrator (Super-Admin Authority)",
                 "department": "Clinic Operations & Governance",
                 "theme_preference": "light",
@@ -574,7 +574,7 @@ class SettingsService:
         return AccountProfile(
             username=acc.get("username", "admin_sys"),
             full_name=acc.get("full_name", "Dr. Roberto Reyes"),
-            email=acc.get("email", "trishtanroxas@gmail.com"),
+            email=acc.get("email", "roxas.t.bscs@gmail.com"),
             role=acc.get("role", "Clinic Administrator (Super-Admin Authority)"),
             department=acc.get("department", "Clinic Operations & Governance"),
             theme_preference=acc.get("theme_preference", "light"),
