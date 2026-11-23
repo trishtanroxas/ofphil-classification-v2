@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/DashboardLayout';
+import { useAuth } from '@/context/AuthContext';
 import { fetchApi } from '@/lib/api';
 import { toast } from 'sonner';
 import PsgcAddressSelector from '@/components/PsgcAddressSelector';
@@ -11,10 +12,13 @@ import PsgcAddressSelector from '@/components/PsgcAddressSelector';
 export default function PatientDossierPage() {
   const params = useParams();
   const router = useRouter();
+  const { user, role } = useAuth();
   const patientId = params?.patient_id as string;
 
   const [isLoading, setIsLoading] = useState(true);
   const [patientData, setPatientData] = useState<any>(null);
+  const [classificationModalOpen, setClassificationModalOpen] = useState(false);
+  const [isUpdatingClassification, setIsUpdatingClassification] = useState(false);
   const [encounters, setEncounters] = useState<any[]>([]);
 
   useEffect(() => {
@@ -177,21 +181,57 @@ export default function PatientDossierPage() {
   // Calculate live total from referral particulars
   const referralTotal = referralData.particulars.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
 
+  // Authorized Admin Patient Classification Change Handler (Database-Backed & Audited)
+  const handleConfirmClassificationChange = async () => {
+    if (isUpdatingClassification) return;
+    const currentCls = (patientData?.category || 'REGULAR').toUpperCase() === 'CHARITY' ? 'CHARITY' : 'REGULAR';
+    const nextCls = currentCls === 'CHARITY' ? 'REGULAR' : 'CHARITY';
+    const actorId = (user as any)?.username || user?.id || 'admin_sys';
+
+    setIsUpdatingClassification(true);
+    try {
+      const res = await fetchApi(`/patients/${encodeURIComponent(patientId)}/classification`, {
+        method: 'PATCH',
+        headers: {
+          'x-user-role': role || 'admin',
+          'x-user-id': String(actorId),
+        },
+        body: JSON.stringify({
+          classification: nextCls,
+          reason: `Authorized Admin dossier reclassification from ${currentCls} to ${nextCls}.`,
+        }),
+      });
+
+      const updatedPatient = res?.patient || { ...patientData, category: nextCls };
+      setPatientData(updatedPatient);
+      setEditForm((prev) => ({ ...prev, category: nextCls }));
+
+      try {
+        const list = JSON.parse(localStorage.getItem('ofphil_registered_patients') || '[]');
+        const idx = Array.isArray(list)
+          ? list.findIndex((p: any) => String(p.patient_id).toUpperCase() === String(patientId).toUpperCase())
+          : -1;
+        if (idx >= 0) {
+          list[idx] = { ...list[idx], category: nextCls };
+          localStorage.setItem('ofphil_registered_patients', JSON.stringify(list));
+        }
+        window.dispatchEvent(new Event('ofphil-patient-classification-updated'));
+      } catch {}
+
+      setClassificationModalOpen(false);
+      toast.success(
+        `Patient ${patientId} classification officially updated to ${nextCls === 'CHARITY' ? 'Charity Patient' : 'Regular Patient'}.`
+      );
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to update patient classification. Original classification preserved.');
+    } finally {
+      setIsUpdatingClassification(false);
+    }
+  };
+
   // Apply for Charitable Assistance Handler
   const handleApplyCharitable = () => {
-    setEditForm((prev) => ({ ...prev, category: 'CHARITY' }));
-    setPatientData((prev: any) => ({ ...prev, category: 'CHARITY' }));
-    setTotalSubsidy(referralTotal || 11600);
-    // Update active encounters if any
-    setEncounters((prev) =>
-      prev.map((e) => ({
-        ...e,
-        classification: 'CHARITY',
-        approved_financial_assistance: e.total_amount,
-        remaining_medical_expenses: 0,
-      }))
-    );
-    toast.success('Patient application for Charitable Assistance approved & endorsed to MSW!');
+    setClassificationModalOpen(true);
   };
 
   // Secure Document Recording & Data Privacy Vault State (Regular Clinic Storage Only — No MSW / No Charity)
@@ -357,7 +397,37 @@ export default function PatientDossierPage() {
     sms_sent: boolean;
     created_at: string;
   }>>([]);
-  const [dossierTab, setDossierTab] = useState<'profile' | 'appointments' | 'procedures' | 'referral' | 'documents' | 'alerts'>('profile');
+  const [dossierTab, setDossierTab] = useState<'profile' | 'appointments' | 'procedures' | 'referral' | 'documents' | 'alerts' | 'charity_status'>('profile');
+  const [charityAssessments, setCharityAssessments] = useState<any[]>([]);
+  const [charityBackendDocs, setCharityBackendDocs] = useState<any[]>([]);
+  const [isLoadingCharityStatus, setIsLoadingCharityStatus] = useState(false);
+  const [selectedCharityAsmt, setSelectedCharityAsmt] = useState<any | null>(null);
+
+  const loadAdminCharityStatusData = React.useCallback(async () => {
+    if (!patientId) return;
+    setIsLoadingCharityStatus(true);
+    try {
+      const adminHeaders = { 'x-user-role': role || 'admin', 'x-user-id': (user as any)?.username || user?.id || 'admin_sys' };
+      const [asmtList, docList] = await Promise.all([
+        fetchApi(`/assessments?patient_id=${encodeURIComponent(patientId)}`, { headers: adminHeaders }).catch(() => []),
+        fetchApi(`/documents?patient_id=${encodeURIComponent(patientId)}`, { headers: adminHeaders }).catch(() => []),
+      ]);
+      setCharityAssessments(Array.isArray(asmtList) ? asmtList : []);
+      setCharityBackendDocs(
+        Array.isArray(docList)
+          ? docList.filter((d: any) => String(d?.patient_id || '').trim().toUpperCase() === patientId.trim().toUpperCase())
+          : []
+      );
+    } catch {
+      setCharityAssessments([]);
+    } finally {
+      setIsLoadingCharityStatus(false);
+    }
+  }, [patientId, role, user]);
+
+  useEffect(() => {
+    loadAdminCharityStatusData();
+  }, [loadAdminCharityStatusData]);
   const [appointmentModalOpen, setAppointmentModalOpen] = useState(false);
   const [apptActionConfirm, setApptActionConfirm] = useState<{ type: 'approve' | 'complete' | 'delete'; appt: any; sendEmail: boolean; sendSms: boolean } | null>(null);
 
@@ -1327,7 +1397,13 @@ export default function PatientDossierPage() {
     setCheckupModalOpen(false);
   };
 
-  const isCharity = patientData?.category === 'CHARITY';
+  const isCharity = String(patientData?.category || '').trim().toUpperCase() === 'CHARITY';
+
+  useEffect(() => {
+    if (!isCharity && dossierTab === 'charity_status') {
+      setDossierTab('profile');
+    }
+  }, [isCharity, dossierTab]);
 
   return (
     <DashboardLayout
@@ -1354,14 +1430,20 @@ export default function PatientDossierPage() {
                   {patientData?.patient_id || patientId}
                 </span>
                 {isCharity ? (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#ECFDF5] text-[#047857] border border-[#A7F3D0]">
-                    <i className="fa-solid fa-heart text-[9px]" />
-                    <span>Charity Beneficiary</span>
+                  <span
+                    data-testid="dossier-classification-badge"
+                    className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[11px] font-extrabold bg-[#ECFDF5] text-[#047857] border border-[#A7F3D0]"
+                  >
+                    <i className="fa-solid fa-hand-holding-heart text-[10px]" />
+                    <span>Charity Patient</span>
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#F1F5F9] text-[#475569] border border-[#CBD5E1]">
-                    <i className="fa-solid fa-user-check text-[9px]" />
-                    <span>Standard Beneficiary</span>
+                  <span
+                    data-testid="dossier-classification-badge"
+                    className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[11px] font-extrabold bg-[#F1F5F9] text-[#334155] border border-[#CBD5E1]"
+                  >
+                    <i className="fa-solid fa-hospital-user text-[10px]" />
+                    <span>Regular Patient</span>
                   </span>
                 )}
               </div>
@@ -1373,6 +1455,24 @@ export default function PatientDossierPage() {
 
           {/* Action Buttons */}
           <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              data-testid="change-classification-btn"
+              onClick={() => setClassificationModalOpen(true)}
+              className={`px-3.5 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 transition shadow-2xs cursor-pointer border ${
+                isCharity
+                  ? 'bg-[#FFFBEB] border-[#FDE68A] text-[#B45309] hover:bg-[#FEF3C7]'
+                  : 'bg-[#E8F5EC] border-[#A7F3D0] text-[#0B6B3A] hover:bg-[#D1FAE5]'
+              }`}
+              title={
+                isCharity
+                  ? 'Reclassify this patient as a Regular Patient'
+                  : 'Convert this patient to a Charity Patient'
+              }
+            >
+              <i className={`fa-solid ${isCharity ? 'fa-rotate-left' : 'fa-hand-holding-heart'} text-xs`} />
+              <span>{isCharity ? 'Reclassify as Regular Patient' : 'Convert to Charity Patient'}</span>
+            </button>
 
 
             <button
@@ -1487,12 +1587,23 @@ export default function PatientDossierPage() {
             { id: 'referral' as const, label: 'Financial Referral', icon: 'fa-file-invoice-dollar' },
             { id: 'documents' as const, label: 'Documents & Vault', icon: 'fa-folder-open' },
             { id: 'alerts' as const, label: 'Requests & Inquiries', icon: 'fa-file-circle-question' },
+            ...(isCharity
+              ? [
+                  {
+                    id: 'charity_status' as const,
+                    label: 'Charity Status',
+                    icon: 'fa-hand-holding-heart',
+                    count: charityAssessments.length,
+                  },
+                ]
+              : []),
           ].map((tab) => {
             const active = dossierTab === tab.id;
             return (
               <button
                 key={tab.id}
                 type="button"
+                data-testid={`admin-dossier-tab-${tab.id}`}
                 onClick={() => setDossierTab(tab.id)}
                 className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition cursor-pointer border-0 whitespace-nowrap ${active
                   ? 'bg-[#0B6B3A] text-white shadow-xs'
@@ -3039,6 +3150,416 @@ export default function PatientDossierPage() {
             </div>
           </>
         )}
+
+        {/* =====================================================================
+            TAB 7: CHARITY STATUS (ADMIN STRICT READ-ONLY ACCESS — CHARITY PATIENTS ONLY)
+           ===================================================================== */}
+        {isCharity && dossierTab === 'charity_status' && (() => {
+          const latestAsmt = selectedCharityAsmt || charityAssessments[0] || null;
+          const canonicalPid = patientData?.patient_id || patientId;
+          const charityCaseNo =
+            patientData?.charity_case_no ||
+            (String(canonicalPid).toUpperCase().startsWith('MSW_FA_') ? canonicalPid : 'Not Assigned');
+          const latestEnc = encounters[0] || null;
+          const encounterNo =
+            latestAsmt?.encounter_no ||
+            latestEnc?.id ||
+            latestEnc?.assessment_id ||
+            'Not Available';
+          const appDate =
+            latestAsmt?.interview_date ||
+            latestEnc?.encounter_date ||
+            patientData?.registration_date ||
+            'Not Available';
+          const appStatus = String(patientData?.status || 'PENDING').toUpperCase();
+          const asmtStatus = latestAsmt?.workflow_status || (appStatus === 'APPROVED' ? 'APPROVED' : 'NOT_STARTED');
+
+          const finClsObj = latestAsmt?.classification_result?.financial_classification;
+          const mswClsObj = latestAsmt?.classification_result?.msw_classification;
+          const finClassLabel =
+            typeof finClsObj === 'object'
+              ? finClsObj?.classification_label || finClsObj?.classification
+              : finClsObj || 'Not Available';
+          const mswClassLabel =
+            typeof mswClsObj === 'object'
+              ? mswClsObj?.classification_label || mswClsObj?.classification
+              : mswClsObj || 'Not Available';
+
+          const recommendedTier =
+            latestAsmt?.msw_recommendation?.recommended_tier ||
+            latestAsmt?.classification_result?.combined_recommendation ||
+            (appStatus === 'APPROVED' ? 'Indigent (100% Full Charity Subsidy)' : 'Not Available');
+
+          const approvedTier =
+            latestAsmt?.institutional_approval?.decision === 'APPROVED'
+              ? `${recommendedTier} (${latestAsmt.institutional_approval.approved_subsidy_percentage ?? 100}% Approved)`
+              : appStatus === 'APPROVED'
+                ? 'Indigent Charity Grant (100% Approved)'
+                : 'Not Applicable';
+
+          const requestedAmount =
+            latestEnc?.total_amount ??
+            (referralTotal > 0 ? referralTotal : null);
+
+          const approvedSubsidyVal =
+            latestEnc?.approved_financial_assistance ??
+            (totalSubsidy > 0 ? totalSubsidy : null);
+
+          const decisionStatus =
+            latestAsmt?.institutional_approval?.decision ||
+            appStatus ||
+            'PENDING';
+
+          const decisionDate =
+            latestAsmt?.institutional_approval?.decision_timestamp
+              ? String(latestAsmt.institutional_approval.decision_timestamp).slice(0, 10)
+              : latestEnc?.encounter_date || patientData?.registration_date || 'Not Available';
+
+          const authorizedDecisionMaker =
+            latestAsmt?.institutional_approval?.approver_name ||
+            latestAsmt?.msw_recommendation?.msw_assessor_name ||
+            patientData?.assigned_msw ||
+            'Not Available';
+
+          const disapprovalOrPromissoryReason =
+            latestAsmt?.institutional_approval?.decision_notes ||
+            (appStatus.includes('DISAPPROVED') || appStatus.includes('PROMISSORY')
+              ? latestEnc?.notes || 'Evaluated under Partial Subsidy / Promissory Note arrangement.'
+              : 'Not Applicable');
+
+          const lastUpdatedTs =
+            latestAsmt?.updated_at
+              ? new Date(latestAsmt.updated_at).toLocaleString()
+              : latestEnc?.encounter_date || patientData?.registration_date || 'Not Available';
+
+          const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1';
+
+          return (
+            <div className="space-y-5" data-testid="admin-charity-status-panel">
+              {/* Strict Read-Only Governance Banner */}
+              <div className="bg-[#F0F9F3] border border-[#A7F3D0] rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs">
+                <div className="flex items-start gap-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-[#0B6B3A] text-white flex items-center justify-center text-sm shrink-0">
+                    <i className="fa-solid fa-eye" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h2 className="text-sm font-bold text-[#10241A] m-0 font-['Outfit']">
+                        Charity Status &amp; Eligibility Record (Admin Read-Only View)
+                      </h2>
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-white text-[#0B6B3A] border border-[#0B6B3A]/30 uppercase tracking-wider">
+                        Strict Read-Only Mode
+                      </span>
+                    </div>
+                    <p className="text-xs text-[#24352B] mt-1 m-0">
+                      Inspect recorded charity application details, MSW assessment summaries, eligibility recommendations, approved subsidy amounts, and supporting documents. MSW assessment editing and launch controls are restricted to licensed Medical Social Workers.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  {charityAssessments.length > 1 && (
+                    <select
+                      value={latestAsmt?.id || ''}
+                      onChange={(e) => {
+                        const found = charityAssessments.find((a) => a.id === e.target.value);
+                        setSelectedCharityAsmt(found || null);
+                      }}
+                      className="px-3 py-2 rounded-xl border border-[#D5E2D9] bg-white text-xs font-bold text-[#10241A]"
+                    >
+                      {charityAssessments.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.id} ({a.workflow_status})
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  <button
+                    type="button"
+                    onClick={loadAdminCharityStatusData}
+                    disabled={isLoadingCharityStatus}
+                    data-testid="refresh-admin-charity-status-btn"
+                    className="px-3.5 py-2 rounded-xl border border-[#D5E2D9] bg-white hover:bg-[#FAFBF8] text-[#10241A] font-bold text-xs flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
+                  >
+                    <i className={`fa-solid fa-arrows-rotate text-[#0B6B3A] ${isLoadingCharityStatus ? 'fa-spin' : ''}`} />
+                    <span>Refresh</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* 1. Core Charity Application & Decision Details Grid */}
+              <div className="bg-white border border-[#D5E2D9] rounded-2xl p-6 shadow-xs space-y-4">
+                <div className="flex items-center justify-between border-b border-[#EEF2EF] pb-3">
+                  <div>
+                    <h3 className="text-sm font-bold text-[#10241A] m-0 flex items-center gap-2">
+                      <i className="fa-solid fa-hand-holding-heart text-[#0B6B3A]" />
+                      <span>Recorded Charity Application, Eligibility &amp; Grant Decision Summary</span>
+                    </h3>
+                    <p className="text-[11px] text-[#5A7466] m-0 mt-0.5">
+                      Authoritative database values for Patient ID, Application Encounter Number, and Charity Case Number.
+                    </p>
+                  </div>
+                  <span className="text-[11px] font-semibold text-[#5A7466]">
+                    Last Updated: <strong className="text-[#10241A]">{lastUpdatedTs}</strong>
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 text-xs">
+                  <div className="p-3.5 rounded-xl bg-[#FAFBF8] border border-[#EEF2EF]">
+                    <div className="text-[10px] font-bold uppercase text-[#64748B]">Charity Case Number</div>
+                    <div className="font-mono font-extrabold text-[#0B6B3A] text-sm mt-1" data-testid="admin-charity-case-no">
+                      {charityCaseNo}
+                    </div>
+                  </div>
+                  <div className="p-3.5 rounded-xl bg-[#FAFBF8] border border-[#EEF2EF]">
+                    <div className="text-[10px] font-bold uppercase text-[#64748B]">Application Encounter Number</div>
+                    <div className="font-mono font-bold text-[#0369A1] text-sm mt-1" data-testid="admin-charity-encounter-no">
+                      {encounterNo}
+                    </div>
+                  </div>
+                  <div className="p-3.5 rounded-xl bg-[#FAFBF8] border border-[#EEF2EF]">
+                    <div className="text-[10px] font-bold uppercase text-[#64748B]">Patient ID</div>
+                    <div className="font-mono font-extrabold text-[#10241A] text-sm mt-1" data-testid="admin-charity-patient-id">
+                      {canonicalPid}
+                    </div>
+                  </div>
+                  <div className="p-3.5 rounded-xl bg-[#FAFBF8] border border-[#EEF2EF]">
+                    <div className="text-[10px] font-bold uppercase text-[#64748B]">Beneficiary Classification</div>
+                    <div className="font-extrabold text-[#047857] mt-1">
+                      Charity Beneficiary ({patientData?.category || 'CHARITY'})
+                    </div>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-[#FAFBF8] border border-[#EEF2EF]">
+                    <div className="text-[10px] font-bold uppercase text-[#64748B]">Charity Application Date</div>
+                    <div className="font-bold text-[#10241A] mt-1">{appDate}</div>
+                  </div>
+                  <div className="p-3.5 rounded-xl bg-[#FAFBF8] border border-[#EEF2EF]">
+                    <div className="text-[10px] font-bold uppercase text-[#64748B]">Current Charity Application Status</div>
+                    <div className="mt-1">
+                      <span
+                        className={`inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${
+                          appStatus === 'APPROVED'
+                            ? 'bg-[#DCFCE7] text-[#15803D] border-[#86EFAC]'
+                            : appStatus.includes('DISAPPROVED') || appStatus.includes('PROMISSORY')
+                              ? 'bg-[#FEE2E2] text-[#B91C1C] border-[#FECACA]'
+                              : 'bg-[#FEF3C7] text-[#B45309] border-[#FDE68A]'
+                        }`}
+                      >
+                        {appStatus}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="p-3.5 rounded-xl bg-[#FAFBF8] border border-[#EEF2EF]">
+                    <div className="text-[10px] font-bold uppercase text-[#64748B]">MSW Assessment Status</div>
+                    <div className="font-bold text-[#10241A] mt-1">{asmtStatus}</div>
+                  </div>
+                  <div className="p-3.5 rounded-xl bg-[#FAFBF8] border border-[#EEF2EF]">
+                    <div className="text-[10px] font-bold uppercase text-[#64748B]">Eligibility Recommendation</div>
+                    <div className="font-bold text-[#10241A] mt-1">
+                      {finClassLabel !== 'Not Available' || mswClassLabel !== 'Not Available'
+                        ? `Financial: ${finClassLabel} • MSW: ${mswClassLabel}`
+                        : recommendedTier}
+                    </div>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-[#FAFBF8] border border-[#EEF2EF]">
+                    <div className="text-[10px] font-bold uppercase text-[#64748B]">Recommended Charity Grant Tier</div>
+                    <div className="font-extrabold text-[#0B6B3A] mt-1">{recommendedTier}</div>
+                  </div>
+                  <div className="p-3.5 rounded-xl bg-[#FAFBF8] border border-[#EEF2EF]">
+                    <div className="text-[10px] font-bold uppercase text-[#64748B]">Approved Charity Grant Tier</div>
+                    <div className="font-extrabold text-[#10241A] mt-1">{approvedTier}</div>
+                  </div>
+                  <div className="p-3.5 rounded-xl bg-[#FAFBF8] border border-[#EEF2EF]">
+                    <div className="text-[10px] font-bold uppercase text-[#64748B]">Requested Assistance Amount</div>
+                    <div className="font-mono font-bold text-[#10241A] mt-1">
+                      {requestedAmount !== null && requestedAmount !== undefined
+                        ? `₱${Number(requestedAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                        : 'Not Available'}
+                    </div>
+                  </div>
+                  <div className="p-3.5 rounded-xl bg-[#FAFBF8] border border-[#EEF2EF]">
+                    <div className="text-[10px] font-bold uppercase text-[#64748B]">Approved Subsidy Amount</div>
+                    <div className="font-mono font-extrabold text-[#0B6B3A] mt-1">
+                      {approvedSubsidyVal !== null && approvedSubsidyVal !== undefined
+                        ? `₱${Number(approvedSubsidyVal).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                        : 'Not Available'}
+                    </div>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-[#FAFBF8] border border-[#EEF2EF]">
+                    <div className="text-[10px] font-bold uppercase text-[#64748B]">Decision Status</div>
+                    <div className="font-extrabold text-[#10241A] mt-1">{decisionStatus}</div>
+                  </div>
+                  <div className="p-3.5 rounded-xl bg-[#FAFBF8] border border-[#EEF2EF]">
+                    <div className="text-[10px] font-bold uppercase text-[#64748B]">Approval or Denial Date</div>
+                    <div className="font-bold text-[#10241A] mt-1">{decisionDate}</div>
+                  </div>
+                  <div className="p-3.5 rounded-xl bg-[#FAFBF8] border border-[#EEF2EF]">
+                    <div className="text-[10px] font-bold uppercase text-[#64748B]">Authorized Decision-Maker</div>
+                    <div className="font-bold text-[#10241A] mt-1">{authorizedDecisionMaker}</div>
+                  </div>
+                  <div className="p-3.5 rounded-xl bg-[#FAFBF8] border border-[#EEF2EF]">
+                    <div className="text-[10px] font-bold uppercase text-[#64748B]">Disapproval / Promissory Reason</div>
+                    <div className="font-medium text-[#10241A] mt-1">{disapprovalOrPromissoryReason}</div>
+                  </div>
+                </div>
+
+                {/* Associated Encounter Quick Navigation */}
+                <div className="pt-2 flex flex-wrap items-center justify-between gap-3 border-t border-[#EEF2EF]">
+                  <span className="text-[11px] text-[#5A7466]">
+                    Need to inspect clinical procedures or itemized referral slips for this beneficiary?
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setDossierTab('procedures')}
+                      className="px-3.5 py-1.5 rounded-xl border border-[#D5E2D9] bg-white hover:bg-[#FAFBF8] text-xs font-bold text-[#10241A] cursor-pointer"
+                    >
+                      View Clinical Encounters ({encounters.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDossierTab('referral')}
+                      className="px-3.5 py-1.5 rounded-xl border border-[#D5E2D9] bg-white hover:bg-[#FAFBF8] text-xs font-bold text-[#0B6B3A] cursor-pointer"
+                    >
+                      View Financial Referral
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. Supporting Charity & Assessment Documents (Preview & Download) */}
+              <div className="bg-white border border-[#D5E2D9] rounded-2xl p-6 shadow-xs space-y-4">
+                <div className="flex items-center justify-between border-b border-[#EEF2EF] pb-3">
+                  <div>
+                    <h3 className="text-sm font-bold text-[#10241A] m-0 flex items-center gap-2">
+                      <i className="fa-solid fa-folder-open text-[#0B6B3A]" />
+                      <span>Supporting Charity &amp; Assessment Documents ({charityBackendDocs.length})</span>
+                    </h3>
+                    <p className="text-[11px] text-[#5A7466] m-0 mt-0.5">
+                      Evidential documents linked to {canonicalPid}. Preview or download verified files in read-only mode.
+                    </p>
+                  </div>
+                </div>
+
+                {charityBackendDocs.length === 0 ? (
+                  <div className="p-8 text-center bg-[#FAFBF8] rounded-xl border border-[#EEF2EF] text-xs text-[#64748B]">
+                    No supporting charity documents are currently recorded for {canonicalPid}.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                    {charityBackendDocs.map((doc) => {
+                      const isPdf =
+                        String(doc.mime_type || '').toLowerCase().includes('pdf') ||
+                        String(doc.filename || '').toLowerCase().endsWith('.pdf');
+                      const previewUrl = `${apiBase}/documents/${encodeURIComponent(doc.id)}/download?patient_id=${encodeURIComponent(canonicalPid)}&inline=true`;
+                      const downloadUrl = `${apiBase}/documents/${encodeURIComponent(doc.id)}/download?patient_id=${encodeURIComponent(canonicalPid)}`;
+                      return (
+                        <div
+                          key={doc.id}
+                          className="p-4 rounded-xl border border-[#D5E2D9] bg-[#FAFBF8] flex items-center justify-between gap-3"
+                        >
+                          <div className="flex items-start gap-3 min-w-0">
+                            <div className="w-9 h-9 rounded-xl bg-[#E8F5EC] text-[#0B6B3A] flex items-center justify-center shrink-0">
+                              <i className={`fa-solid ${isPdf ? 'fa-file-pdf text-rose-600' : 'fa-file-image text-[#0B6B3A]'}`} />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="font-bold text-xs text-[#10241A] truncate">
+                                {doc.document_type || 'Supporting Document'}
+                              </div>
+                              <div className="text-[11px] text-[#5A7466] truncate">{doc.filename}</div>
+                              <div className="text-[10px] text-[#64748B] mt-0.5">
+                                {doc.verification_status || doc.status || 'Verified'} • {String(doc.uploaded_at || '').slice(0, 10)}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setPreviewAttachment({
+                                  name: doc.filename || doc.document_type || 'Document',
+                                  url: previewUrl,
+                                  type: isPdf ? 'pdf' : 'image',
+                                })
+                              }
+                              className="px-2.5 py-1.5 rounded-lg bg-white border border-[#D5E2D9] hover:border-[#0B6B3A] text-xs font-bold text-[#0B6B3A] cursor-pointer"
+                            >
+                              <i className="fa-regular fa-eye mr-1" />
+                              Preview
+                            </button>
+                            <a
+                              href={downloadUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="px-2.5 py-1.5 rounded-lg bg-[#0B6B3A] hover:bg-[#084D29] text-white text-xs font-bold no-underline"
+                            >
+                              <i className="fa-solid fa-download" />
+                            </a>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* 3. Read-Only Assessment & Decision History Log */}
+              <div className="bg-white border border-[#D5E2D9] rounded-2xl p-6 shadow-xs space-y-4">
+                <div className="border-b border-[#EEF2EF] pb-3">
+                  <h3 className="text-sm font-bold text-[#10241A] m-0 flex items-center gap-2">
+                    <i className="fa-solid fa-clock-rotate-left text-[#0B6B3A]" />
+                    <span>Historical Charity Assessments &amp; Decision Audit Trail ({charityAssessments.length})</span>
+                  </h3>
+                  <p className="text-[11px] text-[#5A7466] m-0 mt-0.5">
+                    Read-only record of MSW socio-economic assessments and institutional charity status changes.
+                  </p>
+                </div>
+
+                {charityAssessments.length === 0 ? (
+                  <div className="p-6 text-center bg-[#FAFBF8] rounded-xl border border-[#EEF2EF] text-xs text-[#64748B]">
+                    No MSW assessment drafts or submissions have been logged for this charity patient yet.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {charityAssessments.map((asmt) => (
+                      <div
+                        key={asmt.id}
+                        className="p-4 rounded-xl border border-[#D5E2D9] bg-[#FAFBF8] space-y-2 text-xs"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-bold text-[#0B6B3A] bg-[#E8F5EC] px-2.5 py-0.5 rounded-md">
+                              {asmt.id}
+                            </span>
+                            <span className="font-mono text-[#5A7466]">
+                              Encounter: <strong className="text-[#10241A]">{asmt.encounter_no || 'N/A'}</strong>
+                            </span>
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-white border border-[#D5E2D9] text-[#10241A]">
+                              Stage {asmt.active_stage || 1} of 4 • {asmt.workflow_status}
+                            </span>
+                          </div>
+                          <span className="text-[11px] text-[#64748B]">
+                            Updated: {asmt.updated_at ? new Date(asmt.updated_at).toLocaleString() : 'N/A'}
+                          </span>
+                        </div>
+
+                        {asmt.msw_recommendation?.case_notes && (
+                          <div className="p-3 rounded-lg bg-white border border-[#EEF2EF] text-[#1E293B]">
+                            <strong className="text-[#0B6B3A]">MSW Case Notes:</strong> {asmt.msw_recommendation.case_notes}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* =========================================================================
@@ -5045,6 +5566,126 @@ export default function PatientDossierPage() {
                     )}
                   </div>
                 </form>
+              </div>
+            </div>
+          )}
+
+          {/* =====================================================================
+              ADMIN CONFIRMATION MODAL: CHANGE PATIENT CLASSIFICATION
+             ===================================================================== */}
+          {classificationModalOpen && (
+            <div className="fixed inset-0 z-50 bg-[#10241A]/60 backdrop-blur-[2px] flex items-center justify-center p-4 animate-in fade-in duration-150">
+              <div
+                data-testid="classification-confirm-modal"
+                className="bg-white rounded-2xl border border-[#D5E2D9] shadow-2xl max-w-lg w-full overflow-hidden"
+              >
+                <div className="px-6 py-4 bg-[#FAFBF8] border-b border-[#EEF2EF] flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div
+                      className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm ${
+                        isCharity
+                          ? 'bg-[#FEF3C7] text-[#B45309] border border-[#FDE68A]'
+                          : 'bg-[#E8F5EC] text-[#0B6B3A] border border-[#A7F3D0]'
+                      }`}
+                    >
+                      <i className={`fa-solid ${isCharity ? 'fa-rotate-left' : 'fa-hand-holding-heart'}`} />
+                    </div>
+                    <div>
+                      <h3 className="font-['Outfit'] text-base font-bold text-[#10241A] m-0">
+                        Change Patient Classification?
+                      </h3>
+                      <p className="text-[11px] text-[#5A7466] m-0">
+                        Authorized Administrative Classification Workflow
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={isUpdatingClassification}
+                    onClick={() => setClassificationModalOpen(false)}
+                    className="w-8 h-8 rounded-lg border border-[#D5E2D9] bg-white text-[#5A7466] hover:text-[#10241A] cursor-pointer flex items-center justify-center"
+                  >
+                    <i className="fa-solid fa-xmark" />
+                  </button>
+                </div>
+
+                <div className="p-6 space-y-4 text-xs">
+                  <p className="text-[#334155] leading-relaxed m-0">
+                    {isCharity
+                      ? "You are about to change this patient's classification from Charity Patient to Regular Patient. This will remove charity-specific sections and navigation from the patient's portal while keeping the existing Patient ID, login credentials, and clinical records unchanged."
+                      : "You are about to change this patient's classification from Regular Patient to Charity Patient. This will enable charity-related information and features in the patient's portal. The existing Patient ID and clinical records will remain unchanged."}
+                  </p>
+
+                  <div className="rounded-xl border border-[#D5E2D9] bg-[#FAFBF8] p-4 space-y-2.5">
+                    <div className="flex items-center justify-between border-b border-[#EEF2EF] pb-2">
+                      <span className="text-[11px] font-bold uppercase text-[#64748B]">Patient Name</span>
+                      <span className="font-bold text-[#10241A]">
+                        {patientData?.first_name} {patientData?.middle_name ? `${patientData.middle_name} ` : ''}
+                        {patientData?.last_name}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between border-b border-[#EEF2EF] pb-2">
+                      <span className="text-[11px] font-bold uppercase text-[#64748B]">Patient ID (Unchanged)</span>
+                      <span className="font-mono font-extrabold text-[#10241A]">
+                        {patientData?.patient_id || patientId}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between border-b border-[#EEF2EF] pb-2">
+                      <span className="text-[11px] font-bold uppercase text-[#64748B]">Current Classification</span>
+                      <span
+                        className={`px-2.5 py-0.5 rounded-full text-[10.5px] font-bold border ${
+                          isCharity
+                            ? 'bg-[#ECFDF5] text-[#047857] border-[#A7F3D0]'
+                            : 'bg-[#F1F5F9] text-[#334155] border-[#CBD5E1]'
+                        }`}
+                      >
+                        {isCharity ? 'Charity Patient (CHARITY)' : 'Regular Patient (REGULAR)'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold uppercase text-[#64748B]">New Classification</span>
+                      <span
+                        className={`px-2.5 py-0.5 rounded-full text-[10.5px] font-extrabold border ${
+                          !isCharity
+                            ? 'bg-[#ECFDF5] text-[#047857] border-[#A7F3D0]'
+                            : 'bg-[#F1F5F9] text-[#334155] border-[#CBD5E1]'
+                        }`}
+                      >
+                        {!isCharity ? 'Charity Patient (CHARITY)' : 'Regular Patient (REGULAR)'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="px-6 py-4 bg-[#FAFBF8] border-t border-[#EEF2EF] flex items-center justify-end gap-2.5">
+                  <button
+                    type="button"
+                    disabled={isUpdatingClassification}
+                    onClick={() => setClassificationModalOpen(false)}
+                    className="px-4 py-2 rounded-xl border border-[#D5E2D9] bg-white hover:bg-slate-50 text-[#5A7466] font-bold text-xs cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    data-testid="confirm-classification-change-btn"
+                    disabled={isUpdatingClassification}
+                    onClick={handleConfirmClassificationChange}
+                    className="px-5 py-2 rounded-xl bg-[#0B6B3A] hover:bg-[#064826] disabled:opacity-50 text-white font-bold text-xs flex items-center gap-2 transition shadow-xs cursor-pointer border-0"
+                  >
+                    {isUpdatingClassification ? (
+                      <>
+                        <i className="fa-solid fa-spinner fa-spin text-xs" />
+                        <span>Updating Classification...</span>
+                      </>
+                    ) : (
+                      <>
+                        <i className="fa-solid fa-check text-xs" />
+                        <span>Confirm Classification Change</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           )}

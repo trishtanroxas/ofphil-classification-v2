@@ -71,8 +71,15 @@ experiments/
     │   ├── 05_multimodal_fusion/
     │   │   └── 01_multimodal_model_training.ipynb
     │   │
-    │   ├── 06_model_comparison_and_tuning.ipynb
-    │   └── 07_final_model_evaluation.ipynb
+    │   ├── 06_llm_interview_assistant/
+    │   │   ├── 01_llm_model_selection_and_setup.ipynb
+    │   │   ├── 02_interview_prompt_engineering.ipynb
+    │   │   ├── 03_interview_conversation_and_followup_generation.ipynb
+    │   │   ├── 04_structured_response_extraction_and_validation.ipynb
+    │   │   └── 05_llm_interview_assistant_evaluation.ipynb
+    │   │
+    │   ├── 07_model_comparison_and_tuning.ipynb
+    │   └── 08_final_model_evaluation.ipynb
     │
     └── 06_model_artifacts_and_reporting/
         ├── 01_model_artifact_export.ipynb
@@ -99,16 +106,32 @@ Decouples visual region detection from text recognition:
 - **Linkage**: Extracts verified documentary indicators and fuses them with patient case files.
 
 ### Phase 05: Model Selection and Training
-Conducts rigorous, unbiased model evaluation across:
-- **Baselines**: Logistic Regression, Decision Tree, Random Forest, Support Vector Machine.
-- **Gradient Boosting**: XGBoost, CatBoost.
-- **Interpretable Models**: Explainable Boosting Machine (EBM from InterpretML).
-- **Multimodal Fusion**: Early and late fusion combining tabular indicators with document-derived features.
+Maintains two strictly decoupled, parallel model research tracks:
 
-*Key Protocol:* Evaluates all models across identical 5-fold Stratified Cross-Validation partitions. Final test set remains quarantined until the champion model is selected purely based on empirical evidence.
+#### Track A: Eligibility Classification Models
+Predicts charity patient eligibility (`ELIGIBLE` vs `INELIGIBLE`) using validated, leak-free pre-decision features:
+- **Baselines**: Logistic Regression, Decision Tree, Random Forest, Support Vector Machine (`02_baseline_models/`).
+- **Gradient Boosting**: XGBoost, CatBoost (`03_gradient_boosting_models/`).
+- **Interpretable Models**: Explainable Boosting Machine (`04_interpretable_models/`).
+- **Multimodal Fusion**: Early and late fusion combining tabular indicators with document-derived features (`05_multimodal_fusion/`).
+- **Benchmarking & Champion Selection**: Evaluated across identical 5-fold Stratified Cross-Validation partitions (`07_model_comparison_and_tuning.ipynb` and `08_final_model_evaluation.ipynb`).
+
+#### Track B: LLM Interview Assistant (`06_llm_interview_assistant/`)
+An independent conversational AI decision-support component designed to assist Medical Social Workers (MSWs) during **Stage 2 patient intake interviews**:
+- `01_llm_model_selection_and_setup.ipynb`: Formulates an evidence-based multi-criteria evaluation of local edge models (Qwen 2.5 7B, Llama 3.1 8B, Mistral 7B) versus cloud APIs (Gemini 1.5 Flash, GPT-4o-mini).
+- `02_interview_prompt_engineering.ipynb`: Designs system prompts, behavioral guardrails, and structured interview prompts across 5 clinical and psychosocial domains.
+- `03_interview_conversation_and_followup_generation.ipynb`: Implements multi-turn dialogue state tracking, empathetic Taglish follow-up question generation, and MSW-in-the-loop triage (`ACCEPTED`, `EDITED`, `REJECTED`).
+- `04_structured_response_extraction_and_validation.ipynb`: Normalizes free-text interview disclosures into validated Pydantic JSON schemas with verbatim provenance and caseworker verification flags.
+- `05_llm_interview_assistant_evaluation.ipynb`: Evaluates conversational relevance, factual faithfulness, schema compliance, Taglish sensitivity, and inference latency across synthetic stress-test scenarios.
+
+*Strict Architectural Boundaries:*
+1. The LLM is **NOT** an eligibility classifier and is never included in Track A's champion model selection or ROC-AUC benchmarking.
+2. The LLM never assigns clinical severity ratings, coping scores, or financial distress indices.
+3. The LLM operates strictly as a human-in-the-loop copilot; all extracted facts require MSW review before confirmation.
+4. Retrieval-Augmented Generation (RAG) and vector databases are deliberately excluded from this initial phase and reserved for future institutional policy integrations.
 
 ### Phase 06: Model Artifacts and Reporting
-Packages and serializes the winning model architecture alongside its preprocessor and feature contract. Summarizes the end-to-end experimental findings into thesis-ready documentation.
+Packages and serializes the winning Track A model architecture alongside its preprocessor and feature contract. Summarizes end-to-end experimental findings across both Track A (classification) and Track B (interview assistant) into thesis-ready documentation.
 
 ---
 
@@ -117,5 +140,6 @@ Packages and serializes the winning model architecture alongside its preprocesso
 1. **Raw Data Preservation:** Raw datasets in `data/raw/` are strictly read-only.
 2. **Confidentiality:** Direct patient identifiers (names, addresses, contact numbers) are quarantined and never displayed.
 3. **Target Leakage Prevention:** Decision proxies (e.g., approved discounts) are excluded from predictor sets.
-4. **Reproducibility:** Random seeds (e.g., `42`) are fixed and recorded across all splits and algorithms.
-5. **Empirical Model Selection:** Model selection is strictly evidence-driven; no specific algorithm is assumed to win a priori.
+4. **Reproducibility:** Random seeds (e.g., `20261123`) are fixed and recorded across all splits and algorithms.
+5. **Decoupled Model Roles:** Conversational LLM assistance and quantitative eligibility classification remain strictly independent components.
+

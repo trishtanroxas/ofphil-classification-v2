@@ -7,7 +7,8 @@ import { useAccessibility } from '@/context/AccessibilityContext';
 
 interface PatientAppShellProps {
   children: React.ReactNode;
-  activeTab?: 'dashboard' | 'applications' | 'appointments' | 'notifications' | 'profile' | 'settings';
+  activeTab?: 'dashboard' | 'applications' | 'charity-status' | 'appointments' | 'notifications' | 'profile' | 'settings';
+  patientClassification?: 'REGULAR' | 'CHARITY';
   pageTitle?: string;
   pageSubtitle?: string;
 }
@@ -15,9 +16,11 @@ interface PatientAppShellProps {
 export default function PatientAppShell({
   children,
   activeTab = 'dashboard',
+  patientClassification = 'REGULAR',
   pageTitle = 'Patient Dashboard',
   pageSubtitle = 'Ophthalmological Foundation of the Philippines — Patient Master Registry & Clinical Directory',
 }: PatientAppShellProps) {
+  const isCharityPatient = String(patientClassification || 'REGULAR').toUpperCase() === 'CHARITY';
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
@@ -276,7 +279,7 @@ export default function PatientAppShell({
           </Link>
 
           <Link
-            href="/portal?tab=applications"
+            href="/portal?tab=inquiries"
             onClick={() => {
               setMobileSidebarOpen(false);
               startProgress();
@@ -286,12 +289,33 @@ export default function PatientAppShell({
                 ? 'bg-[#0B6B3A] text-white shadow-xs'
                 : 'text-[#E6F1EA]/80 hover:bg-white/10 hover:text-white'
             }`}
-            title="My Assistance Applications"
-            data-tooltip="My Assistance Applications"
+            title="My Inquiries"
+            data-tooltip="My Inquiries"
           >
-            <i className="fa-solid fa-clipboard-list w-5 text-center text-[15px]" />
-            {!sidebarCollapsed && <span className="nav-text">My Assistance Applications</span>}
+            <i className="fa-solid fa-comments w-5 text-center text-[15px]" />
+            {!sidebarCollapsed && <span className="nav-text">My Inquiries</span>}
           </Link>
+
+          {isCharityPatient && (
+            <Link
+              href="/portal?tab=charity-status"
+              data-testid="nav-charity-assistance-status"
+              onClick={() => {
+                setMobileSidebarOpen(false);
+                startProgress();
+              }}
+              className={`nav-link flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-[13.5px] font-medium no-underline transition ${
+                activeTab === 'charity-status'
+                  ? 'bg-[#0B6B3A] text-white shadow-xs'
+                  : 'text-[#E6F1EA]/80 hover:bg-white/10 hover:text-white'
+              }`}
+              title="Charity Assistance Status"
+              data-tooltip="Charity Assistance Status"
+            >
+              <i className="fa-solid fa-hand-holding-heart w-5 text-center text-[15px]" />
+              {!sidebarCollapsed && <span className="nav-text">Charity Assistance Status</span>}
+            </Link>
+          )}
 
           <Link
             href="/portal?tab=appointments"

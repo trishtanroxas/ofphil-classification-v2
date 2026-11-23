@@ -191,6 +191,10 @@ def test_personal_account_and_password_validation():
     )
     assert right_pwd.status_code == 200
 
+    # Restore default password for test isolation
+    settings_service._cache["account"]["password_hash"] = hash_password("Ofphil@2026")
+    settings_service._save_to_storage()
+
 
 def test_msw_security_and_privacy_endpoints():
     # 1. MSW account profile retrieval

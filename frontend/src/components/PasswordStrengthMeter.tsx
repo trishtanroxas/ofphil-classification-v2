@@ -51,7 +51,7 @@ export function evaluatePasswordStrength(pwd: string): PasswordStrengthResult {
   if (hasLetter) points += 1;
   if (hasSpecial) points += 1;
 
-  if (points <= 2) {
+  if (points <= 1) {
     return {
       score: 2,
       label: 'Weak',
@@ -60,7 +60,7 @@ export function evaluatePasswordStrength(pwd: string): PasswordStrengthResult {
       borderColor: 'border-orange-500',
       checks: { length, hasNumber, hasLetter, hasSpecial },
     };
-  } else if (points === 3) {
+  } else if (points <= 2) {
     return {
       score: 3,
       label: 'Medium',

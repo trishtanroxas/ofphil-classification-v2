@@ -11,9 +11,9 @@ export default function LoginPatientPage() {
   const router = useRouter();
   const { showLoading } = useLoadingScreen();
 
-  const [patientId, setPatientId] = useState('M26-11-00001');
-  const [birthdate, setBirthdate] = useState('1978-05-15');
-  const [password, setPassword] = useState('password123');
+  const [patientId, setPatientId] = useState('');
+  const [birthdate, setBirthdate] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -100,7 +100,7 @@ export default function LoginPatientPage() {
               id="patient_id"
               name="patient_id"
               className="saas-input w-full h-12 pl-10 pr-4 border border-[#D5E2D9] rounded-xl text-[14.5px] bg-white text-[#10241A] uppercase focus:outline-none focus:border-[#0B6B3A] focus:ring-2 focus:ring-[#0B6B3A]/15 transition"
-              placeholder="e.g. M26-10-0001"
+              placeholder="e.g. M26-11-00001"
               value={patientId}
               onChange={(e) => setPatientId(e.target.value)}
               required

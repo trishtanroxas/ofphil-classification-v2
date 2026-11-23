@@ -261,7 +261,7 @@ export default function PasswordRecoveryFlow({ role }: PasswordRecoveryFlowProps
               className="saas-input-label block text-[13.5px] font-medium text-[#24352B] mb-1.5"
               htmlFor="recovery_identifier"
             >
-              {role === 'patient' ? 'Patient ID' : 'Username or Institutional Email'}{' '}
+              {role === 'patient' ? 'Patient ID' : 'Staff Username'}{' '}
               <span className="text-[#DC2626]">*</span>
             </label>
             <div className="relative">
@@ -275,8 +275,8 @@ export default function PasswordRecoveryFlow({ role }: PasswordRecoveryFlowProps
                   role === 'patient'
                     ? 'e.g. M26-11-00001'
                     : role === 'msw'
-                      ? 'e.g. msw_lead or maria.santos@ofphil.org.ph'
-                      : 'e.g. admin_sys or admin@ofphil.org.ph'
+                      ? 'e.g. msw_lead'
+                      : 'e.g. admin_sys'
                 }
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}

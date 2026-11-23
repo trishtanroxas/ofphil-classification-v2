@@ -240,7 +240,11 @@ export default function CaseworkerDashboardPage() {
               </div>
               <div className="space-y-2.5">
                 {patients.slice(0, 3).map((p) => (
-                  <div key={p.patient_id} className="flex items-center justify-between p-3 rounded-xl bg-[#FAFBF8] border border-[#EEF2EF] text-xs">
+                  <Link
+                    key={p.patient_id}
+                    href={`/patients/${encodeURIComponent(p.patient_id)}?tab=profile`}
+                    className="flex items-center justify-between p-3 rounded-xl bg-[#FAFBF8] hover:bg-[#E8F5EC]/60 border border-[#EEF2EF] text-xs transition no-underline"
+                  >
                     <div>
                       <strong className="text-[#10241A] font-semibold">{p.patient_id}</strong>
                       <span className="text-[#5A7466] ml-2">{p.first_name} {p.last_name}</span>
@@ -248,7 +252,7 @@ export default function CaseworkerDashboardPage() {
                     <span className="px-2 py-0.5 rounded-md font-semibold text-[10px] bg-emerald-50 text-emerald-700">
                       CHARITY
                     </span>
-                  </div>
+                  </Link>
                 ))}
                 {patients.length === 0 && (
                   <div className="p-3 text-center text-xs text-[#64748B]">No registered charity records yet.</div>
@@ -276,7 +280,7 @@ export default function CaseworkerDashboardPage() {
                   </h3>
                 </div>
                 <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                  OCR Verified
+                  Documents Verified
                 </span>
               </div>
               <p className="text-xs sm:text-[13px] text-[#5A7466] leading-relaxed mb-6">
@@ -391,11 +395,11 @@ export default function CaseworkerDashboardPage() {
                       </td>
                       <td className="py-4 px-6 text-center whitespace-nowrap">
                         <Link
-                          href={`/assessment?patient_id=${encodeURIComponent(r.patient_id)}`}
+                          href={`/patients/${encodeURIComponent(r.patient_id)}`}
                           className="px-3.5 py-1.5 rounded-lg bg-[#0B6B3A] hover:bg-[#064826] text-white font-semibold text-xs transition inline-flex items-center gap-1.5 shadow-2xs"
                         >
-                          <i className="fa-solid fa-stethoscope text-[10px]" />
-                          <span>Assess</span>
+                          <i className="fa-solid fa-folder-open text-[10px]" />
+                          <span>View Details</span>
                         </Link>
                       </td>
                     </tr>

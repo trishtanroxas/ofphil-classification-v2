@@ -38,7 +38,6 @@ export default function ProfilePasswordChangeCard({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [sessionId, setSessionId] = useState('');
   const [maskedDestination, setMaskedDestination] = useState('');
-  const [securityCode, setSecurityCode] = useState('');
   const [digits, setDigits] = useState(['', '', '', '', '', '']);
   const [modalError, setModalError] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
@@ -56,11 +55,21 @@ export default function ProfilePasswordChangeCard({
   }, [resendCooldown]);
 
   const handleGeneratePassword = () => {
-    const chars = 'abcdefghijkmnpqrstuvwxyz23456789!@#$%';
-    let pwd = '@';
-    for (let i = 0; i < 9; i++) {
-      pwd += chars.charAt(Math.floor(Math.random() * chars.length));
+    const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+    const lower = 'abcdefghijkmnpqrstuvwxyz';
+    const nums = '23456789';
+    const syms = '!@#$%';
+    const all = upper + lower + nums + syms;
+    const raw = [
+      upper.charAt(Math.floor(Math.random() * upper.length)),
+      lower.charAt(Math.floor(Math.random() * lower.length)),
+      nums.charAt(Math.floor(Math.random() * nums.length)),
+      syms.charAt(Math.floor(Math.random() * syms.length)),
+    ];
+    for (let i = 0; i < 6; i++) {
+      raw.push(all.charAt(Math.floor(Math.random() * all.length)));
     }
+    const pwd = raw.sort(() => Math.random() - 0.5).join('');
     setNewPassword(pwd);
     setConfirmPassword(pwd);
     toast.success('Generated secure password');
@@ -99,7 +108,6 @@ export default function ProfilePasswordChangeCard({
       if (res && res.status === 'otp_sent') {
         setSessionId(res.session_id);
         setMaskedDestination(res.masked_destination);
-        setSecurityCode(res.security_code || '');
         setDigits(['', '', '', '', '', '']);
         setModalError(null);
         setResendCooldown(60);
@@ -131,13 +139,6 @@ export default function ProfilePasswordChangeCard({
     }
   };
 
-  const handleAutoFill = () => {
-    if (securityCode && securityCode.length === 6) {
-      setDigits(securityCode.split(''));
-      setModalError(null);
-    }
-  };
-
   const handleResendOtp = async () => {
     if (resendCooldown > 0 || isRequestingOtp) return;
     setIsRequestingOtp(true);
@@ -155,7 +156,6 @@ export default function ProfilePasswordChangeCard({
       });
       if (res && res.status === 'otp_sent') {
         setSessionId(res.session_id);
-        setSecurityCode(res.security_code || '');
         setResendCooldown(60);
         toast.success(`New security code dispatched to ${res.masked_destination}`);
       }
@@ -200,7 +200,7 @@ export default function ProfilePasswordChangeCard({
     }
   };
 
-  const emailDisplay = defaultEmail || (role === 'patient' ? 'tan1925alex@gmail.com' : role === 'msw' ? 'maria.santos@ofphil.org.ph' : 'admin.updated@ofphil.org.ph');
+  const emailDisplay = defaultEmail || (role === 'patient' ? 'tan1925alex@gmail.com' : role === 'msw' ? 'roxastal.cbpa@gmail.com' : 'trishtanroxas@gmail.com');
   const mobileDisplay = defaultMobile || (role === 'patient' ? '0917 888 1678' : role === 'msw' ? '0918 555 1234' : '0917 888 1678');
 
   return (
@@ -417,21 +417,6 @@ export default function ProfilePasswordChangeCard({
                 <span className="font-semibold text-[#10241A]">{maskedDestination}</span>
               </p>
             </div>
-
-            {/* Auto-fill banner for fast demo/testing */}
-            {securityCode && (
-              <div
-                onClick={handleAutoFill}
-                title="Click to auto-fill security code"
-                className="bg-[#F0FDF4] border border-dashed border-[#86EFAC] text-[#166534] p-2.5 rounded-xl mb-4 flex items-center justify-between cursor-pointer hover:bg-[#DCFCE7] transition text-xs"
-              >
-                <span>
-                  <i className="fa-solid fa-wand-magic-sparkles mr-1.5 text-[#0B6B3A]" />
-                  Code: <strong>{securityCode}</strong>
-                </span>
-                <span className="font-bold underline text-[11px]">Auto-Fill &rarr;</span>
-              </div>
-            )}
 
             {modalError && (
               <div className="bg-[#FEF2F2] border border-[#FCA5A5] text-[#991B1B] text-xs p-2.5 rounded-xl mb-4 flex items-center gap-2">

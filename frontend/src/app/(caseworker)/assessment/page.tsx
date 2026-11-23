@@ -11,6 +11,9 @@ function MSWAssessmentContent() {
   const searchParams = useSearchParams();
   const patientIdParam = searchParams?.get('patient_id')?.trim() || '';
   const assessmentIdParam = searchParams?.get('assessment_id')?.trim() || '';
+  const referralIdParam = searchParams?.get('referral_id')?.trim() || '';
+
+  const [activeReferral, setActiveReferral] = useState<any | null>(null);
 
   const [patientLoadStatus, setPatientLoadStatus] = useState<'loading' | 'ready' | 'missing' | 'error'>(
     patientIdParam ? 'loading' : 'missing'
@@ -401,11 +404,51 @@ function MSWAssessmentContent() {
     }
   };
 
-  // Restore latest draft & load ML inventory + documents
+  // Restore latest draft & load ML inventory + documents + referral details
   useEffect(() => {
     async function initWorkflow() {
       if (!patientIdParam) return;
       loadPatientDocuments(patientIdParam);
+
+      // Load Referral information if referral_id parameter is present or if patient has referrals
+      try {
+        let loadedRef: any = null;
+        if (referralIdParam) {
+          const singleRefRes = await fetchApi(`/referrals/${encodeURIComponent(referralIdParam)}`, { headers: MSW_HDRS });
+          if (singleRefRes && singleRefRes.referral) {
+            loadedRef = singleRefRes.referral;
+          }
+        }
+        if (!loadedRef) {
+          const patientRefRes = await fetchApi(`/patients/${encodeURIComponent(patientIdParam)}/referral`, { headers: MSW_HDRS });
+          if (patientRefRes && patientRefRes.referral) {
+            loadedRef = patientRefRes.referral;
+          }
+        }
+
+        if (loadedRef) {
+          setActiveReferral(loadedRef);
+          if (loadedRef.referring_individual) {
+            setSourceOfReferral(`CLINICAL REFERRAL: ${loadedRef.referring_individual}`);
+          }
+          if (loadedRef.diagnosis) {
+            setAdmittingDiagnosis(loadedRef.diagnosis);
+            setFinalDiagnosis(loadedRef.diagnosis);
+          }
+          if (loadedRef.procedure) {
+            setPresentTreatmentPlan(loadedRef.procedure);
+          }
+          if (loadedRef.total) {
+            setEstimatedExpenses(String(loadedRef.total));
+          }
+          if (loadedRef.attending_doctor) {
+            setAssignedMsw((prev) => prev || 'Maria Santos, RSW');
+          }
+        }
+      } catch (e) {
+        // non-blocking
+      }
+
       try {
         const mlRes = await fetchApi('/ml/models', { headers: MSW_HDRS });
         setMlInventory(mlRes);
@@ -417,7 +460,10 @@ function MSWAssessmentContent() {
         if (assessmentIdParam) {
           a = await fetchApi(`/assessments/${encodeURIComponent(assessmentIdParam)}`, { headers: MSW_HDRS });
         } else {
-          const draftRes = await fetchApi(`/assessments/patient/${encodeURIComponent(patientIdParam)}/latest-draft`, {
+          const qUrl = referralIdParam
+            ? `/assessments/patient/${encodeURIComponent(patientIdParam)}/latest-draft?referral_id=${encodeURIComponent(referralIdParam)}`
+            : `/assessments/patient/${encodeURIComponent(patientIdParam)}/latest-draft`;
+          const draftRes = await fetchApi(qUrl, {
             headers: MSW_HDRS,
           });
           if (draftRes?.found && draftRes.assessment) a = draftRes.assessment;
@@ -425,6 +471,11 @@ function MSWAssessmentContent() {
         if (a) {
           setAssessmentId(a.id);
           setWorkflowStatus(a.workflow_status || 'DRAFT');
+          if (a.referral_id && !activeReferral) {
+            fetchApi(`/referrals/${encodeURIComponent(a.referral_id)}`, { headers: MSW_HDRS })
+              .then((res) => { if (res?.referral) setActiveReferral(res.referral); })
+              .catch(() => {});
+          }
           if (a.encounter_no) {
             // Charity patients use their case number directly without random prefixes or suffixes
             if (patientIdParam?.startsWith('MSW_FA_')) {
@@ -876,6 +927,7 @@ function MSWAssessmentContent() {
           headers: MSW_HDRS,
           body: JSON.stringify({
             patient_id: patientIdParam,
+            referral_id: activeReferral?.id || referralIdParam || null,
             interview_date: interviewDate,
             source_of_referral: sourceOfReferral,
             stage1_data: payload.stage1_data,
@@ -893,7 +945,10 @@ function MSWAssessmentContent() {
         const updated = await fetchApi(`/assessments/${assessmentId}`, {
           method: 'PATCH',
           headers: MSW_HDRS,
-          body: JSON.stringify(payload),
+          body: JSON.stringify({
+            ...payload,
+            referral_id: activeReferral?.id || referralIdParam || undefined,
+          }),
         });
         setWorkflowStatus(updated.workflow_status);
         if (Array.isArray(updated.history)) setAssessmentHistory(updated.history);
@@ -1039,11 +1094,11 @@ function MSWAssessmentContent() {
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-2">
             <Link
-              href="/patients"
+              href={patientIdParam ? `/patients/${encodeURIComponent(patientIdParam)}` : '/patients'}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#CBD5E1] bg-white text-[#334155] hover:bg-[#F8FAFC] font-semibold text-xs transition no-underline shadow-2xs"
             >
               <i className="fa-solid fa-arrow-left text-[11px]" />
-              <span>Back to Patient Records</span>
+              <span>{patientIdParam ? 'Back to Patient Dossier' : 'Back to Patient Records'}</span>
             </Link>
 
             <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-[#EFF6FF] text-[#1D4ED8] border border-[#BFDBFE] flex items-center gap-1.5">
@@ -1253,6 +1308,55 @@ function MSWAssessmentContent() {
              ======================================================== */}
           {activeStage === 1 && (
             <div className="space-y-6">
+              {/* Physician-Endorsed Referral Clinical & Financial Banner */}
+              {activeReferral && (
+                <div className="bg-[#F8FBF9] border border-[#A7F3D0] rounded-2xl p-4.5 shadow-2xs space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#D5E2D9] pb-2.5">
+                    <div className="flex items-center gap-2">
+                      <span className="w-7 h-7 rounded-lg bg-[#E8F5EC] text-[#0B6B3A] flex items-center justify-center text-xs">
+                        <i className="fa-solid fa-file-invoice-dollar" />
+                      </span>
+                      <div>
+                        <div className="text-xs font-bold text-[#10241A] flex items-center gap-2">
+                          <span>Clinical Referral Basis:</span>
+                          <span className="font-mono text-[#0B6B3A]">{activeReferral.id}</span>
+                          <span className="text-[10px] font-semibold text-[#64748B]">({activeReferral.referral_no || 'REF'})</span>
+                        </div>
+                        <div className="text-[11px] text-[#5A7466]">
+                          Endorsed by <strong>{activeReferral.referring_individual}</strong> &bull; Attending Surgeon: <strong>{activeReferral.attending_doctor}</strong>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[10px] font-bold uppercase text-[#5A7466]">Medical Quotation</div>
+                      <div className="font-mono font-extrabold text-[#0B6B3A] text-sm sm:text-base">
+                        ₱{Number(activeReferral.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                    <div className="p-2.5 rounded-xl bg-white border border-[#E2ECE5]">
+                      <div className="text-[10px] font-bold uppercase text-[#5A7466]">Clinical Diagnosis</div>
+                      <div className="font-bold text-[#10241A] mt-0.5">{activeReferral.diagnosis}</div>
+                      {activeReferral.eye_laterality && (
+                        <div className="text-[10.5px] text-[#0B6B3A] mt-0.5 font-medium">Eye Laterality: {activeReferral.eye_laterality}</div>
+                      )}
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white border border-[#E2ECE5]">
+                      <div className="text-[10px] font-bold uppercase text-[#5A7466]">Recommended Procedure</div>
+                      <div className="font-bold text-[#10241A] mt-0.5">{activeReferral.procedure}</div>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white border border-[#E2ECE5]">
+                      <div className="text-[10px] font-bold uppercase text-[#5A7466]">Clinical Findings &amp; Urgency</div>
+                      <div className="text-[11px] text-[#1E293B] mt-0.5 line-clamp-2">
+                        {activeReferral.clinical_findings || 'Physician validated urgent surgical indication.'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Notice Banner */}
               <div className="bg-[#F0FDF4] border border-[#86EFAC] rounded-xl p-3.5 flex items-start gap-2.5 text-xs text-[#14532D]">
                 <i className="fa-solid fa-circle-check text-[#16A34A] text-sm mt-0.5 shrink-0" />
@@ -2383,6 +2487,52 @@ function MSWAssessmentContent() {
                     TREATMENT BARRIERS
                   </span>
                 </div>
+
+                {/* Referral Cost & Socioeconomic Balance Reference */}
+                {activeReferral && (
+                  <div className="p-3.5 rounded-xl bg-[#F8FBF9] border border-[#D5E2D9] space-y-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <div className="font-bold text-[#10241A] flex items-center gap-2">
+                        <i className="fa-solid fa-scale-balanced text-[#0B6B3A]" />
+                        <span>Clinical Referral Quotation vs. Household Financial Capacity</span>
+                      </div>
+                      <span className="font-mono font-extrabold text-[#0B6B3A] text-sm">
+                        Total Medical Quotation: ₱{Number(activeReferral.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 border-t border-[#E2ECE5] text-[11px]">
+                      <div>
+                        <span className="text-[#64748B]">Monthly Household Income:</span>{' '}
+                        <strong className="text-[#10241A]">₱{totalHouseholdIncome.toLocaleString()}</strong>
+                      </div>
+                      <div>
+                        <span className="text-[#64748B]">Quotation vs. Monthly Income:</span>{' '}
+                        <strong className="text-amber-700">
+                          {totalHouseholdIncome > 0
+                            ? `${((Number(activeReferral.total || 0) / totalHouseholdIncome) * 100).toFixed(0)}% of monthly earnings`
+                            : 'Exceeds household earnings (100%+)'}
+                        </strong>
+                      </div>
+                      <div>
+                        <span className="text-[#64748B]">Attending Surgeon:</span>{' '}
+                        <strong className="text-[#10241A]">{activeReferral.attending_doctor || 'Attending Doctor'}</strong>
+                      </div>
+                    </div>
+                    {Array.isArray(activeReferral.particulars) && activeReferral.particulars.length > 0 && (
+                      <div className="pt-1.5">
+                        <div className="text-[10px] font-bold uppercase text-[#5A7466] mb-1">Itemized Surgical Quotation:</div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                          {activeReferral.particulars.map((pt: any, idx: number) => (
+                            <div key={idx} className="flex justify-between bg-white px-2 py-1 rounded border border-[#E2ECE5] text-[11px]">
+                              <span className="text-[#334155]">{pt.description}</span>
+                              <span className="font-mono font-semibold text-[#0B6B3A]">₱{Number(pt.amount || 0).toLocaleString()}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="p-3 rounded-lg border border-blue-100 bg-blue-50/40 space-y-1">

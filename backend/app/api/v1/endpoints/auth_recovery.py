@@ -1,6 +1,13 @@
-from fastapi import APIRouter
+from typing import Optional
+from fastapi import APIRouter, Header
 
 from app.schemas.recovery_schemas import (
+    ContactChangeCancelPayload,
+    ContactChangeDispatchResponse,
+    ContactChangeRequestPayload,
+    ContactChangeResendPayload,
+    ContactChangeVerifyPayload,
+    ContactChangeVerifyResponse,
     LoginRequestPayload,
     LoginResponse,
     ProfilePasswordConfirmRequest,
@@ -11,6 +18,8 @@ from app.schemas.recovery_schemas import (
     RecoveryRequestPayload,
     ResetPasswordPayload,
     ResetPasswordResponse,
+    Send2FAOTPRequest,
+    Send2FAOTPResponse,
     Verify2FARequest,
     Verify2FAResponse,
     VerifyOTPRequest,
@@ -43,8 +52,19 @@ def login_and_verify_credentials(payload: LoginRequestPayload):
     """
     Validates user credentials (password, patient ID, birthdate, email, username)
     before initiating Two-Factor Authentication. Rejects invalid credentials.
+    Returns available verified 2FA delivery methods without issuing or exposing an OTP.
     """
     return recovery_service.authenticate_credentials(payload)
+
+
+@router.post("/2fa/send-otp", response_model=Send2FAOTPResponse)
+def send_two_factor_otp(payload: Send2FAOTPRequest):
+    """
+    Generates a cryptographically secure 6-digit OTP (SHA-256 hashed, 5-min TTL)
+    and dispatches it via the selected verified Email or SMS delivery method.
+    Enforces 60-second resend cooldown and rate limits.
+    """
+    return recovery_service.send_2fa_otp(payload)
 
 
 @router.post("/verify-2fa", response_model=Verify2FAResponse)
@@ -74,3 +94,42 @@ def verify_recovery_otp(payload: VerifyOTPRequest):
 def complete_password_reset(payload: ResetPasswordPayload):
     """Resets the account password using Argon2id after valid OTP verification."""
     return recovery_service.reset_password(payload)
+
+
+@router.post("/profile-contact/request-otp", response_model=ContactChangeDispatchResponse)
+def request_profile_contact_change_otp(
+    payload: ContactChangeRequestPayload,
+    x_user_role: Optional[str] = Header(default=None),
+):
+    """
+    Validates current password, contact format, uniqueness, and initiates an OTP
+    sent to the NEW email address or NEW mobile number before updating the account.
+    """
+    return recovery_service.request_contact_change_otp(payload, actor_role_header=x_user_role)
+
+
+@router.post("/profile-contact/resend-otp", response_model=ContactChangeDispatchResponse)
+def resend_profile_contact_change_otp(
+    payload: ContactChangeResendPayload,
+    x_user_role: Optional[str] = Header(default=None),
+):
+    """Resends a fresh 6-digit OTP to the pending new contact after the 60s cooldown."""
+    return recovery_service.resend_contact_change_otp(payload, actor_role_header=x_user_role)
+
+
+@router.post("/profile-contact/verify", response_model=ContactChangeVerifyResponse)
+def verify_profile_contact_change_otp(
+    payload: ContactChangeVerifyPayload,
+    x_user_role: Optional[str] = Header(default=None),
+):
+    """Verifies the 6-digit OTP, commits the new verified contact, and sends security notices."""
+    return recovery_service.verify_contact_change_otp(payload, actor_role_header=x_user_role)
+
+
+@router.post("/profile-contact/cancel")
+def cancel_profile_contact_change(
+    payload: ContactChangeCancelPayload,
+    x_user_role: Optional[str] = Header(default=None),
+):
+    """Cancels a pending contact change and discards its OTP session."""
+    return recovery_service.cancel_contact_change(payload, actor_role_header=x_user_role)

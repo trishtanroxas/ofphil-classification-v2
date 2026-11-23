@@ -1,18 +1,21 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import PasswordStrengthMeter from '@/components/PasswordStrengthMeter';
 import ProfilePasswordChangeCard from '@/components/ProfilePasswordChangeCard';
+import SecureContactChangeModal, { ContactChangeType } from '@/components/SecureContactChangeModal';
 import PsgcAddressSelector from '@/components/PsgcAddressSelector';
 import { toast } from 'sonner';
+import { fetchApi } from '@/lib/api';
 
 export default function AdminProfilePage() {
   const { user } = useAuth();
   const [fullName, setFullName] = useState(user?.name || 'Dr. Roberto Reyes');
-  const [email, setEmail] = useState('admin.reyes@ofphil.org.ph');
-  const [contact, setContact] = useState('0917 888 1001');
+  const [email, setEmail] = useState('trishtanroxas@gmail.com');
+  const [contact, setContact] = useState('0917 000 0001');
+  const [contactModalType, setContactModalType] = useState<ContactChangeType | null>(null);
   const [department, setDepartment] = useState('Clinic Operations & Governance');
   const [birthdate, setBirthdate] = useState('1975-08-20');
   const [sex, setSex] = useState('Male (M)');
@@ -45,11 +48,42 @@ export default function AdminProfilePage() {
     toast.success('Generated secure administrator password');
   };
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  useEffect(() => {
+    async function loadAdminProfile() {
+      try {
+        const data = await fetchApi('/admin/settings/account');
+        if (data) {
+          if (data.full_name) setFullName(data.full_name);
+          if (data.email) setEmail(data.email);
+          if (data.contact) setContact(data.contact);
+          if (data.department) setDepartment(data.department);
+        }
+      } catch {
+        // Keep defaults
+      }
+    }
+    loadAdminProfile();
+  }, []);
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    setProfileSaved(true);
-    toast.success('Administrator profile details saved!');
-    setTimeout(() => setProfileSaved(false), 3000);
+    try {
+      await fetchApi('/admin/settings/account/profile', {
+        method: 'PUT',
+        body: JSON.stringify({
+          full_name: fullName,
+          email,
+          department,
+          theme_preference: 'light',
+          notify_email: true,
+        }),
+      });
+      setProfileSaved(true);
+      toast.success('Administrator profile details saved!');
+      setTimeout(() => setProfileSaved(false), 3000);
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to save administrator profile.');
+    }
   };
 
   const handleUpdatePassword = (e: React.FormEvent) => {
@@ -239,28 +273,54 @@ export default function AdminProfilePage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block font-semibold text-[#10241A] mb-1">
-                      Official Email Address <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      className="w-full h-10 px-3.5 border border-[#D5E2D9] rounded-lg text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
-                    />
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="font-semibold text-[#10241A]">
+                        Official Email Address <span className="text-red-500">*</span>
+                      </label>
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-[#ECFDF5] text-[#0B6B3A] text-[10px] font-bold">
+                        <i className="fa-solid fa-circle-check" /> Verified
+                      </span>
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        type="email"
+                        value={email}
+                        readOnly
+                        className="flex-1 h-10 px-3.5 border border-[#EEF2EF] rounded-lg text-xs bg-[#FAFBF8] text-[#10241A] cursor-not-allowed"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setContactModalType('email')}
+                        className="px-3 h-10 rounded-lg border border-[#0B6B3A] text-[#0B6B3A] hover:bg-[#E8F5EC] font-semibold text-xs transition cursor-pointer bg-white shrink-0"
+                      >
+                        Change
+                      </button>
+                    </div>
                   </div>
                   <div>
-                    <label className="block font-semibold text-[#10241A] mb-1">
-                      Mobile Number (For 2FA Alerts) <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="tel"
-                      value={contact}
-                      onChange={(e) => setContact(e.target.value)}
-                      required
-                      className="w-full h-10 px-3.5 border border-[#D5E2D9] rounded-lg text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
-                    />
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="font-semibold text-[#10241A]">
+                        Mobile Number (For 2FA Alerts) <span className="text-red-500">*</span>
+                      </label>
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-[#ECFDF5] text-[#0B6B3A] text-[10px] font-bold">
+                        <i className="fa-solid fa-circle-check" /> Verified
+                      </span>
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        type="tel"
+                        value={contact}
+                        readOnly
+                        className="flex-1 h-10 px-3.5 border border-[#EEF2EF] rounded-lg text-xs bg-[#FAFBF8] text-[#10241A] cursor-not-allowed"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setContactModalType('mobile')}
+                        className="px-3 h-10 rounded-lg border border-[#0B6B3A] text-[#0B6B3A] hover:bg-[#E8F5EC] font-semibold text-xs transition cursor-pointer bg-white shrink-0"
+                      >
+                        Change
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -400,14 +460,27 @@ export default function AdminProfilePage() {
             <ProfilePasswordChangeCard
               role="admin"
               userId="admin_sys"
-              defaultEmail="dr.reyes@ofphil.org.ph"
-              defaultMobile="0917 888 1678"
+              defaultEmail={email}
+              defaultMobile={contact}
               title="Change Administrator Password"
               subtitle="Update your authentication password to maintain high security clearance."
             />
           </div>
         </div>
       </div>
+
+      <SecureContactChangeModal
+        isOpen={contactModalType !== null}
+        role="admin"
+        userId="admin_sys"
+        contactType={contactModalType || 'email'}
+        currentValue={contactModalType === 'mobile' ? contact : email}
+        onClose={() => setContactModalType(null)}
+        onVerified={(type, newVal) => {
+          if (type === 'email') setEmail(newVal);
+          else setContact(newVal);
+        }}
+      />
     </DashboardLayout>
   );
 }

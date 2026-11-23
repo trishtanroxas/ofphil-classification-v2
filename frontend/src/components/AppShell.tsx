@@ -1,11 +1,29 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth, UserRole } from '@/context/AuthContext';
 import { useAccessibility } from '@/context/AccessibilityContext';
 import { useLoadingScreen } from '@/context/LoadingScreenContext';
 import { useNavigationBlocker } from '@/context/NavigationBlockerContext';
+import { getApiUrl } from '@/lib/api';
+
+export interface MSWNotificationItem {
+  id: string;
+  recipient_user_id: string;
+  recipient_role: string;
+  notification_type: string;
+  event_type?: string;
+  title: string;
+  message: string;
+  related_patient_id?: string | null;
+  related_encounter_id?: string | null;
+  related_assessment_id?: string | null;
+  target_destination: string;
+  is_read: boolean;
+  read_at?: string | null;
+  created_at: string;
+}
 
 interface SidebarProps {
   isOpen: boolean;
@@ -27,7 +45,42 @@ export function Sidebar({
   const [internalCollapsed, setInternalCollapsed] = useState(false);
   const [patientRecordsOpen, setPatientRecordsOpen] = useState(true);
   const [unreadInquiriesCount, setUnreadInquiriesCount] = useState(0);
+  const [mswUnreadCount, setMswUnreadCount] = useState(0);
   const [upcomingApptsCount, setUpcomingApptsCount] = useState(0);
+
+  React.useEffect(() => {
+    if (role !== 'msw') return;
+    const mswUserId = (user as any)?.username || user?.id || 'msw_lead';
+    let cancelled = false;
+
+    const fetchMswUnread = async () => {
+      try {
+        const res = await fetch(getApiUrl('/inquiries/notifications/list'), {
+          headers: {
+            'x-user-role': 'msw',
+            'x-user-id': String(mswUserId),
+          },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled && typeof data.unread_count === 'number') {
+          setMswUnreadCount(data.unread_count);
+        }
+      } catch {}
+    };
+
+    fetchMswUnread();
+    const onMswNotifUpdate = () => {
+      fetchMswUnread();
+    };
+    window.addEventListener('ofphil-msw-notifications-updated', onMswNotifUpdate);
+    const interval = setInterval(fetchMswUnread, 8000);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('ofphil-msw-notifications-updated', onMswNotifUpdate);
+      clearInterval(interval);
+    };
+  }, [role, user, pathname]);
 
   React.useEffect(() => {
     const syncInquiriesCount = () => {
@@ -629,9 +682,9 @@ export function Sidebar({
 
               {/* Caseworker Notifications Feed */}
               <Link
-                href="/admin/inquiries"
-                onClick={(e) => handleNavClick(e, '/admin/inquiries')}
-                className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${pathname.startsWith('/admin/inquiries')
+                href="/notifications"
+                onClick={(e) => handleNavClick(e, '/notifications')}
+                className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${pathname.startsWith('/notifications')
                   ? 'bg-[#0B6B3A] text-white font-semibold shadow-xs'
                   : 'text-[#D5E2D9] hover:bg-white/10 hover:text-white'
                   }`}
@@ -644,12 +697,12 @@ export function Sidebar({
                 {!collapsed && (
                   <span
                     className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold leading-none transition ${
-                      unreadInquiriesCount > 0
+                      mswUnreadCount > 0
                         ? 'bg-[#DC2626] text-white shadow-2xs animate-pulse'
                         : 'bg-white/15 text-[#D5E2D9]'
                     }`}
                   >
-                    {unreadInquiriesCount}
+                    {mswUnreadCount}
                   </span>
                 )}
               </Link>
@@ -735,6 +788,7 @@ export function Header({
   subtitle?: string;
 }) {
   const { role, user, logout, isLoggingOut } = useAuth();
+  const router = useRouter();
   const { showLoading, isProgressBarActive, startProgress } = useLoadingScreen();
   const { handleLinkClick } = useNavigationBlocker();
 
@@ -745,11 +799,99 @@ export function Header({
   // Dropdown states
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [a11yDropdownOpen, setA11yDropdownOpen] = useState(false);
+  const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
   const [unreadInquiriesCount, setUnreadInquiriesCount] = useState(0);
+  const [mswNotifications, setMswNotifications] = useState<MSWNotificationItem[]>([]);
+  const [mswUnreadCount, setMswUnreadCount] = useState(0);
+  const [mswNotifLoading, setMswNotifLoading] = useState(false);
   const [upcomingApptsCount, setUpcomingApptsCount] = useState(0);
 
   const a11yRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
+  const notifRef = useRef<HTMLDivElement>(null);
+
+  const mswUserId = (user as any)?.username || user?.id || 'msw_lead';
+
+  const fetchMswNotifications = React.useCallback(async () => {
+    if (!isCaseworker) return;
+    try {
+      const res = await fetch(getApiUrl('/inquiries/notifications/list'), {
+        headers: {
+          'x-user-role': 'msw',
+          'x-user-id': String(mswUserId),
+        },
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      setMswNotifications(Array.isArray(data.items) ? data.items : []);
+      setMswUnreadCount(typeof data.unread_count === 'number' ? data.unread_count : 0);
+    } catch {}
+  }, [isCaseworker, mswUserId]);
+
+  React.useEffect(() => {
+    if (!isCaseworker) return;
+    fetchMswNotifications();
+    const onNotifSync = () => {
+      fetchMswNotifications();
+    };
+    window.addEventListener('ofphil-msw-notifications-updated', onNotifSync);
+    const interval = setInterval(fetchMswNotifications, 8000);
+    return () => {
+      window.removeEventListener('ofphil-msw-notifications-updated', onNotifSync);
+      clearInterval(interval);
+    };
+  }, [isCaseworker, fetchMswNotifications]);
+
+  const handleMarkMswNotificationRead = async (notifId: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    try {
+      await fetch(getApiUrl(`/inquiries/notifications/${encodeURIComponent(notifId)}/read`), {
+        method: 'POST',
+        headers: {
+          'x-user-role': 'msw',
+          'x-user-id': String(mswUserId),
+        },
+      });
+      setMswNotifications((prev) =>
+        prev.map((n) => (n.id === notifId ? { ...n, is_read: true, read_at: new Date().toISOString() } : n))
+      );
+      setMswUnreadCount((prev) => Math.max(0, prev - 1));
+      window.dispatchEvent(new Event('ofphil-msw-notifications-updated'));
+    } catch {}
+  };
+
+  const handleMarkAllMswNotificationsRead = async () => {
+    if (mswUnreadCount === 0) return;
+    setMswNotifLoading(true);
+    try {
+      await fetch(getApiUrl('/inquiries/notifications/mark-all-read'), {
+        method: 'POST',
+        headers: {
+          'x-user-role': 'msw',
+          'x-user-id': String(mswUserId),
+        },
+      });
+      setMswNotifications((prev) =>
+        prev.map((n) => ({ ...n, is_read: true, read_at: n.read_at || new Date().toISOString() }))
+      );
+      setMswUnreadCount(0);
+      window.dispatchEvent(new Event('ofphil-msw-notifications-updated'));
+    } catch {} finally {
+      setMswNotifLoading(false);
+    }
+  };
+
+  const handleClickMswNotification = async (item: MSWNotificationItem) => {
+    if (!item.is_read) {
+      await handleMarkMswNotificationRead(item.id);
+    }
+    setNotifDropdownOpen(false);
+    startProgress();
+    router.push(item.target_destination || '/patients');
+  };
 
   // Close dropdowns on click outside or Escape key
   useEffect(() => {
@@ -757,6 +899,7 @@ export function Header({
       if (e instanceof KeyboardEvent && e.key === 'Escape') {
         setA11yDropdownOpen(false);
         setProfileDropdownOpen(false);
+        setNotifDropdownOpen(false);
         return;
       }
       if (e instanceof MouseEvent) {
@@ -765,6 +908,9 @@ export function Header({
         }
         if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
           setProfileDropdownOpen(false);
+        }
+        if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+          setNotifDropdownOpen(false);
         }
       }
     };
@@ -901,6 +1047,157 @@ export function Header({
       </div>
 
       <div className="flex items-center gap-3 shrink-0">
+        {/* Topbar Notification Bell Icon & Dropdown */}
+        <div className="relative" ref={notifRef}>
+          <button
+            type="button"
+            onClick={() => {
+              if (isCaseworker) {
+                setNotifDropdownOpen(!notifDropdownOpen);
+                setA11yDropdownOpen(false);
+                setProfileDropdownOpen(false);
+                if (!notifDropdownOpen) fetchMswNotifications();
+              } else {
+                startProgress();
+                router.push('/admin/inquiries');
+              }
+            }}
+            className={`relative w-9 h-9 rounded-full transition flex items-center justify-center text-sm cursor-pointer border border-[#D5E2D9] ${
+              notifDropdownOpen
+                ? 'bg-[#0B6B3A] text-white shadow-xs'
+                : 'bg-white text-[#0B6B3A] hover:bg-[#E6F1EA]'
+            }`}
+            title="Notifications"
+            aria-label="Notifications"
+          >
+            <i className="fa-solid fa-bell text-sm" />
+            {(isCaseworker ? mswUnreadCount : unreadInquiriesCount) > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[#DC2626] text-white text-[10px] font-extrabold flex items-center justify-center border-2 border-white leading-none shadow-2xs">
+                {isCaseworker ? mswUnreadCount : unreadInquiriesCount}
+              </span>
+            )}
+          </button>
+
+          {isCaseworker && notifDropdownOpen && (
+            <div className="absolute right-0 top-12 w-[calc(100vw-24px)] max-w-sm sm:w-96 bg-white rounded-2xl shadow-xl border border-[#D5E2D9] overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-150">
+              <div className="px-4 py-3 bg-[#F8FBF9] border-b border-[#D5E2D9] flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <i className="fa-solid fa-bell text-[#0B6B3A] text-sm" />
+                  <span className="font-bold text-[#10241A] text-xs sm:text-[13px]">MSW Casework Notifications</span>
+                  {mswUnreadCount > 0 && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#DC2626] text-white">
+                      {mswUnreadCount} Unread
+                    </span>
+                  )}
+                </div>
+                {mswUnreadCount > 0 && (
+                  <button
+                    type="button"
+                    disabled={mswNotifLoading}
+                    onClick={handleMarkAllMswNotificationsRead}
+                    className="text-[11px] font-bold text-[#0B6B3A] hover:underline bg-transparent border-0 cursor-pointer p-0 disabled:opacity-50"
+                  >
+                    Mark All as Read
+                  </button>
+                )}
+              </div>
+
+              <div className="max-h-80 overflow-y-auto divide-y divide-[#EEF2EF]">
+                {mswNotifications.length === 0 ? (
+                  <div className="py-8 px-4 text-center">
+                    <div className="w-10 h-10 rounded-full bg-[#E8F5EC] text-[#0B6B3A] flex items-center justify-center mx-auto mb-2">
+                      <i className="fa-regular fa-bell-slash text-base" />
+                    </div>
+                    <div className="text-xs font-bold text-[#1E293B]">No MSW notifications yet</div>
+                    <div className="text-[11px] text-[#64748B] mt-0.5">
+                      New patient assignments, assessments, referrals, and inquiry alerts will appear here.
+                    </div>
+                  </div>
+                ) : (
+                  mswNotifications.slice(0, 8).map((item) => {
+                    const iconClass =
+                      item.notification_type === 'CHARITY_APPROVED'
+                        ? 'fa-circle-check text-[#0B6B3A] bg-[#E8F5EC]'
+                        : item.notification_type === 'CHARITY_DENIED_OR_PROMISSORY'
+                          ? 'fa-file-signature text-[#D97706] bg-[#FEF3C7]'
+                          : item.notification_type === 'REFERRAL_UPDATED'
+                            ? 'fa-file-invoice-dollar text-[#0284C7] bg-[#E0F2FE]'
+                            : item.notification_type === 'DOCUMENT_UPLOADED'
+                              ? 'fa-file-shield text-[#7C3AED] bg-[#F3E8FF]'
+                              : item.notification_type === 'PATIENT_INQUIRY'
+                                ? 'fa-envelope-open-text text-[#DC2626] bg-[#FEE2E2]'
+                                : 'fa-clipboard-user text-[#0B6B3A] bg-[#E8F5EC]';
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => handleClickMswNotification(item)}
+                        className={`p-3.5 transition cursor-pointer flex items-start gap-3 ${
+                          item.is_read ? 'bg-white hover:bg-[#F8FAFC]' : 'bg-[#F0F9F3] hover:bg-[#E6F4EB]'
+                        }`}
+                      >
+                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${iconClass.split(' ').slice(1).join(' ')}`}>
+                          <i className={`fa-solid ${iconClass.split(' ')[0]} text-xs ${iconClass.split(' ')[1]}`} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className={`text-xs leading-snug ${item.is_read ? 'font-semibold text-[#1E293B]' : 'font-extrabold text-[#10241A]'}`}>
+                              {item.title}
+                            </div>
+                            {!item.is_read && (
+                              <span className="w-2 h-2 rounded-full bg-[#0B6B3A] shrink-0 mt-1" title="Unread" />
+                            )}
+                          </div>
+                          <p className="text-[11px] text-[#475569] mt-0.5 line-clamp-2 leading-relaxed">
+                            {item.message}
+                          </p>
+                          <div className="flex items-center justify-between gap-2 mt-1.5">
+                            <span className="text-[10px] font-medium text-[#64748B]">
+                              {item.related_patient_id && (
+                                <span className="font-mono font-bold text-[#0B6B3A] mr-1.5">
+                                  {item.related_patient_id}
+                                </span>
+                              )}
+                              {new Date(item.created_at).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                              })}
+                            </span>
+                            {!item.is_read && (
+                              <button
+                                type="button"
+                                onClick={(e) => handleMarkMswNotificationRead(item.id, e)}
+                                className="text-[10px] font-bold text-[#0B6B3A] hover:underline bg-transparent border-0 cursor-pointer p-0"
+                              >
+                                Mark as read
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              <div className="p-2.5 bg-[#F8FBF9] border-t border-[#D5E2D9] text-center">
+                <Link
+                  href="/notifications"
+                  onClick={(e) => {
+                    startProgress();
+                    const allowed = handleLinkClick(e, '/notifications');
+                    if (allowed) setNotifDropdownOpen(false);
+                  }}
+                  className="inline-flex items-center justify-center gap-1.5 w-full py-1.5 rounded-xl text-xs font-bold text-[#0B6B3A] hover:bg-[#E8F5EC] transition no-underline"
+                >
+                  <span>View All Notifications</span>
+                  <i className="fa-solid fa-arrow-right text-[10px]" />
+                </Link>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Universal Accessibility / Quick Display & Reading Aid Quick Button */}
         <div className="relative" ref={a11yRef}>
           <button
@@ -908,6 +1205,7 @@ export function Header({
             onClick={() => {
               setA11yDropdownOpen(!a11yDropdownOpen);
               setProfileDropdownOpen(false);
+              setNotifDropdownOpen(false);
             }}
             className={`w-9 h-9 rounded-full transition flex items-center justify-center text-sm cursor-pointer border border-[#D5E2D9] ${a11yDropdownOpen
               ? 'bg-[#0B6B3A] text-white shadow-xs'
@@ -1035,6 +1333,7 @@ export function Header({
             onClick={() => {
               setProfileDropdownOpen(!profileDropdownOpen);
               setA11yDropdownOpen(false);
+              setNotifDropdownOpen(false);
             }}
             className={`flex items-center gap-1.5 sm:gap-2.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border text-xs transition cursor-pointer ${profileDropdownOpen
               ? 'bg-[#E8F5EC] border-[#0B6B3A] shadow-xs ring-2 ring-[#0B6B3A]/20'
@@ -1090,7 +1389,7 @@ export function Header({
                     {user?.name || (isAdmin ? 'Dr. Roberto Reyes' : isPatient ? 'Juan Dela Cruz' : 'Maria Santos, RSW')}
                   </div>
                   <div className="text-[11px] text-[#64748B] truncate">
-                    {isAdmin ? 'admin.reyes@ofphil.org.ph' : isPatient ? 'juan.delacruz@example.ph' : 'maria.santos@ofphil.org.ph'}
+                    {isAdmin ? 'trishtanroxas@gmail.com' : isPatient ? 'tan1925alex@gmail.com' : 'roxastal.cbpa@gmail.com'}
                   </div>
                   <div className="mt-1">
                     <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold bg-[#E6F1EA] text-[#0B6B3A]">
@@ -1138,10 +1437,11 @@ export function Header({
                 </Link>
 
                 <Link
-                  href="/admin/inquiries"
+                  href={isCaseworker ? '/notifications' : '/admin/inquiries'}
                   onClick={(e) => {
                     startProgress();
-                    const allowed = handleLinkClick(e, '/admin/inquiries');
+                    const targetHref = isCaseworker ? '/notifications' : '/admin/inquiries';
+                    const allowed = handleLinkClick(e, targetHref);
                     if (allowed) setProfileDropdownOpen(false);
                   }}
                   className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-[#1E293B] hover:bg-[#F8FAFC] transition no-underline"
@@ -1152,12 +1452,12 @@ export function Header({
                   </div>
                   <span
                     className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold transition ${
-                      unreadInquiriesCount > 0
+                      (isCaseworker ? mswUnreadCount : unreadInquiriesCount) > 0
                         ? 'bg-[#DC2626] text-white animate-pulse'
                         : 'bg-[#E2E8F0] text-[#475569]'
                     }`}
                   >
-                    {unreadInquiriesCount}
+                    {isCaseworker ? mswUnreadCount : unreadInquiriesCount}
                   </span>
                 </Link>
               </div>

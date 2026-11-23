@@ -74,6 +74,8 @@ function getLoginUrlForPath(pathname: string | null, lastRole?: string | null): 
   if (pathname?.startsWith('/portal')) return '/login-patient';
   if (
     pathname?.startsWith('/dashboard') ||
+    pathname?.startsWith('/patients') ||
+    pathname?.startsWith('/notifications') ||
     pathname?.startsWith('/assessment') ||
     pathname?.startsWith('/documents') ||
     pathname?.startsWith('/profile') ||
@@ -181,6 +183,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const isOnPatientRoute = pathname?.startsWith('/portal');
       const isOnMswRoute =
         pathname?.startsWith('/dashboard') ||
+        pathname?.startsWith('/patients') ||
+        pathname?.startsWith('/notifications') ||
         pathname?.startsWith('/assessment') ||
         pathname?.startsWith('/documents') ||
         pathname === '/profile' ||
@@ -196,6 +200,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       if (isOnMswRoute && savedRole === 'patient') {
         window.location.replace('/portal?tab=dashboard');
+        return;
+      }
+      if (pathname?.startsWith('/assessment') && savedRole !== 'msw') {
+        window.location.replace(getWorkspaceHomeForRole(savedRole));
         return;
       }
     }

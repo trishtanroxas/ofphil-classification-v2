@@ -132,6 +132,7 @@ class InterviewSaveRequest(BaseModel):
 
 class AssessmentCreateRequest(BaseModel):
     patient_id: str = Field(..., min_length=1)
+    referral_id: Optional[str] = None
     encounter_no: Optional[str] = None
     interview_date: Optional[str] = None
     source_of_referral: Optional[str] = None
@@ -144,6 +145,7 @@ class AssessmentCreateRequest(BaseModel):
 class AssessmentUpdateRequest(BaseModel):
     active_stage: Optional[int] = Field(default=None, ge=1, le=4)
     workflow_status: Optional[str] = None
+    referral_id: Optional[str] = None
     interview_date: Optional[str] = None
     source_of_referral: Optional[str] = None
     stage1_data: Optional[Dict[str, Any]] = None

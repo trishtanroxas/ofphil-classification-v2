@@ -15,7 +15,7 @@ const quotes = [
   {
     category: "Clinical Decision Support",
     title: "Empowering social workers with fast, objective evaluation.",
-    subtitle: "Automated OCR extraction and socioeconomic burden scoring streamline surgical approvals within 24 to 48 hours."
+    subtitle: "Faster document checking and fair financial assessment help speed up surgical approvals within 24 to 48 hours."
   },
   {
     category: "Charity Care & Dignity",

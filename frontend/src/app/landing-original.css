@@ -3216,3 +3216,16 @@ html[data-theme="high-contrast"] select:focus {
     right: -10px;
   }
 }
+
+/* Center the desktop navigation menu in the navbar */
+.landing-navbar .landing-container {
+  position: relative !important;
+}
+@media (min-width: 993px) {
+  .landing-navbar .landing-nav-menu {
+    position: absolute !important;
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+  }
+}

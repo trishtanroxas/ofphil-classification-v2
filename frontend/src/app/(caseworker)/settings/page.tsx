@@ -13,7 +13,7 @@ export default function MSWSettingsPage() {
 
   // 01. My Profile State
   const [fullName, setFullName] = useState('Maria Santos, RSW');
-  const [email, setEmail] = useState('maria.santos@ofphil.org.ph');
+  const [email, setEmail] = useState('roxastal.cbpa@gmail.com');
   const [licenseNo, setLicenseNo] = useState('PRC-RSW-004921');
   const [contactNo, setContactNo] = useState('0918 555 1234');
   const [department, setDepartment] = useState('Medical Social Services Department (MSWD)');
@@ -474,7 +474,7 @@ export default function MSWSettingsPage() {
               <ProfilePasswordChangeCard
                 role="msw"
                 userId="msw_lead"
-                defaultEmail={email || "maria.santos@ofphil.org.ph"}
+                defaultEmail={email || "roxastal.cbpa@gmail.com"}
                 defaultMobile={contactNo || "0918 555 1234"}
                 title="Change Caseworker Credentials"
                 subtitle="Update your authentication password using server-enforced Argon2id cryptographic hashing and 2FA OTP."
@@ -557,7 +557,7 @@ export default function MSWSettingsPage() {
                   >
                     <option value="/dashboard">Social Worker Dashboard (/dashboard)</option>
                     <option value="/patients">Patient Master Records (/patients)</option>
-                    <option value="/documents">Document Processing &amp; OCR (/documents)</option>
+                    <option value="/documents">Document Verification (/documents)</option>
                   </select>
                 </div>
 
@@ -609,7 +609,7 @@ export default function MSWSettingsPage() {
               <span>Casework Alerts &amp; Queue Updates</span>
             </div>
             <p className="text-xs text-[#5A7466] mb-6">
-              Choose alerts for new intake submissions, OCR document completions, and scheduled consultations.
+              Choose alerts for new intake submissions, document verification updates, and scheduled consultations.
             </p>
 
             <form onSubmit={handleSaveNotifPrefs}>
@@ -629,7 +629,7 @@ export default function MSWSettingsPage() {
 
                 <label className="p-4 bg-[#F8FAFC] border border-[#D5E2D9] rounded-xl flex items-center justify-between cursor-pointer hover:bg-[#F1F5F9] transition">
                   <div>
-                    <span className="text-xs font-semibold text-[#10241A] block">Notify when hospital quotations are successfully parsed via OCR</span>
+                    <span className="text-xs font-semibold text-[#10241A] block">Notify when hospital quotations are successfully read and checked</span>
                     <span className="text-[11px] text-[#64748B] block mt-0.5">Alerts when automated document text extraction is validated and ready for review.</span>
                   </div>
                   <input

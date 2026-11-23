@@ -1,987 +1,676 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useCallback } from 'react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { toast } from 'sonner';
+import { useAuth } from '@/context/AuthContext';
+import { API_BASE_URL, fetchApi } from '@/lib/api';
 
-export interface InquiryAttachment {
-  name: string;
-  type: 'image' | 'pdf';
-  url: string;
-  size?: string;
-}
-
-export interface InquiryItem {
+interface InquiryAttachment {
   id: string;
-  name: string;
-  email: string;
-  contactNumber?: string;
-  subject: string;
-  date: string;
-  status: 'New' | 'Answered' | 'Pending Review';
-  message: string;
-  patientAttachments?: InquiryAttachment[];
-  replyHistory?: Array<{ sender: string; timestamp: string; message: string }>;
+  inquiry_id: string;
+  reply_id?: string | null;
+  uploader_role: string;
+  original_filename: string;
+  content_type: string;
+  file_type: 'image' | 'pdf';
+  file_size: number;
+  file_size_display: string;
+  created_at: string;
 }
 
-const INITIAL_INQUIRIES: InquiryItem[] = [];
+interface InquiryReply {
+  id: string;
+  inquiry_id: string;
+  admin_user_id: string;
+  admin_name: string;
+  channel: string;
+  message: string;
+  created_at: string;
+  attachments?: InquiryAttachment[];
+}
+
+interface InquiryRecord {
+  id: string;
+  patient_id: string;
+  patient_name: string;
+  patient_email: string;
+  patient_contact: string;
+  subject: string;
+  message: string;
+  status: 'NEW' | 'READ' | 'IN_PROGRESS' | 'ANSWERED' | 'CLOSED';
+  admin_read: boolean;
+  admin_read_at?: string | null;
+  admin_read_by?: string | null;
+  assigned_admin?: string | null;
+  patient_has_unread_reply: boolean;
+  created_at: string;
+  updated_at: string;
+  attachments: InquiryAttachment[];
+  all_attachments_count: number;
+  replies: InquiryReply[];
+}
+
+const STATUS_BADGE: Record<string, string> = {
+  NEW: 'bg-red-50 text-red-700 border-red-200',
+  READ: 'bg-blue-50 text-blue-700 border-blue-200',
+  IN_PROGRESS: 'bg-amber-50 text-amber-800 border-amber-200',
+  ANSWERED: 'bg-emerald-50 text-[#0B6B3A] border-emerald-200',
+  CLOSED: 'bg-slate-100 text-slate-600 border-slate-200',
+};
 
 export default function AdminInquiriesPage() {
-  const [inquiries, setInquiries] = useState<InquiryItem[]>(INITIAL_INQUIRIES);
+  const { user, role } = useAuth();
+  const actorRole = role === 'nurse' || role === 'msw' ? role : 'admin';
+  const actorId = user?.username || user?.id || 'admin_sys';
+  const actorName = user?.name || 'OFPHIL Clinic Administration';
 
-  React.useEffect(() => {
-    const loadDynamicInquiries = () => {
-      try {
-        const publicInqs = JSON.parse(localStorage.getItem('ofphil_public_inquiries') || '[]');
-        const juanInqs = JSON.parse(localStorage.getItem('ofphil_inquiries_M26-11-00001') || '[]');
-        const combined = [...publicInqs, ...juanInqs];
-        const seen = new Set<string>();
-        const deduped: InquiryItem[] = [];
-        for (const item of combined) {
-          if (item && item.id && !seen.has(item.id)) {
-            seen.add(item.id);
-            deduped.push(item);
-          }
-        }
-        setInquiries(deduped);
-      } catch (e) {}
-    };
-    loadDynamicInquiries();
-    window.addEventListener('storage', loadDynamicInquiries);
-    window.addEventListener('ofphil-inquiries-updated', loadDynamicInquiries);
-    return () => {
-      window.removeEventListener('storage', loadDynamicInquiries);
-      window.removeEventListener('ofphil-inquiries-updated', loadDynamicInquiries);
-    };
-  }, []);
-  const [activeInquiry, setActiveInquiry] = useState<InquiryItem | null>(null);
-  
-  // Horizontal Modal Tabs: 1 = Files & Documents, 2 = Send Response / Dispatch
-  const [modalTab, setModalTab] = useState<'documents' | 'compose'>('documents');
-  const [isMounted, setIsMounted] = useState(false);
-  React.useEffect(() => {
-    setIsMounted(true);
-  }, []);
-  const [adminReadIds, setAdminReadIds] = useState<string[]>(() => {
-    if (typeof window === 'undefined') return [];
-    try {
-      const saved = JSON.parse(localStorage.getItem('ofphil_admin_read_notifs') || '[]');
-      return Array.isArray(saved) ? saved : [];
-    } catch {
-      return [];
-    }
-  });
+  const [inquiries, setInquiries] = useState<InquiryRecord[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const toggleAdminRead = (nid: string) => {
-    setAdminReadIds((prev) => {
-      const next = prev.includes(nid) ? prev.filter((id) => id !== nid) : [...prev, nid];
-      try {
-        localStorage.setItem('ofphil_admin_read_notifs', JSON.stringify(next));
-        setTimeout(() => window.dispatchEvent(new Event('ofphil-inquiries-updated')), 0);
-      } catch {}
-      return next;
-    });
-  };
-  
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [readFilter, setReadFilter] = useState('all');
+  const [page, setPage] = useState(1);
+  const pageSize = 15;
+
+  const [activeInquiry, setActiveInquiry] = useState<InquiryRecord | null>(null);
   const [replyText, setReplyText] = useState('');
-  const [replyTo, setReplyTo] = useState('');
-  const [replySubject, setReplySubject] = useState('');
-  const [replyChannel, setReplyChannel] = useState<'email' | 'sms'>('email');
-  const [attachedFile, setAttachedFile] = useState<{ name: string; type: string; dataUrl: string; size: string } | null>(null);
-  const [previewAttachment, setPreviewAttachment] = useState<{ name: string; url: string; type: 'image' | 'pdf' } | null>(null);
+  const [replyChannel, setReplyChannel] = useState<'portal' | 'email' | 'sms'>('portal');
+  const [replyFile, setReplyFile] = useState<File | null>(null);
   const [isSendingReply, setIsSendingReply] = useState(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
-  const handleOpenReply = (inq: InquiryItem) => {
-    setActiveInquiry(inq);
-    // Mark as Read in state and localStorage (side effects outside state updater)
-    const updated = inquiries.map((item) => (item.id === inq.id ? { ...item, isRead: true } : item));
-    setInquiries(updated);
+  const [previewAtt, setPreviewAtt] = useState<{
+    name: string;
+    url: string;
+    type: 'image' | 'pdf';
+  } | null>(null);
+
+  const loadInquiries = useCallback(async () => {
+    setIsLoading(true);
     try {
-      const pubInqs = JSON.parse(localStorage.getItem('ofphil_public_inquiries') || '[]');
-      if (pubInqs.some((p: any) => p.id === inq.id)) {
-        localStorage.setItem(
-          'ofphil_public_inquiries',
-          JSON.stringify(pubInqs.map((p: any) => (p.id === inq.id ? { ...p, isRead: true } : p)))
-        );
-      }
-      const juanInqs = JSON.parse(localStorage.getItem('ofphil_inquiries_M26-11-00001') || '[]');
-      if (juanInqs.some((j: any) => j.id === inq.id)) {
-        localStorage.setItem(
-          'ofphil_inquiries_M26-11-00001',
-          JSON.stringify(juanInqs.map((j: any) => (j.id === inq.id ? { ...j, isRead: true } : j)))
-        );
-      }
-      setTimeout(() => window.dispatchEvent(new Event('ofphil-inquiries-updated')), 0);
-    } catch (e) {}
-    setModalTab('documents');
+      const params = new URLSearchParams({
+        page: String(page),
+        page_size: String(pageSize),
+      });
+      if (search.trim()) params.set('search', search.trim());
+      if (statusFilter !== 'ALL') params.set('status', statusFilter);
+      if (readFilter !== 'all') params.set('read_filter', readFilter);
+
+      const res = await fetchApi(`/inquiries/admin?${params.toString()}`, {
+        headers: { 'x-user-role': actorRole, 'x-user-id': actorId },
+      });
+      setInquiries(Array.isArray(res?.items) ? res.items : []);
+      setTotalCount(res?.total_count ?? 0);
+      setUnreadCount(res?.unread_count ?? 0);
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to load patient inquiries.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [actorId, actorRole, page, readFilter, search, statusFilter]);
+
+  useEffect(() => {
+    loadInquiries();
+  }, [loadInquiries]);
+
+  const handleOpenInquiry = async (inq: InquiryRecord) => {
+    setActiveInquiry(inq);
     setReplyText('');
-    setReplyTo(inq.email);
-    setReplySubject(`Re: ${inq.subject}`);
-    setReplyChannel('email');
-    setAttachedFile(null);
+    setReplyFile(null);
+    setReplyChannel('portal');
+
+    try {
+      const res = await fetchApi(`/inquiries/${inq.id}?mark_read=true`, {
+        headers: { 'x-user-role': actorRole, 'x-user-id': actorId },
+      });
+      if (res?.inquiry) {
+        setActiveInquiry(res.inquiry);
+        loadInquiries();
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to open inquiry.');
+    }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Allowed formats: PNG, JPEG, JPG, PDF
-    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'application/pdf'];
-    const isAllowed =
-      allowedTypes.includes(file.type.toLowerCase()) ||
-      file.name.toLowerCase().endsWith('.png') ||
-      file.name.toLowerCase().endsWith('.jpg') ||
-      file.name.toLowerCase().endsWith('.jpeg') ||
-      file.name.toLowerCase().endsWith('.pdf');
-
-    if (!isAllowed) {
-      toast.error('Invalid file format. Please upload PNG, JPG, JPEG, or PDF only.');
-      e.target.value = '';
-      return;
-    }
-
-    // Max upload limit: 10 MB
-    const maxSizeBytes = 10 * 1024 * 1024;
-    if (file.size > maxSizeBytes) {
-      toast.error(`File size exceeds 10MB limit (${(file.size / (1024 * 1024)).toFixed(1)}MB). Please choose a smaller file.`);
-      e.target.value = '';
-      return;
-    }
-
-    const fileSizeStr =
-      file.size > 1024 * 1024
-        ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
-        : `${Math.round(file.size / 1024)} KB`;
-
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      setAttachedFile({
-        name: file.name,
-        type: file.type.includes('pdf') || file.name.endsWith('.pdf') ? 'pdf' : 'image',
-        dataUrl: ev.target?.result as string,
-        size: fileSizeStr,
+  const handleAttachmentAction = async (inquiryId: string, att: InquiryAttachment, download: boolean) => {
+    try {
+      const url = `${API_BASE_URL}/inquiries/${encodeURIComponent(inquiryId)}/attachments/${encodeURIComponent(att.id)}?download=${download ? 'true' : 'false'}`;
+      const resp = await fetch(url, {
+        headers: { 'x-user-role': actorRole, 'x-user-id': actorId },
       });
-      toast.success(`Attached ${file.name} (${fileSizeStr})`);
-    };
-    reader.readAsDataURL(file);
+      if (!resp.ok) throw new Error('Unable to retrieve attachment.');
+      const blob = await resp.blob();
+      const objUrl = URL.createObjectURL(blob);
+      if (download) {
+        const a = document.createElement('a');
+        a.href = objUrl;
+        a.download = att.original_filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(objUrl), 3000);
+      } else {
+        setPreviewAtt({
+          name: att.original_filename,
+          url: objUrl,
+          type: att.file_type,
+        });
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to load attachment.');
+    }
   };
 
   const handleSendReply = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!activeInquiry || !replyText.trim()) {
-      toast.error('Please enter your reply message.');
+    if (!activeInquiry || isSendingReply) return;
+    if (!replyText.trim()) {
+      toast.error('Please enter a reply message.');
       return;
     }
 
     setIsSendingReply(true);
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1';
-      await fetch(`${apiBase}/inquiries/respond`, {
+      const formData = new FormData();
+      formData.append('message', replyText.trim());
+      formData.append('channel', replyChannel);
+      formData.append('subject', `Re: ${activeInquiry.subject}`);
+      formData.append('admin_name', `${actorName} (${actorId})`);
+      if (replyFile) {
+        formData.append('files', replyFile);
+      }
+
+      const res = await fetchApi(`/inquiries/${activeInquiry.id}/reply`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          inquiry_id: activeInquiry.id,
-          recipient_email: replyTo || activeInquiry.email,
-          reply_body: replyText.trim(),
-          channel: replyChannel,
-          subject: replySubject || `Re: ${activeInquiry.subject}`,
-          patient_name: activeInquiry.name,
-          attachment: attachedFile ? { name: attachedFile.name, type: attachedFile.type, size: attachedFile.size, dataUrl: attachedFile.dataUrl } : null,
-        }),
+        headers: { 'x-user-role': actorRole, 'x-user-id': actorId },
+        body: formData,
       });
-    } catch (err) {}
 
-    setTimeout(() => {
-      const updatedReplyHistory = [
-        ...(activeInquiry.replyHistory || []),
-        {
-          sender: 'Clinic Administrator (admin_sys)',
-          timestamp: new Date().toLocaleString(),
-          message: replyText.trim(),
-        },
-      ];
-
-      const updated = inquiries.map((item) =>
-        item.id === activeInquiry.id
-          ? { ...item, status: 'Answered' as const, isRead: true, replyHistory: updatedReplyHistory }
-          : item
-      );
-      setInquiries(updated);
-      try {
-        const pubInqs = JSON.parse(localStorage.getItem('ofphil_public_inquiries') || '[]');
-        if (pubInqs.some((p: any) => p.id === activeInquiry.id)) {
-          localStorage.setItem(
-            'ofphil_public_inquiries',
-            JSON.stringify(
-              pubInqs.map((p: any) =>
-                p.id === activeInquiry.id
-                  ? { ...p, status: 'Answered', isRead: true, replyHistory: updatedReplyHistory }
-                  : p
-              )
-            )
-          );
-        }
-        const juanInqs = JSON.parse(localStorage.getItem('ofphil_inquiries_M26-11-00001') || '[]');
-        if (juanInqs.some((j: any) => j.id === activeInquiry.id)) {
-          localStorage.setItem(
-            'ofphil_inquiries_M26-11-00001',
-            JSON.stringify(
-              juanInqs.map((j: any) =>
-                j.id === activeInquiry.id
-                  ? { ...j, status: 'Answered', isRead: true, replyHistory: updatedReplyHistory }
-                  : j
-              )
-            )
-          );
-        }
-        setTimeout(() => window.dispatchEvent(new Event('ofphil-inquiries-updated')), 0);
-      } catch (e) {}
-
-      toast.success(`Reply successfully dispatched to ${activeInquiry.name} (${replyTo})!`);
+      if (res?.inquiry) {
+        setActiveInquiry(res.inquiry);
+      }
+      setReplyText('');
+      setReplyFile(null);
+      toast.success(`Reply saved and inquiry marked as ANSWERED!`);
+      loadInquiries();
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to send reply.');
+    } finally {
       setIsSendingReply(false);
-      setActiveInquiry(null);
-    }, 400);
+    }
   };
 
-  // Lock body scroll and dismiss modal on Escape key
-  useEffect(() => {
-    if (activeInquiry !== null || previewAttachment !== null) {
-      const prevOverflow = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
-      const handleEscape = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') {
-          if (previewAttachment !== null) {
-            setPreviewAttachment(null);
-          } else {
-            setActiveInquiry(null);
-          }
-        }
-      };
-      window.addEventListener('keydown', handleEscape);
-      return () => {
-        document.body.style.overflow = prevOverflow;
-        window.removeEventListener('keydown', handleEscape);
-      };
+  const handleUpdateStatus = async (newStatus: string) => {
+    if (!activeInquiry || isUpdatingStatus) return;
+    setIsUpdatingStatus(true);
+    try {
+      const res = await fetchApi(`/inquiries/${activeInquiry.id}/status`, {
+        method: 'PATCH',
+        headers: { 'x-user-role': actorRole, 'x-user-id': actorId },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (res?.inquiry) {
+        setActiveInquiry(res.inquiry);
+      }
+      toast.success(`Inquiry status updated to ${newStatus.replace('_', ' ')}.`);
+      loadInquiries();
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to update inquiry status.');
+    } finally {
+      setIsUpdatingStatus(false);
     }
-  }, [activeInquiry, previewAttachment]);
+  };
+
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
   return (
     <DashboardLayout
-      title="Notifications & Patient Inquiries"
-      subtitle="Ophthalmological Foundation of the Philippines — Patient Correspondence & Public Support"
+      title="Patient Inquiries & Clinical Correspondence"
+      subtitle="Database-connected patient inquiry directory, attachment review, and two-way clinic replies"
     >
-      <div className="space-y-6">
-        {/* Header Card */}
-        <div className="bg-white p-5 rounded-2xl border border-[#D5E2D9] shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5">
-            <div className="w-10 h-10 rounded-xl bg-[#E8F5EC] text-[#0B6B3A] flex items-center justify-center text-lg font-bold">
-              <i className="fa-solid fa-bell" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2.5">
-                <h2 className="text-base font-bold text-[#10241A] font-['Outfit'] m-0">
-                  Clinic Notifications &amp; Activity Feed
-                </h2>
-                <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#E8F5EC] text-[#0B6B3A] border border-[#B4CEBE]">
-                  {inquiries.filter((i) => i.status === 'New').length} New / {inquiries.length} Inquiries
-                </span>
+      <div className="w-full pb-12 space-y-5 text-xs font-sans">
+        {/* Top Metrics & Filters */}
+        <div className="bg-white rounded-2xl border border-[#EEF2EF] shadow-xs p-5 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#E8F5EC] text-[#0B6B3A] flex items-center justify-center text-lg">
+                <i className="fa-solid fa-inbox" />
               </div>
-              <p className="text-xs text-[#5A7466] m-0 mt-0.5">
-                Unified admin notification center for clinic appointment requests, upcoming schedules, referrals, and patient inquiries.
-              </p>
+              <div>
+                <h2 className="font-['Outfit'] text-base font-bold text-[#10241A] m-0">
+                  Patient Inquiry Directory
+                </h2>
+                <p className="text-[11.5px] text-[#5A7466] m-0">
+                  {totalCount} total inquiries &bull;{' '}
+                  <strong className={unreadCount > 0 ? 'text-red-600' : 'text-[#0B6B3A]'}>
+                    {unreadCount} unread
+                  </strong>
+                </p>
+              </div>
             </div>
+
+            <button
+              type="button"
+              onClick={loadInquiries}
+              className="px-3.5 py-2 rounded-lg border border-[#D5E2D9] bg-white hover:bg-[#FAFBF8] text-[#10241A] font-semibold cursor-pointer flex items-center gap-1.5"
+            >
+              <i className={`fa-solid fa-rotate-right ${isLoading ? 'fa-spin' : ''}`} />
+              <span>Refresh</span>
+            </button>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
-            <button
-              type="button"
-              onClick={() => {
-                const allIds: string[] = inquiries.map((i) => `inq-${i.id}`);
-                if (typeof window !== 'undefined') {
-                  for (let i = 0; i < localStorage.length; i++) {
-                    const k = localStorage.key(i);
-                    if (k && k.startsWith('ofphil_appointments_')) {
-                      try {
-                        const list = JSON.parse(localStorage.getItem(k) || '[]');
-                        if (Array.isArray(list)) list.forEach((a: any) => allIds.push(`apt-${a.id}`));
-                      } catch {}
-                    }
-                  }
-                }
-                setAdminReadIds(allIds);
-                try {
-                  localStorage.setItem('ofphil_admin_read_notifs', JSON.stringify(allIds));
-                  setTimeout(() => window.dispatchEvent(new Event('ofphil-inquiries-updated')), 0);
-                } catch {}
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+            <div className="sm:col-span-2 relative">
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+                placeholder="Search by Inquiry ID, Patient ID, Patient Name, or Subject..."
+                className="w-full h-10 pl-9 pr-3 border border-[#D5E2D9] rounded-lg text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
+              />
+              <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-[#8F9E96]" />
+            </div>
+
+            <select
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setPage(1);
               }}
-              className="px-3 py-1.5 rounded-lg border border-[#CBD5E1] bg-white hover:bg-[#FAFBF8] text-[#0B6B3A] font-bold text-xs cursor-pointer transition"
+              className="h-10 px-3 border border-[#D5E2D9] rounded-lg text-xs bg-white text-[#10241A]"
             >
-              &#10003; Mark All as Read
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setAdminReadIds([]);
-                try {
-                  localStorage.setItem('ofphil_admin_read_notifs', '[]');
-                  setTimeout(() => window.dispatchEvent(new Event('ofphil-inquiries-updated')), 0);
-                } catch {}
+              <option value="ALL">All Statuses</option>
+              <option value="NEW">New / Unread</option>
+              <option value="READ">Read</option>
+              <option value="IN_PROGRESS">In Progress</option>
+              <option value="ANSWERED">Answered</option>
+              <option value="CLOSED">Closed</option>
+            </select>
+
+            <select
+              value={readFilter}
+              onChange={(e) => {
+                setReadFilter(e.target.value);
+                setPage(1);
               }}
-              className="px-3 py-1.5 rounded-lg border border-[#CBD5E1] bg-white hover:bg-[#FAFBF8] text-[#64748B] font-bold text-xs cursor-pointer transition"
+              className="h-10 px-3 border border-[#D5E2D9] rounded-lg text-xs bg-white text-[#10241A]"
             >
-              Mark All Unread
-            </button>
+              <option value="all">All Read States</option>
+              <option value="unread">Unread by Admin</option>
+              <option value="read">Read by Admin</option>
+            </select>
           </div>
         </div>
 
-        {/* Unified Admin Notification Feed (Appointments, Inquiries, Referrals, Encounters) */}
-        <div className="space-y-3">
-          {(() => {
-            const unifiedAdminNotifs: Array<{
-              id: string;
-              category: string;
-              badgeColor: string;
-              icon: string;
-              title: string;
-              message: string;
-              timestamp: string;
-              isUnread: boolean;
-              inquiryObj?: any;
-              href?: string;
-              actionLabel?: string;
-            }> = [];
+        {/* Directory Table */}
+        <div className="bg-white rounded-2xl border border-[#EEF2EF] shadow-xs overflow-hidden">
+          {isLoading ? (
+            <div className="p-10 text-center text-[#5A7466]">
+              <i className="fa-solid fa-circle-notch fa-spin text-[#0B6B3A] mr-2" />
+              Loading inquiries...
+            </div>
+          ) : inquiries.length === 0 ? (
+            <div className="p-12 text-center text-[#5A7466] space-y-2">
+              <i className="fa-regular fa-folder-open text-2xl text-[#94A3B8] block" />
+              <div className="font-bold text-[#10241A]">No Inquiries Found</div>
+              <p className="m-0 text-[11px]">No patient inquiries match your current filters.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-[#FAFBF8] border-b border-[#EEF2EF] text-[10.5px] uppercase text-[#5A7466]">
+                    <th className="py-3 px-4">Inquiry ID</th>
+                    <th className="py-3 px-4">Patient</th>
+                    <th className="py-3 px-4">Subject</th>
+                    <th className="py-3 px-4">Submitted</th>
+                    <th className="py-3 px-4">Files</th>
+                    <th className="py-3 px-4">Read</th>
+                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4">Assigned</th>
+                    <th className="py-3 px-4 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#EEF2EF]">
+                  {inquiries.map((inq) => (
+                    <tr key={inq.id} className="hover:bg-[#FAFBF8] transition">
+                      <td className="py-3 px-4 font-mono font-bold text-[#0B6B3A] whitespace-nowrap">
+                        {inq.id}
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="font-bold text-[#10241A]">{inq.patient_name}</div>
+                        <div className="font-mono text-[10.5px] text-[#5A7466]">{inq.patient_id}</div>
+                      </td>
+                      <td className="py-3 px-4 max-w-[240px]">
+                        <div className="font-semibold text-[#10241A] truncate">{inq.subject}</div>
+                      </td>
+                      <td className="py-3 px-4 text-[#64748B] whitespace-nowrap">
+                        {new Date(inq.created_at).toLocaleString()}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#F1F5F9] text-[#334155] font-semibold">
+                          <i className="fa-solid fa-paperclip text-[10px]" />
+                          {inq.all_attachments_count}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        {inq.admin_read ? (
+                          <span className="text-[#0B6B3A] font-semibold">
+                            <i className="fa-solid fa-check-double mr-1" /> Read
+                          </span>
+                        ) : (
+                          <span className="text-red-600 font-bold">
+                            <i className="fa-solid fa-circle text-[7px] mr-1 align-middle" /> Unread
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold border whitespace-nowrap ${
+                            STATUS_BADGE[inq.status] || STATUS_BADGE.NEW
+                          }`}
+                        >
+                          {inq.status.replace('_', ' ')}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-[#5A7466]">
+                        {inq.assigned_admin || 'Unassigned'}
+                      </td>
+                      <td className="py-3 px-4 text-right whitespace-nowrap">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenInquiry(inq)}
+                          className="px-3 py-1.5 rounded-lg bg-[#0B6B3A] hover:bg-[#064826] text-white font-semibold cursor-pointer border-0"
+                        >
+                          View Inquiry
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
-            // 1. Inquiries
-            inquiries.forEach((inq: any) => {
-              const isUnread = !inq.isRead && inq.status !== 'Answered' && inq.status !== 'Completed';
-              unifiedAdminNotifs.push({
-                id: `inq-${inq.id}`,
-                category: 'Patient / Public Inquiry',
-                badgeColor: 'bg-blue-50 text-blue-700 border-blue-200',
-                icon: 'fa-envelope-open-text text-blue-600',
-                title: `${inq.subject || 'Clinic Inquiry'} (${inq.id}) — ${inq.name || inq.sender_name || 'Sender'}`,
-                message: `${inq.message || ''} (${inq.email || ''} • ${inq.phone || ''})`,
-                timestamp: inq.date || inq.createdAt || 'Recent',
-                isUnread,
-                inquiryObj: inq,
-                actionLabel: 'Reply',
-              });
-            });
-
-            // 2. Appointments & Pending Requests from localStorage (client-only after mount)
-            if (isMounted) {
-              for (let i = 0; i < localStorage.length; i++) {
-                const k = localStorage.key(i);
-                if (k && k.startsWith('ofphil_appointments_')) {
-                  try {
-                    const list = JSON.parse(localStorage.getItem(k) || '[]');
-                    if (Array.isArray(list)) {
-                      list.forEach((a: any) => {
-                        const isPending = a.status === 'Pending Nurse Approval';
-                        unifiedAdminNotifs.push({
-                          id: `apt-${a.id}`,
-                          category: isPending ? 'Appointment Request (Needs Approval)' : 'Clinic Appointment',
-                          badgeColor: isPending
-                            ? 'bg-amber-50 text-amber-800 border-amber-200'
-                            : 'bg-emerald-50 text-emerald-700 border-emerald-200',
-                          icon: isPending ? 'fa-hourglass-half text-amber-600' : 'fa-calendar-check text-[#0B6B3A]',
-                          title: `${a.appointment_type || 'Clinic Appointment'} (${a.id}) — ${a.patient_name || a.patient_id}`,
-                          message: `Schedule: ${a.appointment_date} • ${a.appointment_time}${a.notes ? ` — Notes: ${a.notes}` : ''}`,
-                          timestamp: a.created_at || a.appointment_date || 'Recent',
-                          isUnread: isPending,
-                          href: isPending ? `/admin/patient-records/${a.patient_id || 'M26-11-00001'}` : '/admin/appointments',
-                          actionLabel: isPending ? 'Review & Approve' : 'View Schedule',
-                        });
-                      });
-                    }
-                  } catch {}
-                }
-              }
-            }
-
-            if (unifiedAdminNotifs.length === 0) {
-              return (
-                <div className="bg-white rounded-2xl border border-[#D5E2D9] p-12 text-center text-[#64748B] text-xs">
-                  <i className="fa-regular fa-bell text-3xl text-[#94A3B8] mb-2 block" />
-                  No clinic notifications or pending items yet.
-                </div>
-              );
-            }
-
-            unifiedAdminNotifs.sort((a, b) => {
-              const ta = Date.parse(a.timestamp) || 0;
-              const tb = Date.parse(b.timestamp) || 0;
-              return tb - ta;
-            });
-
-            return unifiedAdminNotifs.map((n) => {
-              const isMarkedRead = adminReadIds.includes(n.id);
-              return (
-              <div
-                key={n.id}
-                className={`p-5 rounded-2xl border transition shadow-xs flex flex-col gap-3 ${
-                  !isMarkedRead ? 'bg-[#F0FDF4]/50 border-[#A7F3D0]' : 'bg-white border-[#E2E8F0]'
-                }`}
-              >
-                <div className="flex items-start gap-3.5 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-white border border-[#D5E2D9] flex items-center justify-center text-base shrink-0 shadow-2xs">
-                    <i className={`fa-solid ${n.icon}`} />
-                  </div>
-                  <div className="space-y-1.5 min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${n.badgeColor}`}>
-                        {n.category}
-                      </span>
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
-                          !isMarkedRead ? 'bg-[#DC2626] text-white' : 'bg-slate-100 text-slate-600'
-                        }`}
-                      >
-                        {!isMarkedRead ? 'NEW' : 'READ'}
-                      </span>
-                      <span className="text-[11px] text-[#64748B]">
-                        <i className="fa-regular fa-clock mr-1" />
-                        {n.timestamp}
-                      </span>
-                    </div>
-                    <div className="font-bold text-sm text-[#10241A]">{n.title}</div>
-                    <p className="text-xs text-[#334155] m-0 whitespace-pre-wrap leading-relaxed bg-white/90 p-3 rounded-xl border border-[#EEF2EF] w-full">
-                      {n.message}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => toggleAdminRead(n.id)}
-                    className="px-3 py-1.5 rounded-lg border border-[#CBD5E1] bg-white hover:bg-[#FAFBF8] text-[#10241A] font-semibold text-[11px] cursor-pointer transition"
-                  >
-                    {isMarkedRead ? 'Mark Unread' : '✓ Mark Read'}
-                  </button>
-                  {n.inquiryObj ? (
-                    <button
-                      type="button"
-                      onClick={() => handleOpenReply(n.inquiryObj)}
-                      className="px-3.5 py-1.5 rounded-lg bg-[#0B6B3A] hover:bg-[#064826] text-white font-bold text-[11px] cursor-pointer transition border-0"
-                    >
-                      {n.actionLabel} &rarr;
-                    </button>
-                  ) : (
-                    n.href && (
-                      <a
-                        href={n.href}
-                        className="px-3.5 py-1.5 rounded-lg bg-[#0B6B3A] hover:bg-[#064826] text-white font-bold text-[11px] no-underline transition"
-                      >
-                        {n.actionLabel} &rarr;
-                      </a>
-                    )
-                  )}
-                </div>
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="px-4 py-3 border-t border-[#EEF2EF] flex items-center justify-between text-xs text-[#5A7466]">
+              <span>
+                Page {page} of {totalPages}
+              </span>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  className="px-3 py-1 rounded border border-[#D5E2D9] bg-white disabled:opacity-50 cursor-pointer"
+                >
+                  Previous
+                </button>
+                <button
+                  type="button"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  className="px-3 py-1 rounded border border-[#D5E2D9] bg-white disabled:opacity-50 cursor-pointer"
+                >
+                  Next
+                </button>
               </div>
-              );
-            });
-          })()}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Expanded Interactive Modal with Horizontal Tabs & Scrollable Content */}
+      {/* Inquiry Detail & Reply Modal */}
       {activeInquiry && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/60 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl max-w-3xl w-full border border-[#D5E2D9] shadow-2xl flex flex-col max-h-[90vh] text-xs font-sans animate-in fade-in zoom-in-95 duration-150 overflow-hidden">
-            {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-[#EEF2EF] flex items-center justify-between shrink-0 bg-[#FAFBF8]">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-[#E8F5EC] text-[#0B6B3A] flex items-center justify-center text-sm font-bold shrink-0">
-                  <i className="fa-solid fa-reply" />
-                </div>
-                <div>
-                  <h3 className="font-['Outfit'] text-base font-bold text-[#10241A] m-0">
-                    Respond to Patient Inquiry
-                  </h3>
-                  <div className="text-[11px] text-[#64748B] mt-0.5">
-                    <span className="font-mono text-gray-500 font-semibold">{activeInquiry.id}</span>
-                    <span className="mx-1.5 text-gray-300">&bull;</span>
-                    <span className="font-semibold text-[#10241A]">{activeInquiry.name}</span>
-                  </div>
-                  <div className="text-[11px] text-[#0B6B3A] flex items-center gap-2 mt-0.5 font-medium">
-                    <span className="inline-flex items-center gap-1">
-                      <i className="fa-solid fa-envelope text-[10px]" />
-                      {activeInquiry.email}
-                    </span>
-                    {activeInquiry.contactNumber && (
-                      <>
-                        <span className="text-gray-300">&bull;</span>
-                        <span className="inline-flex items-center gap-1">
-                          <i className="fa-solid fa-phone text-[10px]" />
-                          {activeInquiry.contactNumber}
-                        </span>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setActiveInquiry(null)}
-                className="w-8 h-8 rounded-lg hover:bg-slate-100 text-[#64748B] flex items-center justify-center cursor-pointer border-0 bg-transparent text-sm"
-              >
-                <i className="fa-solid fa-xmark" />
-              </button>
-            </div>
-
-            {/* HORIZONTAL TABS (Tab 1: Files & Documents, Tab 2: Send Response / Dispatch) */}
-            <div className="px-6 pt-2.5 border-b border-[#D5E2D9] bg-[#FAFBF8] flex items-center gap-3 shrink-0">
-              <button
-                type="button"
-                onClick={() => setModalTab('documents')}
-                className={`pb-2.5 px-3 font-semibold text-xs transition border-b-2 flex items-center gap-2 cursor-pointer ${
-                  modalTab === 'documents'
-                    ? 'border-[#0B6B3A] text-[#0B6B3A] font-bold'
-                    : 'border-transparent text-[#64748B] hover:text-[#10241A]'
-                }`}
-              >
-                <i className="fa-solid fa-folder-open text-xs" />
-                <span>Files &amp; Documents Submitted by Patient</span>
-                <span
-                  className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                    modalTab === 'documents'
-                      ? 'bg-[#0B6B3A] text-white'
-                      : 'bg-slate-200 text-slate-700'
-                  }`}
-                >
-                  {activeInquiry.patientAttachments?.length || 0}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setModalTab('compose')}
-                className={`pb-2.5 px-3 font-semibold text-xs transition border-b-2 flex items-center gap-2 cursor-pointer ${
-                  modalTab === 'compose'
-                    ? 'border-[#0B6B3A] text-[#0B6B3A] font-bold'
-                    : 'border-transparent text-[#64748B] hover:text-[#10241A]'
-                }`}
-              >
-                <i className="fa-solid fa-paper-plane text-xs" />
-                <span>Send Response / Dispatch</span>
-              </button>
-            </div>
-
-            {/* Modal Body Container with Smooth Scrollbar */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-4">
-              {/* TAB 1: FILES & DOCUMENTS SUBMITTED BY PATIENT */}
-              {modalTab === 'documents' && (
-                <div className="space-y-4">
-                  {/* Inquiry Question & Message Reference */}
-                  <div className="bg-[#FAFBF8] border border-[#E2E8F0] rounded-xl p-4 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-[#10241A] text-xs">
-                        {activeInquiry.subject}
-                      </span>
-                      <span className="text-[10px] text-[#94A3B8]">
-                        Received: {activeInquiry.date}
-                      </span>
-                    </div>
-                    <p className="text-xs text-[#475569] leading-relaxed m-0 italic bg-white p-3 rounded-lg border border-[#EEF2EF]">
-                      &ldquo;{activeInquiry.message}&rdquo;
-                    </p>
-                  </div>
-
-                  {/* Document List */}
-                  <div>
-                    <label className="block text-[11px] font-bold text-[#334155] uppercase tracking-wider mb-2">
-                      Verified Documents &amp; Uploads Submitted ({activeInquiry.patientAttachments?.length || 0})
-                    </label>
-
-                    {activeInquiry.patientAttachments && activeInquiry.patientAttachments.length > 0 ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {activeInquiry.patientAttachments.map((att, idx) => (
-                          <div
-                            key={idx}
-                            className="bg-[#FAFBF8] border border-[#CBD5E1] rounded-xl p-3.5 flex flex-col justify-between hover:border-[#0B6B3A] transition shadow-2xs group"
-                          >
-                            <div className="flex items-start gap-3">
-                              <div
-                                className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                                  att.type === 'pdf' ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-[#0B6B3A]'
-                                }`}
-                              >
-                                <i
-                                  className={`fa-solid ${
-                                    att.type === 'pdf' ? 'fa-file-pdf' : 'fa-image'
-                                  } text-lg`}
-                                />
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <div className="font-semibold text-xs text-[#10241A] truncate group-hover:text-[#0B6B3A]">
-                                  {att.name}
-                                </div>
-                                <div className="text-[10.5px] text-[#64748B] mt-0.5">
-                                  {att.type === 'pdf' ? 'PDF Document' : 'Image File'}{' '}
-                                  {att.size && `• ${att.size}`}
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="mt-3.5 pt-2.5 border-t border-[#EEF2EF] flex items-center justify-between">
-                              <button
-                                type="button"
-                                onClick={() => setPreviewAttachment(att)}
-                                className="px-3 py-1.5 rounded-lg bg-white border border-[#CBD5E1] hover:bg-[#E8F5EC] text-[#0B6B3A] text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition shadow-2xs"
-                              >
-                                <i className="fa-solid fa-eye text-xs" />
-                                <span>Preview Document</span>
-                              </button>
-
-                              <a
-                                href={att.url}
-                                download={att.name}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-xs text-[#64748B] hover:text-[#0B6B3A] no-underline font-medium flex items-center gap-1"
-                              >
-                                <i className="fa-solid fa-download text-[10px]" />
-                                <span>Download</span>
-                              </a>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="p-8 text-center bg-[#FAFBF8] border border-dashed border-[#CBD5E1] rounded-xl text-gray-400">
-                        <i className="fa-solid fa-folder-open text-2xl mb-2 text-gray-300" />
-                        <div className="text-xs font-semibold text-gray-600">No attachments provided</div>
-                        <p className="text-[11px] text-gray-400 m-0 mt-0.5">
-                          The patient did not submit any files or images along with this inquiry message.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Switch Tab shortcut */}
-                  <div className="pt-3 border-t border-[#EEF2EF] flex justify-end">
-                    <button
-                      type="button"
-                      onClick={() => setModalTab('compose')}
-                      className="px-5 py-2 rounded-xl bg-[#0B6B3A] text-white font-bold text-xs flex items-center gap-2 cursor-pointer shadow-xs hover:bg-[#064826] transition"
-                    >
-                      <span>Proceed to Reply / Dispatch Form</span>
-                      <i className="fa-solid fa-arrow-right text-xs" />
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* TAB 2: COMPOSE & SEND RESPONSE (With Scrollbar) */}
-              {modalTab === 'compose' && (
-                <div className="space-y-4">
-                  {/* Inquiry Reference Summary */}
-                  <div className="bg-[#FAFBF8] border border-[#E2E8F0] rounded-xl p-3 space-y-1">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-bold text-[#10241A]">{activeInquiry.subject}</span>
-                      <span className="text-[10.5px] text-[#94A3B8]">{activeInquiry.date}</span>
-                    </div>
-                    <p className="text-xs text-[#475569] leading-relaxed m-0 italic bg-white p-2.5 rounded-lg border border-[#EEF2EF]">
-                      &ldquo;{activeInquiry.message}&rdquo;
-                    </p>
-                  </div>
-
-                  {/* Past Replies if any */}
-                  {activeInquiry.replyHistory && activeInquiry.replyHistory.length > 0 && (
-                    <div className="space-y-2">
-                      <label className="block text-[11px] font-bold text-[#334155] uppercase tracking-wider">
-                        Previous Communication History
-                      </label>
-                      {activeInquiry.replyHistory.map((rep, idx) => (
-                        <div key={idx} className="bg-emerald-50/60 border border-emerald-100 rounded-xl p-3 text-xs">
-                          <div className="font-semibold text-[#064826] flex items-center justify-between">
-                            <span>{rep.sender}</span>
-                            <span className="text-[10px] text-[#64748B]">{rep.timestamp}</span>
-                          </div>
-                          <div className="text-[#2E4538] mt-1">{rep.message}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Response Form */}
-                  <form onSubmit={handleSendReply} className="space-y-4">
-                    {/* Channel Selector */}
-                    <div>
-                      <label className="block text-[11px] font-bold text-[#334155] mb-1.5 uppercase tracking-wider">
-                        Reply Channel &amp; Delivery Option
-                      </label>
-                      <div className="grid grid-cols-2 gap-2.5">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setReplyChannel('email');
-                            setReplyTo(activeInquiry.email);
-                          }}
-                          className={`p-2.5 rounded-xl border text-xs font-semibold flex flex-col items-center justify-center gap-1 transition cursor-pointer ${
-                            replyChannel === 'email'
-                              ? 'bg-[#E8F5EC] border-[#0B6B3A] text-[#0B6B3A] shadow-xs ring-1 ring-[#0B6B3A]/20'
-                              : 'bg-[#FAFBF8] border-[#D5E2D9] text-[#64748B] hover:text-[#10241A]'
-                          }`}
-                        >
-                          <div className="flex items-center gap-1.5 font-bold">
-                            <i className="fa-solid fa-envelope text-xs" />
-                            <span>Send via Email</span>
-                          </div>
-                          <span className="text-[10px] text-[#5A7466] truncate max-w-full">
-                            {activeInquiry.email}
-                          </span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setReplyChannel('sms');
-                            setReplyTo(activeInquiry.contactNumber || '');
-                            setAttachedFile(null);
-                          }}
-                          className={`p-2.5 rounded-xl border text-xs font-semibold flex flex-col items-center justify-center gap-1 transition cursor-pointer ${
-                            replyChannel === 'sms'
-                              ? 'bg-[#E8F5EC] border-[#0B6B3A] text-[#0B6B3A] shadow-xs ring-1 ring-[#0B6B3A]/20'
-                              : 'bg-[#FAFBF8] border-[#D5E2D9] text-[#64748B] hover:text-[#10241A]'
-                          }`}
-                        >
-                          <div className="flex items-center gap-1.5 font-bold">
-                            <i className="fa-solid fa-mobile-screen text-xs" />
-                            <span>Send via Mobile (SMS)</span>
-                          </div>
-                          <span className="text-[10px] text-[#5A7466] truncate max-w-full">
-                            {activeInquiry.contactNumber || 'No mobile registered'}
-                          </span>
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* To Recipient Input */}
-                    <div>
-                      <label className="block text-[11px] font-bold text-[#334155] mb-1">
-                        To: <span className="text-red-500">*</span>
-                      </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                          <i className={`fa-solid ${replyChannel === 'email' ? 'fa-at' : 'fa-phone'} text-xs`} />
-                        </div>
-                        <input
-                          type={replyChannel === 'email' ? 'email' : 'text'}
-                          value={replyTo}
-                          onChange={(e) => setReplyTo(e.target.value)}
-                          placeholder={replyChannel === 'email' ? 'recipient@email.com' : '09123456789'}
-                          className="w-full pl-9 pr-3 py-2 border border-[#CBD5E1] rounded-xl text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A] focus:ring-1 focus:ring-[#0B6B3A]"
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    {/* Subject Input */}
-                    {replyChannel === 'email' && (
-                      <div>
-                        <label className="block text-[11px] font-bold text-[#334155] mb-1">
-                          Subject: <span className="text-red-500">*</span>
-                        </label>
-                        <div className="relative">
-                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                            <i className="fa-solid fa-heading text-xs" />
-                          </div>
-                          <input
-                            type="text"
-                            value={replySubject}
-                            onChange={(e) => setReplySubject(e.target.value)}
-                            placeholder="Email Subject"
-                            className="w-full pl-9 pr-3 py-2 border border-[#CBD5E1] rounded-xl text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A] focus:ring-1 focus:ring-[#0B6B3A]"
-                            required
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Body textarea */}
-                    <div>
-                      <label className="block text-[11px] font-bold text-[#334155] mb-1">
-                        Body: <span className="text-red-500">*</span>
-                      </label>
-                      <textarea
-                        rows={replyChannel === 'email' ? 5 : 4}
-                        value={replyText}
-                        onChange={(e) => setReplyText(e.target.value)}
-                        placeholder={
-                          replyChannel === 'email'
-                            ? 'Type official guidance, requirements checklist, or appointment scheduling details...'
-                            : 'Type concise SMS message to patient (e.g., Ang inyong libreng konsultasyon ay nakatakda sa Biyernes)...'
-                        }
-                        className="w-full p-3 border border-[#CBD5E1] rounded-xl text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A] focus:ring-2 focus:ring-[#0B6B3A]/15 leading-relaxed"
-                        required
-                      />
-                    </div>
-
-                    {/* File Attachment Upload: PNG, JPEG, JPG, PDF (Max 10MB) */}
-                    {replyChannel === 'email' && (
-                      <div>
-                        <div className="flex items-center justify-between mb-1">
-                          <label className="block text-[11px] font-bold text-[#334155]">
-                            Attach Picture or Document (Optional)
-                          </label>
-                          <span className="text-[10px] text-[#64748B]">
-                            Formats: PNG, JPG, JPEG, PDF &bull; Max: 10MB
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <label className="px-3.5 py-2 rounded-xl border border-[#D5E2D9] bg-[#FAFBF8] hover:bg-[#F1F5F9] text-[#334155] text-xs font-semibold flex items-center gap-2 cursor-pointer transition shadow-2xs">
-                            <i className="fa-solid fa-cloud-arrow-up text-xs text-[#0B6B3A]" />
-                            <span>{attachedFile ? 'Change Attachment' : 'Upload File / Image'}</span>
-                            <input
-                              type="file"
-                              accept=".png,.jpg,.jpeg,.pdf,image/png,image/jpeg,application/pdf"
-                              className="hidden"
-                              onChange={handleFileUpload}
-                            />
-                          </label>
-
-                          {attachedFile && (
-                            <button
-                              type="button"
-                              onClick={() => setAttachedFile(null)}
-                              className="text-xs text-[#DC2626] hover:underline cursor-pointer bg-transparent border-0 flex items-center gap-1"
-                            >
-                              <i className="fa-solid fa-trash-can text-[11px]" />
-                              <span>Remove</span>
-                            </button>
-                          )}
-                        </div>
-
-                        {attachedFile && (
-                          <div className="mt-2.5 flex items-center justify-between p-2.5 bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl">
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <i
-                                className={`fa-solid ${
-                                  attachedFile.type === 'pdf' ? 'fa-file-pdf text-[#DC2626]' : 'fa-image text-[#0B6B3A]'
-                                } text-base shrink-0`}
-                              />
-                              <div className="min-w-0">
-                                <div className="font-semibold text-xs text-[#10241A] truncate max-w-[280px]">
-                                  {attachedFile.name}
-                                </div>
-                                <div className="text-[10px] text-[#64748B]">{attachedFile.size}</div>
-                              </div>
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setPreviewAttachment({
-                                  name: attachedFile.name,
-                                  url: attachedFile.dataUrl,
-                                  type: attachedFile.type as 'image' | 'pdf',
-                                })
-                              }
-                              className="px-2.5 py-1 rounded-lg bg-white border border-[#D5E2D9] hover:bg-[#E8F5EC] text-[#0B6B3A] text-xs font-semibold flex items-center gap-1 cursor-pointer transition shadow-2xs"
-                            >
-                              <i className="fa-solid fa-eye text-[10px]" />
-                              <span>Preview</span>
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {replyChannel === 'sms' && (
-                      <div className="p-2.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-[11px] text-[#64748B] flex items-center gap-2">
-                        <i className="fa-solid fa-info-circle text-[#0B6B3A] text-xs shrink-0" />
-                        <span>SMS mode: Plain text message will be transmitted directly to {replyTo || 'mobile'} (attachments disabled for SMS).</span>
-                      </div>
-                    )}
-
-                    {/* Bottom action buttons */}
-                    <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#EEF2EF]">
-                      <button
-                        type="button"
-                        onClick={() => setActiveInquiry(null)}
-                        disabled={isSendingReply}
-                        className="px-4 py-2 rounded-xl border border-[#D5E2D9] text-[#64748B] font-semibold hover:bg-slate-50 cursor-pointer bg-transparent text-xs"
-                      >
-                        Close
-                      </button>
-                      <button
-                        type="submit"
-                        disabled={isSendingReply}
-                        className="px-5 py-2 rounded-xl bg-[#0B6B3A] hover:bg-[#064826] text-white font-bold text-xs border-0 cursor-pointer shadow-xs flex items-center gap-1.5 disabled:opacity-50"
-                      >
-                        <i className={`fa-solid ${isSendingReply ? 'fa-spinner fa-spin' : 'fa-paper-plane'} text-xs`} />
-                        <span>{isSendingReply ? 'Sending Response...' : 'Dispatch Reply'}</span>
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Full-Screen / Modal Viewer for Patient & Reply Attachments (PDF & Images) */}
-      {previewAttachment && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6 bg-black/75 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl max-w-3xl w-full h-[85vh] flex flex-col shadow-2xl border border-[#D5E2D9] overflow-hidden animate-in zoom-in-95 duration-150">
-            {/* Modal Bar */}
-            <div className="px-5 py-3.5 bg-[#FAFBF8] border-b border-[#EEF2EF] flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-lg bg-emerald-50 text-[#0B6B3A] flex items-center justify-center shrink-0">
-                  <i
-                    className={`fa-solid ${
-                      previewAttachment.type === 'pdf' ? 'fa-file-pdf text-[#DC2626]' : 'fa-image text-[#0B6B3A]'
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
+          onClick={() => setActiveInquiry(null)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-3xl w-full max-h-[92vh] overflow-y-auto border border-[#D5E2D9] shadow-2xl p-6 text-xs space-y-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[#EEF2EF] pb-3">
+              <div>
+                <div className="flex flex-wrap items-center gap-2 mb-1">
+                  <span className="font-mono font-bold text-[#0B6B3A] bg-[#E8F5EC] px-2 py-0.5 rounded">
+                    {activeInquiry.id}
+                  </span>
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                      STATUS_BADGE[activeInquiry.status] || STATUS_BADGE.NEW
                     }`}
-                  />
+                  >
+                    {activeInquiry.status.replace('_', ' ')}
+                  </span>
+                  {activeInquiry.admin_read && activeInquiry.admin_read_at && (
+                    <span className="text-[11px] text-[#5A7466]">
+                      Read by {activeInquiry.admin_read_by} at{' '}
+                      {new Date(activeInquiry.admin_read_at).toLocaleString()}
+                    </span>
+                  )}
                 </div>
-                <div className="min-w-0">
-                  <h4 className="font-bold text-xs text-[#10241A] truncate m-0">
-                    {previewAttachment.name}
-                  </h4>
-                  <div className="text-[10.5px] text-[#64748B]">
-                    {previewAttachment.type === 'pdf' ? 'Portable Document Format (PDF)' : 'Image Preview'}
-                  </div>
+                <h3 className="font-['Outfit'] text-lg font-bold text-[#10241A] m-0">
+                  {activeInquiry.subject}
+                </h3>
+                <div className="text-[11.5px] text-[#5A7466] mt-0.5">
+                  Patient: <strong className="text-[#10241A]">{activeInquiry.patient_name}</strong> (
+                  <span className="font-mono">{activeInquiry.patient_id}</span>) &bull;{' '}
+                  {activeInquiry.patient_email || 'No email'} &bull;{' '}
+                  {activeInquiry.patient_contact || 'No mobile'}
                 </div>
               </div>
 
               <div className="flex items-center gap-2">
-                <a
-                  href={previewAttachment.url}
-                  download={previewAttachment.name}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-3 py-1.5 rounded-lg border border-[#D5E2D9] hover:bg-white text-xs font-semibold text-[#1E293B] flex items-center gap-1.5 transition no-underline shadow-2xs"
-                >
-                  <i className="fa-solid fa-arrow-down-to-bracket text-xs text-[#0B6B3A]" />
-                  <span>Open / Download</span>
-                </a>
+                {activeInquiry.status !== 'IN_PROGRESS' && activeInquiry.status !== 'CLOSED' && (
+                  <button
+                    type="button"
+                    disabled={isUpdatingStatus}
+                    onClick={() => handleUpdateStatus('IN_PROGRESS')}
+                    className="px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 font-semibold cursor-pointer"
+                  >
+                    Mark In Progress
+                  </button>
+                )}
+                {activeInquiry.status !== 'CLOSED' && (
+                  <button
+                    type="button"
+                    disabled={isUpdatingStatus}
+                    onClick={() => handleUpdateStatus('CLOSED')}
+                    className="px-3 py-1.5 rounded-lg bg-slate-100 border border-slate-300 text-slate-700 font-semibold cursor-pointer"
+                  >
+                    Close Inquiry
+                  </button>
+                )}
                 <button
                   type="button"
-                  onClick={() => setPreviewAttachment(null)}
-                  className="w-8 h-8 rounded-lg hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center cursor-pointer border-0 bg-transparent"
+                  onClick={() => setActiveInquiry(null)}
+                  className="text-gray-400 hover:text-gray-700 bg-transparent border-0 cursor-pointer text-base p-1"
                 >
-                  <i className="fa-solid fa-xmark text-sm" />
+                  <i className="fa-solid fa-xmark" />
                 </button>
               </div>
             </div>
 
-            {/* Document Viewer Body */}
-            <div className="flex-1 bg-slate-100 p-4 overflow-auto flex items-center justify-center">
-              {previewAttachment.type === 'image' ? (
-                <img
-                  src={previewAttachment.url}
-                  alt={previewAttachment.name}
-                  className="max-h-full max-w-full object-contain rounded-lg shadow-md bg-white"
-                />
+            {/* Patient Message & Attachments */}
+            <div className="p-4 rounded-xl bg-[#FAFBF8] border border-[#D5E2D9] space-y-3">
+              <div className="flex justify-between text-[11px] text-[#5A7466] font-semibold">
+                <span>Patient Message</span>
+                <span>{new Date(activeInquiry.created_at).toLocaleString()}</span>
+              </div>
+              <p className="m-0 text-[#10241A] whitespace-pre-wrap leading-relaxed">
+                {activeInquiry.message}
+              </p>
+
+              {activeInquiry.attachments && activeInquiry.attachments.length > 0 && (
+                <div className="pt-3 border-t border-[#EEF2EF] space-y-2">
+                  <div className="font-bold text-[#10241A]">
+                    Patient Attachments ({activeInquiry.attachments.length})
+                  </div>
+                  <div className="space-y-1.5">
+                    {activeInquiry.attachments.map((att) => (
+                      <div
+                        key={att.id}
+                        className="p-2.5 bg-white border border-[#D5E2D9] rounded-lg flex flex-wrap items-center justify-between gap-2"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <i
+                            className={`fa-solid ${
+                              att.file_type === 'pdf' ? 'fa-file-pdf text-red-600' : 'fa-file-image text-[#0B6B3A]'
+                            } text-sm`}
+                          />
+                          <div className="min-w-0">
+                            <div className="font-semibold text-[#10241A] truncate">{att.original_filename}</div>
+                            <div className="text-[10px] text-[#64748B]">
+                              {att.content_type} &bull; {att.file_size_display}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleAttachmentAction(activeInquiry.id, att, false)}
+                            className="px-2.5 py-1 rounded bg-[#E8F5EC] text-[#0B6B3A] font-semibold border-0 cursor-pointer"
+                          >
+                            View
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleAttachmentAction(activeInquiry.id, att, true)}
+                            className="px-2.5 py-1 rounded border border-[#D5E2D9] bg-white text-[#334155] font-semibold cursor-pointer"
+                          >
+                            Download
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Previous Replies */}
+            {activeInquiry.replies && activeInquiry.replies.length > 0 && (
+              <div className="space-y-2">
+                <div className="font-bold text-[#5A7466] uppercase text-[10.5px]">
+                  Conversation History ({activeInquiry.replies.length} Repl{activeInquiry.replies.length > 1 ? 'ies' : 'y'})
+                </div>
+                {activeInquiry.replies.map((rep) => (
+                  <div key={rep.id} className="p-3.5 rounded-xl bg-[#ECFDF5] border border-[#A7F3D0] space-y-1.5">
+                    <div className="flex justify-between text-[11px] font-bold text-[#064826]">
+                      <span>{rep.admin_name}</span>
+                      <span className="font-normal text-[#0B6B3A]">
+                        {new Date(rep.created_at).toLocaleString()}
+                      </span>
+                    </div>
+                    <p className="m-0 text-[#10241A] whitespace-pre-wrap">{rep.message}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Admin Reply Form */}
+            <form onSubmit={handleSendReply} className="p-4 rounded-xl border border-[#D5E2D9] bg-white space-y-3">
+              <div className="font-bold text-[#10241A]">Send Reply to Patient</div>
+              <textarea
+                rows={4}
+                required
+                value={replyText}
+                onChange={(e) => setReplyText(e.target.value)}
+                placeholder="Write your official clinic response..."
+                className="w-full p-3 border border-[#D5E2D9] rounded-lg text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
+              />
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <select
+                    value={replyChannel}
+                    onChange={(e) => setReplyChannel(e.target.value as 'portal' | 'email' | 'sms')}
+                    className="h-9 px-2.5 border border-[#D5E2D9] rounded-lg text-xs bg-white"
+                  >
+                    <option value="portal">Patient Portal Only</option>
+                    <option value="email">Portal + Email</option>
+                    <option value="sms">Portal + SMS</option>
+                  </select>
+
+                  <label className="px-3 py-1.5 rounded-lg border border-[#D5E2D9] bg-[#FAFBF8] cursor-pointer font-semibold text-[#334155]">
+                    <i className="fa-solid fa-paperclip mr-1 text-[#0B6B3A]" />
+                    {replyFile ? replyFile.name : 'Attach File (Optional)'}
+                    <input
+                      type="file"
+                      accept=".pdf,.png,.jpg,.jpeg"
+                      className="hidden"
+                      onChange={(e) => setReplyFile(e.target.files?.[0] || null)}
+                    />
+                  </label>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSendingReply}
+                  className="px-5 py-2.5 rounded-lg bg-[#0B6B3A] hover:bg-[#064826] disabled:opacity-65 text-white font-bold flex items-center gap-1.5 cursor-pointer border-0"
+                >
+                  {isSendingReply ? (
+                    <>
+                      <i className="fa-solid fa-circle-notch fa-spin" />
+                      <span>Sending Reply...</span>
+                    </>
+                  ) : (
+                    <>
+                      <i className="fa-solid fa-paper-plane" />
+                      <span>Send Reply</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Attachment Preview Modal */}
+      {previewAtt && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70"
+          onClick={() => {
+            URL.revokeObjectURL(previewAtt.url);
+            setPreviewAtt(null);
+          }}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-5 py-3 border-b border-[#EEF2EF] flex items-center justify-between">
+              <span className="font-bold text-xs text-[#10241A] truncate">{previewAtt.name}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  URL.revokeObjectURL(previewAtt.url);
+                  setPreviewAtt(null);
+                }}
+                className="text-gray-500 hover:text-gray-800 bg-transparent border-0 cursor-pointer text-sm"
+              >
+                <i className="fa-solid fa-xmark" />
+              </button>
+            </div>
+            <div className="p-4 flex-1 overflow-auto bg-[#F8FAFC] flex items-center justify-center">
+              {previewAtt.type === 'pdf' ? (
+                <iframe src={previewAtt.url} className="w-full h-[75vh] rounded border border-[#D5E2D9]" title={previewAtt.name} />
               ) : (
-                <iframe
-                  src={previewAttachment.url}
-                  title={previewAttachment.name}
-                  className="w-full h-full rounded-lg border border-slate-300 bg-white"
-                />
+                <img src={previewAtt.url} alt={previewAtt.name} className="max-w-full max-h-[75vh] object-contain rounded" />
               )}
             </div>
           </div>

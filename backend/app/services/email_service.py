@@ -6,7 +6,7 @@ from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
 from email.mime.base import MIMEBase
 from email import encoders
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Tuple
 from app.core.config import get_settings
 
 settings = get_settings()
@@ -877,3 +877,309 @@ def send_appointment_schedule_email(
     except Exception as e:
         print(f"[Brevo SMTP Error] Failed to send appointment schedule email: {e}")
         return False
+
+
+def get_login_2fa_otp_email_template(
+    role_title: str,
+    recipient_name: str,
+    code: str,
+    expires_minutes: int = 5,
+) -> str:
+    """Returns a clinical responsive HTML email template for Two-Factor Authentication login OTP."""
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OFPHIL Security - Two-Factor Authentication Code</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #FAFBF8; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #10241A;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #FAFBF8; padding: 32px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" style="max-width: 560px; background-color: #FFFFFF; border: 1px solid #D5E2D9; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 16px rgba(6, 72, 38, 0.06);">
+          <tr>
+            <td style="background-color: #064826; padding: 24px 32px; text-align: left;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td style="width: 48px; vertical-align: middle;">
+                    <img src="{LOGO_URL}" alt="OFPHIL Logo" width="42" height="42" style="display: block; width: 42px; height: 42px; object-fit: contain; border-radius: 8px; background-color: #FFFFFF; padding: 3px;" />
+                  </td>
+                  <td style="padding-left: 14px; vertical-align: middle;">
+                    <div style="font-size: 20px; font-weight: 700; color: #FFFFFF; letter-spacing: 1px; line-height: 1.2;">OFPHIL</div>
+                    <div style="font-size: 11px; color: #9DBFA9; margin-top: 2px;">Ophthalmological Foundation of the Philippines</div>
+                  </td>
+                  <td align="right" style="vertical-align: middle;">
+                    <span style="display: inline-block; background-color: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.25); color: #86EFAC; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 999px; text-transform: uppercase;">
+                      {role_title}
+                    </span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding: 32px;">
+              <h1 style="margin: 0 0 12px 0; font-size: 22px; font-weight: 700; color: #10241A; line-height: 1.3;">
+                Two-Factor Authentication Verification
+              </h1>
+              <p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: #5A7466;">
+                Dear <strong>{recipient_name}</strong>,
+              </p>
+              <p style="margin: 0 0 20px 0; font-size: 14px; line-height: 1.6; color: #5A7466;">
+                A sign-in attempt to your <strong>{role_title}</strong> account requires Two-Factor Authentication. Enter the six-digit security code below to complete your sign-in:
+              </p>
+
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin: 24px 0;">
+                <tr>
+                  <td style="background-color: #E8F5EC; border: 1px dashed #0B6B3A; border-radius: 10px; padding: 18px 24px; text-align: center;">
+                    <div style="font-size: 12px; font-weight: 600; color: #0B6B3A; text-transform: uppercase; letter-spacing: 0.5px;">Two-Factor Security Code</div>
+                    <div style="font-size: 32px; font-weight: 800; letter-spacing: 6px; color: #064826; margin: 8px 0; font-family: monospace;">{code}</div>
+                    <div style="font-size: 11px; color: #5A7466;">This code expires in {expires_minutes} minutes. Never share this code with anyone.</div>
+                  </td>
+                </tr>
+              </table>
+
+              <div style="background-color: #FEF3C7; border-left: 4px solid #D97706; padding: 12px 16px; border-radius: 6px; margin: 20px 0; font-size: 12.5px; color: #92400E; line-height: 1.5;">
+                <strong>Security Warning:</strong> If you did not initiate this sign-in attempt, someone may have your password. Do not share this code and contact the OFPHIL clinic administrator or change your password immediately.
+              </div>
+
+              <p style="margin: 24px 0 0 0; font-size: 12px; line-height: 1.6; color: #8F9E96;">
+                Ophthalmological Foundation of the Philippines &bull; Secure Authentication Gateway
+              </p>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="background-color: #F8FAFC; border-top: 1px solid #EEF2EF; padding: 18px 32px; text-align: center; font-size: 11px; color: #8F9E96;">
+              &copy; 2026 Ophthalmological Foundation of the Philippines (OFPHIL). Secure Clinical Network.
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+"""
+
+
+def send_login_2fa_otp_email(
+    to_email: str,
+    role_title: str,
+    recipient_name: str,
+    code: str,
+    expires_minutes: int = 5,
+) -> Tuple[bool, Optional[str]]:
+    """
+    Dispatches a Two-Factor Authentication 6-digit OTP email via configured SMTP credentials.
+    Returns (True, None) on success, or (False, error_reason) when unconfigured or failing.
+    """
+    if not settings.MAIL_SERVER or not settings.MAIL_USERNAME or not settings.MAIL_PASSWORD:
+        return (
+            False,
+            "Email delivery service (SMTP) is not configured on the server. "
+            "Please select SMS / Mobile Verification or contact the system administrator.",
+        )
+
+    if not to_email or "@" not in to_email:
+        return (False, "No valid registered email address is associated with this account.")
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = f"OFPHIL Two-Factor Authentication Code ({role_title})"
+    sender = settings.MAIL_DEFAULT_SENDER or settings.MAIL_USERNAME
+    msg["From"] = f"OFPHIL Foundation <{sender}>"
+    msg["To"] = to_email.strip()
+
+    html_content = get_login_2fa_otp_email_template(
+        role_title=role_title,
+        recipient_name=recipient_name,
+        code=code,
+        expires_minutes=expires_minutes,
+    )
+    plain_text = (
+        f"OFPHIL Two-Factor Authentication ({role_title})\n"
+        f"Your 6-digit security code is: {code}\n"
+        f"This code expires in {expires_minutes} minutes.\n"
+        "If you did not initiate this sign-in, please secure your account immediately."
+    )
+    msg.attach(MIMEText(plain_text, "plain", "utf-8"))
+    msg.attach(MIMEText(html_content, "html", "utf-8"))
+
+    try:
+        server = smtplib.SMTP(settings.MAIL_SERVER, settings.MAIL_PORT or 587, timeout=10)
+        if settings.MAIL_USE_TLS:
+            server.starttls()
+        server.login(settings.MAIL_USERNAME, settings.MAIL_PASSWORD)
+        server.sendmail(sender, [to_email.strip()], msg.as_string())
+        server.quit()
+        return (True, None)
+    except Exception as exc:
+        return (False, f"Email delivery failed ({type(exc).__name__}). Please try again or use another method.")
+
+
+def send_contact_change_otp_email(
+    to_email: str,
+    role_title: str,
+    recipient_name: str,
+    code: str,
+    expires_minutes: int = 5,
+) -> Tuple[bool, Optional[str]]:
+    """Dispatches a 6-digit OTP to verify ownership of a newly requested email address."""
+    if not settings.MAIL_SERVER or not settings.MAIL_USERNAME or not settings.MAIL_PASSWORD:
+        return (
+            False,
+            "Email delivery service (SMTP) is not configured on the server. Unable to verify new email address.",
+        )
+
+    if not to_email or "@" not in to_email:
+        return (False, "Invalid destination email address.")
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = f"OFPHIL Security - Verify Your New Email Address ({role_title})"
+    sender = settings.MAIL_DEFAULT_SENDER or settings.MAIL_USERNAME
+    msg["From"] = f"OFPHIL Foundation <{sender}>"
+    msg["To"] = to_email.strip()
+
+    html_content = f"""<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin: 0; padding: 0; background-color: #FAFBF8; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #10241A;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #FAFBF8; padding: 32px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="100%" style="max-width: 560px; background-color: #FFFFFF; border: 1px solid #D5E2D9; border-radius: 12px; overflow: hidden;">
+        <tr><td style="background-color: #064826; padding: 24px 32px;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
+            <td style="width: 48px;"><img src="{LOGO_URL}" alt="OFPHIL Logo" width="42" height="42" style="display: block; width: 42px; height: 42px; object-fit: contain; border-radius: 8px; background-color: #FFFFFF; padding: 3px;" /></td>
+            <td style="padding-left: 14px;"><div style="font-size: 20px; font-weight: 700; color: #FFFFFF;">OFPHIL</div><div style="font-size: 11px; color: #9DBFA9;">Ophthalmological Foundation of the Philippines</div></td>
+            <td align="right"><span style="display: inline-block; background-color: rgba(255,255,255,0.15); color: #86EFAC; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 999px;">{role_title}</span></td>
+          </tr></table>
+        </td></tr>
+        <tr><td style="padding: 32px;">
+          <h1 style="margin: 0 0 12px 0; font-size: 22px; font-weight: 700; color: #10241A;">Verify Your New Email Address</h1>
+          <p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: #5A7466;">Dear <strong>{recipient_name}</strong>,</p>
+          <p style="margin: 0 0 20px 0; font-size: 14px; line-height: 1.6; color: #5A7466;">A request was made to register this email address as the primary verified contact for your <strong>{role_title}</strong> account. Enter the 6-digit verification code below to confirm ownership:</p>
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin: 24px 0;">
+            <tr><td style="background-color: #E8F5EC; border: 1px dashed #0B6B3A; border-radius: 10px; padding: 18px 24px; text-align: center;">
+              <div style="font-size: 12px; font-weight: 600; color: #0B6B3A; text-transform: uppercase;">Email Verification Code</div>
+              <div style="font-size: 32px; font-weight: 800; letter-spacing: 6px; color: #064826; margin: 8px 0; font-family: monospace;">{code}</div>
+              <div style="font-size: 11px; color: #5A7466;">Expires in {expires_minutes} minutes. Never share this code with anyone.</div>
+            </td></tr>
+          </table>
+          <div style="background-color: #FEF3C7; border-left: 4px solid #D97706; padding: 12px 16px; border-radius: 6px; font-size: 12.5px; color: #92400E;">
+            <strong>Security Notice:</strong> If you did not request this email change, simply ignore this message. Your email will not be linked to any account.
+          </div>
+        </td></tr>
+        <tr><td style="background-color: #F8FAFC; border-top: 1px solid #EEF2EF; padding: 18px 32px; text-align: center; font-size: 11px; color: #8F9E96;">&copy; 2026 Ophthalmological Foundation of the Philippines (OFPHIL).</td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>"""
+
+    plain_text = (
+        f"OFPHIL Email Verification ({role_title})\n"
+        f"Your 6-digit verification code is: {code}\n"
+        f"Expires in {expires_minutes} minutes.\n"
+        "If you did not request this change, ignore this message."
+    )
+    msg.attach(MIMEText(plain_text, "plain", "utf-8"))
+    msg.attach(MIMEText(html_content, "html", "utf-8"))
+
+    try:
+        server = smtplib.SMTP(settings.MAIL_SERVER, settings.MAIL_PORT or 587, timeout=10)
+        if settings.MAIL_USE_TLS:
+            server.starttls()
+        server.login(settings.MAIL_USERNAME, settings.MAIL_PASSWORD)
+        server.sendmail(sender, [to_email.strip()], msg.as_string())
+        server.quit()
+        return (True, None)
+    except Exception as exc:
+        return (False, f"Email delivery failed ({type(exc).__name__}).")
+
+
+def send_contact_change_security_notice_email(
+    to_email: str,
+    role_title: str,
+    recipient_name: str,
+    contact_type_label: str,
+    old_masked: str,
+    new_masked: str,
+    changed_at: str,
+    is_new_address: bool = False,
+) -> Tuple[bool, Optional[str]]:
+    """Sends a security notification email to the previous or newly verified email after a contact change."""
+    if not settings.MAIL_SERVER or not settings.MAIL_USERNAME or not settings.MAIL_PASSWORD:
+        return (False, "SMTP not configured.")
+    if not to_email or "@" not in to_email:
+        return (False, "Invalid recipient email.")
+
+    msg = MIMEMultipart("alternative")
+    subject_tag = "Confirmed" if is_new_address else "Security Notice"
+    msg["Subject"] = f"OFPHIL {subject_tag} - {contact_type_label} Updated ({role_title})"
+    sender = settings.MAIL_DEFAULT_SENDER or settings.MAIL_USERNAME
+    msg["From"] = f"OFPHIL Foundation <{sender}>"
+    msg["To"] = to_email.strip()
+
+    intro = (
+        f"Your <strong>{contact_type_label}</strong> has been successfully verified and registered on your <strong>{role_title}</strong> account."
+        if is_new_address
+        else f"The <strong>{contact_type_label}</strong> on your <strong>{role_title}</strong> account was recently changed after OTP verification."
+    )
+
+    html_content = f"""<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin: 0; padding: 0; background-color: #FAFBF8; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #10241A;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #FAFBF8; padding: 32px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="100%" style="max-width: 560px; background-color: #FFFFFF; border: 1px solid #D5E2D9; border-radius: 12px; overflow: hidden;">
+        <tr><td style="background-color: #064826; padding: 24px 32px;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
+            <td style="width: 48px;"><img src="{LOGO_URL}" alt="OFPHIL Logo" width="42" height="42" style="display: block; width: 42px; height: 42px; object-fit: contain; border-radius: 8px; background-color: #FFFFFF; padding: 3px;" /></td>
+            <td style="padding-left: 14px;"><div style="font-size: 20px; font-weight: 700; color: #FFFFFF;">OFPHIL</div><div style="font-size: 11px; color: #9DBFA9;">Security Notification</div></td>
+          </tr></table>
+        </td></tr>
+        <tr><td style="padding: 32px;">
+          <h1 style="margin: 0 0 12px 0; font-size: 20px; font-weight: 700; color: #10241A;">Account Contact Information Updated</h1>
+          <p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: #5A7466;">Dear <strong>{recipient_name}</strong>,</p>
+          <p style="margin: 0 0 18px 0; font-size: 14px; line-height: 1.6; color: #5A7466;">{intro}</p>
+          <div style="background-color: #F8FAFC; border: 1px solid #D5E2D9; border-radius: 10px; padding: 14px 18px; font-size: 13px; line-height: 1.7; margin-bottom: 18px;">
+            <div><strong>Contact Type:</strong> {contact_type_label}</div>
+            <div><strong>Previous Contact:</strong> {old_masked}</div>
+            <div><strong>New Verified Contact:</strong> {new_masked}</div>
+            <div><strong>Date &amp; Time (UTC):</strong> {changed_at}</div>
+          </div>
+          <div style="background-color: #FEF2F2; border-left: 4px solid #DC2626; padding: 12px 16px; border-radius: 6px; font-size: 12.5px; color: #991B1B;">
+            <strong>Unauthorized Change?</strong> If you did not authorize this update, please contact the OFPHIL Clinic Administrator immediately to secure your account.
+          </div>
+        </td></tr>
+        <tr><td style="background-color: #F8FAFC; border-top: 1px solid #EEF2EF; padding: 16px 32px; text-align: center; font-size: 11px; color: #8F9E96;">&copy; 2026 Ophthalmological Foundation of the Philippines (OFPHIL).</td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>"""
+
+    plain_text = (
+        f"OFPHIL Security Notice ({role_title})\n"
+        f"Contact Type: {contact_type_label}\n"
+        f"Previous: {old_masked}\n"
+        f"New Verified: {new_masked}\n"
+        f"Date/Time: {changed_at}\n"
+        "If you did not authorize this update, contact the OFPHIL Clinic Administrator immediately."
+    )
+    msg.attach(MIMEText(plain_text, "plain", "utf-8"))
+    msg.attach(MIMEText(html_content, "html", "utf-8"))
+
+    try:
+        server = smtplib.SMTP(settings.MAIL_SERVER, settings.MAIL_PORT or 587, timeout=10)
+        if settings.MAIL_USE_TLS:
+            server.starttls()
+        server.login(settings.MAIL_USERNAME, settings.MAIL_PASSWORD)
+        server.sendmail(sender, [to_email.strip()], msg.as_string())
+        server.quit()
+        return (True, None)
+    except Exception as exc:
+        return (False, f"Security notice email failed ({type(exc).__name__}).")

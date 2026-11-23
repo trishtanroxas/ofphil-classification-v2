@@ -42,10 +42,10 @@ class DocumentAuthenticityService:
                 data = json.loads(REGISTRY_FILE.read_text(encoding="utf-8"))
                 if isinstance(data, dict):
                     self._records = data
-                    return
             except Exception:
-                pass
-        # Seed from existing mock_store documents without overwriting if registry doesn't exist
+                self._records = {}
+
+        # Ensure all seeded documents have real physical files on disk
         for doc in db_store.documents:
             doc_id = doc.get("id")
             if doc_id and doc_id not in self._records:
@@ -83,7 +83,74 @@ class DocumentAuthenticityService:
                     },
                     "manual_review": None,
                 }
-        self._save_registry()
+
+        updated = False
+        for doc_id, rec in self._records.items():
+            sp = Path(rec.get("storage_path") or "")
+            if not rec.get("storage_path") or not sp.exists():
+                fname = sanitize_filename(rec.get("filename") or f"{doc_id}.pdf")
+                target_path = ORIGINALS_DIR / f"{doc_id}_{fname}"
+                if not target_path.exists():
+                    ext = target_path.suffix.lower()
+                    text_body = rec.get("extracted_text") or f"OFPHIL Document Record: {fname} ({rec.get('patient_id')})"
+                    if ext == ".pdf":
+                        pdf_bytes = self._build_minimal_pdf(text_body)
+                        target_path.write_bytes(pdf_bytes)
+                        rec["mime_type"] = "application/pdf"
+                        rec["file_size_bytes"] = len(pdf_bytes)
+                    else:
+                        img_bytes = self._build_minimal_image(text_body, ext)
+                        target_path.write_bytes(img_bytes)
+                        rec["mime_type"] = "image/png" if ext == ".png" else "image/jpeg"
+                        rec["file_size_bytes"] = len(img_bytes)
+                rec["storage_path"] = str(target_path)
+                rec["sha256_hash"] = hashlib.sha256(target_path.read_bytes()).hexdigest()
+                if not rec.get("mime_type"):
+                    rec["mime_type"] = "application/pdf" if target_path.suffix.lower() == ".pdf" else "image/jpeg"
+                updated = True
+        if updated or not REGISTRY_FILE.exists():
+            self._save_registry()
+
+    def _build_minimal_pdf(self, text: str) -> bytes:
+        clean_lines = [line.replace("(", "[").replace(")", "]") for line in (text or "OFPHIL Document").splitlines()[:15]]
+        tj_lines = " T* ".join(f"({line}) Tj" for line in clean_lines)
+        stream = f"BT /F1 11 Tf 45 740 Td 16 TL {tj_lines} ET".encode("latin-1", errors="ignore")
+        obj1 = b"1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n"
+        obj2 = b"2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n"
+        obj3 = b"3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >> endobj\n"
+        obj4 = f"4 0 obj << /Length {len(stream)} >> stream\n".encode("ascii") + stream + b"\nendstream endobj\n"
+        obj5 = b"5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj\n"
+        header = b"%PDF-1.4\n"
+        body = b""
+        offsets = []
+        cursor = len(header)
+        for o in (obj1, obj2, obj3, obj4, obj5):
+            offsets.append(cursor)
+            body += o
+            cursor += len(o)
+        xref = f"xref\n0 6\n0000000000 65535 f \n".encode("ascii")
+        for off in offsets:
+            xref += f"{off:010d} 00000 n \n".encode("ascii")
+        trailer = f"trailer << /Size 6 /Root 1 0 R >>\nstartxref\n{cursor}\n%%EOF\n".encode("ascii")
+        return header + body + xref + trailer
+
+    def _build_minimal_image(self, text: str, ext: str) -> bytes:
+        try:
+            from PIL import Image, ImageDraw
+            img = Image.new("RGB", (720, 480), color=(250, 251, 248))
+            draw = ImageDraw.Draw(img)
+            draw.rectangle([(16, 16), (704, 464)], outline=(11, 107, 58), width=3)
+            draw.text((36, 36), "OFPHIL VERIFIED PATIENT DOCUMENT", fill=(11, 107, 58))
+            y = 75
+            for line in (text or "").splitlines()[:12]:
+                draw.text((36, y), line, fill=(16, 36, 26))
+                y += 26
+            buf = io.BytesIO()
+            fmt = "PNG" if ext == ".png" else "JPEG"
+            img.save(buf, format=fmt)
+            return buf.getvalue()
+        except Exception:
+            return b"\x89PNG\r\n\x1a\n"
 
     def _save_registry(self) -> None:
         try:

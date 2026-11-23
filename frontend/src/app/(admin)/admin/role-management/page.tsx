@@ -29,8 +29,8 @@ const INITIAL_STAFF_LIST: StaffUser[] = [
     id: '1',
     name: 'Dr. Roberto Reyes',
     username: 'admin_sys',
-    email: 'admin.reyes@ofphil.org.ph',
-    contactNumber: '0917 888 1678',
+    email: 'trishtanroxas@gmail.com',
+    contactNumber: '0917 000 0001',
     role: 'Administrator',
     status: 'Active',
     department: 'Clinic Operations & Governance',
@@ -46,8 +46,8 @@ const INITIAL_STAFF_LIST: StaffUser[] = [
     id: '2',
     name: 'Maria Santos, RSW',
     username: 'msw_lead',
-    email: 'msw.santos@ofphil.org.ph',
-    contactNumber: '0918 555 4321',
+    email: 'roxastal.cbpa@gmail.com',
+    contactNumber: '0918 555 1234',
     role: 'Medical Social Worker',
     status: 'Active',
     department: 'Medical Social Services & Charity Admissions',
@@ -58,6 +58,23 @@ const INITIAL_STAFF_LIST: StaffUser[] = [
       canManageRoles: false,
       canAuditLogs: false,
       canExportReports: true,
+    },
+  },
+  {
+    id: '3',
+    name: 'Nurse Clara Garcia',
+    username: 'nurse_desk',
+    email: 'clara.garcia@ofphil.org.ph',
+    contactNumber: '0917 000 0890',
+    role: 'Intake Nurse',
+    status: 'Active',
+    department: 'Outpatient Triage & Vitals Station',
+    permissions: {
+      canRegisterPatients: true,
+      canEvaluateAssessments: false,
+      canManageRoles: false,
+      canAuditLogs: false,
+      canExportReports: false,
     },
   },
 ];
@@ -177,7 +194,7 @@ export default function AdminRoleManagementPage() {
   return (
     <DashboardLayout
       title="Staff Roles & Access Governance"
-      subtitle="Ophthalmological Foundation of the Philippines — AI-Assisted Patient Intake & Evaluation"
+      subtitle="Ophthalmological Foundation of the Philippines — Patient Intake & Evaluation"
     >
       <div className="w-full pb-12 space-y-5 text-xs font-sans">
         {/* Top Control Bar matching screenshot */}

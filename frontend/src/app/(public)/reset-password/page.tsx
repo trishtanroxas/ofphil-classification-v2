@@ -155,7 +155,7 @@ function ResetPasswordFormContent() {
                 <i className={showPassword ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye'} />
               </button>
             </div>
-            <PasswordStrengthMeter password={password} />
+            <PasswordStrengthMeter password={password} showChecks={true} />
           </div>
 
           <div className="saas-input-group mb-6">

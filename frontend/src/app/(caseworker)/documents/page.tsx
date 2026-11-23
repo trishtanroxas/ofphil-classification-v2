@@ -459,7 +459,7 @@ export default function DocumentManagementPage() {
                 <div className="p-3 bg-[#F0FDF4] rounded-xl border border-[#86EFAC] text-[#14532D] text-[11px] space-y-1">
                   <div className="font-bold flex items-center gap-1.5">
                     <ShieldCheck size={14} className="text-[#16A34A]" />
-                    <span>Real-Time OCR &amp; Seal Tamper Screening Active</span>
+                    <span>Automatic Document Checking Active</span>
                   </div>
                   <p className="m-0 leading-relaxed text-[#166534]">
                     Uploaded documents are screened for official seal circularity and cross-referenced with the patient&apos;s registered name and indigency status.
@@ -638,7 +638,7 @@ export default function DocumentManagementPage() {
                   </div>
                   <p className="text-[11px] m-0 text-emerald-800 leading-relaxed">
                     {selectedDoc.extracted_text ||
-                      'Extracted text fields match registered patient identity. Official stamp circular geometry validated with high confidence.'}
+                      'Extracted text fields match registered patient identity. Official stamp appears genuine.'}
                   </p>
                 </div>
               </div>

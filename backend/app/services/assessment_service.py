@@ -83,18 +83,24 @@ class AssessmentService:
             "details": details or {},
         })
 
-    def list_assessments(self, patient_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    def list_assessments(
+        self, patient_id: Optional[str] = None, referral_id: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
         items = list(self._assessments.values())
         if patient_id:
             items = [a for a in items if a.get("patient_id") == patient_id]
+        if referral_id:
+            items = [a for a in items if a.get("referral_id") == referral_id]
         items.sort(key=lambda a: a.get("updated_at", ""), reverse=True)
         return items
 
     def get_assessment(self, assessment_id: str) -> Optional[Dict[str, Any]]:
         return self._assessments.get(assessment_id)
 
-    def get_latest_draft_for_patient(self, patient_id: str) -> Optional[Dict[str, Any]]:
-        patient_items = self.list_assessments(patient_id=patient_id)
+    def get_latest_draft_for_patient(
+        self, patient_id: str, referral_id: Optional[str] = None
+    ) -> Optional[Dict[str, Any]]:
+        patient_items = self.list_assessments(patient_id=patient_id, referral_id=referral_id)
         for item in patient_items:
             if item.get("workflow_status") in {"DRAFT", "ASSESSMENT_IN_PROGRESS", "RETURNED_FOR_REVISION"}:
                 return item
@@ -106,10 +112,15 @@ class AssessmentService:
         actor_id: str,
         role: str,
     ) -> Dict[str, Any]:
-        # Prevent duplicate active drafts for the same patient_id
+        # If referral_id is provided, check for active draft on that exact referral first
+        target_ref_id = payload.referral_id.strip() if payload.referral_id else None
         for existing in self.list_assessments(patient_id=payload.patient_id):
             if existing.get("workflow_status") in {"DRAFT", "ASSESSMENT_IN_PROGRESS", "RETURNED_FOR_REVISION"}:
-                return existing
+                if target_ref_id:
+                    if existing.get("referral_id") == target_ref_id:
+                        return existing
+                else:
+                    return existing
 
         assessment_id = f"asmt-{uuid.uuid4().hex[:10]}"
         if payload.encounter_no:
@@ -123,6 +134,7 @@ class AssessmentService:
         record: Dict[str, Any] = {
             "id": assessment_id,
             "patient_id": payload.patient_id,
+            "referral_id": target_ref_id,
             "encounter_no": encounter_no,
             "interview_date": payload.interview_date or datetime.date.today().isoformat(),
             "source_of_referral": payload.source_of_referral or "",
@@ -144,9 +156,23 @@ class AssessmentService:
         }
 
         self._validate_stage1_numbers(record["stage1_data"])
-        self._append_history(record, "ASSESSMENT_CREATED", actor_id, role, {"encounter_no": encounter_no})
+        self._append_history(record, "ASSESSMENT_CREATED", actor_id, role, {"encounter_no": encounter_no, "referral_id": target_ref_id})
         self._assessments[assessment_id] = record
         self._save()
+
+        # Update referral status if linked
+        if target_ref_id:
+            try:
+                from app.services.referral_service import referral_service
+                referral_service.link_assessment(
+                    referral_id=target_ref_id,
+                    assessment_id=assessment_id,
+                    actor_id=actor_id,
+                    role=role,
+                )
+            except Exception:
+                pass
+
         return record
 
     def _validate_stage1_numbers(self, stage1: Dict[str, Any]) -> None:
@@ -209,6 +235,8 @@ class AssessmentService:
             record["interview_date"] = payload.interview_date
         if payload.source_of_referral is not None:
             record["source_of_referral"] = payload.source_of_referral
+        if payload.referral_id is not None:
+            record["referral_id"] = payload.referral_id
         if payload.is_initial_load is not None:
             record["is_initial_load"] = payload.is_initial_load
         if payload.workflow_status is not None and payload.workflow_status in VALID_WORKFLOW_STATUSES:
@@ -364,6 +392,23 @@ class AssessmentService:
         record["updated_at"] = _utc_now()
         self._append_history(record, "MSW_RECOMMENDATION_SUBMITTED", actor_id, role, rec)
         self._save()
+
+        # Update referral status to 'Referred for Administrative Decision' or 'Assessed'
+        target_ref_id = record.get("referral_id")
+        if target_ref_id:
+            try:
+                from app.services.referral_service import referral_service
+                referral_service.update_referral_status(
+                    referral_id=target_ref_id,
+                    new_status="Referred for Administrative Decision",
+                    actor_id=actor_id,
+                    role=role,
+                    reason=f"MSW submitted charity recommendation: {rec.get('recommended_tier')}",
+                    assessment_id=assessment_id,
+                )
+            except Exception:
+                pass
+
         return record
 
     def record_institutional_approval(
@@ -402,6 +447,24 @@ class AssessmentService:
         record["updated_at"] = _utc_now()
         self._append_history(record, f"INSTITUTIONAL_{decision}", actor_id, role, approval)
         self._save()
+
+        # Update referral status based on administrative decision
+        target_ref_id = record.get("referral_id")
+        if target_ref_id:
+            try:
+                from app.services.referral_service import referral_service
+                ref_status = "Approved" if decision == "APPROVED" else "Disapproved / Promissory" if decision == "REJECTED" else "Under MSW Review"
+                referral_service.update_referral_status(
+                    referral_id=target_ref_id,
+                    new_status=ref_status,
+                    actor_id=actor_id,
+                    role=role,
+                    reason=f"Administrative decision: {decision} ({payload.decision_notes or ''})",
+                    assessment_id=assessment_id,
+                )
+            except Exception:
+                pass
+
         return record
 
     def evaluate_stage2(

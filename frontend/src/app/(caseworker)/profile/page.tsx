@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import PasswordStrengthMeter from '@/components/PasswordStrengthMeter';
 import ProfilePasswordChangeCard from '@/components/ProfilePasswordChangeCard';
+import SecureContactChangeModal, { ContactChangeType } from '@/components/SecureContactChangeModal';
 import PsgcAddressSelector from '@/components/PsgcAddressSelector';
 import { toast } from 'sonner';
 import { fetchApi } from '@/lib/api';
@@ -12,8 +13,9 @@ import { fetchApi } from '@/lib/api';
 export default function CaseworkerProfilePage() {
   const { user } = useAuth();
   const [fullName, setFullName] = useState(user?.name || 'Maria Santos, RSW');
-  const [email, setEmail] = useState('maria.santos@ofphil.org.ph');
+  const [email, setEmail] = useState('roxastal.cbpa@gmail.com');
   const [contact, setContact] = useState('0918 555 1234');
+  const [contactModalType, setContactModalType] = useState<ContactChangeType | null>(null);
   const [department, setDepartment] = useState('Medical Social Services Department (MSWD)');
   const [licenseNo, setLicenseNo] = useState('PRC-RSW-004921');
   const [birthdate, setBirthdate] = useState('1988-03-14');
@@ -308,28 +310,54 @@ export default function CaseworkerProfilePage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block font-semibold text-[#10241A] mb-1">
-                      Official Email Address <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      className="w-full h-10 px-3.5 border border-[#D5E2D9] rounded-lg text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
-                    />
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="font-semibold text-[#10241A]">
+                        Official Email Address <span className="text-red-500">*</span>
+                      </label>
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-[#ECFDF5] text-[#0B6B3A] text-[10px] font-bold">
+                        <i className="fa-solid fa-circle-check" /> Verified
+                      </span>
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        type="email"
+                        value={email}
+                        readOnly
+                        className="flex-1 h-10 px-3.5 border border-[#EEF2EF] rounded-lg text-xs bg-[#FAFBF8] text-[#10241A] cursor-not-allowed"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setContactModalType('email')}
+                        className="px-3 h-10 rounded-lg border border-[#0B6B3A] text-[#0B6B3A] hover:bg-[#E8F5EC] font-semibold text-xs transition cursor-pointer bg-white shrink-0"
+                      >
+                        Change
+                      </button>
+                    </div>
                   </div>
                   <div>
-                    <label className="block font-semibold text-[#10241A] mb-1">
-                      Contact Mobile Number <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="tel"
-                      value={contact}
-                      onChange={(e) => setContact(e.target.value)}
-                      required
-                      className="w-full h-10 px-3.5 border border-[#D5E2D9] rounded-lg text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
-                    />
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="font-semibold text-[#10241A]">
+                        Contact Mobile Number <span className="text-red-500">*</span>
+                      </label>
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-[#ECFDF5] text-[#0B6B3A] text-[10px] font-bold">
+                        <i className="fa-solid fa-circle-check" /> Verified
+                      </span>
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        type="tel"
+                        value={contact}
+                        readOnly
+                        className="flex-1 h-10 px-3.5 border border-[#EEF2EF] rounded-lg text-xs bg-[#FAFBF8] text-[#10241A] cursor-not-allowed"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setContactModalType('mobile')}
+                        className="px-3 h-10 rounded-lg border border-[#0B6B3A] text-[#0B6B3A] hover:bg-[#E8F5EC] font-semibold text-xs transition cursor-pointer bg-white shrink-0"
+                      >
+                        Change
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -481,14 +509,27 @@ export default function CaseworkerProfilePage() {
             <ProfilePasswordChangeCard
               role="msw"
               userId="msw_lead"
-              defaultEmail="maria.santos@ofphil.org.ph"
-              defaultMobile="0918 555 1234"
+              defaultEmail={email}
+              defaultMobile={contact}
               title="Change Staff Password"
               subtitle="Ensure strong credentials to protect sensitive patient socioeconomic records and clinical files."
             />
           </div>
         </div>
       </div>
+
+      <SecureContactChangeModal
+        isOpen={contactModalType !== null}
+        role="msw"
+        userId="msw_lead"
+        contactType={contactModalType || 'email'}
+        currentValue={contactModalType === 'mobile' ? contact : email}
+        onClose={() => setContactModalType(null)}
+        onVerified={(type, newVal) => {
+          if (type === 'email') setEmail(newVal);
+          else setContact(newVal);
+        }}
+      />
     </DashboardLayout>
   );
 }

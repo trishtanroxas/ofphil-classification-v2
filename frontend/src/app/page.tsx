@@ -264,19 +264,13 @@ export default function RootLandingPage() {
               </>
             ) : (
               <>
+
                 <Link
                   href="/login-patient"
                   onClick={() => showLoading('Navigating to Patient Sign In...')}
-                  className="px-3 py-2 text-[13px] font-medium text-[#24352B] hover:text-[#0B6B3A] transition whitespace-nowrap"
-                >
-                  Sign In
-                </Link>
-                <Link
-                  href="/login-patient"
-                  onClick={() => showLoading('Preparing Charity Assistance Intake Portal...')}
                   className="inline-flex items-center gap-2 px-3.5 py-2 text-[13px] font-semibold text-white bg-[#0B6B3A] hover:bg-[#064826] rounded-full transition shadow-sm whitespace-nowrap"
                 >
-                  Apply for Assistance
+                  Sign In
                 </Link>
               </>
             )}
@@ -355,11 +349,9 @@ export default function RootLandingPage() {
                 ) : (
                   <>
                     <Link href="/login-patient" onClick={() => setMobileMenuOpen(false)} className="mobile-action-primary">
-                      <i className="fa-solid fa-hand-holding-heart"></i> Apply for Assistance
-                    </Link>
-                    <Link href="/login-patient" onClick={() => setMobileMenuOpen(false)} className="mobile-action-secondary">
                       <i className="fa-solid fa-lock"></i> Sign In to Portal
                     </Link>
+
                   </>
                 )}
               </div>
@@ -389,18 +381,12 @@ export default function RootLandingPage() {
                 <div className="hero-headline-actions">
                   <Link
                     href="/login-patient"
-                    onClick={() => showLoading('Preparing Charity Assistance Application Portal...')}
+                    onClick={() => showLoading('Navigating to Patient Sign In...')}
                     className="hero-btn-primary"
                   >
-                    Apply for assistance <i className="fa-solid fa-arrow-right" style={{ fontSize: '13px' }} />
+                    Patient Sign In <i className="fa-solid fa-arrow-right" style={{ fontSize: '13px' }} />
                   </Link>
-                  <Link
-                    href="/login-patient"
-                    onClick={() => showLoading('Navigating to Sign In...')}
-                    className="hero-btn-secondary"
-                  >
-                    Patient portal &rarr;
-                  </Link>
+
                 </div>
 
                 {/* Trust Badges */}
@@ -752,7 +738,7 @@ export default function RootLandingPage() {
         </div>
         <div className="p-4 bg-[#E8F5EC] rounded-xl border border-[#DCE5DF] text-xs text-[#0B6B3A] leading-relaxed" style={{ marginTop: 'auto' }}>
           <i className="fa-solid fa-gavel mr-1.5 font-bold"></i>
-          <strong>Human-in-the-Loop Governance:</strong> Decision support algorithms calculate eligibility scores and detect quotation errors, but final charity grants are always evaluated, approved, and signed by a licensed Medical Social Worker.
+          <strong>Human-in-the-Loop Governance:</strong> Our system helps review eligibility and check quotations, but final charity grants are always evaluated, approved, and signed by a licensed Medical Social Worker.
         </div>
       </div>
 
@@ -794,7 +780,7 @@ export default function RootLandingPage() {
             <div className="flex-1 min-w-0">
               <h4 className="text-base font-bold text-[#24352B] font-['Outfit'] mb-1.5">Transparent Financial Auditing</h4>
               <p className="text-xs sm:text-sm text-[#66756B] leading-relaxed m-0">
-                All disbursement records, quotation analyses, and case decisions maintain comprehensive tamper-evident system logs, ensuring verifiable audits by clinical and financial stakeholders.
+                All disbursement records, quotation reviews, and case decisions maintain comprehensive secure activity records, ensuring verifiable audits by clinical and financial stakeholders.
               </p>
             </div>
           </div>

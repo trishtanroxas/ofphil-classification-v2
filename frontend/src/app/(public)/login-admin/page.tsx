@@ -11,8 +11,8 @@ export default function LoginAdminPage() {
   const router = useRouter();
   const { showLoading } = useLoadingScreen();
 
-  const [username, setUsername] = useState('admin_sys');
-  const [password, setPassword] = useState('password123');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);

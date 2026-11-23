@@ -16,6 +16,7 @@ from app.schemas.document_schemas import (
 )
 from app.schemas.schemas import DocumentItem
 from app.services.document_authenticity_service import document_authenticity_service
+from app.services.inquiry_service import inquiry_service
 from app.services.mock_store import db_store
 
 router = APIRouter(prefix="/documents", tags=["Document Authenticity API"])
@@ -69,6 +70,20 @@ async def upload_document(
             "file_size": doc_item["file_size_bytes"],
         },
     )
+    try:
+        target_msw = inquiry_service.resolve_msw_user_id(x_user_id if role == UserRole.MSW else "msw_lead")
+        inquiry_service.create_msw_notification(
+            recipient_user_id=target_msw,
+            notification_type="DOCUMENT_UPLOADED",
+            title=f"Supporting Document Uploaded ({patient_id})",
+            message=f"{document_type} ({file.filename}) was uploaded for {patient_name} ({patient_id}).",
+            target_destination=f"/patients/{patient_id}?tab=documents",
+            related_patient_id=patient_id,
+            related_assessment_id=assessment_id,
+            dedup_key=f"DOC_UPLOAD:{doc_item['id']}:{target_msw}",
+        )
+    except Exception:
+        pass
     return doc_item
 
 
@@ -95,20 +110,41 @@ def get_document_metadata(
 @router.get("/{document_id}/download")
 def download_original_document(
     document_id: str,
-    role: UserRole = Depends(require_roles([UserRole.ADMIN, UserRole.MSW])),
+    patient_id: Optional[str] = Query(default=None),
+    inline: bool = Query(default=False),
+    x_user_role: str = Header(default="msw"),
     x_user_id: str = Header(default="msw_lead"),
 ):
+    role_norm = (x_user_role or "msw").strip().lower()
+    if role_norm not in {UserRole.ADMIN.value, UserRole.MSW.value, UserRole.PATIENT.value}:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Access forbidden: requires one of ['admin', 'msw', 'patient'], user has role '{role_norm}'",
+        )
     doc = document_authenticity_service.get_document(document_id)
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
+    if role_norm == UserRole.PATIENT.value:
+        doc_pid = str(doc.get("patient_id") or "").strip().upper()
+        actor_pid = str(x_user_id or "").strip().upper()
+        if not actor_pid or doc_pid != actor_pid:
+            raise HTTPException(
+                status_code=403,
+                detail="Access denied: Patients can only view or download their own supporting documents.",
+            )
+    if patient_id and str(doc.get("patient_id") or "").strip().upper() != patient_id.strip().upper():
+        raise HTTPException(
+            status_code=403,
+            detail="Access denied: Document belongs to another patient record.",
+        )
     storage_path = Path(doc.get("storage_path", ""))
     if not storage_path.exists():
         raise HTTPException(status_code=404, detail="Original document file not found in secure storage")
 
     log_audit_event(
-        action="DOCUMENT_DOWNLOAD",
+        action="DOCUMENT_PREVIEW" if inline else "DOCUMENT_DOWNLOAD",
         actor_id=x_user_id,
-        role=role.value,
+        role=role_norm,
         resource=f"patient_document:{document_id}",
         status="SUCCESS",
         details={"patient_id": doc.get("patient_id"), "sha256": doc.get("sha256_hash")},
@@ -117,6 +153,7 @@ def download_original_document(
         path=str(storage_path),
         filename=doc.get("filename", "document"),
         media_type=doc.get("mime_type", "application/octet-stream"),
+        content_disposition_type="inline" if inline else "attachment",
     )
 
 

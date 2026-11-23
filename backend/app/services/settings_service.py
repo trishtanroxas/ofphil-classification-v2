@@ -122,7 +122,7 @@ class SettingsService:
             "account": {
                 "username": "admin_sys",
                 "full_name": "Dr. Roberto Reyes",
-                "email": "admin@ofphil.org.ph",
+                "email": "trishtanroxas@gmail.com",
                 "role": "Clinic Administrator (Super-Admin Authority)",
                 "department": "Clinic Operations & Governance",
                 "theme_preference": "light",
@@ -132,7 +132,7 @@ class SettingsService:
             "msw_account": {
                 "username": "msw_lead",
                 "full_name": "Maria Santos, RSW",
-                "email": "maria.santos@ofphil.org.ph",
+                "email": "roxastal.cbpa@gmail.com",
                 "role": "Medical Social Worker (Lead RSW)",
                 "department": "Medical Social Services Department (MSWD)",
                 "license_no": "PRC-RSW-004921",
@@ -146,6 +146,17 @@ class SettingsService:
                 "street": "Blk 8 Lot 15, Teachers Village East",
                 "education": "Bachelor of Science in Social Work (BSSW) • Registered Social Worker",
                 "occupation": "Lead Medical Social Worker (MSWD)",
+                "theme_preference": "light",
+                "notify_email": True,
+                "password_hash": hash_password("Ofphil@2026")
+            },
+            "nurse_account": {
+                "username": "nurse_desk",
+                "full_name": "Nurse Clara Garcia",
+                "email": "clara.garcia@ofphil.org.ph",
+                "role": "Clinical Triage & Vitals Nurse",
+                "department": "Outpatient Triage & Vitals Station",
+                "contact": "0917 000 0890",
                 "theme_preference": "light",
                 "notify_email": True,
                 "password_hash": hash_password("Ofphil@2026")
@@ -563,7 +574,7 @@ class SettingsService:
         return AccountProfile(
             username=acc.get("username", "admin_sys"),
             full_name=acc.get("full_name", "Dr. Roberto Reyes"),
-            email=acc.get("email", "admin@ofphil.org.ph"),
+            email=acc.get("email", "trishtanroxas@gmail.com"),
             role=acc.get("role", "Clinic Administrator (Super-Admin Authority)"),
             department=acc.get("department", "Clinic Operations & Governance"),
             theme_preference=acc.get("theme_preference", "light"),
@@ -575,7 +586,7 @@ class SettingsService:
     ) -> AccountProfile:
         acc = self._cache["account"]
         acc["full_name"] = payload.full_name
-        acc["email"] = payload.email
+        # Email & mobile changes must go through OTP-verified contact change flow
         if payload.department:
             acc["department"] = payload.department
         if payload.theme_preference:
@@ -644,7 +655,7 @@ class SettingsService:
         return AccountProfile(
             username=acc.get("username", "msw_lead"),
             full_name=acc.get("full_name", "Maria Santos, RSW"),
-            email=acc.get("email", "maria.santos@ofphil.org.ph"),
+            email=acc.get("email", "roxastal.cbpa@gmail.com"),
             role=acc.get("role", "Medical Social Worker (Lead RSW)"),
             department=acc.get("department", "Medical Social Services Department (MSWD)"),
             theme_preference=acc.get("theme_preference", "light"),
@@ -668,7 +679,7 @@ class SettingsService:
         defaults = self._get_defaults()["msw_account"]
         acc = self._cache.get("msw_account", defaults)
         acc["full_name"] = payload.full_name
-        acc["email"] = payload.email
+        # Email & mobile changes must go through OTP-verified contact change flow
         if payload.department:
             acc["department"] = payload.department
         if payload.theme_preference:
@@ -677,8 +688,6 @@ class SettingsService:
             acc["notify_email"] = payload.notify_email
         if payload.license_no is not None:
             acc["license_no"] = payload.license_no
-        if payload.contact is not None:
-            acc["contact"] = payload.contact
         if payload.birthdate is not None:
             acc["birthdate"] = payload.birthdate
         if payload.sex is not None:

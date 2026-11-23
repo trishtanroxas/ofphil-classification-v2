@@ -18,7 +18,7 @@ def _reset_rate_limits():
 def test_patient_identity_and_contact_validation():
     _reset_rate_limits()
 
-    # 1. Incorrect Patient ID
+    # 1. Incorrect Patient ID with valid email of M26-11-00001
     r_bad_id = client.post(
         "/api/v1/auth/forgot-password",
         json={
@@ -26,7 +26,7 @@ def test_patient_identity_and_contact_validation():
             "identifier": "M26-99-99999",
             "birthdate": "1978-05-15",
             "recovery_method": "email",
-            "email": "juan.delacruz@example.ph",
+            "email": "tan1925alex@gmail.com",
         },
     )
     assert r_bad_id.status_code == 400
@@ -39,25 +39,64 @@ def test_patient_identity_and_contact_validation():
             "identifier": "M26-11-00001",
             "birthdate": "1990-01-01",
             "recovery_method": "email",
-            "email": "juan.delacruz@example.ph",
+            "email": "tan1925alex@gmail.com",
         },
     )
     assert r_bad_bday.status_code == 400
 
-    # 3. Mismatched Email (arbitrary email not belonging to M26-11-00001)
-    r_bad_email = client.post(
+    # 3. Unrelated Email (roxas.t.bscs@gmail.com must be REJECTED for M26-11-00001)
+    r_unrelated_email = client.post(
         "/api/v1/auth/forgot-password",
         json={
             "role": "patient",
             "identifier": "M26-11-00001",
             "birthdate": "1978-05-15",
             "recovery_method": "email",
-            "email": "attacker@example.com",
+            "email": "roxas.t.bscs@gmail.com",
         },
     )
-    assert r_bad_email.status_code == 400
+    assert r_unrelated_email.status_code == 400
 
-    # 4. Mismatched Mobile
+    # 4. Another patient's email (maria.ramos@example.ph) for M26-11-00001 -> REJECT
+    r_other_patient_email = client.post(
+        "/api/v1/auth/forgot-password",
+        json={
+            "role": "patient",
+            "identifier": "M26-11-00001",
+            "birthdate": "1978-05-15",
+            "recovery_method": "email",
+            "email": "maria.ramos@example.ph",
+        },
+    )
+    assert r_other_patient_email.status_code == 400
+
+    # 5. M26-11-00001's email used with another Patient ID (MSW_FA_1126-01) -> REJECT
+    r_cross_patient = client.post(
+        "/api/v1/auth/forgot-password",
+        json={
+            "role": "patient",
+            "identifier": "MSW_FA_1126-01",
+            "birthdate": "1968-08-20",
+            "recovery_method": "email",
+            "email": "tan1925alex@gmail.com",
+        },
+    )
+    assert r_cross_patient.status_code == 400
+
+    # 6. Unverified email on MSW_FA_1126-01 (email_verified=False) -> REJECT
+    r_unverified_email = client.post(
+        "/api/v1/auth/forgot-password",
+        json={
+            "role": "patient",
+            "identifier": "MSW_FA_1126-01",
+            "birthdate": "1968-08-20",
+            "recovery_method": "email",
+            "email": "maria.ramos@example.ph",
+        },
+    )
+    assert r_unverified_email.status_code == 400
+
+    # 7. Mismatched Mobile
     r_bad_mob = client.post(
         "/api/v1/auth/forgot-password",
         json={
@@ -88,7 +127,7 @@ def test_patient_email_recovery_full_flow_and_otp_security():
                 "identifier": "M26-11-00001",
                 "birthdate": "1978-05-15",
                 "recovery_method": "email",
-                "email": "juan.delacruz@example.ph",
+                "email": "tan1925alex@gmail.com",
             },
         )
     assert r_req.status_code == 200
@@ -97,7 +136,8 @@ def test_patient_email_recovery_full_flow_and_otp_security():
     assert "code" not in data
     assert "otp" not in data
     assert data["delivery_method"] == "email"
-    assert data["masked_destination"] == "j****@example.ph"
+    assert data["masked_destination"] == "t****@gmail.com"
+    assert captured["to"] == "tan1925alex@gmail.com"
     rec_id = data["recovery_id"]
     otp = captured["code"]
     assert len(otp) == 6 and otp.isdigit()
@@ -110,7 +150,7 @@ def test_patient_email_recovery_full_flow_and_otp_security():
             "identifier": "M26-11-00001",
             "birthdate": "1978-05-15",
             "recovery_method": "email",
-            "email": "juan.delacruz@example.ph",
+            "email": "tan1925alex@gmail.com",
         },
     )
     assert r_cool.status_code == 429
@@ -161,6 +201,15 @@ def test_patient_email_recovery_full_flow_and_otp_security():
         },
     )
     assert r_reset_reuse.status_code == 400
+
+    # Cleanup patient credentials so subsequent test suites retain default password
+    from app.api.v1.endpoints.endpoints import REGISTERED_PATIENTS_REGISTRY
+    for p in REGISTERED_PATIENTS_REGISTRY:
+        if str(p.get("patient_id", "")).strip().upper() == "M26-11-00001":
+            p.pop("password_hash", None)
+            break
+    recovery_service._patient_creds.pop("M26-11-00001", None)
+    recovery_service._save_patient_creds()
 
 
 def test_sms_unconfigured_does_not_simulate_and_configured_semaphore_works():
@@ -215,7 +264,7 @@ def test_expired_otp_rejected():
                 "role": "msw",
                 "identifier": "msw_lead",
                 "recovery_method": "email",
-                "email": "maria.santos@ofphil.org.ph",
+                "email": settings_service._cache["msw_account"]["email"],
             },
         )
     assert r.status_code == 200
@@ -260,7 +309,7 @@ def test_msw_and_admin_recovery_flows():
                     "role": "msw",
                     "identifier": "msw_lead",
                     "recovery_method": "email",
-                    "email": "maria.santos@ofphil.org.ph",
+                    "email": settings_service._cache["msw_account"]["email"],
                 },
             )
         assert r_msw.status_code == 200
@@ -324,3 +373,99 @@ def test_msw_and_admin_recovery_flows():
         settings_service._cache["msw_account"]["password_hash"] = orig_msw_hash
         settings_service._cache["account"]["password_hash"] = orig_adm_hash
         settings_service._save_to_storage()
+
+
+def test_cross_account_and_session_type_isolation():
+    _reset_rate_limits()
+
+    # 1. MSW and Admin reject unrelated email/mobile
+    r_msw_bad = client.post(
+        "/api/v1/auth/forgot-password",
+        json={
+            "role": "msw",
+            "identifier": "msw_lead",
+            "recovery_method": "email",
+            "email": "roxas.t.bscs@gmail.com",
+        },
+    )
+    assert r_msw_bad.status_code == 400
+
+    r_adm_bad = client.post(
+        "/api/v1/auth/forgot-password",
+        json={
+            "role": "admin",
+            "identifier": "admin_sys",
+            "recovery_method": "sms",
+            "mobile": "0917 888 1678",
+        },
+    )
+    assert r_adm_bad.status_code == 400
+
+    # 2. Recovery OTP session cannot be used on 2FA verify endpoint
+    captured = {}
+
+    def fake_email(to_email, role_title, identifier, reset_link, code):
+        captured["code"] = code
+        return True
+
+    with patch("app.services.recovery_service.send_password_reset_email", side_effect=fake_email):
+        r_rec = client.post(
+            "/api/v1/auth/forgot-password",
+            json={
+                "role": "patient",
+                "identifier": "M26-11-00001",
+                "birthdate": "1978-05-15",
+                "recovery_method": "email",
+                "email": "tan1925alex@gmail.com",
+            },
+        )
+    assert r_rec.status_code == 200
+    rec_id = r_rec.json()["recovery_id"]
+    otp = captured["code"]
+
+    r_cross_2fa = client.post(
+        "/api/v1/auth/verify-2fa",
+        json={"session_id": rec_id, "otp_code": otp, "role": "patient"},
+    )
+    assert r_cross_2fa.status_code == 400
+
+
+def test_password_policy_no_uppercase_requirement_and_min_6_chars():
+    _reset_rate_limits()
+
+    # 1. Profile password change OTP: reject length < 6
+    r_short = client.post(
+        "/api/v1/auth/profile-password/request-otp",
+        json={
+            "role": "patient",
+            "user_id": "M26-11-00001",
+            "current_password": "Ofphil@2026",
+            "new_password": "short",
+            "confirm_password": "short",
+            "method": "email",
+        },
+    )
+    assert r_short.status_code == 422
+    assert "at least 6 characters" in str(r_short.json()["detail"]).lower()
+
+    # 2. Profile password change OTP: accept password WITHOUT uppercase (e.g. @imlexi1925)
+    captured = {}
+
+    def fake_profile_otp(*args, **kwargs):
+        captured["code"] = kwargs.get("code")
+        return (True, None)
+
+    with patch("app.services.recovery_service.send_profile_password_otp_email", side_effect=fake_profile_otp):
+        r_valid_no_upper = client.post(
+            "/api/v1/auth/profile-password/request-otp",
+            json={
+                "role": "patient",
+                "user_id": "M26-11-00001",
+                "current_password": "Ofphil@2026",
+                "new_password": "@imlexi1925",
+                "confirm_password": "@imlexi1925",
+                "method": "email",
+            },
+        )
+    assert r_valid_no_upper.status_code == 200
+    assert r_valid_no_upper.json()["status"] == "otp_sent"

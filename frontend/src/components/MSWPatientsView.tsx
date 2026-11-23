@@ -31,6 +31,7 @@ export interface PatientRecordItem {
 
 export interface ReferralRecordItem {
   id: string;
+  referral_no?: string;
   patient_id: string;
   patient_name: string;
   diagnosis: string;
@@ -42,11 +43,22 @@ export interface ReferralRecordItem {
   referring_individual?: string;
   referring_signature_title?: string;
   status: string;
+  charity_case_no?: string;
+  approved_by?: string;
+  approved_at?: string;
+  rejected_by?: string;
+  rejected_at?: string;
+  rejection_reason?: string;
+  assessment_id?: string;
   created_at?: string;
   contact?: string;
 }
 
-export function MSWPatientsContent({ initialTab }: { initialTab?: 'charity' | 'referrals' | 'pending' | 'promissory' }) {
+export function MSWPatientsContent({
+  initialTab,
+}: {
+  initialTab?: 'charity' | 'referrals' | 'approved_cases' | 'pending' | 'promissory';
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const tabFromQuery = searchParams?.get('tab');
@@ -54,8 +66,10 @@ export function MSWPatientsContent({ initialTab }: { initialTab?: 'charity' | 'r
   const [patients, setPatients] = useState<PatientRecordItem[]>([]);
   const [referrals, setReferrals] = useState<ReferralRecordItem[]>([]);
   const [selectedReferral, setSelectedReferral] = useState<ReferralRecordItem | null>(null);
+  const [approvalModalReferral, setApprovalModalReferral] = useState<ReferralRecordItem | null>(null);
+  const [isApproving, setIsApproving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'charity' | 'referrals' | 'pending' | 'promissory'>(
+  const [activeTab, setActiveTab] = useState<'charity' | 'referrals' | 'approved_cases' | 'pending' | 'promissory'>(
     initialTab || (tabFromQuery as any) || 'charity'
   );
   const [searchQuery, setSearchQuery] = useState('');
@@ -63,6 +77,7 @@ export function MSWPatientsContent({ initialTab }: { initialTab?: 'charity' | 'r
   const [statusFilter, setStatusFilter] = useState('All');
   const [rowsPerPage, setRowsPerPage] = useState('10');
   const [currentPage, setCurrentPage] = useState(1);
+  const [assessmentsList, setAssessmentsList] = useState<any[]>([]);
   const [assessmentsByPatient, setAssessmentsByPatient] = useState<Record<string, any>>({});
 
   // Synchronize tab from URL query or initialTab
@@ -71,6 +86,8 @@ export function MSWPatientsContent({ initialTab }: { initialTab?: 'charity' | 'r
       setActiveTab(initialTab);
     } else if (tabFromQuery === 'referrals') {
       setActiveTab('referrals');
+    } else if (tabFromQuery === 'approved_cases') {
+      setActiveTab('approved_cases');
     } else if (tabFromQuery === 'pending') {
       setActiveTab('pending');
     } else if (tabFromQuery === 'promissory' || tabFromQuery === 'disapproved') {
@@ -90,6 +107,7 @@ export function MSWPatientsContent({ initialTab }: { initialTab?: 'charity' | 'r
       ]);
 
       if (Array.isArray(assessmentsData)) {
+        setAssessmentsList(assessmentsData);
         const map: Record<string, any> = {};
         for (const a of assessmentsData) {
           if (a?.patient_id && !map[a.patient_id]) {
@@ -223,9 +241,19 @@ export function MSWPatientsContent({ initialTab }: { initialTab?: 'charity' | 'r
     });
   }, [patients, activeTab, sexFilter, statusFilter, searchQuery]);
 
-  // Filter Referrals
-  const filteredReferrals = useMemo(() => {
-    return referrals.filter((r) => {
+  // Pending Referrals (Awaiting MSW Approval)
+  const pendingReferrals = useMemo(() => {
+    return referrals.filter((r) => r.status !== 'MSW APPROVED' && r.status !== 'MSW REJECTED');
+  }, [referrals]);
+
+  // MSW-Approved Charity Cases
+  const approvedCharityCases = useMemo(() => {
+    return referrals.filter((r) => r.status === 'MSW APPROVED' || (r.charity_case_no && r.status !== 'MSW REJECTED'));
+  }, [referrals]);
+
+  // Filter Pending Referrals
+  const filteredPendingReferrals = useMemo(() => {
+    return pendingReferrals.filter((r) => {
       if (!searchQuery.trim()) return true;
       const q = searchQuery.toLowerCase();
       const pid = (r.patient_id || '').toLowerCase();
@@ -233,13 +261,35 @@ export function MSWPatientsContent({ initialTab }: { initialTab?: 'charity' | 'r
       const diag = (r.diagnosis || '').toLowerCase();
       const proc = (r.procedure || '').toLowerCase();
       const refId = (r.id || '').toLowerCase();
-      return pid.includes(q) || name.includes(q) || diag.includes(q) || proc.includes(q) || refId.includes(q);
+      const doc = (r.referring_individual || '').toLowerCase();
+      return pid.includes(q) || name.includes(q) || diag.includes(q) || proc.includes(q) || refId.includes(q) || doc.includes(q);
     });
-  }, [referrals, searchQuery]);
+  }, [pendingReferrals, searchQuery]);
+
+  // Filter Approved Cases
+  const filteredApprovedCases = useMemo(() => {
+    return approvedCharityCases.filter((r) => {
+      if (!searchQuery.trim()) return true;
+      const q = searchQuery.toLowerCase();
+      const pid = (r.patient_id || '').toLowerCase();
+      const name = (r.patient_name || '').toLowerCase();
+      const diag = (r.diagnosis || '').toLowerCase();
+      const proc = (r.procedure || '').toLowerCase();
+      const refId = (r.id || '').toLowerCase();
+      const caseNo = (r.charity_case_no || '').toLowerCase();
+      const doc = (r.referring_individual || '').toLowerCase();
+      return pid.includes(q) || name.includes(q) || diag.includes(q) || proc.includes(q) || refId.includes(q) || caseNo.includes(q) || doc.includes(q);
+    });
+  }, [approvedCharityCases, searchQuery]);
 
   // Pagination
   const pageSize = parseInt(rowsPerPage, 10);
-  const currentItemsCount = activeTab === 'referrals' ? filteredReferrals.length : filteredPatients.length;
+  const currentItemsCount =
+    activeTab === 'referrals'
+      ? filteredPendingReferrals.length
+      : activeTab === 'approved_cases'
+      ? filteredApprovedCases.length
+      : filteredPatients.length;
   const totalPages = Math.ceil(currentItemsCount / pageSize) || 1;
 
   const paginatedPatients = filteredPatients.slice(
@@ -247,7 +297,12 @@ export function MSWPatientsContent({ initialTab }: { initialTab?: 'charity' | 'r
     currentPage * pageSize
   );
 
-  const paginatedReferrals = filteredReferrals.slice(
+  const paginatedPendingReferrals = filteredPendingReferrals.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
+
+  const paginatedApprovedCases = filteredApprovedCases.slice(
     (currentPage - 1) * pageSize,
     currentPage * pageSize
   );
@@ -283,12 +338,22 @@ export function MSWPatientsContent({ initialTab }: { initialTab?: 'charity' | 'r
                 <span>Print Referral Slip</span>
               </button>
               <Link
-                href={`/assessment?patient_id=${selectedReferral.patient_id}`}
-                className="px-5 py-2.5 rounded-xl bg-[#0B6B3A] hover:bg-[#064826] text-white text-xs font-bold transition flex items-center gap-2 shadow-xs"
+                href={`/patients/${encodeURIComponent(selectedReferral.patient_id)}?tab=referral`}
+                className="px-4 py-2.5 rounded-xl bg-[#0B6B3A] hover:bg-[#064826] text-white text-xs font-bold transition flex items-center gap-2 shadow-xs no-underline cursor-pointer"
               >
-                <i className="fa-solid fa-stethoscope text-xs" />
-                <span>Start Social Welfare Assessment</span>
+                <i className="fa-solid fa-folder-open text-xs" />
+                <span>View Patient Dossier</span>
               </Link>
+              {selectedReferral.status !== 'MSW APPROVED' && (
+                <button
+                  type="button"
+                  onClick={() => setApprovalModalReferral(selectedReferral)}
+                  className="px-5 py-2.5 rounded-xl bg-[#0B6B3A] hover:bg-[#064826] text-white text-xs font-bold transition flex items-center gap-2 shadow-xs cursor-pointer"
+                >
+                  <i className="fa-solid fa-check text-xs" />
+                  <span>Approve Referral</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -431,18 +496,39 @@ export function MSWPatientsContent({ initialTab }: { initialTab?: 'charity' | 'r
               <button
                 type="button"
                 onClick={() => setSelectedReferral(null)}
-                className="px-4 py-2.5 rounded-xl border border-[#D5E2D9] bg-white hover:bg-[#FAFBF8] text-xs font-semibold text-[#10241A] transition"
+                className="px-4 py-2.5 rounded-xl border border-[#D5E2D9] bg-white hover:bg-[#FAFBF8] text-xs font-semibold text-[#10241A] transition cursor-pointer"
               >
                 &larr; Return to Table
               </button>
 
-              <Link
-                href={`/assessment?patient_id=${selectedReferral.patient_id}`}
-                className="px-6 py-3 rounded-xl bg-[#0B6B3A] hover:bg-[#064826] text-white text-xs font-bold transition flex items-center justify-center gap-2 shadow-xs"
-              >
-                <i className="fa-solid fa-stethoscope text-sm" />
-                <span>Launch Socioeconomic Intake &amp; Case Study for {selectedReferral.patient_name}</span>
-              </Link>
+              <div className="flex items-center gap-3">
+                <Link
+                  href={`/patients/${encodeURIComponent(selectedReferral.patient_id)}?tab=referral`}
+                  className="px-5 py-2.5 rounded-xl border border-[#D5E2D9] bg-white hover:bg-[#FAFBF8] text-[#10241A] text-xs font-bold transition flex items-center justify-center gap-2 shadow-2xs no-underline cursor-pointer"
+                >
+                  <i className="fa-solid fa-folder-open text-xs text-[#0B6B3A]" />
+                  <span>View Patient Dossier</span>
+                </Link>
+
+                {selectedReferral.status !== 'MSW APPROVED' ? (
+                  <button
+                    type="button"
+                    onClick={() => setApprovalModalReferral(selectedReferral)}
+                    className="px-6 py-2.5 rounded-xl bg-[#0B6B3A] hover:bg-[#064826] text-white text-xs font-bold transition flex items-center justify-center gap-2 shadow-xs cursor-pointer"
+                  >
+                    <i className="fa-solid fa-check text-xs" />
+                    <span>Approve Referral</span>
+                  </button>
+                ) : (
+                  <Link
+                    href={`/patients/${encodeURIComponent(selectedReferral.patient_id)}?tab=assessment`}
+                    className="px-6 py-2.5 rounded-xl bg-[#0B6B3A] hover:bg-[#064826] text-white text-xs font-bold transition flex items-center justify-center gap-2 shadow-xs no-underline cursor-pointer"
+                  >
+                    <i className="fa-solid fa-certificate text-xs" />
+                    <span>View Approved Case Dossier</span>
+                  </Link>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -471,11 +557,15 @@ export function MSWPatientsContent({ initialTab }: { initialTab?: 'charity' | 'r
             <h2 className="font-['Outfit'] text-2xl font-bold text-[#10241A]">
               {activeTab === 'referrals'
                 ? 'Referrals for Financial Assistance'
+                : activeTab === 'approved_cases'
+                ? 'MSW-Approved Charity Cases'
                 : 'Charity Patient Master Records'}
             </h2>
             <p className="text-xs sm:text-sm text-[#5A7466] mt-0.5">
               {activeTab === 'referrals'
                 ? 'Review clinic patients officially endorsed by attending eye surgeons for charity classification and hospital fee assistance.'
+                : activeTab === 'approved_cases'
+                ? 'Physician referrals approved by MSW with generated Charity Case Numbers. Open dossier to start/continue assessment.'
                 : 'Review registered indigent beneficiaries, launch clinical assessments, and manage social welfare subsidies.'}
             </p>
           </div>
@@ -514,7 +604,14 @@ export function MSWPatientsContent({ initialTab }: { initialTab?: 'charity' | 'r
               id: 'referrals',
               label: 'Financial Assistance Referrals',
               icon: 'fa-file-invoice-dollar',
-              count: referrals.length,
+              count: pendingReferrals.length,
+              badgeColor: 'bg-amber-100 text-amber-800 border border-amber-300 font-extrabold',
+            },
+            {
+              id: 'approved_cases',
+              label: 'MSW-Approved Charity Cases',
+              icon: 'fa-circle-check',
+              count: approvedCharityCases.length,
               badgeColor: 'bg-emerald-100 text-[#0B6B3A] border border-emerald-300 font-extrabold',
             },
             {
@@ -637,15 +734,15 @@ export function MSWPatientsContent({ initialTab }: { initialTab?: 'charity' | 'r
               <p className="text-xs font-semibold text-[#64748B]">Loading records...</p>
             </div>
           ) : activeTab === 'referrals' ? (
-            /* TAB: FINANCIAL ASSISTANCE REFERRALS (LESSENED COLUMNS, 1 BUTTON AT END, CLICKABLE) */
-            filteredReferrals.length === 0 ? (
+            /* TAB: FINANCIAL ASSISTANCE REFERRALS (Pending MSW Review & Approval) */
+            filteredPendingReferrals.length === 0 ? (
               <div className="py-16 text-center">
                 <div className="w-14 h-14 rounded-full bg-emerald-50 text-[#0B6B3A] border border-emerald-200 flex items-center justify-center mx-auto mb-3 text-2xl">
                   <i className="fa-solid fa-file-invoice" />
                 </div>
-                <h4 className="text-base font-bold text-[#10241A] mb-1">No Clinical Referrals Found</h4>
+                <h4 className="text-base font-bold text-[#10241A] mb-1">No Pending Clinical Referrals</h4>
                 <p className="text-xs text-[#64748B] max-w-sm mx-auto mb-4">
-                  There are currently no patients officially endorsed for financial assistance matching your search.
+                  There are currently no physician-endorsed financial referrals awaiting MSW review.
                 </p>
                 <button
                   type="button"
@@ -660,41 +757,28 @@ export function MSWPatientsContent({ initialTab }: { initialTab?: 'charity' | 'r
                 <table className="w-full text-left text-xs sm:text-sm text-[#24352B]">
                   <thead className="bg-[#FAFBF8] text-[#5A7466] text-xs uppercase tracking-wider border-b border-[#EEF2EF]">
                     <tr>
-                      <th className="py-3.5 px-6 font-semibold">Referral Slip #</th>
                       <th className="py-3.5 px-6 font-semibold">Referred Patient</th>
                       <th className="py-3.5 px-6 font-semibold">Diagnosis &amp; Procedure</th>
                       <th className="py-3.5 px-6 font-semibold">Quotation / Fee</th>
-                      <th className="py-3.5 px-6 font-semibold">Status</th>
+                      <th className="py-3.5 px-6 font-semibold">Endorsing Physician / Referring Officer</th>
                       <th className="py-3.5 px-6 font-semibold text-center">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#EEF2EF]">
-                    {paginatedReferrals.map((ref) => (
+                    {paginatedPendingReferrals.map((ref) => (
                       <tr
                         key={ref.id}
                         className="hover:bg-[#FAFBF8] transition cursor-pointer group"
-                        onClick={() => setSelectedReferral(ref)}
+                        onClick={() => router.push(`/patients/${encodeURIComponent(ref.patient_id)}?tab=referral`)}
                       >
-                        <td className="py-4 px-6 whitespace-nowrap">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedReferral(ref);
-                            }}
-                            className="font-mono font-bold text-[#0B6B3A] px-2.5 py-1 rounded-md bg-[#E8F5EC] border border-[#A7F3D0] text-[11px] inline-flex items-center gap-1.5 hover:bg-[#D5E6DC] transition cursor-pointer"
-                          >
-                            <i className="fa-solid fa-file-invoice text-[10px] text-emerald-700" />
-                            <span className="underline decoration-dotted">{ref.id}</span>
-                          </button>
-                        </td>
                         <td className="py-4 px-6 font-medium text-[#10241A] whitespace-nowrap">
                           <div className="font-bold text-[#10241A] group-hover:text-[#0B6B3A] transition">
                             {ref.patient_name}
                           </div>
                           <div className="text-[11px] text-[#64748B] flex items-center gap-1.5 font-mono">
-                            <span>{ref.patient_id}</span>
-                            {ref.contact && <span>&bull; {ref.contact}</span>}
+                            <span className="font-semibold text-emerald-800">{ref.patient_id}</span>
+                            <span>&bull;</span>
+                            <span className="text-slate-600 font-mono text-[10px]">{ref.id}</span>
                           </div>
                         </td>
                         <td className="py-4 px-6 max-w-sm">
@@ -704,25 +788,144 @@ export function MSWPatientsContent({ initialTab }: { initialTab?: 'charity' | 'r
                         <td className="py-4 px-6 whitespace-nowrap font-mono font-bold text-[#0B6B3A]">
                           ₱{Number(ref.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </td>
-                        <td className="py-4 px-6 whitespace-nowrap">
-                          <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-amber-50 text-amber-800 border border-amber-300 uppercase tracking-wider inline-flex items-center gap-1">
-                            <i className="fa-solid fa-handshake-angle text-[9.5px]" />
-                            <span>{ref.status || 'ENDORSED TO MSW'}</span>
-                          </span>
+                        <td className="py-4 px-6 max-w-xs">
+                          <div className="font-semibold text-xs text-[#10241A]">
+                            {ref.referring_individual || ref.attending_doctor || 'Not Available'}
+                          </div>
+                          <div className="text-[11px] text-[#64748B] truncate mt-0.5">
+                            {ref.referring_signature_title || ref.doctor_signature_title || 'Attending Physician'}
+                          </div>
                         </td>
                         <td className="py-4 px-6 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                          <button
-                            type="button"
-                            onClick={() => setSelectedReferral(ref)}
-                            className="px-3.5 py-1.5 rounded-lg bg-[#0B6B3A] hover:bg-[#064826] text-white font-semibold text-xs transition inline-flex items-center gap-1.5 shadow-2xs cursor-pointer"
-                            title="View Referral Details Inside Page"
-                          >
-                            <i className="fa-solid fa-file-invoice text-xs" />
-                            <span>View Details</span>
-                          </button>
+                          <div className="flex items-center justify-center gap-2">
+                            <Link
+                              href={`/patients/${encodeURIComponent(ref.patient_id)}?tab=referral`}
+                              className="px-3 py-1.5 rounded-lg border border-[#D5E2D9] bg-white hover:bg-[#FAFBF8] text-[#10241A] font-semibold text-xs transition inline-flex items-center gap-1.5 shadow-2xs no-underline cursor-pointer"
+                              title="Open Patient Dossier and inspect referral details"
+                            >
+                              <i className="fa-solid fa-folder-open text-xs text-[#0B6B3A]" />
+                              <span>View Details</span>
+                            </Link>
+
+                            <button
+                              type="button"
+                              onClick={() => setApprovalModalReferral(ref)}
+                              className="px-3.5 py-1.5 rounded-lg bg-[#0B6B3A] hover:bg-[#064826] text-white font-semibold text-xs transition inline-flex items-center gap-1.5 shadow-xs cursor-pointer"
+                              title="Approve referral and generate Charity Case Number"
+                            >
+                              <i className="fa-solid fa-check text-xs" />
+                              <span>Approve</span>
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
+                  </tbody>
+                </table>
+              </div>
+            )
+          ) : activeTab === 'approved_cases' ? (
+            /* TAB: MSW-APPROVED CHARITY CASES */
+            filteredApprovedCases.length === 0 ? (
+              <div className="py-16 text-center">
+                <div className="w-14 h-14 rounded-full bg-emerald-50 text-[#0B6B3A] border border-emerald-200 flex items-center justify-center mx-auto mb-3 text-2xl">
+                  <i className="fa-solid fa-circle-check" />
+                </div>
+                <h4 className="text-base font-bold text-[#10241A] mb-1">No MSW-Approved Cases Found</h4>
+                <p className="text-xs text-[#64748B] max-w-sm mx-auto mb-4">
+                  Approved referrals with official Charity Case Numbers will appear here for assessment.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="px-4 py-2 rounded-xl bg-[#E8F5EC] text-[#0B6B3A] text-xs font-bold hover:bg-[#D5E6DC] transition cursor-pointer"
+                >
+                  Clear Search
+                </button>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs sm:text-sm text-[#24352B]">
+                  <thead className="bg-[#FAFBF8] text-[#5A7466] text-xs uppercase tracking-wider border-b border-[#EEF2EF]">
+                    <tr>
+                      <th className="py-3.5 px-6 font-semibold">Charity Case #</th>
+                      <th className="py-3.5 px-6 font-semibold">Patient Name</th>
+                      <th className="py-3.5 px-6 font-semibold">Patient ID</th>
+                      <th className="py-3.5 px-6 font-semibold">Referral #</th>
+                      <th className="py-3.5 px-6 font-semibold">Diagnosis / Procedure</th>
+                      <th className="py-3.5 px-6 font-semibold">Medical Quotation</th>
+                      <th className="py-3.5 px-6 font-semibold">Endorsing Physician</th>
+                      <th className="py-3.5 px-6 font-semibold">MSW Approval Date</th>
+                      <th className="py-3.5 px-6 font-semibold">Assessment Status</th>
+                      <th className="py-3.5 px-6 font-semibold text-center">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#EEF2EF]">
+                    {paginatedApprovedCases.map((ref) => {
+                      const asmt = assessmentsList.find((a: any) => a.referral_id === ref.id || a.patient_id === ref.patient_id);
+                      const asmtStatus = asmt ? (asmt.workflow_status || 'DRAFT') : 'NOT STARTED';
+                      return (
+                        <tr
+                          key={ref.id}
+                          className="hover:bg-[#FAFBF8] transition cursor-pointer group"
+                          onClick={() => router.push(`/patients/${encodeURIComponent(ref.patient_id)}?tab=assessment`)}
+                        >
+                          <td className="py-4 px-6 whitespace-nowrap">
+                            <span className="font-mono font-bold text-[#0B6B3A] px-2.5 py-1 rounded-md bg-[#E8F5EC] border border-[#A7F3D0] text-[11px] inline-flex items-center gap-1.5">
+                              <i className="fa-solid fa-certificate text-[10px] text-emerald-700" />
+                              <span>{ref.charity_case_no || ref.patient_id}</span>
+                            </span>
+                          </td>
+                          <td className="py-4 px-6 font-bold text-[#10241A] whitespace-nowrap">
+                            {ref.patient_name}
+                          </td>
+                          <td className="py-4 px-6 font-mono text-xs text-[#64748B] whitespace-nowrap">
+                            {ref.patient_id}
+                          </td>
+                          <td className="py-4 px-6 font-mono text-xs text-[#0B6B3A] whitespace-nowrap">
+                            {ref.id}
+                          </td>
+                          <td className="py-4 px-6 max-w-xs">
+                            <div className="font-semibold text-xs text-[#10241A] truncate">{ref.diagnosis}</div>
+                            <div className="text-[11px] text-[#0B6B3A] font-medium truncate mt-0.5">{ref.procedure}</div>
+                          </td>
+                          <td className="py-4 px-6 whitespace-nowrap font-mono font-bold text-[#0B6B3A]">
+                            ₱{Number(ref.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          </td>
+                          <td className="py-4 px-6 text-xs text-[#334155] whitespace-nowrap">
+                            {ref.referring_individual || ref.attending_doctor || 'Dr. J. E. Garcia, MD'}
+                          </td>
+                          <td className="py-4 px-6 whitespace-nowrap text-xs text-[#64748B]">
+                            {ref.approved_at ? ref.approved_at.slice(0, 10) : (ref.created_at || '').slice(0, 10) || '2026-11-23'}
+                          </td>
+                          <td className="py-4 px-6 whitespace-nowrap">
+                            <span
+                              className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider inline-flex items-center gap-1 ${
+                                asmtStatus === 'APPROVED'
+                                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                  : asmtStatus === 'SUBMITTED' || asmtStatus === 'PENDING_APPROVAL'
+                                  ? 'bg-blue-100 text-blue-800 border border-blue-300'
+                                  : asmtStatus === 'DRAFT' || asmtStatus === 'ASSESSMENT_IN_PROGRESS'
+                                  ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                                  : 'bg-slate-100 text-slate-700 border border-slate-300'
+                              }`}
+                            >
+                              <span>{asmtStatus}</span>
+                            </span>
+                          </td>
+                          <td className="py-4 px-6 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                            <Link
+                              href={`/patients/${encodeURIComponent(ref.patient_id)}?tab=assessment`}
+                              className="px-3.5 py-1.5 rounded-lg bg-[#0B6B3A] hover:bg-[#064826] text-white font-semibold text-xs transition inline-flex items-center gap-1.5 shadow-2xs no-underline cursor-pointer"
+                              title="Open Unified Patient Dossier Assessment & Charity Status Tab"
+                            >
+                              <i className="fa-solid fa-folder-open text-xs" />
+                              <span>View Details</span>
+                            </Link>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -809,37 +1012,17 @@ export function MSWPatientsContent({ initialTab }: { initialTab?: 'charity' | 'r
                           </span>
                         </td>
                         <td className="py-4 px-6 text-center whitespace-nowrap">
-                          {(() => {
-                            const asmt = assessmentsByPatient[p.patient_id];
-                            const ws = asmt?.workflow_status;
-                            const isDraft = ws === 'DRAFT' || ws === 'ASSESSMENT_IN_PROGRESS' || ws === 'RETURNED_FOR_REVISION';
-                            const isReview = ws === 'PENDING_DOCUMENT_REVIEW' || ws === 'PENDING_MSW_REVIEW' || ws === 'PENDING_APPROVAL';
-                            const isDone = ws === 'APPROVED' || ws === 'REJECTED';
-                            const label = isDraft
-                              ? 'Continue Assessment'
-                              : isReview
-                                ? 'View / Review'
-                                : isDone
-                                  ? 'View Assessment'
-                                  : 'Assess';
-                            const href = asmt?.id
-                              ? `/assessment?patient_id=${encodeURIComponent(p.patient_id)}&assessment_id=${encodeURIComponent(asmt.id)}`
-                              : `/assessment?patient_id=${encodeURIComponent(p.patient_id)}`;
-                            return (
-                              <Link
-                                href={href}
-                                className={`px-3.5 py-1.5 rounded-lg font-semibold text-xs transition inline-flex items-center gap-1.5 shadow-2xs cursor-pointer ${
-                                  isDone || isReview
-                                    ? 'bg-white border border-[#0B6B3A] text-[#0B6B3A] hover:bg-[#E8F5EC]'
-                                    : 'bg-[#0B6B3A] hover:bg-[#064826] text-white'
-                                }`}
-                                title={label}
-                              >
-                                <i className={`fa-solid ${isDone || isReview ? 'fa-eye' : isDraft ? 'fa-pen-to-square' : 'fa-stethoscope'} text-[10px]`} />
-                                <span>{label}</span>
-                              </Link>
-                            );
-                          })()}
+                          <Link
+                            href={`/patients/${encodeURIComponent(p.patient_id)}?tab=${
+                              activeTab === 'pending' || activeTab === 'promissory' ? 'assessment' : 'profile'
+                            }`}
+                            data-testid={`view-details-${p.patient_id}`}
+                            className="px-3.5 py-1.5 rounded-lg bg-[#0B6B3A] hover:bg-[#064826] text-white font-semibold text-xs transition inline-flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                            title={`View Complete Patient Dossier for ${p.first_name} ${p.last_name}`}
+                          >
+                            <i className="fa-solid fa-folder-open text-[10px]" />
+                            <span>View Details</span>
+                          </Link>
                         </td>
                       </tr>
                     ))}

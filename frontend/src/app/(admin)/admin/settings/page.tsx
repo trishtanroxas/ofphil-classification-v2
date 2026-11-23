@@ -81,7 +81,7 @@ export default function AdminSettingsPage() {
   const [notifyQueueUpdate, setNotifyQueueUpdate] = useState(true);
   const [notifySecurityAlert, setNotifySecurityAlert] = useState(true);
   const [notifyPasswordChange, setNotifyPasswordChange] = useState(true);
-  const [testEmailRecipient, setTestEmailRecipient] = useState('admin@ofphil.org.ph');
+  const [testEmailRecipient, setTestEmailRecipient] = useState('trishtanroxas@gmail.com');
   const [isSendingTest, setIsSendingTest] = useState(false);
 
   // ---------------------------------------------------------------------------
@@ -100,7 +100,7 @@ export default function AdminSettingsPage() {
   // ---------------------------------------------------------------------------
   const [staffUsername, setStaffUsername] = useState('admin_sys');
   const [staffFullName, setStaffFullName] = useState('Dr. Roberto Reyes');
-  const [staffEmail, setStaffEmail] = useState('admin@ofphil.org.ph');
+  const [staffEmail, setStaffEmail] = useState('trishtanroxas@gmail.com');
   const [staffRole, setStaffRole] = useState('Clinic Administrator (Super-Admin Authority)');
   const [staffDepartment, setStaffDepartment] = useState('Clinic Operations & Governance');
   const [themePreference, setThemePreference] = useState('light');
@@ -306,11 +306,11 @@ export default function AdminSettingsPage() {
           if (acc) {
             setStaffUsername(acc.username || 'admin_sys');
             setStaffFullName(acc.full_name || 'Dr. Roberto Reyes');
-            setStaffEmail(acc.email || 'admin@ofphil.org.ph');
+            setStaffEmail(acc.email || 'trishtanroxas@gmail.com');
             setStaffRole(acc.role || 'Clinic Administrator (Super-Admin Authority)');
             setStaffDepartment(acc.department || 'Clinic Operations & Governance');
             setThemePreference(acc.theme_preference || 'light');
-            setTestEmailRecipient(acc.email || 'admin@ofphil.org.ph');
+            setTestEmailRecipient(acc.email || 'trishtanroxas@gmail.com');
           }
         } catch (e) {
           console.warn('Failed loading personal account profile:', e);
@@ -436,7 +436,7 @@ export default function AdminSettingsPage() {
         access_policies: {
           least_privilege_enforced: true,
           admin_access_level: 'Full System Administration',
-          msw_access_level: 'Patient Intake, Evaluation, and Classification',
+          msw_access_level: 'Patient Intake and Evaluation',
           researcher_access_level: 'Synthetic De-identified Records Only',
           nurse_access_level: 'Triage Desk and Queue Management',
           restricted_phi_roles: ['researcher', 'auditor'],
