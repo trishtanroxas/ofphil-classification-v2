@@ -132,13 +132,26 @@ def get_admin_inquiries(
 
 @router.get("/notifications/list")
 def list_inquiry_notifications(
+    page: int = 1,
+    page_size: int = 10,
+    read_filter: str = "ALL",
+    type_filter: str = "ALL",
+    search: str = "",
     x_user_role: Optional[str] = Header(default=None),
     x_user_id: Optional[str] = Header(default=None),
 ):
     role, uid = _require_actor(x_user_role, x_user_id)
     if role not in ("patient", "admin", "nurse", "msw"):
         raise HTTPException(status_code=403, detail="Unauthorized role.")
-    return inquiry_service.list_notifications(actor_role=role, actor_id=uid)
+    return inquiry_service.list_notifications(
+        actor_role=role,
+        actor_id=uid,
+        page=page,
+        page_size=page_size,
+        read_filter=read_filter,
+        type_filter=type_filter,
+        search=search,
+    )
 
 
 @router.post("/notifications/mark-all-read")

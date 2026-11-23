@@ -76,6 +76,10 @@ export default function MSWNotificationsPage() {
 
   const [notifications, setNotifications] = useState<MSWNotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
   const [loading, setLoading] = useState(true);
   const [markingAll, setMarkingAll] = useState(false);
   const [readFilter, setReadFilter] = useState<'ALL' | 'UNREAD' | 'READ'>('ALL');
@@ -84,7 +88,17 @@ export default function MSWNotificationsPage() {
 
   const fetchNotifications = useCallback(async () => {
     try {
-      const res = await fetch(getApiUrl('/inquiries/notifications/list'), {
+      const params = new URLSearchParams({
+        page: String(page),
+        page_size: String(pageSize),
+        read_filter: readFilter,
+        type_filter: typeFilter,
+      });
+      if (searchQuery.trim()) {
+        params.set('search', searchQuery.trim());
+      }
+
+      const res = await fetch(getApiUrl(`/inquiries/notifications/list?${params.toString()}`), {
         headers: {
           'x-user-role': 'msw',
           'x-user-id': String(mswUserId),
@@ -94,12 +108,14 @@ export default function MSWNotificationsPage() {
       const data = await res.json();
       setNotifications(Array.isArray(data.items) ? data.items : []);
       setUnreadCount(typeof data.unread_count === 'number' ? data.unread_count : 0);
+      setTotalCount(typeof data.total_count === 'number' ? data.total_count : Array.isArray(data.items) ? data.items.length : 0);
+      setTotalPages(typeof data.total_pages === 'number' ? Math.max(1, data.total_pages) : 1);
     } catch {
       // ignore network error
     } finally {
       setLoading(false);
     }
-  }, [mswUserId]);
+  }, [mswUserId, page, pageSize, readFilter, typeFilter, searchQuery]);
 
   useEffect(() => {
     fetchNotifications();
@@ -303,7 +319,10 @@ export default function MSWNotificationsPage() {
             <button
               key={tab}
               type="button"
-              onClick={() => setReadFilter(tab)}
+              onClick={() => {
+                setReadFilter(tab);
+                setPage(1);
+              }}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border ${
                 readFilter === tab
                   ? 'bg-[#0B6B3A] text-white border-[#0B6B3A] shadow-2xs'
@@ -311,16 +330,19 @@ export default function MSWNotificationsPage() {
               }`}
             >
               {tab === 'ALL'
-                ? `All (${notifications.length})`
+                ? `All (${readFilter === 'ALL' ? totalCount : 'All'})`
                 : tab === 'UNREAD'
                   ? `Unread (${unreadCount})`
-                  : `Read (${notifications.length - unreadCount})`}
+                  : 'Read'}
             </button>
           ))}
 
           <select
             value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
+            onChange={(e) => {
+              setTypeFilter(e.target.value);
+              setPage(1);
+            }}
             aria-label="Filter notification category"
             className="ml-1 px-3 py-1.5 rounded-xl border border-[#D5E2D9] bg-white text-xs font-semibold text-[#1E293B] focus:outline-none focus:border-[#0B6B3A]"
           >
@@ -338,7 +360,10 @@ export default function MSWNotificationsPage() {
           <input
             type="text"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setPage(1);
+            }}
             placeholder="Search patient ID, case no., or title..."
             className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-[#D5E2D9] text-xs text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
           />
@@ -468,6 +493,46 @@ export default function MSWNotificationsPage() {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* Database-backed Pagination */}
+        {!loading && totalCount > 0 && (
+          <div className="px-4 py-3 border-t border-[#EEF2EF] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#5A7466]">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span>
+                Showing{' '}
+                <strong className="text-[#10241A] font-semibold">
+                  {Math.min((page - 1) * pageSize + 1, totalCount)}–{Math.min(page * pageSize, totalCount)}
+                </strong>{' '}
+                of <strong className="text-[#10241A] font-semibold">{totalCount}</strong> notifications
+              </span>
+              <span className="text-[#CBD5E1]">&bull;</span>
+              <span>
+                Page <strong className="text-[#10241A] font-semibold">{page}</strong> of{' '}
+                <strong className="text-[#10241A] font-semibold">{totalPages}</strong>
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                className="px-3.5 py-1.5 rounded-lg border border-[#D5E2D9] bg-white text-[#10241A] font-semibold hover:bg-[#FAFBF8] disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
+              >
+                <i className="fa-solid fa-chevron-left text-[10px]" />
+                <span>Previous</span>
+              </button>
+              <button
+                type="button"
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                className="px-3.5 py-1.5 rounded-lg border border-[#D5E2D9] bg-white text-[#10241A] font-semibold hover:bg-[#FAFBF8] disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
+              >
+                <span>Next</span>
+                <i className="fa-solid fa-chevron-right text-[10px]" />
+              </button>
+            </div>
           </div>
         )}
       </div>

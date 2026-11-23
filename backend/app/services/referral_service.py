@@ -64,7 +64,6 @@ class ReferralService:
                 CREATE INDEX IF NOT EXISTS idx_referrals_patient_id ON financial_referrals(patient_id);
                 CREATE INDEX IF NOT EXISTS idx_referrals_status ON financial_referrals(status);
                 CREATE INDEX IF NOT EXISTS idx_referrals_assessment_id ON financial_referrals(assessment_id);
-                CREATE INDEX IF NOT EXISTS idx_referrals_charity_case ON financial_referrals(charity_case_no);
 
                 CREATE TABLE IF NOT EXISTS referral_status_audit (
                     id TEXT PRIMARY KEY,
@@ -80,7 +79,7 @@ class ReferralService:
                 CREATE INDEX IF NOT EXISTS idx_ref_audit_ref_id ON referral_status_audit(referral_id);
                 """
             )
-            # Ensure newer columns exist for older sqlite databases
+            # Ensure newer columns exist for older sqlite databases BEFORE creating index on them
             try:
                 col_names = [col[1] for col in conn.execute("PRAGMA table_info(financial_referrals)").fetchall()]
                 for new_col in ["charity_case_no", "approved_by", "approved_at", "rejected_by", "rejected_at", "rejection_reason"]:
@@ -89,6 +88,10 @@ class ReferralService:
                 conn.commit()
             except Exception:
                 pass
+
+            # Create index on charity_case_no now that column existence is guaranteed
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_referrals_charity_case ON financial_referrals(charity_case_no);")
+            conn.commit()
 
             # Seed default official clinical referral if empty
             cur = conn.execute("SELECT COUNT(*) FROM financial_referrals")

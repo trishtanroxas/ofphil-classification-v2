@@ -135,3 +135,54 @@ def test_msw_dossier_endpoints_do_not_create_duplicate_assessments_or_encounters
         dos_after = client.get(f"/api/v1/patients/{pid}", headers=headers).json()
         assert len(asmt_after) == len(asmt_before)
         assert len(dos_after.get("encounters", [])) == enc_count_before
+
+
+def test_notifications_pagination_database_backed():
+    """
+    Verifies notification pagination requirements:
+    1. 10 notifications per page
+    2. Page 1 returns at most 10 items
+    3. Pagination metadata (total_count, total_pages, page, page_size) is returned
+    4. Next page (page=2) offset retrieves subsequent items without duplicates
+    """
+    headers = {"x-user-role": "msw", "x-user-id": "msw_lead"}
+
+    # Seed at least 15 notifications for msw_lead to verify >10 pagination
+    for i in range(15):
+        inquiry_service.create_msw_notification(
+            recipient_user_id="msw_lead",
+            notification_type="APPLICATION_PENDING_ASSESSMENT",
+            title=f"Pagination Test Notification #{i+1}",
+            message=f"Testing 10 items per page pagination item #{i+1}",
+            target_destination="/patients/M26-11-00001",
+            related_patient_id="M26-11-00001",
+            dedup_key=f"TEST_PAGINATION_ITEM_{i+1}",
+        )
+
+    # Page 1 fetch
+    res_p1 = client.get("/api/v1/inquiries/notifications/list?page=1&page_size=10", headers=headers)
+    assert res_p1.status_code == 200
+    p1_data = res_p1.json()
+
+    assert p1_data["page"] == 1
+    assert p1_data["page_size"] == 10
+    assert len(p1_data["items"]) == 10
+    assert p1_data["total_count"] >= 15
+    assert p1_data["total_pages"] >= 2
+
+    p1_ids = [item["id"] for item in p1_data["items"]]
+
+    # Page 2 fetch
+    res_p2 = client.get("/api/v1/inquiries/notifications/list?page=2&page_size=10", headers=headers)
+    assert res_p2.status_code == 200
+    p2_data = res_p2.json()
+
+    assert p2_data["page"] == 2
+    assert p2_data["page_size"] == 10
+    assert len(p2_data["items"]) >= 5
+    p2_ids = [item["id"] for item in p2_data["items"]]
+
+    # Ensure no overlap / duplicate records between page 1 and page 2
+    overlap = set(p1_ids).intersection(set(p2_ids))
+    assert len(overlap) == 0, f"Found overlapping items between pages: {overlap}"
+

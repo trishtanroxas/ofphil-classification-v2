@@ -74,7 +74,7 @@ export default function AdminInquiriesPage() {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [readFilter, setReadFilter] = useState('all');
   const [page, setPage] = useState(1);
-  const pageSize = 15;
+  const pageSize = 10;
 
   const [activeInquiry, setActiveInquiry] = useState<InquiryRecord | null>(null);
   const [replyText, setReplyText] = useState('');
@@ -400,27 +400,40 @@ export default function AdminInquiriesPage() {
           )}
 
           {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="px-4 py-3 border-t border-[#EEF2EF] flex items-center justify-between text-xs text-[#5A7466]">
-              <span>
-                Page {page} of {totalPages}
-              </span>
-              <div className="flex gap-2">
+          {totalCount > 0 && (
+            <div className="px-4 py-3 border-t border-[#EEF2EF] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#5A7466]">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span>
+                  Showing{' '}
+                  <strong className="text-[#10241A] font-semibold">
+                    {Math.min((page - 1) * pageSize + 1, totalCount)}–{Math.min(page * pageSize, totalCount)}
+                  </strong>{' '}
+                  of <strong className="text-[#10241A] font-semibold">{totalCount}</strong> inquiries
+                </span>
+                <span className="text-[#CBD5E1]">&bull;</span>
+                <span>
+                  Page <strong className="text-[#10241A] font-semibold">{page}</strong> of{' '}
+                  <strong className="text-[#10241A] font-semibold">{totalPages}</strong>
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   disabled={page <= 1}
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  className="px-3 py-1 rounded border border-[#D5E2D9] bg-white disabled:opacity-50 cursor-pointer"
+                  className="px-3.5 py-1.5 rounded-lg border border-[#D5E2D9] bg-white text-[#10241A] font-semibold hover:bg-[#FAFBF8] disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
                 >
-                  Previous
+                  <i className="fa-solid fa-chevron-left text-[10px]" />
+                  <span>Previous</span>
                 </button>
                 <button
                   type="button"
                   disabled={page >= totalPages}
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  className="px-3 py-1 rounded border border-[#D5E2D9] bg-white disabled:opacity-50 cursor-pointer"
+                  className="px-3.5 py-1.5 rounded-lg border border-[#D5E2D9] bg-white text-[#10241A] font-semibold hover:bg-[#FAFBF8] disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
                 >
-                  Next
+                  <span>Next</span>
+                  <i className="fa-solid fa-chevron-right text-[10px]" />
                 </button>
               </div>
             </div>

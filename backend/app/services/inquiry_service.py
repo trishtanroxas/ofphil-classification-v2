@@ -4,6 +4,7 @@ Uses SQLite (backend/storage/inquiries.db) with foreign keys and transactions, p
 secure non-public attachment storage under UPLOAD_STORAGE_DIR / "inquiries".
 """
 import datetime
+import math
 import shutil
 import sqlite3
 import uuid
@@ -901,23 +902,79 @@ class InquiryService:
         except Exception:
             pass
 
-    def list_notifications(self, actor_role: str, actor_id: str) -> Dict[str, Any]:
+    def list_notifications(
+        self,
+        actor_role: str,
+        actor_id: str,
+        page: int = 1,
+        page_size: int = 10,
+        read_filter: str = "ALL",
+        type_filter: str = "ALL",
+        search: str = "",
+    ) -> Dict[str, Any]:
         role_norm = (actor_role or "").strip().lower()
         uid_norm = (actor_id or "").strip()
+        p = max(1, int(page or 1))
+        ps = max(1, min(100, int(page_size or 10)))
+        offset = (p - 1) * ps
 
         if role_norm == "msw":
             resolved_uid = self.resolve_msw_user_id(uid_norm)
             self.sync_msw_notifications_from_records(resolved_uid)
             with self._connect() as conn:
-                rows = conn.execute(
+                # Count total unread for badge
+                unread_row = conn.execute(
                     """
-                    SELECT * FROM msw_notifications
+                    SELECT COUNT(*) as unread
+                    FROM msw_notifications
                     WHERE recipient_role = 'msw'
                       AND (LOWER(recipient_user_id) = LOWER(?) OR UPPER(recipient_user_id) = 'ALL_MSW')
-                    ORDER BY created_at DESC LIMIT 100
+                      AND is_read = 0
                     """,
                     (resolved_uid,),
-                ).fetchall()
+                ).fetchone()
+                total_unread = int(unread_row["unread"] or 0) if unread_row else 0
+
+                # Build filtered query
+                where_clauses = [
+                    "recipient_role = 'msw'",
+                    "(LOWER(recipient_user_id) = LOWER(?) OR UPPER(recipient_user_id) = 'ALL_MSW')",
+                ]
+                params: List[Any] = [resolved_uid]
+
+                if read_filter.upper() == "UNREAD":
+                    where_clauses.append("is_read = 0")
+                elif read_filter.upper() == "READ":
+                    where_clauses.append("is_read = 1")
+
+                if type_filter and type_filter.upper() != "ALL":
+                    where_clauses.append("notification_type = ?")
+                    params.append(type_filter)
+
+                if search and search.strip():
+                    q = f"%{search.strip().lower()}%"
+                    where_clauses.append(
+                        "(LOWER(title) LIKE ? OR LOWER(message) LIKE ? OR LOWER(COALESCE(related_patient_id, '')) LIKE ? OR LOWER(COALESCE(related_encounter_id, '')) LIKE ?)"
+                    )
+                    params.extend([q, q, q, q])
+
+                where_sql = " AND ".join(where_clauses)
+
+                # Total count for matching filter
+                count_query = f"SELECT COUNT(*) as total FROM msw_notifications WHERE {where_sql}"
+                count_row = conn.execute(count_query, params).fetchone()
+                total_count = int(count_row["total"] or 0) if count_row else 0
+
+                # Page rows
+                page_query = f"""
+                    SELECT * FROM msw_notifications
+                    WHERE {where_sql}
+                    ORDER BY created_at DESC
+                    LIMIT ? OFFSET ?
+                """
+                page_params = list(params) + [ps, offset]
+                rows = conn.execute(page_query, page_params).fetchall()
+
                 items = [
                     {
                         **dict(r),
@@ -926,31 +983,69 @@ class InquiryService:
                     }
                     for r in rows
                 ]
-                unread_count = sum(1 for i in items if not i["is_read"])
-                return {"items": items, "unread_count": unread_count}
+                total_pages = max(1, math.ceil(total_count / ps))
+                return {
+                    "items": items,
+                    "unread_count": total_unread,
+                    "total_count": total_count,
+                    "page": p,
+                    "page_size": ps,
+                    "total_pages": total_pages,
+                }
 
         target_role = "patient" if role_norm == "patient" else "admin"
         with self._connect() as conn:
             if target_role == "patient":
+                unread_row = conn.execute(
+                    "SELECT COUNT(*) as unread FROM inquiry_notifications WHERE recipient_role = 'patient' AND UPPER(recipient_id) = UPPER(?) AND is_read = 0",
+                    (uid_norm,),
+                ).fetchone()
+                total_unread = int(unread_row["unread"] or 0) if unread_row else 0
+
+                count_row = conn.execute(
+                    "SELECT COUNT(*) as total FROM inquiry_notifications WHERE recipient_role = 'patient' AND UPPER(recipient_id) = UPPER(?)",
+                    (uid_norm,),
+                ).fetchone()
+                total_count = int(count_row["total"] or 0) if count_row else 0
+
                 rows = conn.execute(
                     """
                     SELECT * FROM inquiry_notifications
                     WHERE recipient_role = 'patient' AND UPPER(recipient_id) = UPPER(?)
-                    ORDER BY created_at DESC LIMIT 50
+                    ORDER BY created_at DESC LIMIT ? OFFSET ?
                     """,
-                    (uid_norm,),
+                    (uid_norm, ps, offset),
                 ).fetchall()
             else:
+                unread_row = conn.execute(
+                    "SELECT COUNT(*) as unread FROM inquiry_notifications WHERE recipient_role = 'admin' AND is_read = 0"
+                ).fetchone()
+                total_unread = int(unread_row["unread"] or 0) if unread_row else 0
+
+                count_row = conn.execute(
+                    "SELECT COUNT(*) as total FROM inquiry_notifications WHERE recipient_role = 'admin'"
+                ).fetchone()
+                total_count = int(count_row["total"] or 0) if count_row else 0
+
                 rows = conn.execute(
                     """
                     SELECT * FROM inquiry_notifications
                     WHERE recipient_role = 'admin'
-                    ORDER BY created_at DESC LIMIT 50
-                    """
+                    ORDER BY created_at DESC LIMIT ? OFFSET ?
+                    """,
+                    (ps, offset),
                 ).fetchall()
+
             items = [{**dict(r), "is_read": bool(r["is_read"])} for r in rows]
-            unread_count = sum(1 for i in items if not i["is_read"])
-            return {"items": items, "unread_count": unread_count}
+            total_pages = max(1, math.ceil(total_count / ps))
+            return {
+                "items": items,
+                "unread_count": total_unread,
+                "total_count": total_count,
+                "page": p,
+                "page_size": ps,
+                "total_pages": total_pages,
+            }
 
     def mark_notification_read(self, notif_id: str, actor_role: str, actor_id: str) -> Dict[str, Any]:
         now = _utc_now_iso()

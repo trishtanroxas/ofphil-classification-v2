@@ -29,6 +29,8 @@ function PatientPortalContent() {
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
   const [readNotifIds, setReadNotifIds] = useState<string[]>([]);
+  const [patientNotifPage, setPatientNotifPage] = useState(1);
+  const patientNotifPageSize = 10;
 
   const [isLoading, setIsLoading] = useState(false);
 
@@ -2344,6 +2346,12 @@ function PatientPortalContent() {
             });
 
             const unreadCount = unifiedNotifs.filter((n) => !n.isRead).length;
+            const patientTotalNotifs = unifiedNotifs.length;
+            const patientTotalPages = Math.max(1, Math.ceil(patientTotalNotifs / patientNotifPageSize));
+            const paginatedNotifs = unifiedNotifs.slice(
+              (patientNotifPage - 1) * patientNotifPageSize,
+              patientNotifPage * patientNotifPageSize
+            );
 
             const handleToggleReadNotif = (nid: string) => {
               const next = readSet.has(nid)
@@ -2419,71 +2427,113 @@ function PatientPortalContent() {
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    {unifiedNotifs.map((n) => (
-                      <div
-                        key={n.id}
-                        className={`p-5 rounded-2xl border transition shadow-xs flex flex-col gap-3 ${
-                          n.isRead
-                            ? 'bg-white border-[#E2E8F0]'
-                            : 'bg-[#F0FDF4]/50 border-[#A7F3D0]'
-                        }`}
-                      >
-                        <div className="flex items-start gap-3.5 min-w-0 flex-1">
-                          <div className="w-10 h-10 rounded-xl bg-white border border-[#D5E2D9] flex items-center justify-center text-base shrink-0 shadow-2xs">
-                            <i className={`fa-solid ${n.icon}`} />
-                          </div>
-                          <div className="space-y-1.5 min-w-0 flex-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${n.badgeColor}`}>
-                                {n.category}
-                              </span>
-                              <span
-                                className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
-                                  n.isRead
-                                    ? 'bg-slate-100 text-slate-600'
-                                    : 'bg-[#DC2626] text-white'
-                                }`}
-                              >
-                                {n.isRead ? 'READ' : 'UNREAD'}
-                              </span>
-                              <span className="text-[11px] text-[#64748B]">
-                                <i className="fa-regular fa-clock mr-1" />
-                                {n.timestamp}
-                              </span>
+                  <div className="space-y-4">
+                    <div className="space-y-3">
+                      {paginatedNotifs.map((n) => (
+                        <div
+                          key={n.id}
+                          className={`p-5 rounded-2xl border transition shadow-xs flex flex-col gap-3 ${
+                            n.isRead
+                              ? 'bg-white border-[#E2E8F0]'
+                              : 'bg-[#F0FDF4]/50 border-[#A7F3D0]'
+                          }`}
+                        >
+                          <div className="flex items-start gap-3.5 min-w-0 flex-1">
+                            <div className="w-10 h-10 rounded-xl bg-white border border-[#D5E2D9] flex items-center justify-center text-base shrink-0 shadow-2xs">
+                              <i className={`fa-solid ${n.icon}`} />
                             </div>
+                            <div className="space-y-1.5 min-w-0 flex-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${n.badgeColor}`}>
+                                  {n.category}
+                                </span>
+                                <span
+                                  className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                                    n.isRead
+                                      ? 'bg-slate-100 text-slate-600'
+                                      : 'bg-[#DC2626] text-white'
+                                  }`}
+                                >
+                                  {n.isRead ? 'READ' : 'UNREAD'}
+                                </span>
+                                <span className="text-[11px] text-[#64748B]">
+                                  <i className="fa-regular fa-clock mr-1" />
+                                  {n.timestamp}
+                                </span>
+                              </div>
 
-                            <div className="font-bold text-sm text-[#10241A]">{n.title}</div>
-                            <p className="text-xs text-[#334155] m-0 whitespace-pre-wrap leading-relaxed bg-white/90 p-3 rounded-xl border border-[#EEF2EF]">
-                              {n.message}
-                            </p>
+                              <div className="font-bold text-sm text-[#10241A]">{n.title}</div>
+                              <p className="text-xs text-[#334155] m-0 whitespace-pre-wrap leading-relaxed bg-white/90 p-3 rounded-xl border border-[#EEF2EF]">
+                                {n.message}
+                              </p>
+                            </div>
                           </div>
-                        </div>
 
-                        <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
-                          <button
-                            type="button"
-                            onClick={() => handleToggleReadNotif(n.id)}
-                            className="px-3 py-1.5 rounded-lg border border-[#CBD5E1] bg-white hover:bg-[#FAFBF8] text-[#10241A] font-semibold text-[11px] cursor-pointer transition"
-                          >
-                            {n.isRead ? 'Mark Unread' : '✓ Mark Read'}
-                          </button>
-
-                          {n.actionTab && (
+                          <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
                             <button
                               type="button"
-                              onClick={() => {
-                                if (!n.isRead) handleToggleReadNotif(n.id);
-                                setActiveTab(n.actionTab!);
-                              }}
-                              className="px-3 py-1.5 rounded-lg bg-[#0B6B3A] hover:bg-[#064826] text-white font-bold text-[11px] cursor-pointer transition border-0"
+                              onClick={() => handleToggleReadNotif(n.id)}
+                              className="px-3 py-1.5 rounded-lg border border-[#CBD5E1] bg-white hover:bg-[#FAFBF8] text-[#10241A] font-semibold text-[11px] cursor-pointer transition"
                             >
-                              {n.actionLabel} &rarr;
+                              {n.isRead ? 'Mark Unread' : '✓ Mark Read'}
                             </button>
-                          )}
+
+                            {n.actionTab && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (!n.isRead) handleToggleReadNotif(n.id);
+                                  setActiveTab(n.actionTab!);
+                                }}
+                                className="px-3 py-1.5 rounded-lg bg-[#0B6B3A] hover:bg-[#064826] text-white font-bold text-[11px] cursor-pointer transition border-0"
+                              >
+                                {n.actionLabel} &rarr;
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Patient Notifications Pagination Bar */}
+                    {patientTotalNotifs > 0 && (
+                      <div className="p-4 bg-white rounded-2xl border border-[#D5E2D9] shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#5A7466]">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span>
+                            Showing{' '}
+                            <strong className="text-[#10241A] font-semibold">
+                              {Math.min((patientNotifPage - 1) * patientNotifPageSize + 1, patientTotalNotifs)}–{Math.min(patientNotifPage * patientNotifPageSize, patientTotalNotifs)}
+                            </strong>{' '}
+                            of <strong className="text-[#10241A] font-semibold">{patientTotalNotifs}</strong> notifications
+                          </span>
+                          <span className="text-[#CBD5E1]">&bull;</span>
+                          <span>
+                            Page <strong className="text-[#10241A] font-semibold">{patientNotifPage}</strong> of{' '}
+                            <strong className="text-[#10241A] font-semibold">{patientTotalPages}</strong>
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            disabled={patientNotifPage <= 1}
+                            onClick={() => setPatientNotifPage((p) => Math.max(1, p - 1))}
+                            className="px-3.5 py-1.5 rounded-lg border border-[#D5E2E9] bg-white text-[#10241A] font-semibold hover:bg-[#FAFBF8] disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                          >
+                            <i className="fa-solid fa-chevron-left text-[10px]" />
+                            <span>Previous</span>
+                          </button>
+                          <button
+                            type="button"
+                            disabled={patientNotifPage >= patientTotalPages}
+                            onClick={() => setPatientNotifPage((p) => Math.min(patientTotalPages, p + 1))}
+                            className="px-3.5 py-1.5 rounded-lg border border-[#D5E2D9] bg-white text-[#10241A] font-semibold hover:bg-[#FAFBF8] disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                          >
+                            <span>Next</span>
+                            <i className="fa-solid fa-chevron-right text-[10px]" />
+                          </button>
                         </div>
                       </div>
-                    ))}
+                    )}
                   </div>
                 )}
               </div>
