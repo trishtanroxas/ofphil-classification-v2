@@ -100,13 +100,19 @@ class PasswordRecoveryService:
 
     @staticmethod
     def normalize_date(val: str) -> str:
-        clean = (val or "").strip().replace("/", "-")
+        if not val:
+            return ""
+        clean = re.sub(r"\s+", "", str(val).strip()).replace("/", "-")
         parts = clean.split("-")
         if len(parts) == 3:
-            if len(parts[0]) == 4:  # YYYY-MM-DD
-                return f"{parts[0]}-{int(parts[1]):02d}-{int(parts[2]):02d}"
-            elif len(parts[2]) == 4:  # MM-DD-YYYY
-                return f"{parts[2]}-{int(parts[0]):02d}-{int(parts[1]):02d}"
+            try:
+                p0, p1, p2 = parts[0].strip(), parts[1].strip(), parts[2].strip()
+                if len(p0) == 4:  # YYYY-MM-DD
+                    return f"{int(p0):04d}-{int(p1):02d}-{int(p2):02d}"
+                elif len(p2) == 4:  # MM-DD-YYYY
+                    return f"{int(p2):04d}-{int(p0):02d}-{int(p1):02d}"
+            except (ValueError, IndexError):
+                pass
         return clean
 
     @staticmethod
