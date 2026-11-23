@@ -339,7 +339,7 @@ export default function AdminInquiriesPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#EEF2EF]">
-                  {inquiries.map((inq) => (
+                  {inquiries.slice(0, pageSize).map((inq) => (
                     <tr key={inq.id} className="hover:bg-[#FAFBF8] transition">
                       <td className="py-3 px-4 font-mono font-bold text-[#0B6B3A] whitespace-nowrap">
                         {inq.id}

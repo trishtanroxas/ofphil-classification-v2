@@ -196,6 +196,18 @@ export default function MSWNotificationsPage() {
     });
   }, [notifications, readFilter, typeFilter, searchQuery]);
 
+  // Strict 10-row slice guard: guarantees exactly at most 10 items render per page
+  const displayedItems = useMemo(() => {
+    // If notifications array has more than pageSize items, enforce strict client pagination slice
+    if (filteredItems.length > pageSize) {
+      return filteredItems.slice((page - 1) * pageSize, page * pageSize);
+    }
+    return filteredItems.slice(0, pageSize);
+  }, [filteredItems, page, pageSize]);
+
+  const effectiveTotalCount = filteredItems.length > pageSize ? filteredItems.length : totalCount;
+  const effectiveTotalPages = Math.max(1, Math.ceil(effectiveTotalCount / pageSize));
+
   if (role && role !== 'msw' && role !== 'admin') {
     return (
       <DashboardLayout
@@ -377,7 +389,7 @@ export default function MSWNotificationsPage() {
             <i className="fa-solid fa-spinner fa-spin text-lg text-[#0B6B3A] mb-2 block" />
             Loading MSW notifications...
           </div>
-        ) : filteredItems.length === 0 ? (
+        ) : displayedItems.length === 0 ? (
           <div className="p-12 text-center">
             <div className="w-12 h-12 rounded-2xl bg-[#E8F5EC] text-[#0B6B3A] flex items-center justify-center mx-auto mb-3">
               <i className="fa-regular fa-bell-slash text-xl" />
@@ -389,7 +401,7 @@ export default function MSWNotificationsPage() {
           </div>
         ) : (
           <div className="divide-y divide-[#EEF2EF]">
-            {filteredItems.map((item) => {
+            {displayedItems.map((item) => {
               const meta = CATEGORY_LABELS[item.notification_type] || {
                 label: item.notification_type.replace(/_/g, ' '),
                 icon: 'fa-bell',
@@ -497,20 +509,20 @@ export default function MSWNotificationsPage() {
         )}
 
         {/* Database-backed Pagination */}
-        {!loading && totalCount > 0 && (
+        {!loading && (effectiveTotalCount > 0 || totalCount > 0) && (
           <div className="px-4 py-3 border-t border-[#EEF2EF] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#5A7466]">
             <div className="flex items-center gap-2 flex-wrap">
               <span>
                 Showing{' '}
                 <strong className="text-[#10241A] font-semibold">
-                  {Math.min((page - 1) * pageSize + 1, totalCount)}–{Math.min(page * pageSize, totalCount)}
+                  {Math.min((page - 1) * pageSize + 1, effectiveTotalCount)}–{Math.min(page * pageSize, effectiveTotalCount)}
                 </strong>{' '}
-                of <strong className="text-[#10241A] font-semibold">{totalCount}</strong> notifications
+                of <strong className="text-[#10241A] font-semibold">{effectiveTotalCount}</strong> notifications
               </span>
               <span className="text-[#CBD5E1]">&bull;</span>
               <span>
                 Page <strong className="text-[#10241A] font-semibold">{page}</strong> of{' '}
-                <strong className="text-[#10241A] font-semibold">{totalPages}</strong>
+                <strong className="text-[#10241A] font-semibold">{effectiveTotalPages}</strong>
               </span>
             </div>
             <div className="flex items-center gap-2">
@@ -525,8 +537,8 @@ export default function MSWNotificationsPage() {
               </button>
               <button
                 type="button"
-                disabled={page >= totalPages}
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page >= effectiveTotalPages}
+                onClick={() => setPage((p) => Math.min(effectiveTotalPages, p + 1))}
                 className="px-3.5 py-1.5 rounded-lg border border-[#D5E2D9] bg-white text-[#10241A] font-semibold hover:bg-[#FAFBF8] disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
               >
                 <span>Next</span>

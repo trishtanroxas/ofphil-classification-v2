@@ -32,6 +32,8 @@ export default function AdminUpcomingAppointmentsPage() {
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'Archived Requests' | 'Scheduled' | 'Completed'>('ALL');
   const [modalOpen, setModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
   const [form, setForm] = useState({
     patient_id: 'M26-11-00001',
@@ -332,6 +334,10 @@ export default function AdminUpcomingAppointmentsPage() {
     return true;
   });
 
+  const totalApptsCount = filteredAppointments.length;
+  const totalApptsPages = Math.max(1, Math.ceil(totalApptsCount / pageSize));
+  const paginatedAppointments = filteredAppointments.slice((page - 1) * pageSize, page * pageSize);
+
   const pendingCount = appointments.filter((a) => a.status === 'Archived Requests').length;
   const upcomingCount = appointments.filter((a) => a.status === 'Scheduled').length;
   const completedCount = appointments.filter((a) => a.status === 'Completed').length;
@@ -458,7 +464,7 @@ export default function AdminUpcomingAppointmentsPage() {
                     </td>
                   </tr>
                 ) : (
-                  filteredAppointments.map((appt) => (
+                  paginatedAppointments.map((appt) => (
                     <tr key={appt.id} className="hover:bg-[#FAFBF8] transition">
                       <td className="py-4 px-5 font-mono font-bold text-[#0B6B3A] whitespace-nowrap">
                         {appt.id}
@@ -565,6 +571,46 @@ export default function AdminUpcomingAppointmentsPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination Controls */}
+          {totalApptsCount > 0 && (
+            <div className="px-5 py-3.5 border-t border-[#EEF2EF] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#5A7466]">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span>
+                  Showing{' '}
+                  <strong className="text-[#10241A] font-semibold">
+                    {Math.min((page - 1) * pageSize + 1, totalApptsCount)}–{Math.min(page * pageSize, totalApptsCount)}
+                  </strong>{' '}
+                  of <strong className="text-[#10241A] font-semibold">{totalApptsCount}</strong> appointment schedules
+                </span>
+                <span className="text-[#CBD5E1]">&bull;</span>
+                <span>
+                  Page <strong className="text-[#10241A] font-semibold">{page}</strong> of{' '}
+                  <strong className="text-[#10241A] font-semibold">{totalApptsPages}</strong>
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  className="px-3.5 py-1.5 rounded-lg border border-[#D5E2D9] bg-white text-[#10241A] font-semibold hover:bg-[#FAFBF8] disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                >
+                  <i className="fa-solid fa-chevron-left text-[10px]" />
+                  <span>Previous</span>
+                </button>
+                <button
+                  type="button"
+                  disabled={page >= totalApptsPages}
+                  onClick={() => setPage((p) => Math.min(totalApptsPages, p + 1))}
+                  className="px-3.5 py-1.5 rounded-lg border border-[#D5E2D9] bg-white text-[#10241A] font-semibold hover:bg-[#FAFBF8] disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                >
+                  <span>Next</span>
+                  <i className="fa-solid fa-chevron-right text-[10px]" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
