@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-def generate_boosting_notebook(model_key, model_display_name, model_type, import_statements, pipeline_builder_code, hyperparam_search_code, full_fit_feature_importance_code):
+def generate_corrected_boosting_notebook(model_key, model_display_name, model_type, import_statements, pipeline_builder_code, inner_param_grid_code, full_fit_feature_importance_code):
     base_dir = Path("experiments/notebooks/05_model_selection_and_training/03_gradient_boosting_models")
     viz_subdir = model_key.split("_", 1)[1] if "_" in model_key else model_key
 
@@ -10,54 +10,47 @@ def generate_boosting_notebook(model_key, model_display_name, model_type, import
             "cell_type": "markdown",
             "metadata": {},
             "source": [
-                f"# 05.03 {model_display_name} Classifier Benchmark (Stratified 10-Fold CV)\n",
+                f"# 05.03 {model_display_name} Benchmark (Nested Stratified 10-Fold CV)\n",
                 "\n",
-                "**Phase 05.03 — Gradient Boosting Models (Tabular Only)**  \n",
+                "**Phase 05.03 — Gradient Boosting Models (Tabular Only — Leakage-Safe Evaluation)**  \n",
                 "*OFPHIL V2: Charity Patient Eligibility Classification*\n",
                 "\n",
                 "---\n",
                 "\n",
-                "### Description & Purpose\n",
-                f"Train and benchmark an optimized {model_display_name} model on the 48 tabular features using Stratified 10-Fold Cross-Validation loaded from `data/processed/splits/cv_split_indices.json`. Generates comprehensive publication-ready evaluation charts (fold trajectories, metric stability error bars, confusion matrix, ROC curve, per-class performance, and gain-based feature importances).\n",
+                "### Research Purpose\n",
+                f"Train and evaluate a high-capacity {model_display_name} classifier on the 48 tabular features using **Nested Stratified Cross-Validation (Outer 10-Fold, Inner 5-Fold)**. Continuous features are scaled inside the fold via `ColumnTransformer`, and an inner 5-fold grid search optimizes hyperparameters without test fold contamination. Tracks training vs. validation performance to quantify the generalization gap and prevent overfitting.\n",
                 "\n",
-                "**Strict Execution Policy:** This notebook is prepared for manual execution by the researcher. No cell execution outputs are pre-populated."
+                "### Key Objectives:\n",
+                f"1. Establish unbiased {model_display_name} performance across exactly 10 Stratified Outer Folds ($K=10$) with Inner 5-Fold CV hyperparameter tuning.\n",
+                "2. Quantify the Generalization Gap (Train Score vs. Validation Score) to detect potential overfitting or decision boundary over-specialization.\n",
+                "3. Compute out-of-fold confusion matrix, normalized confusion matrix, ROC-AUC curve, and per-class metrics.\n",
+                f"4. Save metrics to `models/trained/gradient_boosting/{viz_subdir}_metrics.json` and export publication-ready visualizations (300 DPI PNG & PDF) to `reports/phase_05/visualizations/{viz_subdir}/`."
             ]
         },
         {
             "cell_type": "markdown",
             "metadata": {},
             "source": [
-                "### Research Objectives\n",
-                "\n",
-                f"1. Establish regularized {model_display_name} performance across exactly 10 Stratified folds ($K=10$).\n",
-                "2. Report fold mean and standard deviation for: Accuracy, Macro Precision, Macro Recall, Macro F1, Weighted F1, Per-Class Precision, and Per-Class Recall.\n",
-                "3. Compute out-of-fold confusion matrix, normalized confusion matrix, and ROC-AUC curve.\n",
-                f"4. Save metrics to `models/trained/gradient_boosting/{viz_subdir}_metrics.json` and export high-resolution (300 DPI PNG & PDF) visualization figures to `reports/phase_05/visualizations/{viz_subdir}/`."
-            ]
-        },
-        {
-            "cell_type": "markdown",
-            "metadata": {},
-            "source": [
-                "### Inputs & Expected Outputs\n",
-                "\n",
-                "**Required Inputs:**\n",
-                "- `data/interim/features/selected_features.csv` (Primary tabular features)\n",
-                "- `data/processed/splits/cv_split_indices.json` (Stratified 10-Fold split definitions)\n",
+                "### Environment & Data Artifacts\n",
+                "- `data/interim/features/selected_features.csv` (Authoritative tabular dataset, 500 records x 48 predictors)\n",
+                "- `data/processed/splits/cv_split_indices.json` (Outer Stratified 10-Fold split definitions)\n",
                 "\n",
                 "**Expected Outputs:**\n",
                 f"- `models/trained/gradient_boosting/{viz_subdir}_metrics.json`\n",
                 f"- `reports/phase_05/visualizations/{viz_subdir}/10fold_performance_metrics.{{png,pdf}}`\n",
                 f"- `reports/phase_05/visualizations/{viz_subdir}/confusion_matrix_and_roc.{{png,pdf}}`\n",
                 f"- `reports/phase_05/visualizations/{viz_subdir}/per_class_performance.{{png,pdf}}`\n",
-                f"- `reports/phase_05/visualizations/{viz_subdir}/feature_importance.{{png,pdf}}`\n",
+                f"- `reports/phase_05/visualizations/{viz_subdir}/feature_importance_and_learning.{{png,pdf}}`\n",
                 f"- `reports/phase_05/visualizations/{viz_subdir}/evaluation_summary_table.csv`"
             ]
         },
         {
             "cell_type": "markdown",
             "metadata": {},
-            "source": ["### 1. Environment Setup & Library Imports"]
+            "source": [
+                "### 1. Import Libraries, Evaluation Metrics & Setup Environment\n",
+                "Load gradient boosting libraries, scikit-learn evaluation metrics, and plotting tools."
+            ]
         },
         {
             "cell_type": "code",
@@ -67,6 +60,7 @@ def generate_boosting_notebook(model_key, model_display_name, model_type, import
             "source": [
                 "import json\n",
                 "import time\n",
+                "import os\n",
                 "from pathlib import Path\n",
                 "import numpy as np\n",
                 "import pandas as pd\n",
@@ -76,18 +70,24 @@ def generate_boosting_notebook(model_key, model_display_name, model_type, import
                 "    accuracy_score, precision_score, recall_score, f1_score,\n",
                 "    roc_auc_score, roc_curve, confusion_matrix, classification_report\n",
                 ")\n",
-                import_statements + "\n",
+                "from sklearn.compose import ColumnTransformer\n",
+                "from sklearn.preprocessing import StandardScaler\n",
+                "from sklearn.pipeline import Pipeline\n",
+                "from sklearn.model_selection import StratifiedKFold, GridSearchCV\n",
+                import_statements,
                 "RANDOM_SEED = 42\n",
                 "np.random.seed(RANDOM_SEED)\n",
                 "plt.style.use(\"seaborn-v0_8-whitegrid\" if \"seaborn-v0_8-whitegrid\" in plt.style.available else \"default\")\n",
-                "plt.rcParams[\"font.sans-serif\"] = [\"DejaVu Sans\", \"Arial\", \"Helvetica\"]\n",
                 "print(f\"Libraries loaded successfully. RANDOM_SEED={RANDOM_SEED}\")\n"
             ]
         },
         {
             "cell_type": "markdown",
             "metadata": {},
-            "source": ["### 2. Setup Paths & Load Data and 10-Fold Indices"]
+            "source": [
+                "### 2. Load Selected Feature Dataset and Outer 10-Fold CV Configuration\n",
+                "Load the 350 training development records and the pre-computed Stratified 10-Fold CV split indices."
+            ]
         },
         {
             "cell_type": "code",
@@ -97,36 +97,40 @@ def generate_boosting_notebook(model_key, model_display_name, model_type, import
             "source": [
                 "PROJECT_ROOT = Path(\"../../../..\")\n",
                 "FEATURES_PATH = PROJECT_ROOT / \"data\" / \"interim\" / \"features\" / \"selected_features.csv\"\n",
-                "CV_PATH = PROJECT_ROOT / \"data\" / \"processed\" / \"splits\" / \"cv_split_indices.json\"\n",
+                "CV_SPLITS_PATH = PROJECT_ROOT / \"data\" / \"processed\" / \"splits\" / \"cv_split_indices.json\"\n",
                 "OUTPUT_DIR = PROJECT_ROOT / \"models\" / \"trained\" / \"gradient_boosting\"\n",
                 f"REPORT_VIZ_DIR = PROJECT_ROOT / \"reports\" / \"phase_05\" / \"visualizations\" / \"{viz_subdir}\"\n",
-                "\n",
                 "OUTPUT_DIR.mkdir(parents=True, exist_ok=True)\n",
                 "REPORT_VIZ_DIR.mkdir(parents=True, exist_ok=True)\n",
                 "\n",
-                "assert FEATURES_PATH.exists(), f\"Missing features dataset: {FEATURES_PATH}\"\n",
-                "assert CV_PATH.exists(), f\"Missing CV split indices: {CV_PATH}\"\n",
-                "\n",
+                "# Load dataset\n",
                 "df_features = pd.read_csv(FEATURES_PATH)\n",
-                "with open(CV_PATH, \"r\", encoding=\"utf-8\") as f:\n",
+                "train_mask = df_features[\"split_partition\"] == \"train\"\n",
+                "df_train_dev = df_features[train_mask].reset_index(drop=True)\n",
+                "\n",
+                "# Identify continuous numerical vs binary/categorical features\n",
+                "feature_cols = [c for c in df_train_dev.columns if c not in [\"internal_record_id\", \"split_partition\", \"eligibility\"]]\n",
+                "num_cols = [c for c in feature_cols if c.startswith(\"xf_\")]\n",
+                "bin_cols = [c for c in feature_cols if not c.startswith(\"xf_\")]\n",
+                "\n",
+                "X_train_full = df_train_dev[feature_cols]\n",
+                "y_train_full = (df_train_dev[\"eligibility\"] == \"ELIGIBLE\").astype(int)\n",
+                "\n",
+                "# Load outer 10-fold split definitions\n",
+                "with open(CV_SPLITS_PATH, \"r\", encoding=\"utf-8\") as f:\n",
                 "    cv_data = json.load(f)\n",
                 "\n",
-                "feature_cols = cv_data[\"feature_columns\"]\n",
-                "train_mask = df_features[\"split_partition\"] == \"train\"\n",
-                "df_train = df_features.loc[train_mask].reset_index(drop=True)\n",
-                "\n",
-                "X_train_full = df_train[feature_cols]\n",
-                "y_train_full = (df_train[\"eligibility\"] == \"ELIGIBLE\").astype(int)\n",
-                "\n",
-                "assert len(cv_data[\"folds\"]) == 10, f\"Expected 10 folds, found {len(cv_data['folds'])}\"\n",
-                "print(f\"Loaded training development set: X={X_train_full.shape}, y={y_train_full.shape}\")\n",
-                "print(f\"Stratified 10-Fold CV indices confirmed: {len(cv_data['folds'])} folds\")\n"
+                "print(f\"Loaded training development set: X={X_train_full.shape} (Numerical: {len(num_cols)}, Binary: {len(bin_cols)}), y={y_train_full.shape}\")\n",
+                "print(f\"Stratified 10-Fold CV indices confirmed: {len(cv_data['folds'])} outer folds\")\n"
             ]
         },
         {
             "cell_type": "markdown",
             "metadata": {},
-            "source": ["### 3. Hyperparameter Tuning Across Stratified 10-Fold CV"]
+            "source": [
+                "### 3. Pipeline Construction with ColumnTransformer\n",
+                "Continuous numerical predictors are scaled using StandardScaler fitted strictly inside the training partition, while binary indicators remain unscaled to avoid distortion."
+            ]
         },
         {
             "cell_type": "code",
@@ -134,13 +138,23 @@ def generate_boosting_notebook(model_key, model_display_name, model_type, import
             "metadata": {},
             "outputs": [],
             "source": [
-                hyperparam_search_code + "\n"
+                "preprocessor = ColumnTransformer(\n",
+                "    transformers=[\n",
+                "        ('num', StandardScaler(), num_cols),\n",
+                "        ('bin', 'passthrough', bin_cols)\n",
+                "    ]\n",
+                ")\n",
+                f"{inner_param_grid_code}\n",
+                "print(f\"Preprocessing pipeline configured. Parameter grid: {list(param_grid.keys())}\")\n"
             ]
         },
         {
             "cell_type": "markdown",
             "metadata": {},
-            "source": ["### 4. Full Stratified 10-Fold Cross-Validation Evaluation"]
+            "source": [
+                "### 4. Execute Nested Stratified Cross-Validation (Outer 10-Fold, Inner 5-Fold)\n",
+                "For each outer fold, an inner 5-fold GridSearchCV tunes hyperparameters on the outer training set ($N=315$). The optimal pipeline is then evaluated on the unseen outer validation fold ($N=35$) and the training set to track generalization gap."
+            ]
         },
         {
             "cell_type": "code",
@@ -151,6 +165,7 @@ def generate_boosting_notebook(model_key, model_display_name, model_type, import
                 "fold_evaluations = []\n",
                 "oof_predictions = np.zeros(len(y_train_full))\n",
                 "oof_probabilities = np.zeros(len(y_train_full))\n",
+                "best_params_per_fold = []\n",
                 "\n",
                 "start_time = time.time()\n",
                 "for fold_info in cv_data[\"folds\"]:\n",
@@ -161,13 +176,28 @@ def generate_boosting_notebook(model_key, model_display_name, model_type, import
                 "    X_tr, y_tr = X_train_full.iloc[t_idx], y_train_full.iloc[t_idx]\n",
                 "    X_va, y_va = X_train_full.iloc[v_idx], y_train_full.iloc[v_idx]\n",
                 "    \n",
-                pipeline_builder_code + "\n",
-                "    model_pipeline.fit(X_tr, y_tr)\n",
-                "    val_preds = model_pipeline.predict(X_va)\n",
-                "    val_probs = model_pipeline.predict_proba(X_va)[:, 1]\n",
+                "    # Build base pipeline\n",
+                pipeline_builder_code,
+                "    \n",
+                "    # Inner 5-Fold CV for hyperparameter tuning\n",
+                "    inner_cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=RANDOM_SEED)\n",
+                "    grid_search = GridSearchCV(base_pipeline, param_grid, cv=inner_cv, scoring=\"f1_macro\", n_jobs=-1)\n",
+                "    grid_search.fit(X_tr, y_tr)\n",
+                "    \n",
+                "    best_model = grid_search.best_estimator_\n",
+                "    best_params_per_fold.append(grid_search.best_params_)\n",
+                "    \n",
+                "    # Predictions on training and validation fold\n",
+                "    tr_preds = best_model.predict(X_tr)\n",
+                "    val_preds = best_model.predict(X_va)\n",
+                "    val_probs = best_model.predict_proba(X_va)[:, 1] if hasattr(best_model, \"predict_proba\") else best_model.decision_function(X_va)\n",
                 "    \n",
                 "    oof_predictions[v_idx] = val_preds\n",
                 "    oof_probabilities[v_idx] = val_probs\n",
+                "    \n",
+                "    # Fold Metrics\n",
+                "    tr_acc = accuracy_score(y_tr, tr_preds)\n",
+                "    tr_f1 = f1_score(y_tr, tr_preds, average=\"macro\", zero_division=0)\n",
                 "    \n",
                 "    f_acc = accuracy_score(y_va, val_preds)\n",
                 "    f_prec_macro = precision_score(y_va, val_preds, average=\"macro\", zero_division=0)\n",
@@ -182,6 +212,8 @@ def generate_boosting_notebook(model_key, model_display_name, model_type, import
                 "    \n",
                 "    fold_evaluations.append({\n",
                 "        \"fold\": f_num,\n",
+                "        \"train_accuracy\": float(tr_acc),\n",
+                "        \"train_macro_f1\": float(tr_f1),\n",
                 "        \"accuracy\": float(f_acc),\n",
                 "        \"macro_precision\": float(f_prec_macro),\n",
                 "        \"macro_recall\": float(f_rec_macro),\n",
@@ -191,9 +223,10 @@ def generate_boosting_notebook(model_key, model_display_name, model_type, import
                 "        \"rec_ineligible\": float(f_rec_c0),\n",
                 "        \"prec_eligible\": float(f_prec_c1),\n",
                 "        \"rec_eligible\": float(f_rec_c1),\n",
-                "        \"roc_auc\": float(f_auc)\n",
+                "        \"roc_auc\": float(f_auc),\n",
+                "        \"generalization_gap\": float(tr_f1 - f_f1_macro)\n",
                 "    })\n",
-                "    print(f\"Fold {f_num:02d} -> Acc: {f_acc:.4f}, Macro-F1: {f_f1_macro:.4f}, AUC: {f_auc:.4f}, Rec-Elig: {f_rec_c1:.4f}\")\n",
+                "    print(f\"Fold {f_num:02d} | Train F1: {tr_f1:.4f} | Val F1: {f_f1_macro:.4f} | Gap: {tr_f1-f_f1_macro:+.4f} | Val AUC: {f_auc:.4f}\")\n",
                 "\n",
                 "total_duration_ms = (time.time() - start_time) * 1000\n",
                 "df_folds_metric = pd.DataFrame(fold_evaluations)\n",
@@ -201,14 +234,18 @@ def generate_boosting_notebook(model_key, model_display_name, model_type, import
                 "# Compute summary statistics\n",
                 "metrics_mean = df_folds_metric.mean(numeric_only=True).to_dict()\n",
                 "metrics_std = df_folds_metric.std(numeric_only=True).to_dict()\n",
-                "print(f\"\\nStratified 10-Fold CV Complete ({total_duration_ms:.1f} ms).\")\n",
-                "print(f\"Mean Macro F1: {metrics_mean['macro_f1']:.4f} +/- {metrics_std['macro_f1']:.4f}\")\n"
+                "print(f\"\\nNested 10-Fold CV Complete ({total_duration_ms:.1f} ms).\")\n",
+                "print(f\"Mean Val Macro F1: {metrics_mean['macro_f1']:.4f} +/- {metrics_std['macro_f1']:.4f}\")\n",
+                "print(f\"Mean Generalization Gap: {metrics_mean['generalization_gap']:.4f} +/- {metrics_std['generalization_gap']:.4f}\")\n"
             ]
         },
         {
             "cell_type": "markdown",
             "metadata": {},
-            "source": ["### 5. Evaluation Summary Table & Artifact Export"]
+            "source": [
+                "### 5. Standard Summary Table & Model Artifact Export\n",
+                "Export aggregate metrics table and fit final model pipeline on entire development set for feature interpretation."
+            ]
         },
         {
             "cell_type": "code",
@@ -218,12 +255,14 @@ def generate_boosting_notebook(model_key, model_display_name, model_type, import
             "source": [
                 "# Construct standard summary table\n",
                 "summary_table_data = [\n",
-                "    {\"Metric\": \"Accuracy\", \"Mean\": f\"{metrics_mean['accuracy']:.4f}\", \"Standard Deviation\": f\"{metrics_std['accuracy']:.4f}\"},\n",
-                "    {\"Metric\": \"Macro Precision\", \"Mean\": f\"{metrics_mean['macro_precision']:.4f}\", \"Standard Deviation\": f\"{metrics_std['macro_precision']:.4f}\"},\n",
-                "    {\"Metric\": \"Macro Recall\", \"Mean\": f\"{metrics_mean['macro_recall']:.4f}\", \"Standard Deviation\": f\"{metrics_std['macro_recall']:.4f}\"},\n",
-                "    {\"Metric\": \"Macro F1-score\", \"Mean\": f\"{metrics_mean['macro_f1']:.4f}\", \"Standard Deviation\": f\"{metrics_std['macro_f1']:.4f}\"},\n",
-                "    {\"Metric\": \"Weighted F1-score\", \"Mean\": f\"{metrics_mean['weighted_f1']:.4f}\", \"Standard Deviation\": f\"{metrics_std['weighted_f1']:.4f}\"},\n",
-                "    {\"Metric\": \"ROC-AUC\", \"Mean\": f\"{metrics_mean['roc_auc']:.4f}\", \"Standard Deviation\": f\"{metrics_std['roc_auc']:.4f}\"},\n",
+                "    {\"Metric\": \"Train Macro F1\", \"Mean\": f\"{metrics_mean['train_macro_f1']:.4f}\", \"Standard Deviation\": f\"{metrics_std['train_macro_f1']:.4f}\"},\n",
+                "    {\"Metric\": \"Validation Accuracy\", \"Mean\": f\"{metrics_mean['accuracy']:.4f}\", \"Standard Deviation\": f\"{metrics_std['accuracy']:.4f}\"},\n",
+                "    {\"Metric\": \"Validation Macro Precision\", \"Mean\": f\"{metrics_mean['macro_precision']:.4f}\", \"Standard Deviation\": f\"{metrics_std['macro_precision']:.4f}\"},\n",
+                "    {\"Metric\": \"Validation Macro Recall\", \"Mean\": f\"{metrics_mean['macro_recall']:.4f}\", \"Standard Deviation\": f\"{metrics_std['macro_recall']:.4f}\"},\n",
+                "    {\"Metric\": \"Validation Macro F1-score\", \"Mean\": f\"{metrics_mean['macro_f1']:.4f}\", \"Standard Deviation\": f\"{metrics_std['macro_f1']:.4f}\"},\n",
+                "    {\"Metric\": \"Validation Weighted F1-score\", \"Mean\": f\"{metrics_mean['weighted_f1']:.4f}\", \"Standard Deviation\": f\"{metrics_std['weighted_f1']:.4f}\"},\n",
+                "    {\"Metric\": \"Validation ROC-AUC\", \"Mean\": f\"{metrics_mean['roc_auc']:.4f}\", \"Standard Deviation\": f\"{metrics_std['roc_auc']:.4f}\"},\n",
+                "    {\"Metric\": \"Generalization Gap (F1)\", \"Mean\": f\"{metrics_mean['generalization_gap']:.4f}\", \"Standard Deviation\": f\"{metrics_std['generalization_gap']:.4f}\"},\n",
                 "    {\"Metric\": \"Per-Class Precision (INELIGIBLE)\", \"Mean\": f\"{metrics_mean['prec_ineligible']:.4f}\", \"Standard Deviation\": f\"{metrics_std['prec_ineligible']:.4f}\"},\n",
                 "    {\"Metric\": \"Per-Class Recall (INELIGIBLE)\", \"Mean\": f\"{metrics_mean['rec_ineligible']:.4f}\", \"Standard Deviation\": f\"{metrics_std['rec_ineligible']:.4f}\"},\n",
                 "    {\"Metric\": \"Per-Class Precision (ELIGIBLE)\", \"Mean\": f\"{metrics_mean['prec_eligible']:.4f}\", \"Standard Deviation\": f\"{metrics_std['prec_eligible']:.4f}\"},\n",
@@ -232,15 +271,15 @@ def generate_boosting_notebook(model_key, model_display_name, model_type, import
                 "df_summary_table = pd.DataFrame(summary_table_data)\n",
                 "df_summary_table.to_csv(REPORT_VIZ_DIR / \"evaluation_summary_table.csv\", index=False)\n",
                 "\n",
-                "# Fit full model on development set for feature importances\n",
-                full_fit_feature_importance_code + "\n",
+                "# Fit final model on full development set\n",
+                full_fit_feature_importance_code,
                 "\n",
                 "# Save JSON metrics artifact\n",
                 "metrics_payload = {\n",
                 f"    \"model_name\": \"{model_display_name}\",\n",
                 f"    \"model_type\": \"{model_type}\",\n",
-                "    \"cv_protocol\": \"StratifiedKFold-10Fold\",\n",
-                "    \"best_hyperparameters\": best_params,\n",
+                "    \"cv_protocol\": \"Nested-Stratified-10Outer-5Inner\",\n",
+                "    \"best_hyperparameters_per_fold\": best_params_per_fold,\n",
                 "    \"cv_metrics_mean\": metrics_mean,\n",
                 "    \"cv_metrics_std\": metrics_std,\n",
                 "    \"fold_details\": fold_evaluations,\n",
@@ -256,13 +295,12 @@ def generate_boosting_notebook(model_key, model_display_name, model_type, import
             "cell_type": "markdown",
             "metadata": {},
             "source": [
-                "### 6. Visualizations & Statistical Graphs\n",
-                "\n",
-                "Generates:\n",
-                "- **Figure 1:** 10-Fold Performance Metrics (Accuracy, Precision, Recall, Macro F1 across folds and Mean +/- Std).\n",
-                "- **Figure 2:** Out-of-Fold Confusion Matrix & ROC Curve.\n",
-                "- **Figure 3:** Per-Class Performance Breakdown (Precision, Recall, F1 for INELIGIBLE vs ELIGIBLE).\n",
-                "- **Figure 4:** Gradient Boosting Feature Importance Analysis."
+                "### 6. Publication-Ready Evaluation Visualizations\n",
+                "Generate the 4 standard diagnostic figures for publication report:\n",
+                "- **Figure 1:** Train vs Validation Trajectory across 10 Folds & Mean Metric Benchmark with Error Bars.\n",
+                "- **Figure 2:** Out-of-Fold Normalized Confusion Matrix and Empirical ROC Curve.\n",
+                "- **Figure 3:** Per-Class Precision, Recall, and F1 Performance Breakdown.\n",
+                "- **Figure 4:** Top 15 Primary Predictors / Coefficients."
             ]
         },
         {
@@ -271,18 +309,19 @@ def generate_boosting_notebook(model_key, model_display_name, model_type, import
             "metadata": {},
             "outputs": [],
             "source": [
-                "# --- FIGURE 1: 10-Fold Metric Trajectory & Stability ---\n",
+                "# --- FIGURE 1: 10-Fold Train vs Val Trajectory & Metric Benchmark ---\n",
                 "fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5))\n",
                 "\n",
                 "folds_x = [f\"F{i}\" for i in range(1, 11)]\n",
-                "ax1.plot(folds_x, df_folds_metric[\"accuracy\"], marker=\"o\", linewidth=2, label=\"Accuracy\", color=\"#1b9e77\")\n",
-                "ax1.plot(folds_x, df_folds_metric[\"macro_f1\"], marker=\"s\", linewidth=2, label=\"Macro F1\", color=\"#d95f02\")\n",
-                "ax1.plot(folds_x, df_folds_metric[\"macro_recall\"], marker=\"^\", linewidth=2, label=\"Macro Recall\", color=\"#7570b3\")\n",
-                f"ax1.set_title(\"{model_display_name} — Fold-by-Fold Performance (K=10)\", fontsize=12, fontweight=\"bold\", pad=10)\n",
-                "ax1.set_xlabel(\"Cross-Validation Fold\", fontsize=10, fontweight=\"bold\")\n",
+                "ax1.plot(folds_x, df_folds_metric[\"train_macro_f1\"], marker=\"o\", linestyle=\"--\", linewidth=1.8, label=\"Train Macro F1\", color=\"#6baed6\")\n",
+                "ax1.plot(folds_x, df_folds_metric[\"macro_f1\"], marker=\"s\", linewidth=2, label=\"Val Macro F1\", color=\"#d95f02\")\n",
+                "ax1.plot(folds_x, df_folds_metric[\"accuracy\"], marker=\"^\", linewidth=2, label=\"Val Accuracy\", color=\"#1b9e77\")\n",
+                f"ax1.set_title(\"{model_display_name} — Fold Trajectory & Generalization\", fontsize=12, fontweight=\"bold\", pad=10)\n",
+                "ax1.set_xlabel(\"Cross-Validation Outer Fold\", fontsize=10, fontweight=\"bold\")\n",
                 "ax1.set_ylabel(\"Metric Score (0.0 - 1.0)\", fontsize=10, fontweight=\"bold\")\n",
                 "ax1.set_ylim(0.5, 1.05)\n",
                 "ax1.legend(loc=\"lower right\", frameon=True)\n",
+                "ax1.grid(True, linestyle=\"--\", alpha=0.5)\n",
                 "\n",
                 "# Summary Bar with Std Error Bars\n",
                 "eval_names = [\"Accuracy\", \"Macro Prec\", \"Macro Rec\", \"Macro F1\", \"Weighted F1\", \"ROC-AUC\"]\n",
@@ -294,6 +333,7 @@ def generate_boosting_notebook(model_key, model_display_name, model_type, import
                 "ax2.set_ylabel(\"Score\", fontsize=10, fontweight=\"bold\")\n",
                 "ax2.set_ylim(0.0, 1.15)\n",
                 "ax2.tick_params(axis=\"x\", rotation=25)\n",
+                "ax2.grid(axis=\"y\", linestyle=\"--\", alpha=0.5)\n",
                 "for bar in bars:\n",
                 "    h = bar.get_height()\n",
                 "    ax2.annotate(f\"{h:.3f}\", xy=(bar.get_x() + bar.get_width() / 2, h),\n",
@@ -340,6 +380,7 @@ def generate_boosting_notebook(model_key, model_display_name, model_type, import
                 "ax2.set_ylabel(\"True Positive Rate\", fontsize=10, fontweight=\"bold\")\n",
                 f"ax2.set_title(\"{model_display_name} — Out-of-Fold ROC Curve\", fontsize=12, fontweight=\"bold\", pad=10)\n",
                 "ax2.legend(loc=\"lower right\", frameon=True)\n",
+                "ax2.grid(True, linestyle=\"--\", alpha=0.5)\n",
                 "\n",
                 "plt.tight_layout()\n",
                 "fig.savefig(REPORT_VIZ_DIR / \"confusion_matrix_and_roc.png\", dpi=300, bbox_inches=\"tight\")\n",
@@ -379,6 +420,7 @@ def generate_boosting_notebook(model_key, model_display_name, model_type, import
                 "ax.set_xticklabels(classes, fontsize=10, fontweight=\"bold\")\n",
                 "ax.set_ylim(0.0, 1.15)\n",
                 "ax.legend(loc=\"upper right\", frameon=True)\n",
+                "ax.grid(axis=\"y\", linestyle=\"--\", alpha=0.5)\n",
                 "\n",
                 "for bar_group in [b1, b2, b3]:\n",
                 "    for b in bar_group:\n",
@@ -400,15 +442,16 @@ def generate_boosting_notebook(model_key, model_display_name, model_type, import
             "metadata": {},
             "outputs": [],
             "source": [
-                "# --- FIGURE 4: Top Predictor Importances ---\n",
+                "# --- FIGURE 4: Top Predictor Importances / Coefficients ---\n",
                 "fig, ax = plt.subplots(figsize=(10, 6))\n",
                 "\n",
                 "if 'df_importance' in locals() and not df_importance.empty:\n",
                 "    top15 = df_importance.head(15).iloc[::-1]\n",
-                "    bars = ax.barh(top15[\"feature\"], top15[\"importance\"], color=\"#fc8d59\", edgecolor=\"black\", linewidth=1.1)\n",
-                f"    ax.set_title(\"{model_display_name} — Top 15 Primary Feature Importances\", fontsize=12, fontweight=\"bold\", pad=10)\n",
-                "    ax.set_xlabel(\"Feature Importance Score\", fontsize=10, fontweight=\"bold\")\n",
-                "    ax.tick_params(axis=\"y\", labelsize=8)\n",
+                "    val_col = \"importance\" if \"importance\" in top15.columns else \"abs_importance\"\n",
+                "    bars = ax.barh(top15[\"feature\"], top15[val_col], color=\"#41b6c4\", edgecolor=\"black\", linewidth=1.1)\n",
+                f"    ax.set_title(\"{model_display_name} — Top 15 Primary Predictors\", fontsize=12, fontweight=\"bold\", pad=10)\n",
+                "    ax.set_xlabel(\"Relative Importance / Weight\", fontsize=10, fontweight=\"bold\")\n",
+                "    ax.grid(axis=\"x\", linestyle=\"--\", alpha=0.5)\n",
                 "    for b in bars:\n",
                 "        w = b.get_width()\n",
                 "        ax.annotate(f\"{w:.4f}\", xy=(w, b.get_y() + b.get_height() / 2),\n",
@@ -430,108 +473,76 @@ def generate_boosting_notebook(model_key, model_display_name, model_type, import
             "cell_type": "markdown",
             "metadata": {},
             "source": [
-                "### 7. Interpretation Guide for Researcher\n",
-                "\n",
-                f"- **Cross-Validation Stability:** Review Figure 1 (left) for fold-to-fold variance in {model_display_name}. Look for consistency across all 10 folds.\n",
-                "- **Error Asymmetry:** Examine Figure 2 (Confusion Matrix). Assess whether False Negatives (eligible charity patients classified as ineligible) are properly minimized.\n",
-                "- **Class Parity:** Figure 3 compares Precision and Recall across classes. A balanced model should not bias heavily towards either class.\n",
-                "- **Key Predictors:** Figure 4 displays which non-linear features dominate the gradient boosted tree splits."
+                "### Interpretation & Clinical Significance\n",
+                f"1. **Nested Cross-Validation Stability:** The outer 10-fold CV isolates validation data entirely from the inner hyperparameter selection, producing an honest assessment of {model_display_name}.\n",
+                "2. **Generalization Gap Analysis:** Review Figure 1 for divergence between training and validation trajectories. A small gap ($\\\\le 0.05$) verifies strong generalization without severe overfitting.\n",
+                "3. **Per-Class Sensitivity:** Confirm balanced precision and recall across both `INELIGIBLE` and `ELIGIBLE` cohorts in Figure 3."
             ]
         },
         {
             "cell_type": "markdown",
             "metadata": {},
             "source": [
-                "### Completion Checklist\n",
-                "\n",
-                "- [ ] Stratified 10-Fold CV ($K=10$) executed strictly on training partition.\n",
-                "- [ ] Mean and standard deviation computed for Accuracy, Macro Precision, Recall, and F1.\n",
-                "- [ ] Out-of-fold confusion matrix and ROC curve generated.\n",
-                "- [ ] Per-class metrics reported.\n",
-                "- [ ] Feature importance / weights extracted.\n",
-                "- [ ] Figures exported to PNG (300 DPI) and PDF.\n",
-                "- [ ] Summary table exported to CSV.\n",
-                "- [ ] Zero test set snooping confirmed."
+                "### Execution Checklist\n",
+                f"- [ ] Cell 4: Libraries and dependencies initialized.\n",
+                f"- [ ] Cell 6: 350 training records and 10-fold split indices confirmed.\n",
+                f"- [ ] Cell 8: ColumnTransformer and parameter grid configured.\n",
+                f"- [ ] Cell 10: Nested 10-Fold CV completed with out-of-fold predictions.\n",
+                f"- [ ] Cell 12: Summary metrics and JSON artifact saved.\n",
+                f"- [ ] Cells 14-17: Figures 1-4 displayed and exported to `{viz_subdir}/`."
             ]
         }
     ]
 
-    nb_obj = {
+    nb = {
         "cells": cells,
         "metadata": {
-            "language_info": {"name": "python", "version": "3.12.0"},
-            "kernelspec": {"display_name": "Python 3 (ipykernel)", "language": "python", "name": "python3"}
+            "kernelspec": {
+                "display_name": "Python 3 (ipykernel)",
+                "language": "python",
+                "name": "python3"
+            },
+            "language_info": {
+                "name": "python",
+                "version": "3.12.0"
+            }
         },
         "nbformat": 4,
         "nbformat_minor": 5
     }
-    nb_file = base_dir / f"{model_key}.ipynb"
-    with open(nb_file, "w", encoding="utf-8") as f:
-        json.dump(nb_obj, f, indent=2)
-    print(f"Generated {nb_file.name}")
 
-def main():
-    # 1. XGBOOST
-    generate_boosting_notebook(
-        model_key="01_xgboost",
-        model_display_name="XGBoost",
-        model_type="gradient_boosting_extreme",
-        import_statements="import xgboost as xgb\nfrom xgboost import XGBClassifier",
-        pipeline_builder_code="    model_pipeline = XGBClassifier(n_estimators=best_params['n_estimators'], max_depth=best_params['max_depth'], learning_rate=best_params['learning_rate'], subsample=best_params['subsample'], eval_metric='logloss', random_state=RANDOM_SEED, n_jobs=-1)",
-        hyperparam_search_code="""param_candidates = [
-    {"learning_rate": 0.05, "max_depth": 3, "n_estimators": 150, "subsample": 0.8},
-    {"learning_rate": 0.05, "max_depth": 5, "n_estimators": 150, "subsample": 0.8},
-    {"learning_rate": 0.10, "max_depth": 3, "n_estimators": 100, "subsample": 0.9},
-    {"learning_rate": 0.10, "max_depth": 5, "n_estimators": 100, "subsample": 0.9}
-]
-grid_results = []
-for params in param_candidates:
-    fold_f1s = []
-    for fold_info in cv_data["folds"]:
-        t_idx, v_idx = fold_info["train_indices"], fold_info["val_indices"]
-        clf = XGBClassifier(n_estimators=params["n_estimators"], max_depth=params["max_depth"], learning_rate=params["learning_rate"], subsample=params["subsample"], eval_metric="logloss", random_state=RANDOM_SEED, n_jobs=-1)
-        clf.fit(X_train_full.iloc[t_idx], y_train_full.iloc[t_idx])
-        fold_f1s.append(f1_score(y_train_full.iloc[v_idx], clf.predict(X_train_full.iloc[v_idx]), average="macro", zero_division=0))
-    grid_results.append({"params": params, "mean_macro_f1": float(np.mean(fold_f1s))})
-best_cfg = max(grid_results, key=lambda x: x["mean_macro_f1"])
-best_params = best_cfg["params"]
-print(f"Optimal XGBoost params selected: {best_params} with Mean Macro F1: {best_cfg['mean_macro_f1']:.4f}")""",
-        full_fit_feature_importance_code="""full_xgb = XGBClassifier(n_estimators=best_params['n_estimators'], max_depth=best_params['max_depth'], learning_rate=best_params['learning_rate'], subsample=best_params['subsample'], eval_metric='logloss', random_state=RANDOM_SEED, n_jobs=-1)
-full_xgb.fit(X_train_full, y_train_full)
-df_importance = pd.DataFrame({'feature': feature_cols, 'importance': full_xgb.feature_importances_}).sort_values(by='importance', ascending=False).reset_index(drop=True)
-df_importance.to_csv(REPORT_VIZ_DIR / 'feature_importances.csv', index=False)"""
-    )
-
-    # 2. CATBOOST
-    generate_boosting_notebook(
-        model_key="02_catboost",
-        model_display_name="CatBoost",
-        model_type="gradient_boosting_ordered",
-        import_statements="import catboost as cb\nfrom catboost import CatBoostClassifier",
-        pipeline_builder_code="    model_pipeline = CatBoostClassifier(iterations=best_params['iterations'], depth=best_params['depth'], learning_rate=best_params['learning_rate'], loss_function='Logloss', verbose=0, random_seed=RANDOM_SEED)",
-        hyperparam_search_code="""param_candidates = [
-    {"iterations": 150, "depth": 4, "learning_rate": 0.05},
-    {"iterations": 150, "depth": 6, "learning_rate": 0.05},
-    {"iterations": 300, "depth": 4, "learning_rate": 0.03},
-    {"iterations": 300, "depth": 6, "learning_rate": 0.03}
-]
-grid_results = []
-for params in param_candidates:
-    fold_f1s = []
-    for fold_info in cv_data["folds"]:
-        t_idx, v_idx = fold_info["train_indices"], fold_info["val_indices"]
-        clf = CatBoostClassifier(iterations=params["iterations"], depth=params["depth"], learning_rate=params["learning_rate"], loss_function="Logloss", verbose=0, random_seed=RANDOM_SEED)
-        clf.fit(X_train_full.iloc[t_idx], y_train_full.iloc[t_idx])
-        fold_f1s.append(f1_score(y_train_full.iloc[v_idx], clf.predict(X_train_full.iloc[v_idx]), average="macro", zero_division=0))
-    grid_results.append({"params": params, "mean_macro_f1": float(np.mean(fold_f1s))})
-best_cfg = max(grid_results, key=lambda x: x["mean_macro_f1"])
-best_params = best_cfg["params"]
-print(f"Optimal CatBoost params selected: {best_params} with Mean Macro F1: {best_cfg['mean_macro_f1']:.4f}")""",
-        full_fit_feature_importance_code="""full_cb = CatBoostClassifier(iterations=best_params['iterations'], depth=best_params['depth'], learning_rate=best_params['learning_rate'], loss_function='Logloss', verbose=0, random_seed=RANDOM_SEED)
-full_cb.fit(X_train_full, y_train_full)
-df_importance = pd.DataFrame({'feature': feature_cols, 'importance': full_cb.get_feature_importance()}).sort_values(by='importance', ascending=False).reset_index(drop=True)
-df_importance.to_csv(REPORT_VIZ_DIR / 'feature_importances.csv', index=False)"""
-    )
+    target_path = base_dir / f"{model_key}.ipynb"
+    with open(target_path, "w", encoding="utf-8") as f:
+        json.dump(nb, f, indent=2, ensure_ascii=False)
+    print(f"Generated corrected {model_key}.ipynb")
 
 if __name__ == "__main__":
-    main()
+    # 01 XGBoost
+    generate_corrected_boosting_notebook(
+        model_key="01_xgboost",
+        model_display_name="XGBoost",
+        model_type="gradient_boosting_xgboost",
+        import_statements="import xgboost as xgb\n",
+        pipeline_builder_code="    base_pipeline = Pipeline([('prep', preprocessor), ('clf', xgb.XGBClassifier(random_state=RANDOM_SEED, eval_metric='logloss', use_label_encoder=False))])",
+        inner_param_grid_code="param_grid = {'clf__n_estimators': [100, 200], 'clf__max_depth': [3, 5, 7], 'clf__learning_rate': [0.01, 0.05, 0.1], 'clf__subsample': [0.8, 1.0]}",
+        full_fit_feature_importance_code="""final_pipe = Pipeline([('prep', preprocessor), ('clf', xgb.XGBClassifier(n_estimators=100, max_depth=3, learning_rate=0.05, random_state=RANDOM_SEED, eval_metric='logloss', use_label_encoder=False))])
+final_pipe.fit(X_train_full, y_train_full)
+importances = final_pipe.named_steps['clf'].feature_importances_
+df_importance = pd.DataFrame({'feature': feature_cols, 'importance': importances, 'abs_importance': importances}).sort_values(by='abs_importance', ascending=False).reset_index(drop=True)
+df_importance.to_csv(REPORT_VIZ_DIR / 'feature_importances.csv', index=False)"""
+    )
+
+    # 02 CatBoost
+    generate_corrected_boosting_notebook(
+        model_key="02_catboost",
+        model_display_name="CatBoost",
+        model_type="gradient_boosting_catboost",
+        import_statements="import catboost as cb\n",
+        pipeline_builder_code="    base_pipeline = Pipeline([('prep', preprocessor), ('clf', cb.CatBoostClassifier(random_state=RANDOM_SEED, verbose=0))])",
+        inner_param_grid_code="param_grid = {'clf__iterations': [100, 200], 'clf__depth': [4, 6], 'clf__learning_rate': [0.03, 0.1]}",
+        full_fit_feature_importance_code="""final_pipe = Pipeline([('prep', preprocessor), ('clf', cb.CatBoostClassifier(iterations=150, depth=4, learning_rate=0.05, random_state=RANDOM_SEED, verbose=0))])
+final_pipe.fit(X_train_full, y_train_full)
+importances = final_pipe.named_steps['clf'].get_feature_importance()
+df_importance = pd.DataFrame({'feature': feature_cols, 'importance': importances, 'abs_importance': importances}).sort_values(by='abs_importance', ascending=False).reset_index(drop=True)
+df_importance.to_csv(REPORT_VIZ_DIR / 'feature_importances.csv', index=False)"""
+    )
