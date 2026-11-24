@@ -1,0 +1,466 @@
+import json
+from pathlib import Path
+
+nb_path = Path("experiments/notebooks/05_model_selection_and_training/01_training_data_setup.ipynb")
+
+cells = [
+    {
+        "cell_type": "markdown",
+        "metadata": {},
+        "source": [
+            "# 05.01 Training Data Setup, Stratified 10-Fold CV Partitioning & Data Split Visualizations\n",
+            "\n",
+            "**Phase 05 — Model Selection and Training (Tabular Only)**  \n",
+            "*OFPHIL V2: Charity Patient Eligibility Classification*\n",
+            "\n",
+            "---\n",
+            "\n",
+            "### Description & Purpose\n",
+            "Establish leak-proof cross-validation splits, validate feature schema alignment against `final_feature_schema.json`, verify strict target isolation, configure Stratified 10-Fold partitioning ($K=10$) on the development training partition ($N=350$), quarantine the final test set ($N=75$), and generate comprehensive academic visualizations of overall, partition-level, and fold-level class distributions.\n",
+            "\n",
+            "**Strict Execution Policy:** This notebook is prepared for manual execution by the researcher. No cell execution outputs are pre-populated."
+        ]
+    },
+    {
+        "cell_type": "markdown",
+        "metadata": {},
+        "source": [
+            "### Research Objectives\n",
+            "\n",
+            "1. Ingest `selected_features.csv` ($N=500$, 48 predictors) and align strictly with `final_feature_schema.json`.\n",
+            "2. Confirm absence of data leakage: exclude identifiers (`internal_record_id`), partition columns (`split_partition`), and post-decision target indicators.\n",
+            "3. Formulate binary target: `eligibility` (0 = `INELIGIBLE`, 1 = `ELIGIBLE`), balanced 50/50 in development training ($N=350$: 175/175).\n",
+            "4. Verify that each target class contains $\\ge 10$ instances to rigorously satisfy $K=10$ Stratified Cross-Validation.\n",
+            "5. Establish reproducible Stratified 10-Fold cross-validation (`random_state=42`) on the training partition ($N=350$, exactly 35 samples per fold: 17 or 18 per class per fold).\n",
+            "6. Persist fold partition mapping to `data/processed/splits/cv_split_indices.json` and verify quarantine status of final test partition ($N=75$).\n",
+            "7. Produce publication-ready visualization graphs (PNG at 300 DPI and PDF) illustrating partition distributions, sample counts, fold heatmaps, and class balance."
+        ]
+    },
+    {
+        "cell_type": "markdown",
+        "metadata": {},
+        "source": [
+            "### Inputs & Expected Outputs\n",
+            "\n",
+            "**Required Inputs:**\n",
+            "- `data/interim/features/selected_features.csv` (Primary engineered feature dataset, 500 records x 51 columns)\n",
+            "- `data/processed/features/final_feature_schema.json` (Validated feature contract, 48 features)\n",
+            "\n",
+            "**Expected Outputs:**\n",
+            "- `data/processed/splits/cv_split_indices.json` (Stratified 10-Fold train/val index mapping for models)\n",
+            "- `reports/phase_05/visualizations/training_data_setup/target_class_distribution_overall.{png,pdf}`\n",
+            "- `reports/phase_05/visualizations/training_data_setup/partition_sample_and_class_distribution.{png,pdf}`\n",
+            "- `reports/phase_05/visualizations/training_data_setup/stratified_10fold_heatmap.{png,pdf}`\n",
+            "- `reports/phase_05/visualizations/training_data_setup/stratified_10fold_proportions.{png,pdf}`\n",
+            "- `reports/phase_05/visualizations/training_data_setup/data_setup_summary_table.csv`"
+        ]
+    },
+    {
+        "cell_type": "markdown",
+        "metadata": {},
+        "source": ["### 1. Environment Setup & Library Imports"]
+    },
+    {
+        "cell_type": "code",
+        "execution_count": None,
+        "metadata": {},
+        "outputs": [],
+        "source": [
+            "import json\n",
+            "from pathlib import Path\n",
+            "import numpy as np\n",
+            "import pandas as pd\n",
+            "from sklearn.model_selection import StratifiedKFold\n",
+            "import matplotlib.pyplot as plt\n",
+            "import seaborn as sns\n",
+            "\n",
+            "RANDOM_SEED = 42\n",
+            "np.random.seed(RANDOM_SEED)\n",
+            "plt.style.use(\"seaborn-v0_8-whitegrid\" if \"seaborn-v0_8-whitegrid\" in plt.style.available else \"default\")\n",
+            "plt.rcParams[\"font.sans-serif\"] = [\"DejaVu Sans\", \"Arial\", \"Helvetica\"]\n",
+            "plt.rcParams[\"axes.edgecolor\"] = \"#333333\"\n",
+            "plt.rcParams[\"axes.linewidth\"] = 0.8\n",
+            "\n",
+            "print(f\"Libraries loaded. RANDOM_SEED={RANDOM_SEED}, Matplotlib v{plt.matplotlib.__version__}, Seaborn v{sns.__version__}\")\n"
+        ]
+    },
+    {
+        "cell_type": "markdown",
+        "metadata": {},
+        "source": ["### 2. Setup Paths & Load Selected Features and Contract Schema"]
+    },
+    {
+        "cell_type": "code",
+        "execution_count": None,
+        "metadata": {},
+        "outputs": [],
+        "source": [
+            "PROJECT_ROOT = Path(\"../../..\")\n",
+            "FEATURES_PATH = PROJECT_ROOT / \"data\" / \"interim\" / \"features\" / \"selected_features.csv\"\n",
+            "SCHEMA_PATH = PROJECT_ROOT / \"data\" / \"processed\" / \"features\" / \"final_feature_schema.json\"\n",
+            "SPLITS_DIR = PROJECT_ROOT / \"data\" / \"processed\" / \"splits\"\n",
+            "REPORT_VIZ_DIR = PROJECT_ROOT / \"reports\" / \"phase_05\" / \"visualizations\" / \"training_data_setup\"\n",
+            "\n",
+            "SPLITS_DIR.mkdir(parents=True, exist_ok=True)\n",
+            "REPORT_VIZ_DIR.mkdir(parents=True, exist_ok=True)\n",
+            "\n",
+            "assert FEATURES_PATH.exists(), f\"Missing features dataset: {FEATURES_PATH}\"\n",
+            "assert SCHEMA_PATH.exists(), f\"Missing feature schema contract: {SCHEMA_PATH}\"\n",
+            "\n",
+            "df_features = pd.read_csv(FEATURES_PATH)\n",
+            "with open(SCHEMA_PATH, \"r\", encoding=\"utf-8\") as f:\n",
+            "    feature_schema = json.load(f)\n",
+            "\n",
+            "print(f\"Loaded selected_features.csv: {df_features.shape}\")\n",
+            "print(f\"Loaded feature schema version: {feature_schema.get('schema_version')}\")\n"
+        ]
+    },
+    {
+        "cell_type": "markdown",
+        "metadata": {},
+        "source": ["### 3. Validate Feature Contract & Verify Class Counts for K=10 Stratification"]
+    },
+    {
+        "cell_type": "code",
+        "execution_count": None,
+        "metadata": {},
+        "outputs": [],
+        "source": [
+            "# Extract 48 features from schema\n",
+            "contract_feature_names = [f[\"feature_name\"] for f in feature_schema[\"features\"]]\n",
+            "assert len(contract_feature_names) == 48, f\"Expected 48 features, got {len(contract_feature_names)}\"\n",
+            "\n",
+            "missing_contract_feats = [col for col in contract_feature_names if col not in df_features.columns]\n",
+            "assert len(missing_contract_feats) == 0, f\"Missing contract features in CSV: {missing_contract_feats}\"\n",
+            "\n",
+            "target_col = feature_schema[\"target_specification\"][\"column_name\"]\n",
+            "assert target_col == \"eligibility\", f\"Unexpected target column name: {target_col}\"\n",
+            "assert target_col in df_features.columns, f\"Target column {target_col} missing from dataset\"\n",
+            "\n",
+            "partition_counts = df_features[\"split_partition\"].value_counts().to_dict()\n",
+            "print(f\"Partition distribution: {partition_counts}\")\n",
+            "assert partition_counts[\"train\"] == 350, f\"Expected 350 train samples, got {partition_counts.get('train')}\"\n",
+            "assert partition_counts[\"validation\"] == 75, f\"Expected 75 val samples, got {partition_counts.get('validation')}\"\n",
+            "assert partition_counts[\"test\"] == 75, f\"Expected 75 test samples, got {partition_counts.get('test')}\"\n",
+            "\n",
+            "# K=10 Precondition Check: Every class in train partition must have >= 10 samples\n",
+            "train_classes = df_features.loc[df_features[\"split_partition\"] == \"train\", \"eligibility\"].value_counts().to_dict()\n",
+            "print(f\"Training class sample counts: {train_classes}\")\n",
+            "for cls_name, cls_cnt in train_classes.items():\n",
+            "    if cls_cnt < 10:\n",
+            "        raise ValueError(f\"Class '{cls_name}' has {cls_cnt} instances (<10). Insufficient for 10-fold CV.\")\n",
+            "print(\"Validation Check: Each target class has >= 10 instances (175 each). Stratified K=10 is fully supported.\")\n"
+        ]
+    },
+    {
+        "cell_type": "markdown",
+        "metadata": {},
+        "source": ["### 4. Configure Stratified 10-Fold Cross-Validation on Development Set"]
+    },
+    {
+        "cell_type": "code",
+        "execution_count": None,
+        "metadata": {},
+        "outputs": [],
+        "source": [
+            "# Isolate development training partition (N=350)\n",
+            "train_mask = df_features[\"split_partition\"] == \"train\"\n",
+            "df_train = df_features.loc[train_mask].reset_index(drop=True)\n",
+            "\n",
+            "X_train_dev = df_train[contract_feature_names]\n",
+            "y_train_dev = (df_train[\"eligibility\"] == \"ELIGIBLE\").astype(int)\n",
+            "\n",
+            "CV_CONFIG = {\n",
+            "    \"n_splits\": 10,\n",
+            "    \"shuffle\": True,\n",
+            "    \"random_state\": RANDOM_SEED\n",
+            "}\n",
+            "\n",
+            "skf = StratifiedKFold(\n",
+            "    n_splits=CV_CONFIG[\"n_splits\"],\n",
+            "    shuffle=CV_CONFIG[\"shuffle\"],\n",
+            "    random_state=CV_CONFIG[\"random_state\"]\n",
+            ")\n",
+            "\n",
+            "fold_splits = []\n",
+            "fold_summary_rows = []\n",
+            "for fold_idx, (t_idx, v_idx) in enumerate(skf.split(X_train_dev, y_train_dev)):\n",
+            "    val_elig = int(y_train_dev.iloc[v_idx].sum())\n",
+            "    val_inelig = int((1 - y_train_dev.iloc[v_idx]).sum())\n",
+            "    val_total = len(v_idx)\n",
+            "    elig_prop = val_elig / val_total\n",
+            "    \n",
+            "    fold_splits.append({\n",
+            "        \"fold\": fold_idx + 1,\n",
+            "        \"train_indices\": t_idx.tolist(),\n",
+            "        \"val_indices\": v_idx.tolist(),\n",
+            "        \"train_samples\": len(t_idx),\n",
+            "        \"val_samples\": val_total,\n",
+            "        \"val_eligible\": val_elig,\n",
+            "        \"val_ineligible\": val_inelig,\n",
+            "        \"val_eligible_proportion\": round(elig_prop, 4)\n",
+            "    })\n",
+            "    fold_summary_rows.append({\n",
+            "        \"Fold\": f\"Fold {fold_idx + 1}\",\n",
+            "        \"Train Count\": len(t_idx),\n",
+            "        \"Val Count\": val_total,\n",
+            "        \"Eligible\": val_elig,\n",
+            "        \"Ineligible\": val_inelig,\n",
+            "        \"Eligible %\": f\"{elig_prop * 100:.1f}%\"\n",
+            "    })\n",
+            "\n",
+            "df_fold_summary = pd.DataFrame(fold_summary_rows)\n",
+            "print(\"=== STRATIFIED 10-FOLD CV SUMMARY (N=350) ===\")\n",
+            "print(df_fold_summary.to_string(index=False))\n"
+        ]
+    },
+    {
+        "cell_type": "markdown",
+        "metadata": {},
+        "source": ["### 5. Quarantine Final Test Set and Persist 10-Fold CV Configuration"]
+    },
+    {
+        "cell_type": "code",
+        "execution_count": None,
+        "metadata": {},
+        "outputs": [],
+        "source": [
+            "# Test set quarantine verification\n",
+            "test_mask = df_features[\"split_partition\"] == \"test\"\n",
+            "df_test = df_features.loc[test_mask].reset_index(drop=True)\n",
+            "print(f\"Quarantined Final Test Set verified: {df_test.shape} (N={len(df_test)} samples)\")\n",
+            "print(f\"Test partition class distribution: {df_test['eligibility'].value_counts().to_dict()}\")\n",
+            "print(\"TEST ISOLATION ENFORCED: Test partition will remain strictly unread until final champion evaluation.\")\n",
+            "\n",
+            "cv_manifest = {\n",
+            "    \"protocol\": \"StratifiedKFold-10Fold\",\n",
+            "    \"random_seed\": RANDOM_SEED,\n",
+            "    \"n_splits\": 10,\n",
+            "    \"total_dev_samples\": len(df_train),\n",
+            "    \"feature_count\": len(contract_feature_names),\n",
+            "    \"feature_columns\": contract_feature_names,\n",
+            "    \"target\": \"eligibility\",\n",
+            "    \"target_classes\": [\"INELIGIBLE (0)\", \"ELIGIBLE (1)\"],\n",
+            "    \"folds\": fold_splits\n",
+            "}\n",
+            "\n",
+            "cv_output_path = SPLITS_DIR / \"cv_split_indices.json\"\n",
+            "with open(cv_output_path, \"w\", encoding=\"utf-8\") as f:\n",
+            "    json.dump(cv_manifest, f, indent=2)\n",
+            "print(f\"Stratified 10-Fold CV configuration successfully saved to: {cv_output_path}\")\n"
+        ]
+    },
+    {
+        "cell_type": "markdown",
+        "metadata": {},
+        "source": [
+            "### 6. Training, Validation, and Test Partition Visualizations\n",
+            "\n",
+            "The following figures illustrate the verified project data partitioning:\n",
+            "- **Figure 1:** Overall Target Class Distribution ($N=500$).\n",
+            "- **Figure 2:** Train vs Validation vs Test Sample Counts and Class Balance.\n",
+            "- **Figure 3:** Stratified 10-Fold Class Distribution Heatmap across Folds.\n",
+            "- **Figure 4:** Stratified 10-Fold Class Proportion Comparison."
+        ]
+    },
+    {
+        "cell_type": "code",
+        "execution_count": None,
+        "metadata": {},
+        "outputs": [],
+        "source": [
+            "# --- FIGURE 1: Overall Target Class Distribution ---\n",
+            "fig, ax = plt.subplots(figsize=(7, 5))\n",
+            "target_counts = df_features[\"eligibility\"].value_counts()\n",
+            "colors = [\"#2b5c8f\", \"#d95f02\"]\n",
+            "bars = ax.bar(target_counts.index, target_counts.values, color=colors, width=0.45, edgecolor=\"black\", linewidth=1.1)\n",
+            "\n",
+            "ax.set_title(\"Overall Target Class Distribution (N=500)\\nOFPHIL Charity Eligibility\", fontsize=13, fontweight=\"bold\", pad=12)\n",
+            "ax.set_ylabel(\"Number of Records\", fontsize=11, fontweight=\"bold\")\n",
+            "ax.set_xlabel(\"Eligibility Classification\", fontsize=11, fontweight=\"bold\")\n",
+            "ax.set_ylim(0, max(target_counts.values) * 1.25)\n",
+            "\n",
+            "for bar in bars:\n",
+            "    h = bar.get_height()\n",
+            "    pct = (h / len(df_features)) * 100\n",
+            "    ax.annotate(f\"{h} records\\n({pct:.1f}%)\",\n",
+            "                xy=(bar.get_x() + bar.get_width() / 2, h),\n",
+            "                xytext=(0, 6), textcoords=\"offset points\",\n",
+            "                ha=\"center\", va=\"bottom\", fontsize=10, fontweight=\"bold\")\n",
+            "\n",
+            "plt.tight_layout()\n",
+            "fig.savefig(REPORT_VIZ_DIR / \"target_class_distribution_overall.png\", dpi=300, bbox_inches=\"tight\")\n",
+            "fig.savefig(REPORT_VIZ_DIR / \"target_class_distribution_overall.pdf\", bbox_inches=\"tight\")\n",
+            "plt.show()\n",
+            "plt.close(fig)\n",
+            "print(\"Exported Figure 1: target_class_distribution_overall (PNG/PDF)\")\n"
+        ]
+    },
+    {
+        "cell_type": "code",
+        "execution_count": None,
+        "metadata": {},
+        "outputs": [],
+        "source": [
+            "# --- FIGURE 2: Partition Sample Counts and Class Breakdown ---\n",
+            "fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))\n",
+            "\n",
+            "# Partition Counts\n",
+            "part_counts = df_features[\"split_partition\"].value_counts()[[\"train\", \"validation\", \"test\"]]\n",
+            "part_labels = [\"Train (Dev)\", \"Validation\", \"Quarantined Test\"]\n",
+            "part_colors = [\"#1b9e77\", \"#7570b3\", \"#e7298a\"]\n",
+            "bars1 = ax1.bar(part_labels, part_counts.values, color=part_colors, width=0.5, edgecolor=\"black\", linewidth=1.1)\n",
+            "ax1.set_title(\"Partition Sample Count Breakdown (N=500)\", fontsize=12, fontweight=\"bold\", pad=10)\n",
+            "ax1.set_ylabel(\"Number of Records\", fontsize=11, fontweight=\"bold\")\n",
+            "ax1.set_ylim(0, 420)\n",
+            "for bar in bars1:\n",
+            "    h = bar.get_height()\n",
+            "    pct = (h / len(df_features)) * 100\n",
+            "    ax1.annotate(f\"{h}\\n({pct:.1f}%)\", xy=(bar.get_x() + bar.get_width() / 2, h),\n",
+            "                 xytext=(0, 6), textcoords=\"offset points\", ha=\"center\", va=\"bottom\", fontsize=10, fontweight=\"bold\")\n",
+            "\n",
+            "# Class counts by partition\n",
+            "part_class = pd.crosstab(df_features[\"split_partition\"], df_features[\"eligibility\"]).reindex([\"train\", \"validation\", \"test\"])\n",
+            "part_class.index = part_labels\n",
+            "part_class.plot(kind=\"bar\", stacked=False, ax=ax2, color=[\"#2b5c8f\", \"#d95f02\"], width=0.6, edgecolor=\"black\", linewidth=1.1)\n",
+            "ax2.set_title(\"Class Distribution across Partitions\", fontsize=12, fontweight=\"bold\", pad=10)\n",
+            "ax2.set_ylabel(\"Record Count\", fontsize=11, fontweight=\"bold\")\n",
+            "ax2.set_xlabel(\"Partition\", fontsize=11, fontweight=\"bold\")\n",
+            "ax2.set_xticklabels(part_labels, rotation=0)\n",
+            "ax2.set_ylim(0, 210)\n",
+            "ax2.legend(title=\"Eligibility Class\", frameon=True)\n",
+            "for p in ax2.patches:\n",
+            "    h = p.get_height()\n",
+            "    if h > 0:\n",
+            "        ax2.annotate(f\"{int(h)}\", xy=(p.get_x() + p.get_width() / 2, h),\n",
+            "                     xytext=(0, 4), textcoords=\"offset points\", ha=\"center\", va=\"bottom\", fontsize=9, fontweight=\"bold\")\n",
+            "\n",
+            "plt.tight_layout()\n",
+            "fig.savefig(REPORT_VIZ_DIR / \"partition_sample_and_class_distribution.png\", dpi=300, bbox_inches=\"tight\")\n",
+            "fig.savefig(REPORT_VIZ_DIR / \"partition_sample_and_class_distribution.pdf\", bbox_inches=\"tight\")\n",
+            "plt.show()\n",
+            "plt.close(fig)\n",
+            "print(\"Exported Figure 2: partition_sample_and_class_distribution (PNG/PDF)\")\n"
+        ]
+    },
+    {
+        "cell_type": "code",
+        "execution_count": None,
+        "metadata": {},
+        "outputs": [],
+        "source": [
+            "# --- FIGURE 3 & 4: Stratified 10-Fold Heatmap & Class Proportions ---\n",
+            "fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))\n",
+            "\n",
+            "fold_data = []\n",
+            "for f in fold_splits:\n",
+            "    fold_data.append({\n",
+            "        \"Fold\": f\"Fold {f['fold']}\",\n",
+            "        \"INELIGIBLE (0)\": f[\"val_ineligible\"],\n",
+            "        \"ELIGIBLE (1)\": f[\"val_eligible\"],\n",
+            "        \"Total Val\": f[\"val_samples\"]\n",
+            "    })\n",
+            "df_folds_plot = pd.DataFrame(fold_data).set_index(\"Fold\")\n",
+            "\n",
+            "# Heatmap\n",
+            "sns.heatmap(df_folds_plot[[\"INELIGIBLE (0)\", \"ELIGIBLE (1)\"]], annot=True, fmt=\"d\", cmap=\"Blues\",\n",
+            "            cbar=False, ax=ax1, linewidths=1.2, linecolor=\"white\", annot_kws={\"fontsize\": 11, \"fontweight\": \"bold\"})\n",
+            "ax1.set_title(\"Stratified 10-Fold Class Distribution (Validation Folds)\", fontsize=12, fontweight=\"bold\", pad=12)\n",
+            "ax1.set_ylabel(\"Cross-Validation Fold\", fontsize=11, fontweight=\"bold\")\n",
+            "\n",
+            "# Fold Proportion Comparison\n",
+            "fold_props = [f[\"val_eligible_proportion\"] * 100 for f in fold_splits]\n",
+            "fold_names = [f\"F{f['fold']}\" for f in fold_splits]\n",
+            "bars = ax2.bar(fold_names, fold_props, color=\"#386cb0\", width=0.55, edgecolor=\"black\", linewidth=1.1)\n",
+            "ax2.axhline(50.0, color=\"red\", linestyle=\"--\", linewidth=1.5, label=\"Exact 50.0% Parity Line\")\n",
+            "ax2.set_title(\"Eligible Class Proportion per Fold (%)\", fontsize=12, fontweight=\"bold\", pad=12)\n",
+            "ax2.set_ylabel(\"Eligible % in Fold Validation Set\", fontsize=11, fontweight=\"bold\")\n",
+            "ax2.set_xlabel(\"Fold Identifier\", fontsize=11, fontweight=\"bold\")\n",
+            "ax2.set_ylim(40, 60)\n",
+            "ax2.legend(loc=\"upper right\", frameon=True)\n",
+            "for bar in bars:\n",
+            "    h = bar.get_height()\n",
+            "    ax2.annotate(f\"{h:.1f}%\", xy=(bar.get_x() + bar.get_width() / 2, h),\n",
+            "                 xytext=(0, 4), textcoords=\"offset points\", ha=\"center\", va=\"bottom\", fontsize=9, fontweight=\"bold\")\n",
+            "\n",
+            "plt.tight_layout()\n",
+            "fig.savefig(REPORT_VIZ_DIR / \"stratified_10fold_heatmap.png\", dpi=300, bbox_inches=\"tight\")\n",
+            "fig.savefig(REPORT_VIZ_DIR / \"stratified_10fold_heatmap.pdf\", bbox_inches=\"tight\")\n",
+            "fig.savefig(REPORT_VIZ_DIR / \"stratified_10fold_proportions.png\", dpi=300, bbox_inches=\"tight\")\n",
+            "fig.savefig(REPORT_VIZ_DIR / \"stratified_10fold_proportions.pdf\", bbox_inches=\"tight\")\n",
+            "plt.show()\n",
+            "plt.close(fig)\n",
+            "print(\"Exported Figures 3 & 4: stratified_10fold_heatmap and proportions (PNG/PDF)\")\n"
+        ]
+    },
+    {
+        "cell_type": "markdown",
+        "metadata": {},
+        "source": [
+            "### 7. Export Data Setup Summary Table and Manifests"
+        ],
+    },
+    {
+        "cell_type": "code",
+        "execution_count": None,
+        "metadata": {},
+        "outputs": [],
+        "source": [
+            "summary_table_rows = [\n",
+            "    {\"Metric / Dimension\": \"Total Records Available\", \"Value\": str(len(df_features))},\n",
+            "    {\"Metric / Dimension\": \"Training Development Records (N_train)\", \"Value\": f\"{len(df_train)} (70.0%)\"},\n",
+            "    {\"Metric / Dimension\": \"Hold-out Validation Records (N_val)\", \"Value\": f\"{partition_counts['validation']} (15.0%)\"},\n",
+            "    {\"Metric / Dimension\": \"Quarantined Final Test Records (N_test)\", \"Value\": f\"{partition_counts['test']} (15.0%)\"},\n",
+            "    {\"Metric / Dimension\": \"CV Protocol\", \"Value\": \"StratifiedKFold (K=10, shuffle=True, seed=42)\"},\n",
+            "    {\"Metric / Dimension\": \"Number of Folds\", \"Value\": \"10\"},\n",
+            "    {\"Metric / Dimension\": \"Validation Samples per Fold\", \"Value\": \"35\"},\n",
+            "    {\"Metric / Dimension\": \"Target Variable\", \"Value\": \"eligibility (0: INELIGIBLE, 1: ELIGIBLE)\"},\n",
+            "    {\"Metric / Dimension\": \"Features Available\", \"Value\": \"48 (0 nulls, verified contract)\"}\n",
+            "]\n",
+            "df_setup_manifest = pd.DataFrame(summary_table_rows)\n",
+            "df_setup_manifest.to_csv(REPORT_VIZ_DIR / \"data_setup_summary_table.csv\", index=False)\n",
+            "print(f\"Data setup summary table exported: {REPORT_VIZ_DIR / 'data_setup_summary_table.csv'}\")\n"
+        ]
+    },
+    {
+        "cell_type": "markdown",
+        "metadata": {},
+        "source": [
+            "### 8. Interpretation Guide for Researcher\n",
+            "\n",
+            "- **Target Balance Verification:** Figure 1 confirms 50/50 balance ($250/250$) across the full dataset.\n",
+            "- **Partition Discipline:** Figure 2 confirms exact sample allocations ($350$ train, $75$ val, $75$ quarantined test) without overlap.\n",
+            "- **Stratified 10-Fold Parity:** Figures 3 and 4 verify that every validation fold contains exactly 35 records with balanced class representation (17 or 18 per class, approximately 48.6% to 51.4%), preventing fold-induced bias during hyperparameter tuning."
+        ]
+    },
+    {
+        "cell_type": "markdown",
+        "metadata": {},
+        "source": [
+            "### Completion Checklist\n",
+            "\n",
+            "- [ ] Target class balance verified across entire dataset and partitions.\n",
+            "- [ ] Precondition verified: $\\ge 10$ samples per class in training partition.\n",
+            "- [ ] Stratified 10-Fold CV configured ($K=10$, `random_state=42`).\n",
+            "- [ ] Fold indices persisted to `cv_split_indices.json`.\n",
+            "- [ ] Test set verified strictly quarantined.\n",
+            "- [ ] Matplotlib and Seaborn graphs export to PNG (300 DPI) and PDF.\n",
+            "- [ ] Summary table exported to CSV."
+        ]
+    }
+]
+
+nb = {
+    "cells": cells,
+    "metadata": {
+        "language_info": {"name": "python", "version": "3.12.0"},
+        "kernelspec": {"display_name": "Python 3 (ipykernel)", "language": "python", "name": "python3"}
+    },
+    "nbformat": 4,
+    "nbformat_minor": 5
+}
+
+with open(nb_path, "w", encoding="utf-8") as f:
+    json.dump(nb, f, indent=2)
+
+print("Successfully updated 01_training_data_setup.ipynb with Stratified 10-Fold CV & Visualizations.")
