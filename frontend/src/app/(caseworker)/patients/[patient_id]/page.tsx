@@ -189,7 +189,7 @@ function MSWDossierContent() {
 
       setPatient(patObj);
       let sbEncs: any[] = [];
-      if (encsRes?.ok) {
+      if (encsRes && encsRes.ok) {
         const encJson = await encsRes.json();
         if (Array.isArray(encJson.encounters)) sbEncs = encJson.encounters;
       }

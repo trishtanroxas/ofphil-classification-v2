@@ -1,0 +1,65 @@
+{
+  "runtime_provider": "ollama",
+  "local_endpoint": "http://localhost:11434",
+  "api_routes": {
+    "generate": "/api/generate",
+    "chat": "/api/chat",
+    "tags": "/api/tags",
+    "show": "/api/show"
+  },
+  "default_model": "qwen3:4b",
+  "candidate_models": [
+    {
+      "tag": "qwen3:4b",
+      "role": "initial_testing_candidate"
+    },
+    {
+      "tag": "phi4-mini",
+      "role": "lightweight_comparison"
+    },
+    {
+      "tag": "qwen3:8b",
+      "role": "higher_capacity_comparison"
+    },
+    {
+      "tag": "gemma3:12b",
+      "role": "optional_heavy_comparison"
+    }
+  ],
+  "inference_mode": "local_offline",
+  "execution_policy": {
+    "auto_download": false,
+    "require_manual_user_trigger": true,
+    "allow_external_cloud_calls": false
+  },
+  "request_timeout_seconds": 180,
+  "client_connection_retries": 3,
+  "default_generation_parameters": {
+    "temperature": 0.2,
+    "top_p": 0.9,
+    "top_k": 40,
+    "repeat_penalty": 1.15,
+    "max_tokens": 1024,
+    "stop": [
+      "<|im_end|>",
+      "<|endoftext|>",
+      "### Human:",
+      "### Patient:"
+    ]
+  },
+  "json_extraction_parameters": {
+    "format": "json",
+    "temperature": 0.0,
+    "top_p": 0.8,
+    "max_tokens": 1536
+  },
+  "hardware_runtime_options": {
+    "num_gpu_layers_qwen3_4b": 999,
+    "num_gpu_layers_phi4_mini": 999,
+    "num_gpu_layers_qwen3_8b": 22,
+    "num_gpu_layers_gemma3_12b": 16,
+    "num_threads": 8,
+    "f16_kv": true,
+    "use_mmap": true
+  }
+}

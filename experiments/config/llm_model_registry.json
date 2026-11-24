@@ -1,0 +1,154 @@
+{
+  "registry_version": "2.1.0",
+  "last_updated": "2026-11-24",
+  "project": "ofphil-classification-v2",
+  "application": "OFPHIL Stage 2 MSW Interview Assistant",
+  "inference_runtime": "Ollama",
+  "default_endpoint": "http://localhost:11434",
+  "target_hardware": {
+    "gpu": "NVIDIA GeForce RTX 3050 Laptop/Desktop",
+    "vram_gb": 4.0,
+    "ram_gb": 32.0,
+    "os": "Windows 11",
+    "python_version": "3.12.10",
+    "environment": "ofphil-v2"
+  },
+  "candidate_models": [
+    {
+      "model_identifier": "qwen3-4b-instruct",
+      "display_name": "Qwen3 4B Instruct",
+      "provider": "Alibaba Cloud / Qwen",
+      "ollama_model_tag": "qwen3:4b",
+      "priority": "Initial Testing Candidate",
+      "status": "Configured (Awaiting local pull and testing)",
+      "intended_role": "Initial testing candidate for rapid prompt verification, multi-turn state tracking, and JSON extraction",
+      "parameter_count": "4.0B (approx)",
+      "model_type": "Dense Autoregressive Transformer (Instruct/Chat)",
+      "architecture": "Qwen",
+      "license": "Apache 2.0 / Qwen Community License (Check checkpoint license)",
+      "license_source": "https://github.com/QwenLM/Qwen",
+      "context_window_tokens": {
+        "native": 32768,
+        "runtime_configured": 4096,
+        "verification_status": "Verified against Qwen technical documentation (supports up to 32k/128k depending on context extension)"
+      },
+      "quantization": {
+        "default_ollama_format": "Q4_K_M (4-bit)",
+        "published_model_size_gb": 2.5,
+        "verification_status": "Verified official Ollama published download size ~2.5 GB"
+      },
+      "hardware_fit_assessment": {
+        "full_gpu_fit_4gb_vram": false,
+        "cpu_gpu_offload_required": "Potential partial offload depending on KV cache and runtime overhead",
+        "estimated_model_weights_vram_gb": 2.5,
+        "estimated_runtime_overhead_and_kv_gb": "0.8 - 1.5 GB (at 4096 context tokens)",
+        "estimated_total_runtime_vram_gb": "3.3 - 4.0 GB",
+        "feasibility": "High probability of running mostly or fully on GPU, but full 100% GPU residence cannot be guaranteed on 4GB VRAM once KV cache, context window, and OS/display server allocations are factored in. 32GB system RAM provides seamless buffer for any layer spillover."
+      },
+      "strengths": "Compact footprint, fast local execution, well-suited for preliminary pipeline verification.",
+      "documentation_source": "https://ollama.com/library/qwen3"
+    },
+    {
+      "model_identifier": "phi4-mini-instruct",
+      "display_name": "Phi-4-mini 3.8B Instruct",
+      "provider": "Microsoft Research",
+      "ollama_model_tag": "phi4-mini",
+      "priority": "Lightweight Comparison",
+      "status": "Configured (Awaiting local pull and testing)",
+      "intended_role": "Lightweight comparison candidate optimized for structured JSON reasoning, logic, and function calling",
+      "parameter_count": "3.8B",
+      "model_type": "Dense Autoregressive Transformer (Instruct)",
+      "architecture": "Phi-4",
+      "license": "MIT License",
+      "license_source": "https://huggingface.co/microsoft/Phi-4-mini-instruct",
+      "context_window_tokens": {
+        "native": 131072,
+        "runtime_configured": 4096,
+        "verification_status": "Verified 128k token native context window on Ollama library (Ollama 0.5.13+ required)"
+      },
+      "quantization": {
+        "default_ollama_format": "Q4_K_M (4-bit)",
+        "published_model_size_gb": 2.5,
+        "verification_status": "Verified official Ollama published download size ~2.5 GB"
+      },
+      "hardware_fit_assessment": {
+        "full_gpu_fit_4gb_vram": false,
+        "cpu_gpu_offload_required": "Potential partial offload depending on active KV cache and VRAM headroom",
+        "estimated_model_weights_vram_gb": 2.5,
+        "estimated_runtime_overhead_and_kv_gb": "0.8 - 1.4 GB (at 4096 context tokens)",
+        "estimated_total_runtime_vram_gb": "3.3 - 3.9 GB",
+        "feasibility": "Near-full or hybrid GPU execution; requires monitoring display VRAM usage on Windows 11. 32GB system RAM easily handles any offloaded layers without system paging."
+      },
+      "strengths": "Strong mathematical and structured reasoning capabilities, native function calling support, permissive MIT license.",
+      "documentation_source": "https://ollama.com/library/phi4-mini"
+    },
+    {
+      "model_identifier": "qwen3-8b-instruct",
+      "display_name": "Qwen3 8B Instruct",
+      "provider": "Alibaba Cloud / Qwen",
+      "ollama_model_tag": "qwen3:8b",
+      "priority": "Higher-Capacity Comparison",
+      "status": "Configured (Awaiting local pull and testing)",
+      "intended_role": "Higher-capacity comparison candidate for conversational interview assistance and Taglish dialogue tracking",
+      "parameter_count": "8.2B (approx)",
+      "model_type": "Dense Autoregressive Transformer (Instruct/Chat)",
+      "architecture": "Qwen",
+      "license": "Apache 2.0 / Qwen Community License (Check checkpoint license)",
+      "license_source": "https://github.com/QwenLM/Qwen",
+      "context_window_tokens": {
+        "native": 32768,
+        "runtime_configured": 4096,
+        "verification_status": "Verified against Qwen technical documentation (supports up to 32k/128k)"
+      },
+      "quantization": {
+        "default_ollama_format": "Q4_K_M (4-bit)",
+        "published_model_size_gb": 5.2,
+        "verification_status": "Verified official Ollama published download size ~5.2 GB"
+      },
+      "hardware_fit_assessment": {
+        "full_gpu_fit_4gb_vram": false,
+        "cpu_gpu_offload_required": true,
+        "estimated_model_weights_vram_gb": 2.8,
+        "estimated_runtime_overhead_and_kv_gb": "3.5 - 4.5 GB in System RAM (offloaded layers + KV cache)",
+        "estimated_total_runtime_vram_gb": "3.0 - 3.5 GB (on GPU)",
+        "feasibility": "Cannot fit fully in 4GB VRAM. Requires hybrid CPU/GPU offloading via Ollama (approx. 20-24 layers in VRAM, remaining layers in 32GB system RAM). Feasible with partial offload."
+      },
+      "strengths": "Strong multilingual capability (Tagalog/Filipino/English code-switching), nuanced instruction following, structured JSON extraction.",
+      "documentation_source": "https://ollama.com/library/qwen3"
+    },
+    {
+      "model_identifier": "gemma3-12b-instruct",
+      "display_name": "Gemma 3 12B Instruct",
+      "provider": "Google DeepMind",
+      "ollama_model_tag": "gemma3:12b",
+      "priority": "Optional Heavy Comparison",
+      "status": "Configured (Awaiting local pull and testing)",
+      "intended_role": "Optional heavy comparison candidate for complex reasoning and nuanced conversational assessment",
+      "parameter_count": "12.0B (approx)",
+      "model_type": "Dense Autoregressive Transformer (Instruct, Multimodal-capable)",
+      "architecture": "Gemma 3",
+      "license": "Gemma Terms of Use / Gemma Open License (NOT Apache 2.0)",
+      "license_source": "https://ai.google.dev/gemma/terms",
+      "context_window_tokens": {
+        "native": 131072,
+        "runtime_configured": 4096,
+        "verification_status": "Verified 128k token native context window on Google Gemma 3 and Ollama documentation"
+      },
+      "quantization": {
+        "default_ollama_format": "Q4_K_M (4-bit)",
+        "published_model_size_gb": 8.2,
+        "verification_status": "Verified official Ollama published download size ~8.2 GB (requires ~10.5 GB runtime memory)"
+      },
+      "hardware_fit_assessment": {
+        "full_gpu_fit_4gb_vram": false,
+        "cpu_gpu_offload_required": true,
+        "estimated_model_weights_vram_gb": 2.5,
+        "estimated_runtime_overhead_and_kv_gb": "7.0 - 9.0 GB in System RAM (offloaded layers + KV cache)",
+        "estimated_total_runtime_vram_gb": "2.8 - 3.4 GB (on GPU)",
+        "feasibility": "Requires heavy CPU/system RAM offloading (over 70% of layers on CPU). While fully supported by 32GB system RAM, inference latency will be notably higher due to PCIe transfer overhead."
+      },
+      "strengths": "Deep semantic reasoning, rigorous instruction compliance, 128k context, multimodal capability.",
+      "documentation_source": "https://ollama.com/library/gemma3"
+    }
+  ]
+}
