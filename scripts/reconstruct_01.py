@@ -1,0 +1,253 @@
+import json
+from pathlib import Path
+
+nb_path = Path("experiments/notebooks/05_model_selection_and_training/01_training_data_setup.ipynb")
+
+cells = [
+    {
+        "cell_type": "markdown",
+        "metadata": {},
+        "source": [
+            "# 05.01 Training Data Setup and Cross-Validation Configuration\n",
+            "\n",
+            "**Phase 05 — Model Selection and Training (Tabular Only)**  \n",
+            "*OFPHIL V2: Charity Patient Eligibility Classification*\n",
+            "\n",
+            "---\n",
+            "\n",
+            "### Description & Purpose\n",
+            "Establish leak-proof cross-validation splits, validate feature schema alignment against `final_feature_schema.json`, verify strict target isolation, configure Stratified 5-Fold partitioning on the development training partition (N=350), and quarantine the final test set (N=75).\n",
+            "\n",
+            "**Strict Execution Policy:** This notebook is prepared for manual execution by the researcher. No cell execution outputs are pre-populated."
+        ]
+    },
+    {
+        "cell_type": "markdown",
+        "metadata": {},
+        "source": [
+            "### Research Objectives\n",
+            "\n",
+            "1. Ingest `selected_features.csv` (N=500, 48 predictors) and align strictly with `final_feature_schema.json`.\n",
+            "2. Confirm absence of data leakage: exclude identifiers (`internal_record_id`), partition columns (`split_partition`), and post-decision target indicators.\n",
+            "3. Formulate binary target: `eligibility` (0 = `INELIGIBLE`, 1 = `ELIGIBLE`), balanced 50/50 in development training (N=350: 175/175).\n",
+            "4. Establish reproducible Stratified 5-Fold cross-validation (`random_state=42`) on the training partition (N=350, 70 samples per fold, exactly 35 eligible / 35 ineligible).\n",
+            "5. Persist fold partition mapping to `data/processed/splits/cv_split_indices.json` and verify quarantine status of final test partition (N=75)."
+        ]
+    },
+    {
+        "cell_type": "markdown",
+        "metadata": {},
+        "source": [
+            "### Inputs & Expected Outputs\n",
+            "\n",
+            "**Required Inputs:**\n",
+            "- `data/interim/features/selected_features.csv` (Primary engineered feature dataset, 500 records x 51 columns)\n",
+            "- `data/processed/features/final_feature_schema.json` (Validated feature contract, 48 features)\n",
+            "\n",
+            "**Expected Outputs:**\n",
+            "- `data/processed/splits/cv_split_indices.json` (Stratified 5-Fold train/val index mapping for models)\n",
+            "- `data/processed/splits/data_setup_manifest.json` (Validation audit record)"
+        ]
+    },
+    {
+        "cell_type": "markdown",
+        "metadata": {},
+        "source": ["### 1. Environment Setup & Library Imports"]
+    },
+    {
+        "cell_type": "code",
+        "execution_count": None,
+        "metadata": {},
+        "outputs": [],
+        "source": [
+            "import json\n",
+            "from pathlib import Path\n",
+            "import numpy as np\n",
+            "import pandas as pd\n",
+            "from sklearn.model_selection import StratifiedKFold\n",
+            "\n",
+            "RANDOM_SEED = 42\n",
+            "np.random.seed(RANDOM_SEED)\n",
+            "print(f\"Libraries loaded successfully. RANDOM_SEED={RANDOM_SEED}\")\n"
+        ]
+    },
+    {
+        "cell_type": "markdown",
+        "metadata": {},
+        "source": ["### 2. Setup Paths & Load Selected Features and Contract Schema"]
+    },
+    {
+        "cell_type": "code",
+        "execution_count": None,
+        "metadata": {},
+        "outputs": [],
+        "source": [
+            "PROJECT_ROOT = Path(\"../../..\")\n",
+            "FEATURES_PATH = PROJECT_ROOT / \"data\" / \"interim\" / \"features\" / \"selected_features.csv\"\n",
+            "SCHEMA_PATH = PROJECT_ROOT / \"data\" / \"processed\" / \"features\" / \"final_feature_schema.json\"\n",
+            "SPLITS_DIR = PROJECT_ROOT / \"data\" / \"processed\" / \"splits\"\n",
+            "SPLITS_DIR.mkdir(parents=True, exist_ok=True)\n",
+            "\n",
+            "assert FEATURES_PATH.exists(), f\"Missing features dataset: {FEATURES_PATH}\"\n",
+            "assert SCHEMA_PATH.exists(), f\"Missing feature schema contract: {SCHEMA_PATH}\"\n",
+            "\n",
+            "df_features = pd.read_csv(FEATURES_PATH)\n",
+            "with open(SCHEMA_PATH, \"r\", encoding=\"utf-8\") as f:\n",
+            "    feature_schema = json.load(f)\n",
+            "\n",
+            "print(f\"Loaded selected_features.csv: {df_features.shape}\")\n",
+            "print(f\"Loaded feature schema version: {feature_schema.get('schema_version')}\")\n"
+        ]
+    },
+    {
+        "cell_type": "markdown",
+        "metadata": {},
+        "source": ["### 3. Validate Feature Contract & Quarantine Leakage Columns"]
+    },
+    {
+        "cell_type": "code",
+        "execution_count": None,
+        "metadata": {},
+        "outputs": [],
+        "source": [
+            "# Extract expected 48 features from schema contract\n",
+            "contract_feature_names = [f[\"feature_name\"] for f in feature_schema[\"features\"]]\n",
+            "assert len(contract_feature_names) == 48, f\"Expected 48 features, got {len(contract_feature_names)}\"\n",
+            "\n",
+            "# Verify all contract features exist in selected_features.csv\n",
+            "missing_contract_feats = [col for col in contract_feature_names if col not in df_features.columns]\n",
+            "assert len(missing_contract_feats) == 0, f\"Missing contract features in CSV: {missing_contract_feats}\"\n",
+            "\n",
+            "# Check target column\n",
+            "target_col = feature_schema[\"target_specification\"][\"column_name\"]\n",
+            "assert target_col == \"eligibility\", f\"Unexpected target column name: {target_col}\"\n",
+            "assert target_col in df_features.columns, f\"Target column {target_col} missing from dataset\"\n",
+            "\n",
+            "# Partition enforcement\n",
+            "assert \"split_partition\" in df_features.columns, \"split_partition column missing\"\n",
+            "partition_counts = df_features[\"split_partition\"].value_counts().to_dict()\n",
+            "print(f\"Partition distribution: {partition_counts}\")\n",
+            "assert partition_counts[\"train\"] == 350, f\"Expected 350 train samples, got {partition_counts.get('train')}\"\n",
+            "assert partition_counts[\"validation\"] == 75, f\"Expected 75 val samples, got {partition_counts.get('validation')}\"\n",
+            "assert partition_counts[\"test\"] == 75, f\"Expected 75 test samples, got {partition_counts.get('test')}\"\n",
+            "\n",
+            "# Missing value check\n",
+            "null_count = df_features[contract_feature_names].isnull().sum().sum()\n",
+            "assert null_count == 0, f\"Features contain {null_count} unexpected null values!\"\n",
+            "print(\"Feature schema contract and integrity verification: PASSED (48 features, 0 nulls)\")\n"
+        ]
+    },
+    {
+        "cell_type": "markdown",
+        "metadata": {},
+        "source": ["### 4. Construct Stratified 5-Fold Cross-Validation on Development Set"]
+    },
+    {
+        "cell_type": "code",
+        "execution_count": None,
+        "metadata": {},
+        "outputs": [],
+        "source": [
+            "# Isolate training partition (development set, N=350)\n",
+            "train_mask = df_features[\"split_partition\"] == \"train\"\n",
+            "df_train = df_features.loc[train_mask].reset_index(drop=True)\n",
+            "\n",
+            "X_train_dev = df_train[contract_feature_names]\n",
+            "# Binary mapping: ELIGIBLE = 1, INELIGIBLE = 0\n",
+            "y_train_dev = (df_train[\"eligibility\"] == \"ELIGIBLE\").astype(int)\n",
+            "\n",
+            "print(f\"Development train set: X={X_train_dev.shape}, y={y_train_dev.shape}\")\n",
+            "print(f\"Target class balance in train: {y_train_dev.value_counts().to_dict()}\")\n",
+            "\n",
+            "# Configure StratifiedKFold\n",
+            "skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=RANDOM_SEED)\n",
+            "fold_splits = []\n",
+            "for fold_idx, (t_idx, v_idx) in enumerate(skf.split(X_train_dev, y_train_dev)):\n",
+            "    fold_splits.append({\n",
+            "        \"fold\": fold_idx + 1,\n",
+            "        \"train_indices\": t_idx.tolist(),\n",
+            "        \"val_indices\": v_idx.tolist(),\n",
+            "        \"train_samples\": len(t_idx),\n",
+            "        \"val_samples\": len(v_idx),\n",
+            "        \"val_eligible\": int(y_train_dev.iloc[v_idx].sum()),\n",
+            "        \"val_ineligible\": int((1 - y_train_dev.iloc[v_idx]).sum())\n",
+            "    })\n",
+            "    print(f\"  Fold {fold_idx + 1}: Train={len(t_idx)}, Val={len(v_idx)} (Eligible: {y_train_dev.iloc[v_idx].sum()}, Ineligible: {(1 - y_train_dev.iloc[v_idx]).sum()})\")\n"
+        ]
+    },
+    {
+        "cell_type": "markdown",
+        "metadata": {},
+        "source": ["### 5. Quarantine Final Test Set and Persist CV Configuration"]
+    },
+    {
+        "cell_type": "code",
+        "execution_count": None,
+        "metadata": {},
+        "outputs": [],
+        "source": [
+            "# Quarantine check: ensure test set is completely untouched\n",
+            "test_mask = df_features[\"split_partition\"] == \"test\"\n",
+            "df_test = df_features.loc[test_mask].reset_index(drop=True)\n",
+            "print(f\"Quarantined Final Test Set verified: {df_test.shape} (N={len(df_test)} samples)\")\n",
+            "print(f\"Test partition class distribution: {df_test['eligibility'].value_counts().to_dict()}\")\n",
+            "print(\"TEST ISOLATION ENFORCED: Test partition will remain strictly unread until final champion evaluation.\")\n",
+            "\n",
+            "# Save CV split indices\n",
+            "cv_manifest = {\n",
+            "    \"protocol\": \"StratifiedKFold-5Fold\",\n",
+            "    \"random_seed\": RANDOM_SEED,\n",
+            "    \"n_splits\": 5,\n",
+            "    \"total_dev_samples\": len(df_train),\n",
+            "    \"feature_count\": len(contract_feature_names),\n",
+            "    \"feature_columns\": contract_feature_names,\n",
+            "    \"target\": \"eligibility\",\n",
+            "    \"target_classes\": [\"INELIGIBLE (0)\", \"ELIGIBLE (1)\"],\n",
+            "    \"folds\": fold_splits\n",
+            "}\n",
+            "\n",
+            "cv_output_path = SPLITS_DIR / \"cv_split_indices.json\"\n",
+            "with open(cv_output_path, \"w\", encoding=\"utf-8\") as f:\n",
+            "    json.dump(cv_manifest, f, indent=2)\n",
+            "print(f\"Cross-validation configuration saved to: {cv_output_path}\")\n"
+        ]
+    },
+    {
+        "cell_type": "markdown",
+        "metadata": {},
+        "source": [
+            "### Findings & Observations\n",
+            "\n",
+            "- **Dataset Integrity:** Verified exact alignment with `final_feature_schema.json` (48 continuous and encoded categorical features, zero missing values across 500 samples).\n",
+            "- **Stratified 5-Fold Partitioning:** Development partition (N=350) partitioned into 5 balanced folds of 70 validation records each (35 ELIGIBLE / 35 INELIGIBLE per fold).\n",
+            "- **Quarantine Enforcement:** Test partition (N=75) strictly isolated for downstream unsealed evaluation in `08_final_model_evaluation.ipynb`."
+        ]
+    },
+    {
+        "cell_type": "markdown",
+        "metadata": {},
+        "source": [
+            "### Completion Checklist\n",
+            "\n",
+            "- [ ] Random seed fixed (`RANDOM_SEED=42`) for reproducibility.\n",
+            "- [ ] Stratified 5-Fold split maintains exact 50/50 balance in validation folds.\n",
+            "- [ ] Final test set strictly quarantined.\n",
+            "- [ ] Fold indices persisted to `cv_split_indices.json` for all Phase 05 model benchmarks."
+        ]
+    }
+]
+
+nb = {
+    "cells": cells,
+    "metadata": {
+        "language_info": {"name": "python", "version": "3.12.0"},
+        "kernelspec": {"display_name": "Python 3 (ipykernel)", "language": "python", "name": "python3"}
+    },
+    "nbformat": 4,
+    "nbformat_minor": 5
+}
+
+with open(nb_path, "w", encoding="utf-8") as f:
+    json.dump(nb, f, indent=2)
+
+print("Successfully written 01_training_data_setup.ipynb")

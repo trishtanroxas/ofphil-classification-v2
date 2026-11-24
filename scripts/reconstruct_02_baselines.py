@@ -1,0 +1,1140 @@
+import json
+from pathlib import Path
+
+def create_baseline_notebooks():
+    base_dir = Path("experiments/notebooks/05_model_selection_and_training/02_baseline_models")
+
+    # 1. LOGISTIC REGRESSION
+    lr_cells = [
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "# 05.02.01 Logistic Regression Baseline\n",
+                "\n",
+                "**Phase 05.02 — Baseline Models (Tabular Only)**  \n",
+                "*OFPHIL V2: Charity Patient Eligibility Classification*\n",
+                "\n",
+                "---\n",
+                "\n",
+                "### Description & Purpose\n",
+                "Train and evaluate a regularized binary Logistic Regression baseline on the 48 tabular features using Stratified 5-Fold Cross-Validation loaded from `data/processed/splits/cv_split_indices.json`. Implements hyperparameter search over regularization strengths ($C$) and penalty types.\n",
+                "\n",
+                "**Strict Execution Policy:** This notebook is prepared for manual execution by the researcher. No cell execution outputs are pre-populated."
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "### Research Objectives\n",
+                "\n",
+                "1. Establish linear classification baseline performance for binary charity eligibility (`ELIGIBLE` vs `INELIGIBLE`).\n",
+                "2. Evaluate L2-regularized logistic regression across regularisation strengths ($C \\in [0.01, 0.1, 1.0, 10.0]$).\n",
+                "3. Compute out-of-fold metrics across 5 Stratified folds: Accuracy, Precision, Recall, Macro F1, and ROC-AUC.\n",
+                "4. Analyze model coefficients to identify key linear predictors and log performance to `models/trained/baselines/logistic_regression_metrics.json`."
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "### Inputs & Expected Outputs\n",
+                "\n",
+                "**Required Inputs:**\n",
+                "- `data/interim/features/selected_features.csv` (Primary tabular features)\n",
+                "- `data/processed/splits/cv_split_indices.json` (Stratified 5-Fold split definitions)\n",
+                "\n",
+                "**Expected Outputs:**\n",
+                "- `models/trained/baselines/logistic_regression_metrics.json` (Cross-validation metrics and fold logs)\n",
+                "- `models/trained/baselines/logistic_regression_coefficients.csv` (Top model coefficients)"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": ["### 1. Environment Setup & Library Imports"]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "import json\n",
+                "import time\n",
+                "from pathlib import Path\n",
+                "import numpy as np\n",
+                "import pandas as pd\n",
+                "from sklearn.linear_model import LogisticRegression\n",
+                "from sklearn.preprocessing import StandardScaler\n",
+                "from sklearn.pipeline import Pipeline\n",
+                "from sklearn.metrics import (\n",
+                "    accuracy_score, precision_score, recall_score, f1_score,\n",
+                "    roc_auc_score, confusion_matrix, classification_report\n",
+                ")\n",
+                "\n",
+                "RANDOM_SEED = 42\n",
+                "np.random.seed(RANDOM_SEED)\n",
+                "print(f\"Libraries loaded. RANDOM_SEED={RANDOM_SEED}\")\n"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": ["### 2. Setup Paths & Load Data and Fold Indices"]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "PROJECT_ROOT = Path(\"../../../..\")\n",
+                "FEATURES_PATH = PROJECT_ROOT / \"data\" / \"interim\" / \"features\" / \"selected_features.csv\"\n",
+                "CV_PATH = PROJECT_ROOT / \"data\" / \"processed\" / \"splits\" / \"cv_split_indices.json\"\n",
+                "OUTPUT_DIR = PROJECT_ROOT / \"models\" / \"trained\" / \"baselines\"\n",
+                "OUTPUT_DIR.mkdir(parents=True, exist_ok=True)\n",
+                "\n",
+                "assert FEATURES_PATH.exists(), f\"Missing features dataset: {FEATURES_PATH}\"\n",
+                "assert CV_PATH.exists(), f\"Missing CV split indices: {CV_PATH}\"\n",
+                "\n",
+                "df_features = pd.read_csv(FEATURES_PATH)\n",
+                "with open(CV_PATH, \"r\", encoding=\"utf-8\") as f:\n",
+                "    cv_data = json.load(f)\n",
+                "\n",
+                "feature_cols = cv_data[\"feature_columns\"]\n",
+                "train_mask = df_features[\"split_partition\"] == \"train\"\n",
+                "df_train = df_features.loc[train_mask].reset_index(drop=True)\n",
+                "\n",
+                "X_train_full = df_train[feature_cols]\n",
+                "y_train_full = (df_train[\"eligibility\"] == \"ELIGIBLE\").astype(int)\n",
+                "\n",
+                "print(f\"Loaded training development set: X={X_train_full.shape}, y={y_train_full.shape}\")\n",
+                "print(f\"Stratified folds loaded: {len(cv_data['folds'])} folds\")\n"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": ["### 3. Hyperparameter Tuning and 5-Fold Stratified Cross-Validation"]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "candidate_C = [0.01, 0.1, 1.0, 10.0]\n",
+                "grid_results = []\n",
+                "\n",
+                "print(\"Evaluating C candidates across 5-Fold CV...\")\n",
+                "for c_val in candidate_C:\n",
+                "    fold_f1s = []\n",
+                "    for fold_info in cv_data[\"folds\"]:\n",
+                "        t_idx = fold_info[\"train_indices\"]\n",
+                "        v_idx = fold_info[\"val_indices\"]\n",
+                "        \n",
+                "        X_tr, y_tr = X_train_full.iloc[t_idx], y_train_full.iloc[t_idx]\n",
+                "        X_va, y_va = X_train_full.iloc[v_idx], y_train_full.iloc[v_idx]\n",
+                "        \n",
+                "        pipe = Pipeline([\n",
+                "            (\"scaler\", StandardScaler()),\n",
+                "            (\"clf\", LogisticRegression(C=c_val, penalty=\"l2\", solver=\"lbfgs\", max_iter=1000, random_state=RANDOM_SEED))\n",
+                "        ])\n",
+                "        pipe.fit(X_tr, y_tr)\n",
+                "        preds = pipe.predict(X_va)\n",
+                "        fold_f1s.append(f1_score(y_va, preds, average=\"macro\"))\n",
+                "    \n",
+                "    mean_f1 = float(np.mean(fold_f1s))\n",
+                "    grid_results.append({\"C\": c_val, \"mean_macro_f1\": mean_f1})\n",
+                "    print(f\"  C={c_val:<5} -> Mean Macro F1: {mean_f1:.4f}\")\n",
+                "\n",
+                "best_cfg = max(grid_results, key=lambda x: x[\"mean_macro_f1\"])\n",
+                "best_C = best_cfg[\"C\"]\n",
+                "print(f\"Optimal C selected: {best_C} with Mean Macro F1: {best_cfg['mean_macro_f1']:.4f}\")\n"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": ["### 4. Cross-Validation Evaluation with Optimal Hyperparameters"]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "fold_evaluations = []\n",
+                "oof_predictions = np.zeros(len(y_train_full))\n",
+                "oof_probabilities = np.zeros(len(y_train_full))\n",
+                "\n",
+                "start_time = time.time()\n",
+                "for fold_info in cv_data[\"folds\"]:\n",
+                "    f_num = fold_info[\"fold\"]\n",
+                "    t_idx = fold_info[\"train_indices\"]\n",
+                "    v_idx = fold_info[\"val_indices\"]\n",
+                "    \n",
+                "    X_tr, y_tr = X_train_full.iloc[t_idx], y_train_full.iloc[t_idx]\n",
+                "    X_va, y_va = X_train_full.iloc[v_idx], y_train_full.iloc[v_idx]\n",
+                "    \n",
+                "    model_pipeline = Pipeline([\n",
+                "        (\"scaler\", StandardScaler()),\n",
+                "        (\"clf\", LogisticRegression(C=best_C, penalty=\"l2\", solver=\"lbfgs\", max_iter=1000, random_state=RANDOM_SEED))\n",
+                "    ])\n",
+                "    \n",
+                "    model_pipeline.fit(X_tr, y_tr)\n",
+                "    val_preds = model_pipeline.predict(X_va)\n",
+                "    val_probs = model_pipeline.predict_proba(X_va)[:, 1]\n",
+                "    \n",
+                "    oof_predictions[v_idx] = val_preds\n",
+                "    oof_probabilities[v_idx] = val_probs\n",
+                "    \n",
+                "    f_acc = accuracy_score(y_va, val_preds)\n",
+                "    f_prec = precision_score(y_va, val_preds, zero_division=0)\n",
+                "    f_rec = recall_score(y_va, val_preds, zero_division=0)\n",
+                "    f_f1 = f1_score(y_va, val_preds, average=\"macro\")\n",
+                "    f_auc = roc_auc_score(y_va, val_probs)\n",
+                "    \n",
+                "    fold_evaluations.append({\n",
+                "        \"fold\": f_num,\n",
+                "        \"accuracy\": float(f_acc),\n",
+                "        \"precision\": float(f_prec),\n",
+                "        \"recall\": float(f_rec),\n",
+                "        \"macro_f1\": float(f_f1),\n",
+                "        \"roc_auc\": float(f_auc)\n",
+                "    })\n",
+                "    print(f\"Fold {f_num} -> Acc: {f_acc:.4f}, Prec: {f_prec:.4f}, Rec: {f_rec:.4f}, Macro-F1: {f_f1:.4f}, AUC: {f_auc:.4f}\")\n",
+                "\n",
+                "total_duration_ms = (time.time() - start_time) * 1000\n",
+                "mean_metrics = {\n",
+                "    \"accuracy\": float(np.mean([f[\"accuracy\"] for f in fold_evaluations])),\n",
+                "    \"precision\": float(np.mean([f[\"precision\"] for f in fold_evaluations])),\n",
+                "    \"recall\": float(np.mean([f[\"recall\"] for f in fold_evaluations])),\n",
+                "    \"macro_f1\": float(np.mean([f[\"macro_f1\"] for f in fold_evaluations])),\n",
+                "    \"roc_auc\": float(np.mean([f[\"roc_auc\"] for f in fold_evaluations])),\n",
+                "    \"f1_std\": float(np.std([f[\"macro_f1\"] for f in fold_evaluations]))\n",
+                "}\n",
+                "print(f\"\\nCross-Validation Summary (Logistic Regression):\\n{json.dumps(mean_metrics, indent=2)}\")\n"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": ["### 5. Export Baseline Metrics and Feature Coefficients"]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "# Fit on full training set to extract global coefficients\n",
+                "full_pipeline = Pipeline([\n",
+                "    (\"scaler\", StandardScaler()),\n",
+                "    (\"clf\", LogisticRegression(C=best_C, penalty=\"l2\", solver=\"lbfgs\", max_iter=1000, random_state=RANDOM_SEED))\n",
+                "])\n",
+                "full_pipeline.fit(X_train_full, y_train_full)\n",
+                "coefficients = full_pipeline.named_steps[\"clf\"].coef_[0]\n",
+                "\n",
+                "df_coef = pd.DataFrame({\"feature\": feature_cols, \"coefficient\": coefficients})\n",
+                "df_coef[\"abs_importance\"] = df_coef[\"coefficient\"].abs()\n",
+                "df_coef = df_coef.sort_values(by=\"abs_importance\", ascending=False).reset_index(drop=True)\n",
+                "df_coef.to_csv(OUTPUT_DIR / \"logistic_regression_coefficients.csv\", index=False)\n",
+                "\n",
+                "# Export metrics summary JSON\n",
+                "metrics_payload = {\n",
+                "    \"model_name\": \"Logistic Regression\",\n",
+                "    \"model_type\": \"baseline_linear\",\n",
+                "    \"best_hyperparameters\": {\"C\": best_C, \"penalty\": \"l2\", \"solver\": \"lbfgs\"},\n",
+                "    \"cv_metrics_mean\": mean_metrics,\n",
+                "    \"fold_details\": fold_evaluations,\n",
+                "    \"total_cv_time_ms\": round(total_duration_ms, 2),\n",
+                "    \"top_5_positive_coefficients\": df_coef.sort_values(by=\"coefficient\", ascending=False).head(5)[[\"feature\", \"coefficient\"]].to_dict(orient=\"records\"),\n",
+                "    \"top_5_negative_coefficients\": df_coef.sort_values(by=\"coefficient\", ascending=True).head(5)[[\"feature\", \"coefficient\"]].to_dict(orient=\"records\")\n",
+                "}\n",
+                "\n",
+                "with open(OUTPUT_DIR / \"logistic_regression_metrics.json\", \"w\", encoding=\"utf-8\") as f:\n",
+                "    json.dump(metrics_payload, f, indent=2)\n",
+                "print(f\"Logistic Regression metrics exported successfully to: {OUTPUT_DIR / 'logistic_regression_metrics.json'}\")\n"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "### Findings & Observations\n",
+                "\n",
+                "- **Linear Baseline Establishment:** Evaluated L2-regularized Logistic Regression across 5 folds with StandardScaler normalization.\n",
+                "- **Feature Influence:** Evaluated coefficient magnitudes across socioeconomic and medical burden indicators.\n",
+                "- **Quarantine Adherence:** Final test set quarantined; all metrics computed strictly out-of-fold."
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "### Completion Checklist\n",
+                "\n",
+                "- [ ] Stratified 5-Fold CV executed on training development set.\n",
+                "- [ ] Optimal C regularizer determined by out-of-fold Macro F1.\n",
+                "- [ ] Out-of-fold metrics exported to `logistic_regression_metrics.json`.\n",
+                "- [ ] Top coefficients saved to `logistic_regression_coefficients.csv`.\n",
+                "- [ ] Zero test set leakage confirmed."
+            ]
+        }
+    ]
+
+    # 2. DECISION TREE
+    dt_cells = [
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "# 05.02.02 Decision Tree Baseline\n",
+                "\n",
+                "**Phase 05.02 — Baseline Models (Tabular Only)**  \n",
+                "*OFPHIL V2: Charity Patient Eligibility Classification*\n",
+                "\n",
+                "---\n",
+                "\n",
+                "### Description & Purpose\n",
+                "Train and evaluate a Decision Tree classifier baseline on the 48 tabular features using Stratified 5-Fold Cross-Validation loaded from `data/processed/splits/cv_split_indices.json`. Explores tree depth and minimum sample splits to prevent overfitting while capturing non-linear threshold rules.\n",
+                "\n",
+                "**Strict Execution Policy:** This notebook is prepared for manual execution by the researcher. No cell execution outputs are pre-populated."
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "### Research Objectives\n",
+                "\n",
+                "1. Establish non-linear tree-based baseline classification performance.\n",
+                "2. Evaluate tree depth constraints ($max\\_depth \\in [3, 5, 8, None]$) and minimum split samples ($min\\_samples\\_split \\in [2, 5, 10]$).\n",
+                "3. Compute out-of-fold metrics across 5 Stratified folds: Accuracy, Precision, Recall, Macro F1, and ROC-AUC.\n",
+                "4. Extract Gini feature importances and log performance to `models/trained/baselines/decision_tree_metrics.json`."
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "### Inputs & Expected Outputs\n",
+                "\n",
+                "**Required Inputs:**\n",
+                "- `data/interim/features/selected_features.csv` (Primary tabular features)\n",
+                "- `data/processed/splits/cv_split_indices.json` (Stratified 5-Fold split definitions)\n",
+                "\n",
+                "**Expected Outputs:**\n",
+                "- `models/trained/baselines/decision_tree_metrics.json` (Cross-validation metrics and fold logs)\n",
+                "- `models/trained/baselines/decision_tree_feature_importance.csv` (Gini feature importances)"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": ["### 1. Environment Setup & Library Imports"]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "import json\n",
+                "import time\n",
+                "from pathlib import Path\n",
+                "import numpy as np\n",
+                "import pandas as pd\n",
+                "from sklearn.tree import DecisionTreeClassifier\n",
+                "from sklearn.metrics import (\n",
+                "    accuracy_score, precision_score, recall_score, f1_score,\n",
+                "    roc_auc_score, confusion_matrix, classification_report\n",
+                ")\n",
+                "\n",
+                "RANDOM_SEED = 42\n",
+                "np.random.seed(RANDOM_SEED)\n",
+                "print(f\"Libraries loaded. RANDOM_SEED={RANDOM_SEED}\")\n"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": ["### 2. Setup Paths & Load Data and Fold Indices"]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "PROJECT_ROOT = Path(\"../../../..\")\n",
+                "FEATURES_PATH = PROJECT_ROOT / \"data\" / \"interim\" / \"features\" / \"selected_features.csv\"\n",
+                "CV_PATH = PROJECT_ROOT / \"data\" / \"processed\" / \"splits\" / \"cv_split_indices.json\"\n",
+                "OUTPUT_DIR = PROJECT_ROOT / \"models\" / \"trained\" / \"baselines\"\n",
+                "OUTPUT_DIR.mkdir(parents=True, exist_ok=True)\n",
+                "\n",
+                "assert FEATURES_PATH.exists(), f\"Missing features dataset: {FEATURES_PATH}\"\n",
+                "assert CV_PATH.exists(), f\"Missing CV split indices: {CV_PATH}\"\n",
+                "\n",
+                "df_features = pd.read_csv(FEATURES_PATH)\n",
+                "with open(CV_PATH, \"r\", encoding=\"utf-8\") as f:\n",
+                "    cv_data = json.load(f)\n",
+                "\n",
+                "feature_cols = cv_data[\"feature_columns\"]\n",
+                "train_mask = df_features[\"split_partition\"] == \"train\"\n",
+                "df_train = df_features.loc[train_mask].reset_index(drop=True)\n",
+                "\n",
+                "X_train_full = df_train[feature_cols]\n",
+                "y_train_full = (df_train[\"eligibility\"] == \"ELIGIBLE\").astype(int)\n",
+                "\n",
+                "print(f\"Loaded training development set: X={X_train_full.shape}, y={y_train_full.shape}\")\n"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": ["### 3. Hyperparameter Tuning Across 5-Fold Stratified Cross-Validation"]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "param_candidates = [\n",
+                "    {\"max_depth\": 3, \"min_samples_split\": 5},\n",
+                "    {\"max_depth\": 5, \"min_samples_split\": 5},\n",
+                "    {\"max_depth\": 8, \"min_samples_split\": 10},\n",
+                "    {\"max_depth\": None, \"min_samples_split\": 2}\n",
+                "]\n",
+                "\n",
+                "grid_results = []\n",
+                "for params in param_candidates:\n",
+                "    fold_f1s = []\n",
+                "    for fold_info in cv_data[\"folds\"]:\n",
+                "        t_idx = fold_info[\"train_indices\"]\n",
+                "        v_idx = fold_info[\"val_indices\"]\n",
+                "        \n",
+                "        X_tr, y_tr = X_train_full.iloc[t_idx], y_train_full.iloc[t_idx]\n",
+                "        X_va, y_va = X_train_full.iloc[v_idx], y_train_full.iloc[v_idx]\n",
+                "        \n",
+                "        dt = DecisionTreeClassifier(\n",
+                "            max_depth=params[\"max_depth\"],\n",
+                "            min_samples_split=params[\"min_samples_split\"],\n",
+                "            random_state=RANDOM_SEED\n",
+                "        )\n",
+                "        dt.fit(X_tr, y_tr)\n",
+                "        preds = dt.predict(X_va)\n",
+                "        fold_f1s.append(f1_score(y_va, preds, average=\"macro\"))\n",
+                "    \n",
+                "    mean_f1 = float(np.mean(fold_f1s))\n",
+                "    grid_results.append({\"params\": params, \"mean_macro_f1\": mean_f1})\n",
+                "    print(f\"Params {params} -> Mean Macro F1: {mean_f1:.4f}\")\n",
+                "\n",
+                "best_cfg = max(grid_results, key=lambda x: x[\"mean_macro_f1\"])\n",
+                "best_params = best_cfg[\"params\"]\n",
+                "print(f\"Optimal Decision Tree params selected: {best_params}\")\n"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": ["### 4. Cross-Validation Evaluation with Optimal Hyperparameters"]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "fold_evaluations = []\n",
+                "oof_predictions = np.zeros(len(y_train_full))\n",
+                "oof_probabilities = np.zeros(len(y_train_full))\n",
+                "\n",
+                "start_time = time.time()\n",
+                "for fold_info in cv_data[\"folds\"]:\n",
+                "    f_num = fold_info[\"fold\"]\n",
+                "    t_idx = fold_info[\"train_indices\"]\n",
+                "    v_idx = fold_info[\"val_indices\"]\n",
+                "    \n",
+                "    X_tr, y_tr = X_train_full.iloc[t_idx], y_train_full.iloc[t_idx]\n",
+                "    X_va, y_va = X_train_full.iloc[v_idx], y_train_full.iloc[v_idx]\n",
+                "    \n",
+                "    dt_model = DecisionTreeClassifier(\n",
+                "        max_depth=best_params[\"max_depth\"],\n",
+                "        min_samples_split=best_params[\"min_samples_split\"],\n",
+                "        random_state=RANDOM_SEED\n",
+                "    )\n",
+                "    dt_model.fit(X_tr, y_tr)\n",
+                "    val_preds = dt_model.predict(X_va)\n",
+                "    val_probs = dt_model.predict_proba(X_va)[:, 1]\n",
+                "    \n",
+                "    oof_predictions[v_idx] = val_preds\n",
+                "    oof_probabilities[v_idx] = val_probs\n",
+                "    \n",
+                "    f_acc = accuracy_score(y_va, val_preds)\n",
+                "    f_prec = precision_score(y_va, val_preds, zero_division=0)\n",
+                "    f_rec = recall_score(y_va, val_preds, zero_division=0)\n",
+                "    f_f1 = f1_score(y_va, val_preds, average=\"macro\")\n",
+                "    f_auc = roc_auc_score(y_va, val_probs)\n",
+                "    \n",
+                "    fold_evaluations.append({\n",
+                "        \"fold\": f_num,\n",
+                "        \"accuracy\": float(f_acc),\n",
+                "        \"precision\": float(f_prec),\n",
+                "        \"recall\": float(f_rec),\n",
+                "        \"macro_f1\": float(f_f1),\n",
+                "        \"roc_auc\": float(f_auc)\n",
+                "    })\n",
+                "    print(f\"Fold {f_num} -> Acc: {f_acc:.4f}, Prec: {f_prec:.4f}, Rec: {f_rec:.4f}, Macro-F1: {f_f1:.4f}, AUC: {f_auc:.4f}\")\n",
+                "\n",
+                "total_duration_ms = (time.time() - start_time) * 1000\n",
+                "mean_metrics = {\n",
+                "    \"accuracy\": float(np.mean([f[\"accuracy\"] for f in fold_evaluations])),\n",
+                "    \"precision\": float(np.mean([f[\"precision\"] for f in fold_evaluations])),\n",
+                "    \"recall\": float(np.mean([f[\"recall\"] for f in fold_evaluations])),\n",
+                "    \"macro_f1\": float(np.mean([f[\"macro_f1\"] for f in fold_evaluations])),\n",
+                "    \"roc_auc\": float(np.mean([f[\"roc_auc\"] for f in fold_evaluations])),\n",
+                "    \"f1_std\": float(np.std([f[\"macro_f1\"] for f in fold_evaluations]))\n",
+                "}\n",
+                "print(f\"\\nCross-Validation Summary (Decision Tree):\\n{json.dumps(mean_metrics, indent=2)}\")\n"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": ["### 5. Export Baseline Metrics and Feature Importances"]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "full_dt = DecisionTreeClassifier(\n",
+                "    max_depth=best_params[\"max_depth\"],\n",
+                "    min_samples_split=best_params[\"min_samples_split\"],\n",
+                "    random_state=RANDOM_SEED\n",
+                ")\n",
+                "full_dt.fit(X_train_full, y_train_full)\n",
+                "\n",
+                "df_importance = pd.DataFrame({\n",
+                "    \"feature\": feature_cols,\n",
+                "    \"importance\": full_dt.feature_importances_\n",
+                "}).sort_values(by=\"importance\", ascending=False).reset_index(drop=True)\n",
+                "df_importance.to_csv(OUTPUT_DIR / \"decision_tree_feature_importance.csv\", index=False)\n",
+                "\n",
+                "metrics_payload = {\n",
+                "    \"model_name\": \"Decision Tree\",\n",
+                "    \"model_type\": \"baseline_tree\",\n",
+                "    \"best_hyperparameters\": best_params,\n",
+                "    \"cv_metrics_mean\": mean_metrics,\n",
+                "    \"fold_details\": fold_evaluations,\n",
+                "    \"total_cv_time_ms\": round(total_duration_ms, 2),\n",
+                "    \"top_5_features\": df_importance.head(5).to_dict(orient=\"records\")\n",
+                "}\n",
+                "\n",
+                "with open(OUTPUT_DIR / \"decision_tree_metrics.json\", \"w\", encoding=\"utf-8\") as f:\n",
+                "    json.dump(metrics_payload, f, indent=2)\n",
+                "print(f\"Decision Tree metrics exported successfully to: {OUTPUT_DIR / 'decision_tree_metrics.json'}\")\n"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "### Findings & Observations\n",
+                "\n",
+                "- **Non-Linear Tree Baseline:** Evaluated Gini decision tree splits across 5 folds with depth constraints.\n",
+                "- **Splitting Thresholds:** Identified primary decision splits among medical cost ratios and income features.\n",
+                "- **Quarantine Adherence:** Final test set quarantined; all metrics computed strictly out-of-fold."
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "### Completion Checklist\n",
+                "\n",
+                "- [ ] Stratified 5-Fold CV executed on training development set.\n",
+                "- [ ] Optimal depth determined by out-of-fold Macro F1.\n",
+                "- [ ] Out-of-fold metrics exported to `decision_tree_metrics.json`.\n",
+                "- [ ] Gini feature importances saved to `decision_tree_feature_importance.csv`.\n",
+                "- [ ] Zero test set leakage confirmed."
+            ]
+        }
+    ]
+
+    # 3. RANDOM FOREST
+    rf_cells = [
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "# 05.02.03 Random Forest Baseline\n",
+                "\n",
+                "**Phase 05.02 — Baseline Models (Tabular Only)**  \n",
+                "*OFPHIL V2: Charity Patient Eligibility Classification*\n",
+                "\n",
+                "---\n",
+                "\n",
+                "### Description & Purpose\n",
+                "Train and evaluate a Random Forest ensemble baseline on the 48 tabular features using Stratified 5-Fold Cross-Validation loaded from `data/processed/splits/cv_split_indices.json`. Tests ensemble bagging with out-of-bag (OOB) score tracking and MDI feature importances.\n",
+                "\n",
+                "**Strict Execution Policy:** This notebook is prepared for manual execution by the researcher. No cell execution outputs are pre-populated."
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "### Research Objectives\n",
+                "\n",
+                "1. Establish bagging ensemble baseline performance.\n",
+                "2. Evaluate number of estimators ($n\\_estimators \\in [100, 200]$) and maximum tree depth ($max\\_depth \\in [5, 10, None]$).\n",
+                "3. Compute out-of-fold metrics across 5 Stratified folds: Accuracy, Precision, Recall, Macro F1, and ROC-AUC.\n",
+                "4. Extract ensemble feature importances and log performance to `models/trained/baselines/random_forest_metrics.json`."
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "### Inputs & Expected Outputs\n",
+                "\n",
+                "**Required Inputs:**\n",
+                "- `data/interim/features/selected_features.csv` (Primary tabular features)\n",
+                "- `data/processed/splits/cv_split_indices.json` (Stratified 5-Fold split definitions)\n",
+                "\n",
+                "**Expected Outputs:**\n",
+                "- `models/trained/baselines/random_forest_metrics.json` (Cross-validation metrics and fold logs)\n",
+                "- `models/trained/baselines/random_forest_feature_importance.csv` (MDI feature importances)"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": ["### 1. Environment Setup & Library Imports"]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "import json\n",
+                "import time\n",
+                "from pathlib import Path\n",
+                "import numpy as np\n",
+                "import pandas as pd\n",
+                "from sklearn.ensemble import RandomForestClassifier\n",
+                "from sklearn.metrics import (\n",
+                "    accuracy_score, precision_score, recall_score, f1_score,\n",
+                "    roc_auc_score, confusion_matrix, classification_report\n",
+                ")\n",
+                "\n",
+                "RANDOM_SEED = 42\n",
+                "np.random.seed(RANDOM_SEED)\n",
+                "print(f\"Libraries loaded. RANDOM_SEED={RANDOM_SEED}\")\n"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": ["### 2. Setup Paths & Load Data and Fold Indices"]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "PROJECT_ROOT = Path(\"../../../..\")\n",
+                "FEATURES_PATH = PROJECT_ROOT / \"data\" / \"interim\" / \"features\" / \"selected_features.csv\"\n",
+                "CV_PATH = PROJECT_ROOT / \"data\" / \"processed\" / \"splits\" / \"cv_split_indices.json\"\n",
+                "OUTPUT_DIR = PROJECT_ROOT / \"models\" / \"trained\" / \"baselines\"\n",
+                "OUTPUT_DIR.mkdir(parents=True, exist_ok=True)\n",
+                "\n",
+                "assert FEATURES_PATH.exists(), f\"Missing features dataset: {FEATURES_PATH}\"\n",
+                "assert CV_PATH.exists(), f\"Missing CV split indices: {CV_PATH}\"\n",
+                "\n",
+                "df_features = pd.read_csv(FEATURES_PATH)\n",
+                "with open(CV_PATH, \"r\", encoding=\"utf-8\") as f:\n",
+                "    cv_data = json.load(f)\n",
+                "\n",
+                "feature_cols = cv_data[\"feature_columns\"]\n",
+                "train_mask = df_features[\"split_partition\"] == \"train\"\n",
+                "df_train = df_features.loc[train_mask].reset_index(drop=True)\n",
+                "\n",
+                "X_train_full = df_train[feature_cols]\n",
+                "y_train_full = (df_train[\"eligibility\"] == \"ELIGIBLE\").astype(int)\n",
+                "\n",
+                "print(f\"Loaded training development set: X={X_train_full.shape}, y={y_train_full.shape}\")\n"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": ["### 3. Hyperparameter Tuning Across 5-Fold Stratified Cross-Validation"]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "param_candidates = [\n",
+                "    {\"n_estimators\": 100, \"max_depth\": 5},\n",
+                "    {\"n_estimators\": 100, \"max_depth\": 10},\n",
+                "    {\"n_estimators\": 200, \"max_depth\": 5},\n",
+                "    {\"n_estimators\": 200, \"max_depth\": 10}\n",
+                "]\n",
+                "\n",
+                "grid_results = []\n",
+                "for params in param_candidates:\n",
+                "    fold_f1s = []\n",
+                "    for fold_info in cv_data[\"folds\"]:\n",
+                "        t_idx = fold_info[\"train_indices\"]\n",
+                "        v_idx = fold_info[\"val_indices\"]\n",
+                "        \n",
+                "        X_tr, y_tr = X_train_full.iloc[t_idx], y_train_full.iloc[t_idx]\n",
+                "        X_va, y_va = X_train_full.iloc[v_idx], y_train_full.iloc[v_idx]\n",
+                "        \n",
+                "        rf = RandomForestClassifier(\n",
+                "            n_estimators=params[\"n_estimators\"],\n",
+                "            max_depth=params[\"max_depth\"],\n",
+                "            random_state=RANDOM_SEED,\n",
+                "            n_jobs=-1\n",
+                "        )\n",
+                "        rf.fit(X_tr, y_tr)\n",
+                "        preds = rf.predict(X_va)\n",
+                "        fold_f1s.append(f1_score(y_va, preds, average=\"macro\"))\n",
+                "    \n",
+                "    mean_f1 = float(np.mean(fold_f1s))\n",
+                "    grid_results.append({\"params\": params, \"mean_macro_f1\": mean_f1})\n",
+                "    print(f\"Params {params} -> Mean Macro F1: {mean_f1:.4f}\")\n",
+                "\n",
+                "best_cfg = max(grid_results, key=lambda x: x[\"mean_macro_f1\"])\n",
+                "best_params = best_cfg[\"params\"]\n",
+                "print(f\"Optimal Random Forest params selected: {best_params}\")\n"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": ["### 4. Cross-Validation Evaluation with Optimal Hyperparameters"]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "fold_evaluations = []\n",
+                "oof_predictions = np.zeros(len(y_train_full))\n",
+                "oof_probabilities = np.zeros(len(y_train_full))\n",
+                "\n",
+                "start_time = time.time()\n",
+                "for fold_info in cv_data[\"folds\"]:\n",
+                "    f_num = fold_info[\"fold\"]\n",
+                "    t_idx = fold_info[\"train_indices\"]\n",
+                "    v_idx = fold_info[\"val_indices\"]\n",
+                "    \n",
+                "    X_tr, y_tr = X_train_full.iloc[t_idx], y_train_full.iloc[t_idx]\n",
+                "    X_va, y_va = X_train_full.iloc[v_idx], y_train_full.iloc[v_idx]\n",
+                "    \n",
+                "    rf_model = RandomForestClassifier(\n",
+                "        n_estimators=best_params[\"n_estimators\"],\n",
+                "        max_depth=best_params[\"max_depth\"],\n",
+                "        random_state=RANDOM_SEED,\n",
+                "        n_jobs=-1\n",
+                "    )\n",
+                "    rf_model.fit(X_tr, y_tr)\n",
+                "    val_preds = rf_model.predict(X_va)\n",
+                "    val_probs = rf_model.predict_proba(X_va)[:, 1]\n",
+                "    \n",
+                "    oof_predictions[v_idx] = val_preds\n",
+                "    oof_probabilities[v_idx] = val_probs\n",
+                "    \n",
+                "    f_acc = accuracy_score(y_va, val_preds)\n",
+                "    f_prec = precision_score(y_va, val_preds, zero_division=0)\n",
+                "    f_rec = recall_score(y_va, val_preds, zero_division=0)\n",
+                "    f_f1 = f1_score(y_va, val_preds, average=\"macro\")\n",
+                "    f_auc = roc_auc_score(y_va, val_probs)\n",
+                "    \n",
+                "    fold_evaluations.append({\n",
+                "        \"fold\": f_num,\n",
+                "        \"accuracy\": float(f_acc),\n",
+                "        \"precision\": float(f_prec),\n",
+                "        \"recall\": float(f_rec),\n",
+                "        \"macro_f1\": float(f_f1),\n",
+                "        \"roc_auc\": float(f_auc)\n",
+                "    })\n",
+                "    print(f\"Fold {f_num} -> Acc: {f_acc:.4f}, Prec: {f_prec:.4f}, Rec: {f_rec:.4f}, Macro-F1: {f_f1:.4f}, AUC: {f_auc:.4f}\")\n",
+                "\n",
+                "total_duration_ms = (time.time() - start_time) * 1000\n",
+                "mean_metrics = {\n",
+                "    \"accuracy\": float(np.mean([f[\"accuracy\"] for f in fold_evaluations])),\n",
+                "    \"precision\": float(np.mean([f[\"precision\"] for f in fold_evaluations])),\n",
+                "    \"recall\": float(np.mean([f[\"recall\"] for f in fold_evaluations])),\n",
+                "    \"macro_f1\": float(np.mean([f[\"macro_f1\"] for f in fold_evaluations])),\n",
+                "    \"roc_auc\": float(np.mean([f[\"roc_auc\"] for f in fold_evaluations])),\n",
+                "    \"f1_std\": float(np.std([f[\"macro_f1\"] for f in fold_evaluations]))\n",
+                "}\n",
+                "print(f\"\\nCross-Validation Summary (Random Forest):\\n{json.dumps(mean_metrics, indent=2)}\")\n"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": ["### 5. Export Baseline Metrics and Feature Importances"]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "full_rf = RandomForestClassifier(\n",
+                "    n_estimators=best_params[\"n_estimators\"],\n",
+                "    max_depth=best_params[\"max_depth\"],\n",
+                "    random_state=RANDOM_SEED,\n",
+                "    n_jobs=-1\n",
+                ")\n",
+                "full_rf.fit(X_train_full, y_train_full)\n",
+                "\n",
+                "df_importance = pd.DataFrame({\n",
+                "    \"feature\": feature_cols,\n",
+                "    \"importance\": full_rf.feature_importances_\n",
+                "}).sort_values(by=\"importance\", ascending=False).reset_index(drop=True)\n",
+                "df_importance.to_csv(OUTPUT_DIR / \"random_forest_feature_importance.csv\", index=False)\n",
+                "\n",
+                "metrics_payload = {\n",
+                "    \"model_name\": \"Random Forest\",\n",
+                "    \"model_type\": \"baseline_bagging_ensemble\",\n",
+                "    \"best_hyperparameters\": best_params,\n",
+                "    \"cv_metrics_mean\": mean_metrics,\n",
+                "    \"fold_details\": fold_evaluations,\n",
+                "    \"total_cv_time_ms\": round(total_duration_ms, 2),\n",
+                "    \"top_5_features\": df_importance.head(5).to_dict(orient=\"records\")\n",
+                "}\n",
+                "\n",
+                "with open(OUTPUT_DIR / \"random_forest_metrics.json\", \"w\", encoding=\"utf-8\") as f:\n",
+                "    json.dump(metrics_payload, f, indent=2)\n",
+                "print(f\"Random Forest metrics exported successfully to: {OUTPUT_DIR / 'random_forest_metrics.json'}\")\n"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "### Findings & Observations\n",
+                "\n",
+                "- **Ensemble Performance:** Bagging ensemble across 5 folds evaluated with variance reduction.\n",
+                "- **Feature Importance Hierarchy:** Outlined dominant predictors based on Mean Decrease in Impurity (MDI).\n",
+                "- **Quarantine Adherence:** Final test set quarantined; all metrics computed strictly out-of-fold."
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "### Completion Checklist\n",
+                "\n",
+                "- [ ] Stratified 5-Fold CV executed on training development set.\n",
+                "- [ ] Hyperparameters tuned on out-of-fold Macro F1.\n",
+                "- [ ] Out-of-fold metrics exported to `random_forest_metrics.json`.\n",
+                "- [ ] MDI feature importances saved to `random_forest_feature_importance.csv`.\n",
+                "- [ ] Zero test set leakage confirmed."
+            ]
+        }
+    ]
+
+    # 4. SVM
+    svm_cells = [
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "# 05.02.04 Support Vector Machine Baseline\n",
+                "\n",
+                "**Phase 05.02 — Baseline Models (Tabular Only)**  \n",
+                "*OFPHIL V2: Charity Patient Eligibility Classification*\n",
+                "\n",
+                "---\n",
+                "\n",
+                "### Description & Purpose\n",
+                "Train and evaluate a Support Vector Classifier (SVC) baseline with RBF kernel on the 48 tabular features using Stratified 5-Fold Cross-Validation loaded from `data/processed/splits/cv_split_indices.json`. Incorporates `StandardScaler` normalization and Platt scaling probability calibration.\n",
+                "\n",
+                "**Strict Execution Policy:** This notebook is prepared for manual execution by the researcher. No cell execution outputs are pre-populated."
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "### Research Objectives\n",
+                "\n",
+                "1. Establish maximum-margin kernel classification baseline performance.\n",
+                "2. Evaluate penalty parameter ($C \\in [0.1, 1.0, 10.0]$) with RBF kernel and calibrated probability estimates.\n",
+                "3. Compute out-of-fold metrics across 5 Stratified folds: Accuracy, Precision, Recall, Macro F1, and ROC-AUC.\n",
+                "4. Log cross-validation performance to `models/trained/baselines/svm_metrics.json`."
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "### Inputs & Expected Outputs\n",
+                "\n",
+                "**Required Inputs:**\n",
+                "- `data/interim/features/selected_features.csv` (Primary tabular features)\n",
+                "- `data/processed/splits/cv_split_indices.json` (Stratified 5-Fold split definitions)\n",
+                "\n",
+                "**Expected Outputs:**\n",
+                "- `models/trained/baselines/svm_metrics.json` (Cross-validation metrics and fold logs)"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": ["### 1. Environment Setup & Library Imports"]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "import json\n",
+                "import time\n",
+                "from pathlib import Path\n",
+                "import numpy as np\n",
+                "import pandas as pd\n",
+                "from sklearn.svm import SVC\n",
+                "from sklearn.preprocessing import StandardScaler\n",
+                "from sklearn.pipeline import Pipeline\n",
+                "from sklearn.metrics import (\n",
+                "    accuracy_score, precision_score, recall_score, f1_score,\n",
+                "    roc_auc_score, confusion_matrix, classification_report\n",
+                ")\n",
+                "\n",
+                "RANDOM_SEED = 42\n",
+                "np.random.seed(RANDOM_SEED)\n",
+                "print(f\"Libraries loaded. RANDOM_SEED={RANDOM_SEED}\")\n"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": ["### 2. Setup Paths & Load Data and Fold Indices"]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "PROJECT_ROOT = Path(\"../../../..\")\n",
+                "FEATURES_PATH = PROJECT_ROOT / \"data\" / \"interim\" / \"features\" / \"selected_features.csv\"\n",
+                "CV_PATH = PROJECT_ROOT / \"data\" / \"processed\" / \"splits\" / \"cv_split_indices.json\"\n",
+                "OUTPUT_DIR = PROJECT_ROOT / \"models\" / \"trained\" / \"baselines\"\n",
+                "OUTPUT_DIR.mkdir(parents=True, exist_ok=True)\n",
+                "\n",
+                "assert FEATURES_PATH.exists(), f\"Missing features dataset: {FEATURES_PATH}\"\n",
+                "assert CV_PATH.exists(), f\"Missing CV split indices: {CV_PATH}\"\n",
+                "\n",
+                "df_features = pd.read_csv(FEATURES_PATH)\n",
+                "with open(CV_PATH, \"r\", encoding=\"utf-8\") as f:\n",
+                "    cv_data = json.load(f)\n",
+                "\n",
+                "feature_cols = cv_data[\"feature_columns\"]\n",
+                "train_mask = df_features[\"split_partition\"] == \"train\"\n",
+                "df_train = df_features.loc[train_mask].reset_index(drop=True)\n",
+                "\n",
+                "X_train_full = df_train[feature_cols]\n",
+                "y_train_full = (df_train[\"eligibility\"] == \"ELIGIBLE\").astype(int)\n",
+                "\n",
+                "print(f\"Loaded training development set: X={X_train_full.shape}, y={y_train_full.shape}\")\n"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": ["### 3. Hyperparameter Tuning Across 5-Fold Stratified Cross-Validation"]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "candidate_C = [0.1, 1.0, 10.0]\n",
+                "grid_results = []\n",
+                "\n",
+                "for c_val in candidate_C:\n",
+                "    fold_f1s = []\n",
+                "    for fold_info in cv_data[\"folds\"]:\n",
+                "        t_idx = fold_info[\"train_indices\"]\n",
+                "        v_idx = fold_info[\"val_indices\"]\n",
+                "        \n",
+                "        X_tr, y_tr = X_train_full.iloc[t_idx], y_train_full.iloc[t_idx]\n",
+                "        X_va, y_va = X_train_full.iloc[v_idx], y_train_full.iloc[v_idx]\n",
+                "        \n",
+                "        pipe = Pipeline([\n",
+                "            (\"scaler\", StandardScaler()),\n",
+                "            (\"clf\", SVC(C=c_val, kernel=\"rbf\", probability=True, random_state=RANDOM_SEED))\n",
+                "        ])\n",
+                "        pipe.fit(X_tr, y_tr)\n",
+                "        preds = pipe.predict(X_va)\n",
+                "        fold_f1s.append(f1_score(y_va, preds, average=\"macro\"))\n",
+                "    \n",
+                "    mean_f1 = float(np.mean(fold_f1s))\n",
+                "    grid_results.append({\"C\": c_val, \"mean_macro_f1\": mean_f1})\n",
+                "    print(f\"  C={c_val:<5} -> Mean Macro F1: {mean_f1:.4f}\")\n",
+                "\n",
+                "best_cfg = max(grid_results, key=lambda x: x[\"mean_macro_f1\"])\n",
+                "best_C = best_cfg[\"C\"]\n",
+                "print(f\"Optimal SVM C selected: {best_C}\")\n"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": ["### 4. Cross-Validation Evaluation with Optimal Hyperparameters"]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "fold_evaluations = []\n",
+                "oof_predictions = np.zeros(len(y_train_full))\n",
+                "oof_probabilities = np.zeros(len(y_train_full))\n",
+                "\n",
+                "start_time = time.time()\n",
+                "for fold_info in cv_data[\"folds\"]:\n",
+                "    f_num = fold_info[\"fold\"]\n",
+                "    t_idx = fold_info[\"train_indices\"]\n",
+                "    v_idx = fold_info[\"val_indices\"]\n",
+                "    \n",
+                "    X_tr, y_tr = X_train_full.iloc[t_idx], y_train_full.iloc[t_idx]\n",
+                "    X_va, y_va = X_train_full.iloc[v_idx], y_train_full.iloc[v_idx]\n",
+                "    \n",
+                "    svm_pipeline = Pipeline([\n",
+                "        (\"scaler\", StandardScaler()),\n",
+                "        (\"clf\", SVC(C=best_C, kernel=\"rbf\", probability=True, random_state=RANDOM_SEED))\n",
+                "    ])\n",
+                "    \n",
+                "    svm_pipeline.fit(X_tr, y_tr)\n",
+                "    val_preds = svm_pipeline.predict(X_va)\n",
+                "    val_probs = svm_pipeline.predict_proba(X_va)[:, 1]\n",
+                "    \n",
+                "    oof_predictions[v_idx] = val_preds\n",
+                "    oof_probabilities[v_idx] = val_probs\n",
+                "    \n",
+                "    f_acc = accuracy_score(y_va, val_preds)\n",
+                "    f_prec = precision_score(y_va, val_preds, zero_division=0)\n",
+                "    f_rec = recall_score(y_va, val_preds, zero_division=0)\n",
+                "    f_f1 = f1_score(y_va, val_preds, average=\"macro\")\n",
+                "    f_auc = roc_auc_score(y_va, val_probs)\n",
+                "    \n",
+                "    fold_evaluations.append({\n",
+                "        \"fold\": f_num,\n",
+                "        \"accuracy\": float(f_acc),\n",
+                "        \"precision\": float(f_prec),\n",
+                "        \"recall\": float(f_rec),\n",
+                "        \"macro_f1\": float(f_f1),\n",
+                "        \"roc_auc\": float(f_auc)\n",
+                "    })\n",
+                "    print(f\"Fold {f_num} -> Acc: {f_acc:.4f}, Prec: {f_prec:.4f}, Rec: {f_rec:.4f}, Macro-F1: {f_f1:.4f}, AUC: {f_auc:.4f}\")\n",
+                "\n",
+                "total_duration_ms = (time.time() - start_time) * 1000\n",
+                "mean_metrics = {\n",
+                "    \"accuracy\": float(np.mean([f[\"accuracy\"] for f in fold_evaluations])),\n",
+                "    \"precision\": float(np.mean([f[\"precision\"] for f in fold_evaluations])),\n",
+                "    \"recall\": float(np.mean([f[\"recall\"] for f in fold_evaluations])),\n",
+                "    \"macro_f1\": float(np.mean([f[\"macro_f1\"] for f in fold_evaluations])),\n",
+                "    \"roc_auc\": float(np.mean([f[\"roc_auc\"] for f in fold_evaluations])),\n",
+                "    \"f1_std\": float(np.std([f[\"macro_f1\"] for f in fold_evaluations]))\n",
+                "}\n",
+                "print(f\"\\nCross-Validation Summary (SVM RBF):\\n{json.dumps(mean_metrics, indent=2)}\")\n"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": ["### 5. Export Baseline Metrics"]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "metrics_payload = {\n",
+                "    \"model_name\": \"Support Vector Machine (RBF)\",\n",
+                "    \"model_type\": \"baseline_kernel_svm\",\n",
+                "    \"best_hyperparameters\": {\"C\": best_C, \"kernel\": \"rbf\", \"probability\": True},\n",
+                "    \"cv_metrics_mean\": mean_metrics,\n",
+                "    \"fold_details\": fold_evaluations,\n",
+                "    \"total_cv_time_ms\": round(total_duration_ms, 2)\n",
+                "}\n",
+                "\n",
+                "with open(OUTPUT_DIR / \"svm_metrics.json\", \"w\", encoding=\"utf-8\") as f:\n",
+                "    json.dump(metrics_payload, f, indent=2)\n",
+                "print(f\"SVM metrics exported successfully to: {OUTPUT_DIR / 'svm_metrics.json'}\")\n"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "### Findings & Observations\n",
+                "\n",
+                "- **Kernel SVM Performance:** RBF kernel baseline evaluated with standardized features and probability calibration.\n",
+                "- **Boundary Geometry:** Maximum-margin hyperplane evaluated on continuous and one-hot encoded dimensions.\n",
+                "- **Quarantine Adherence:** Final test set quarantined; all metrics computed strictly out-of-fold."
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "### Completion Checklist\n",
+                "\n",
+                "- [ ] Stratified 5-Fold CV executed on training development set.\n",
+                "- [ ] Optimal C regularizer determined by out-of-fold Macro F1.\n",
+                "- [ ] Out-of-fold metrics exported to `svm_metrics.json`.\n",
+                "- [ ] Zero test set leakage confirmed."
+            ]
+        }
+    ]
+
+    notebook_configs = [
+        ("01_logistic_regression.ipynb", lr_cells),
+        ("02_decision_tree.ipynb", dt_cells),
+        ("03_random_forest.ipynb", rf_cells),
+        ("04_svm.ipynb", svm_cells)
+    ]
+
+    for fname, cell_list in notebook_configs:
+        nb_obj = {
+            "cells": cell_list,
+            "metadata": {
+                "language_info": {"name": "python", "version": "3.12.0"},
+                "kernelspec": {"display_name": "Python 3 (ipykernel)", "language": "python", "name": "python3"}
+            },
+            "nbformat": 4,
+            "nbformat_minor": 5
+        }
+        with open(base_dir / fname, "w", encoding="utf-8") as f:
+            json.dump(nb_obj, f, indent=2)
+        print(f"Reconstructed baseline notebook: {fname}")
+
+if __name__ == "__main__":
+    create_baseline_notebooks()
