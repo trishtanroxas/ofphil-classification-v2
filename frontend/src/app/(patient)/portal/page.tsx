@@ -34,32 +34,35 @@ function PatientPortalContent() {
 
   const [isLoading, setIsLoading] = useState(false);
 
-  // Synced with actual Admin Masterlist record: Juan Dela Cruz (M26-11-00001)
-  const [patient, setPatient] = useState({
-    name: user?.name || 'Juan Dela Cruz',
-    first_name: 'Juan',
-    middle_name: 'Santos',
-    last_name: 'Dela Cruz',
-    suffix: '',
-    birthdate: '1978-05-15',
-    civil_status: 'Married',
-    num_dependents: '2',
-    perm_province: 'Metro Manila (NCR)',
-    perm_city: 'City of Manila',
-    perm_barangay: 'Barangay 659',
-    perm_street: 'Block 4 Lot 12, St. Jude Street',
-    educational_attainment: 'High School Graduate / Level',
-    employment_status: 'Employed (Full-time / Part-time)',
-    occupation: 'Public Utility Driver',
-    username: 'M26-11-00001',
-    patient_id: 'M26-11-00001',
-    sex: 'M',
-    age: 48,
-    residence: 'City of Manila, Metro Manila (NCR)',
-    contact: '0917 888 1678',
-    email: 'juan.delacruz@example.ph',
-    category: 'REGULAR',
-    status: 'APPROVED',
+  const [patient, setPatient] = useState<any>(() => {
+    const storedPid = typeof window !== 'undefined' ? localStorage.getItem('ofphil_user_id') : null;
+    const storedName = typeof window !== 'undefined' ? localStorage.getItem('ofphil_user_name') : null;
+    return {
+      name: storedName || user?.name || 'Patient',
+      first_name: storedName?.split(' ')[0] || '',
+      middle_name: '',
+      last_name: storedName?.split(' ').slice(1).join(' ') || '',
+      suffix: '',
+      birthdate: '',
+      civil_status: 'Single',
+      num_dependents: '0',
+      perm_province: 'Metro Manila (NCR)',
+      perm_city: 'City of Manila',
+      perm_barangay: '',
+      perm_street: '',
+      educational_attainment: 'High School Graduate / Level',
+      employment_status: 'Employed (Full-time / Part-time)',
+      occupation: '',
+      username: storedPid || user?.username || 'M26-11-00001',
+      patient_id: storedPid || user?.id || 'M26-11-00001',
+      sex: 'M',
+      age: null,
+      residence: 'City of Manila, Metro Manila (NCR)',
+      contact: '',
+      email: '',
+      category: 'REGULAR',
+      status: 'APPROVED',
+    };
   });
 
   const [encounters, setEncounters] = useState<any[]>([]);
@@ -409,7 +412,8 @@ function PatientPortalContent() {
   // Fetch actual patient record from backend + sync localStorage dynamic state
   useEffect(() => {
     async function loadPatientPortalData() {
-      const pid = user?.id || user?.username || 'M26-11-00001';
+      const storedPid = typeof window !== 'undefined' ? localStorage.getItem('ofphil_user_id') : null;
+      const pid = (storedPid || user?.id || user?.username || 'M26-11-00001').trim();
       try {
         const res = await fetchApi(`/patients/${pid}`);
         if (res?.patient) {
@@ -417,7 +421,7 @@ function PatientPortalContent() {
           try {
             const localList = JSON.parse(localStorage.getItem('ofphil_registered_patients') || '[]');
             const foundLocal = Array.isArray(localList)
-              ? localList.find((item: any) => String(item.patient_id).toUpperCase() === pid)
+              ? localList.find((item: any) => String(item.patient_id).toUpperCase() === pid.toUpperCase())
               : null;
             if (foundLocal) {
               // Database classification (res.patient.category) always takes authoritative precedence
@@ -432,49 +436,49 @@ function PatientPortalContent() {
             setCharityStatusData(null);
           }
 
-          const fullName = `${p.first_name || 'Juan'} ${p.last_name || 'Dela Cruz'}`.trim();
+          const fullName = `${p.first_name || ''} ${p.last_name || ''}`.trim() || 'Patient';
           const prov = p.perm_province || p.residence_region || 'Metro Manila (NCR)';
           const cty = p.perm_city || p.residence_city || 'City of Manila';
-          const bgy = p.perm_barangay || 'Barangay 659';
-          const str = p.perm_street || 'Block 4 Lot 12, St. Jude Street';
+          const bgy = p.perm_barangay || '';
+          const str = p.perm_street || '';
 
           setPatient({
             name: fullName,
-            first_name: p.first_name || 'Juan',
-            middle_name: p.middle_name || 'Santos',
-            last_name: p.last_name || 'Dela Cruz',
+            first_name: p.first_name || '',
+            middle_name: p.middle_name || '',
+            last_name: p.last_name || '',
             suffix: p.suffix || '',
-            birthdate: p.birthdate || '1978-05-15',
-            civil_status: p.civil_status || 'Married',
-            num_dependents: String(p.num_dependents ?? '2'),
+            birthdate: p.birthdate || '',
+            civil_status: p.civil_status || 'Single',
+            num_dependents: String(p.num_dependents ?? '0'),
             perm_province: prov,
             perm_city: cty,
             perm_barangay: bgy,
             perm_street: str,
             educational_attainment: p.educational_attainment || 'High School Graduate / Level',
             employment_status: p.employment_status || 'Employed (Full-time / Part-time)',
-            occupation: p.occupation || 'Public Utility Driver',
+            occupation: p.occupation || '',
             username: p.patient_id || pid,
             patient_id: p.patient_id || pid,
             sex: p.sex || 'M',
-            age: p.age ?? 48,
+            age: p.age ?? null,
             residence: `${cty}, ${prov}`,
-            contact: p.contact || '0917 888 1678',
-            email: p.email || 'juan.delacruz@example.ph',
+            contact: p.contact || '',
+            email: p.email || '',
             category: p.category || 'REGULAR',
             status: p.status || 'APPROVED',
           });
-          setProfileFirstName(p.first_name || 'Juan');
-          setProfileMiddleName(p.middle_name || 'Santos');
-          setProfileLastName(p.last_name || 'Dela Cruz');
+          setProfileFirstName(p.first_name || '');
+          setProfileMiddleName(p.middle_name || '');
+          setProfileLastName(p.last_name || '');
           setProfileName(fullName);
-          setProfileEmail(p.email || 'juan.delacruz@example.ph');
-          setProfilePhone(p.contact || '0917 888 1678');
-          setProfileBirthdate(p.birthdate || '1978-05-15');
-          setProfileAge(String(p.age ?? 48));
+          setProfileEmail(p.email || '');
+          setProfilePhone(p.contact || '');
+          setProfileBirthdate(p.birthdate || '');
+          setProfileAge(String(p.age ?? ''));
           setProfileSex(p.sex || 'M');
-          setProfileCivilStatus(p.civil_status || 'Married');
-          setProfileDependents(String(p.num_dependents ?? '2'));
+          setProfileCivilStatus(p.civil_status || 'Single');
+          setProfileDependents(String(p.num_dependents ?? '0'));
           setProfileProvince(prov);
           setProfileCity(cty);
           setProfileBarangay(bgy);
@@ -541,7 +545,8 @@ function PatientPortalContent() {
     loadPatientPortalData();
 
     const syncLiveAppts = async () => {
-      const pid = user?.id || user?.username || 'M26-11-00001';
+      const storedPid = typeof window !== 'undefined' ? localStorage.getItem('ofphil_user_id') : null;
+      const pid = (storedPid || user?.id || user?.username || 'M26-11-00001').trim();
       try {
         const savedAppts = JSON.parse(localStorage.getItem(`ofphil_appointments_${pid}`) || '[]');
         if (Array.isArray(savedAppts)) setAppointments(savedAppts);

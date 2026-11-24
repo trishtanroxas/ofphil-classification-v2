@@ -19,7 +19,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isHydrated: boolean;
   isLoggingOut: boolean;
-  login: (role: UserRole, usernameOrId?: string) => void;
+  login: (role: UserRole, usernameOrId?: string, customUserId?: string) => void;
   logout: (redirectUrl?: string) => Promise<void>;
 }
 
@@ -116,11 +116,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const syncAuthFromStorage = useCallback(() => {
     try {
       const savedRole = localStorage.getItem('ofphil_current_role') as UserRole | null;
+      const savedUserId = localStorage.getItem('ofphil_user_id');
+      const savedUserName = localStorage.getItem('ofphil_user_name');
       const loggedOutFlag = sessionStorage.getItem('ofphil_logged_out') === 'true';
 
       if (savedRole && DEFAULT_USERS[savedRole] && !loggedOutFlag) {
+        const baseUser = DEFAULT_USERS[savedRole];
+        const restoredUser: AuthUser = {
+          ...baseUser,
+          id: savedUserId || baseUser.id,
+          username: savedUserId || baseUser.username,
+          name: savedUserName || baseUser.name,
+        };
         setRole(savedRole);
-        setUser(DEFAULT_USERS[savedRole]);
+        setUser(restoredUser);
         setIsAuthenticated(true);
         return { authenticated: true, role: savedRole };
       } else {
@@ -209,9 +218,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [pathname, isHydrated, isAuthenticated, role]);
 
-  const login = (newRole: UserRole, customName?: string) => {
+  const login = (newRole: UserRole, customName?: string, customUserId?: string) => {
     const baseUser = DEFAULT_USERS[newRole] || DEFAULT_USERS.admin;
-    const finalUser = customName ? { ...baseUser, name: customName } : baseUser;
+    const resolvedId = customUserId || (newRole === 'patient' && customName ? customName : baseUser.id);
+    const finalUser: AuthUser = {
+      ...baseUser,
+      role: newRole,
+      id: resolvedId,
+      username: resolvedId,
+      name: customName || baseUser.name,
+    };
     setRole(newRole);
     setUser(finalUser);
     setIsAuthenticated(true);
@@ -219,6 +235,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       sessionStorage.removeItem('ofphil_logged_out');
       localStorage.setItem('ofphil_current_role', newRole);
       localStorage.setItem('ofphil_last_role', newRole);
+      if (resolvedId) {
+        localStorage.setItem('ofphil_user_id', resolvedId);
+      }
+      if (customName) {
+        localStorage.setItem('ofphil_user_name', customName);
+      }
     } catch (e) {}
   };
 
@@ -243,6 +265,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       localStorage.setItem('ofphil_last_role', currentRole);
       localStorage.removeItem('ofphil_current_role');
+      localStorage.removeItem('ofphil_user_id');
+      localStorage.removeItem('ofphil_user_name');
       sessionStorage.clear();
       sessionStorage.setItem('ofphil_logged_out', 'true');
     } catch (e) {}

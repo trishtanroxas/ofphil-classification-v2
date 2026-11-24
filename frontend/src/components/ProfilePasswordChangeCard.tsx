@@ -40,6 +40,7 @@ export default function ProfilePasswordChangeCard({
   const [maskedDestination, setMaskedDestination] = useState('');
   const [digits, setDigits] = useState(['', '', '', '', '', '']);
   const [modalError, setModalError] = useState<string | null>(null);
+  const [modalNotice, setModalNotice] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
 
@@ -110,6 +111,7 @@ export default function ProfilePasswordChangeCard({
         setMaskedDestination(res.masked_destination);
         setDigits(['', '', '', '', '', '']);
         setModalError(null);
+        setModalNotice(res.message || null);
         setResendCooldown(60);
         setIsModalOpen(true);
         toast.info(res.message || `Verification code sent via ${deliveryMethod.toUpperCase()}`);
@@ -417,6 +419,13 @@ export default function ProfilePasswordChangeCard({
                 <span className="font-semibold text-[#10241A]">{maskedDestination}</span>
               </p>
             </div>
+
+            {modalNotice && (
+              <div className="bg-[#ECFDF5] border border-[#A7F3D0] text-[#065F46] text-xs p-2.5 rounded-xl mb-4 flex items-center gap-2">
+                <i className="fa-solid fa-circle-check text-[#0B6B3A] shrink-0" />
+                <span>{modalNotice}</span>
+              </div>
+            )}
 
             {modalError && (
               <div className="bg-[#FEF2F2] border border-[#FCA5A5] text-[#991B1B] text-xs p-2.5 rounded-xl mb-4 flex items-center gap-2">

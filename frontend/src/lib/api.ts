@@ -22,6 +22,10 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}) {
       if (activeRole) {
         authHeaders['x-user-role'] = activeRole;
       }
+      const activeUserId = localStorage.getItem('ofphil_user_id');
+      if (activeUserId) {
+        authHeaders['x-user-id'] = activeUserId;
+      }
       const token = localStorage.getItem('ofphil_token') || sessionStorage.getItem('ofphil_token');
       if (token) {
         authHeaders['Authorization'] = `Bearer ${token}`;
