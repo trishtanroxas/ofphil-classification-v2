@@ -12,6 +12,34 @@ import PsgcAddressSelector from '@/components/PsgcAddressSelector';
 import ProfilePasswordChangeCard from '@/components/ProfilePasswordChangeCard';
 import SecureContactChangeModal, { ContactChangeType } from '@/components/SecureContactChangeModal';
 
+interface PatientState {
+  name: string;
+  first_name: string;
+  middle_name: string;
+  last_name: string;
+  suffix: string;
+  birthdate: string;
+  civil_status: string;
+  num_dependents: string;
+  perm_province: string;
+  perm_city: string;
+  perm_barangay: string;
+  perm_street: string;
+  educational_attainment: string;
+  employment_status: string;
+  occupation: string;
+  username: string;
+  patient_id: string;
+  sex: string;
+  age: number | null;
+  residence: string;
+  contact: string;
+  email: string;
+  category: string;
+  status: string;
+  [key: string]: any;
+}
+
 function PatientPortalContent() {
   const searchParams = useSearchParams();
   const tabParam = searchParams.get('tab');
@@ -34,7 +62,7 @@ function PatientPortalContent() {
 
   const [isLoading, setIsLoading] = useState(false);
 
-  const [patient, setPatient] = useState<any>(() => {
+  const [patient, setPatient] = useState<PatientState>(() => {
     const storedPid = typeof window !== 'undefined' ? localStorage.getItem('ofphil_user_id') : null;
     const storedName = typeof window !== 'undefined' ? localStorage.getItem('ofphil_user_name') : null;
     return {
@@ -561,7 +589,7 @@ function PatientPortalContent() {
         const res = await fetchApi(`/patients/${pid}`);
         if (res?.patient) {
           const nextCat = String(res.patient.category || 'REGULAR').toUpperCase() === 'CHARITY' ? 'CHARITY' : 'REGULAR';
-          setPatient((prev) => {
+          setPatient((prev: any) => {
             if (prev.category !== nextCat || prev.status !== res.patient.status) {
               return { ...prev, category: nextCat, status: res.patient.status || prev.status };
             }
