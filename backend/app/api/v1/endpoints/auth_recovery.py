@@ -20,6 +20,7 @@ from app.schemas.recovery_schemas import (
     ResetPasswordResponse,
     Send2FAOTPRequest,
     Send2FAOTPResponse,
+    TwoFactorStatusResponse,
     Verify2FARequest,
     Verify2FAResponse,
     VerifyOTPRequest,
@@ -60,11 +61,20 @@ def login_and_verify_credentials(payload: LoginRequestPayload):
 @router.post("/2fa/send-otp", response_model=Send2FAOTPResponse)
 def send_two_factor_otp(payload: Send2FAOTPRequest):
     """
-    Generates a cryptographically secure 6-digit OTP (SHA-256 hashed, 5-min TTL)
+    Generates a cryptographically secure 6-digit OTP (SHA-256 hashed, 15-min TTL)
     and dispatches it via the selected verified Email or SMS delivery method.
     Enforces 60-second resend cooldown and rate limits.
     """
     return recovery_service.send_2fa_otp(payload)
+
+
+@router.get("/2fa/status", response_model=TwoFactorStatusResponse)
+def get_two_factor_status(session_id: str):
+    """
+    Authoritative backend status endpoint for 2FA OTP expiration and cooldown.
+    Returns remaining validity seconds, ISO UTC timestamp, and resend cooldown.
+    """
+    return recovery_service.get_2fa_status(session_id)
 
 
 @router.post("/verify-2fa", response_model=Verify2FAResponse)

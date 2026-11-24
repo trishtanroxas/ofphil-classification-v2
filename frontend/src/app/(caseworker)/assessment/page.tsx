@@ -24,7 +24,9 @@ function MSWAssessmentContent() {
   const [activeStage, setActiveStage] = useState<1 | 2 | 3 | 4>(1);
 
   // Common Header & Encounter metadata
-  const [applicationEncounterNo, setApplicationEncounterNo] = useState(patientIdParam || 'UNASSIGNED');
+  const [applicationEncounterNo, setApplicationEncounterNo] = useState('');
+  const [charityCaseNo, setCharityCaseNo] = useState('');
+  const [canonicalPatientId, setCanonicalPatientId] = useState(patientIdParam || '');
   const [mswNumber, setMswNumber] = useState('');
   const [interviewDate, setInterviewDate] = useState(new Date().toISOString().slice(0, 10));
   const [timeStarted, setTimeStarted] = useState('09:00 AM');
@@ -69,22 +71,56 @@ function MSWAssessmentContent() {
           return;
         }
         const p = res.patient;
-        setApplicationEncounterNo(p.patient_id || patientIdParam);
-        setMswNumber(p.patient_id || patientIdParam);
+        const pid = p.patient_id || patientIdParam;
+        setCanonicalPatientId(pid);
+        setCharityCaseNo(p.charity_case_no || '');
+        setApplicationEncounterNo(
+          (p.encounters && p.encounters.length > 0 ? (p.encounters[0].id || p.encounters[0].encounter_no) : null) ||
+          `ENC-${pid}-01`
+        );
+        setMswNumber(p.charity_case_no || pid);
         setPatFirstName(p.first_name || '');
         setPatMiddleName(p.middle_name || '');
         setPatLastName(p.last_name || '');
         setPatSuffix(p.suffix || 'None');
-        setPatAge(p.age ? String(p.age) : '');
+        
+        // Age calculation from DOB if age not explicitly provided
+        let calcAge = p.age ? String(p.age) : '';
+        if (!calcAge && p.birthdate) {
+          const birthDate = new Date(p.birthdate);
+          const today = new Date();
+          let age = today.getFullYear() - birthDate.getFullYear();
+          const m = today.getMonth() - birthDate.getMonth();
+          if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+          }
+          if (age >= 0) calcAge = String(age);
+        }
+        setPatAge(calcAge);
         setPatDob(p.birthdate || '');
         setPatSex(p.sex === 'M' ? 'Male' : p.sex === 'F' ? 'Female' : (p.sex || ''));
-        setPatCivilStatus(p.civil_status || '');
+        setPatReligion(p.religion || 'Roman Catholic');
+        setPatCivilStatus(p.civil_status || 'Single');
         setPatContact(p.contact || '');
+        setPatEmail(p.email || '');
+        setPatAddress(p.perm_street || p.address || '');
+        setPatBarangay(p.perm_barangay || '');
+        setPatCity(p.perm_city || p.residence_city || '');
+        setPatProvince(p.perm_province || p.residence_region || '');
+        setPatRegion(p.residence_region || p.perm_province || '');
+        setPatAltAddress(p.alt_street ? `${p.alt_street}, ${p.alt_barangay || ''}, ${p.alt_city || ''}` : '');
         setPatOccupation(p.occupation || '');
+        setPatEmploymentStatus(p.employment_status || '');
+        setPatIncome(p.monthly_household_income !== undefined ? String(p.monthly_household_income) : '0.0');
         setPatEducation(p.educational_attainment || 'High School');
+        setPatNumDependents(p.num_dependents !== undefined ? String(p.num_dependents) : '0');
+
         if (p.diagnosis) {
           setAdmittingDiagnosis(p.diagnosis);
           setFinalDiagnosis(p.diagnosis);
+        }
+        if (p.recommended_procedure) {
+          setPresentTreatmentPlan(p.recommended_procedure);
         }
         setPatientLoadStatus('ready');
       } catch (e: any) {
@@ -131,10 +167,19 @@ function MSWAssessmentContent() {
   const [patReligion, setPatReligion] = useState('');
   const [patCivilStatus, setPatCivilStatus] = useState('');
   const [patContact, setPatContact] = useState('');
+  const [patEmail, setPatEmail] = useState('');
+  const [patAddress, setPatAddress] = useState('');
+  const [patBarangay, setPatBarangay] = useState('');
+  const [patCity, setPatCity] = useState('');
+  const [patProvince, setPatProvince] = useState('');
+  const [patRegion, setPatRegion] = useState('');
+  const [patAltAddress, setPatAltAddress] = useState('');
   const [patNationality, setPatNationality] = useState('Filipino');
   const [patOccupation, setPatOccupation] = useState('');
+  const [patEmploymentStatus, setPatEmploymentStatus] = useState('');
   const [patIncome, setPatIncome] = useState('0.0');
   const [patEducation, setPatEducation] = useState('Elementary');
+  const [patNumDependents, setPatNumDependents] = useState('0');
 
   // Sectoral Membership (Checkboxes)
   const [sectoral, setSectoral] = useState({
@@ -1289,16 +1334,19 @@ function MSWAssessmentContent() {
               </div>
             </div>
 
-            {/* Application Encounter Badge */}
-            <div className="p-3 bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl text-right shrink-0">
-              <div className="text-[10px] font-bold uppercase text-[#64748B]">
-                {patientIdParam?.startsWith('MSW_FA_') ? 'CHARITY CASE NO.' : 'APPLICATION ENCOUNTER NO.'}
+            {/* Institutional Identifiers Summary Box */}
+            <div className="p-3 bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl text-right shrink-0 space-y-1">
+              <div>
+                <span className="text-[10px] font-bold uppercase text-[#64748B] mr-1.5">PATIENT ID:</span>
+                <span className="font-mono font-bold text-sm text-[#0B6B3A]">{canonicalPatientId || patientIdParam}</span>
               </div>
-              <div className="font-mono font-bold text-sm text-[#0B6B3A]">
-                {patientIdParam?.startsWith('MSW_FA_') ? patientIdParam : applicationEncounterNo}
+              <div>
+                <span className="text-[10px] font-bold uppercase text-[#64748B] mr-1.5">CHARITY CASE NO:</span>
+                <span className="font-mono font-bold text-xs text-[#0F172A]">{charityCaseNo || 'NOT ASSIGNED'}</span>
               </div>
-              <div className="text-[10.5px] text-[#0B6B3A] font-semibold mt-0.5">
-                Patient ID: <strong>{patientIdParam}</strong>
+              <div>
+                <span className="text-[10px] font-bold uppercase text-[#64748B] mr-1.5">APPLICATION ENCOUNTER NO:</span>
+                <span className="font-mono text-xs text-[#334155]">{applicationEncounterNo || 'PENDING'}</span>
               </div>
             </div>
           </div>
@@ -1733,6 +1781,96 @@ function MSWAssessmentContent() {
                         <option value="Widowed">Widowed</option>
                         <option value="Separated">Separated</option>
                       </select>
+                    </div>
+                  </div>
+
+                  {/* Contact Number, Email, Occupation, Monthly Income */}
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-[#475569] mb-1">CONTACT NUMBER</label>
+                      <input
+                        type="text"
+                        placeholder="Contact number"
+                        value={patContact}
+                        onChange={(e) => setPatContact(e.target.value)}
+                        className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-[#475569] mb-1">EMAIL ADDRESS</label>
+                      <input
+                        type="email"
+                        placeholder="Email address"
+                        value={patEmail}
+                        onChange={(e) => setPatEmail(e.target.value)}
+                        className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-[#475569] mb-1">OCCUPATION</label>
+                      <input
+                        type="text"
+                        placeholder="Enter occupation"
+                        value={patOccupation}
+                        onChange={(e) => setPatOccupation(e.target.value)}
+                        className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-[#475569] mb-1">MONTHLY INCOME (₱)</label>
+                      <input
+                        type="number"
+                        value={patIncome}
+                        onChange={(e) => setPatIncome(e.target.value)}
+                        className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Permanent Address & Alternative Address */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-[#475569] mb-1">PERMANENT ADDRESS</label>
+                      <input
+                        type="text"
+                        placeholder="Permanent house / street / barangay / city"
+                        value={patAddress ? `${patAddress}, ${patBarangay}, ${patCity}, ${patProvince}`.replace(/^,\s*|,\s*$/g, '') : ''}
+                        onChange={(e) => setPatAddress(e.target.value)}
+                        className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-[#475569] mb-1">CURRENT / ALTERNATIVE ADDRESS</label>
+                      <input
+                        type="text"
+                        placeholder="Current or alternative residence"
+                        value={patAltAddress || (patAddress ? `${patAddress}, ${patBarangay}, ${patCity}` : '')}
+                        onChange={(e) => setPatAltAddress(e.target.value)}
+                        className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Radio: Highest Educational Attainment */}
+                  <div>
+                    <label className="block text-[11px] font-semibold text-[#475569] mb-1.5">
+                      HIGHEST EDUCATIONAL ATTAINMENT
+                    </label>
+                    <div className="flex flex-wrap items-center gap-3 text-xs">
+                      {['No Formal Education', 'Elementary', 'High School', 'Vocational / Tech-Voc', 'College', 'Post-graduate'].map(
+                        (lvl) => (
+                          <label key={lvl} className="flex items-center gap-1.5 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="pat_education"
+                              checked={patEducation === lvl || (lvl === 'High School' && patEducation.includes('High School')) || (lvl === 'Elementary' && patEducation.includes('Elementary'))}
+                              onChange={() => setPatEducation(lvl)}
+                              className="accent-[#0B6B3A]"
+                            />
+                            <span>{lvl}</span>
+                          </label>
+                        )
+                      )}
                     </div>
                   </div>
                 </div>

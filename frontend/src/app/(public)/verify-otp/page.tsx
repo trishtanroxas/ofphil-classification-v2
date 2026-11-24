@@ -27,6 +27,7 @@ interface Pending2FASession {
   delivery_method?: DeliveryMethod;
   masked_destination?: string;
   cooldown_until?: number;
+  expires_at_timestamp?: number;
 }
 
 function VerifyOtpContent() {
@@ -47,10 +48,48 @@ function VerifyOtpContent() {
   const [isSending, setIsSending] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [cooldown, setCooldown] = useState(0);
+  const [remainingTime, setRemainingTime] = useState<number | null>(null);
+  const [isExpired, setIsExpired] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Function to sync with authoritative backend 2FA OTP status
+  const syncWithBackendStatus = async (sessionId: string) => {
+    try {
+      const statusRes = await fetchApi(`/auth/2fa/status?session_id=${encodeURIComponent(sessionId)}`);
+      if (statusRes) {
+        if (statusRes.resend_cooldown_remaining_seconds > 0) {
+          setCooldown(statusRes.resend_cooldown_remaining_seconds);
+        }
+        if (statusRes.otp_active && statusRes.expires_in_seconds > 0) {
+          setRemainingTime(statusRes.expires_in_seconds);
+          setIsExpired(false);
+          const computedExpMs = Date.now() + statusRes.expires_in_seconds * 1000;
+          persistPendingState({
+            expires_at_timestamp: computedExpMs,
+            step: 'verify',
+            delivery_method: statusRes.delivery_method || undefined,
+            masked_destination: statusRes.masked_destination || undefined,
+          });
+          if (statusRes.masked_destination) {
+            setMaskedDestination(statusRes.masked_destination);
+          }
+          if (statusRes.delivery_method) {
+            setSelectedMethod(statusRes.delivery_method);
+          }
+          setStep('verify');
+        } else if (statusRes.otp_active === false && statusRes.delivery_method) {
+          // Previously had OTP but now expired
+          setRemainingTime(0);
+          setIsExpired(true);
+        }
+      }
+    } catch {
+      // Session might not have an issued OTP yet; normal during method selection
+    }
+  };
 
   useEffect(() => {
     try {
@@ -93,12 +132,27 @@ function VerifyOtpContent() {
         setCooldown(Math.ceil((data.cooldown_until - Date.now()) / 1000));
       }
 
+      if (data.expires_at_timestamp) {
+        const diff = Math.ceil((data.expires_at_timestamp - Date.now()) / 1000);
+        if (diff > 0) {
+          setRemainingTime(diff);
+          setIsExpired(false);
+        } else {
+          setRemainingTime(0);
+          setIsExpired(true);
+        }
+      }
+
+      // Synchronize with authoritative server timestamps
+      syncWithBackendStatus(data.session_id);
+
       setIsHydrated(true);
     } catch {
       window.location.replace('/login-patient');
     }
   }, [roleParam]);
 
+  // Resend cooldown timer
   useEffect(() => {
     if (cooldown <= 0) return;
     const timer = setInterval(() => {
@@ -106,6 +160,28 @@ function VerifyOtpContent() {
     }, 1000);
     return () => clearInterval(timer);
   }, [cooldown]);
+
+  // OTP expiration countdown timer (15 minutes / 900 seconds)
+  useEffect(() => {
+    if (remainingTime === null || remainingTime <= 0) return;
+    const timer = setInterval(() => {
+      setRemainingTime((prev) => {
+        if (prev === null || prev <= 1) {
+          setIsExpired(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [remainingTime]);
+
+  const formatCountdown = (seconds: number | null): string => {
+    if (seconds === null) return '15:00';
+    const m = Math.floor(Math.max(0, seconds) / 60);
+    const s = Math.max(0, seconds) % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
 
   const persistPendingState = (patch: Partial<Pending2FASession>) => {
     try {
@@ -153,12 +229,16 @@ function VerifyOtpContent() {
 
       const cooldownSec = res.resend_cooldown_seconds || 60;
       const cooldownUntil = Date.now() + cooldownSec * 1000;
+      const expirySec = res.expires_in_seconds || 900;
+      const expiryUntil = Date.now() + expirySec * 1000;
 
       setSelectedMethod(res.delivery_method);
       setMaskedDestination(res.masked_destination);
       setStep('verify');
       setDigits(['', '', '', '', '', '']);
       setCooldown(cooldownSec);
+      setRemainingTime(expirySec);
+      setIsExpired(false);
       setStatusMessage(
         res.message ||
           (step === 'verify'
@@ -171,6 +251,7 @@ function VerifyOtpContent() {
         delivery_method: res.delivery_method,
         masked_destination: res.masked_destination,
         cooldown_until: cooldownUntil,
+        expires_at_timestamp: expiryUntil,
       });
 
       setTimeout(() => {
@@ -234,6 +315,11 @@ function VerifyOtpContent() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isVerifying) return;
+
+    if (isExpired || (remainingTime !== null && remainingTime <= 0)) {
+      setErrorMessage('Verification security code has expired. Please request a new security code.');
+      return;
+    }
 
     const enteredCode = digits.join('');
     if (!enteredCode || enteredCode.length < 6) {
@@ -498,7 +584,7 @@ function VerifyOtpContent() {
         <>
           <form onSubmit={handleSubmit} id="verifyOtpForm">
             {/* 6 Digit Input Grid */}
-            <div className="flex gap-2 sm:gap-2.5 justify-center mb-6">
+            <div className="flex gap-2 sm:gap-2.5 justify-center mb-4">
               {digits.map((d, idx) => (
                 <input
                   key={idx}
@@ -514,20 +600,42 @@ function VerifyOtpContent() {
                   onChange={(e) => handleDigitChange(idx, e.target.value)}
                   onKeyDown={(e) => handleKeyDown(idx, e)}
                   onPaste={handlePaste}
-                  disabled={isVerifying}
+                  disabled={isVerifying || isExpired}
                   className={`w-10 h-12 sm:w-12 sm:h-14 text-center text-xl sm:text-2xl font-mono font-bold border rounded-xl focus:outline-none focus:ring-2 bg-white text-[#10241A] transition ${
-                    errorMessage && !d
-                      ? 'border-red-400 focus:border-red-500 focus:ring-red-100'
-                      : 'border-[#CBD5E1] focus:border-[#0B6B3A] focus:ring-[#0B6B3A]/15'
+                    isExpired
+                      ? 'border-[#E2E8F0] bg-[#F8FAFC] text-[#94A3B8] cursor-not-allowed'
+                      : errorMessage && !d
+                        ? 'border-red-400 focus:border-red-500 focus:ring-red-100'
+                        : 'border-[#CBD5E1] focus:border-[#0B6B3A] focus:ring-[#0B6B3A]/15'
                   }`}
                 />
               ))}
             </div>
 
+            {/* Countdown / Expiration Display Banner */}
+            <div className="text-center mb-5">
+              {isExpired ? (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#FEF2F2] border border-[#FCA5A5] text-[#991B1B] rounded-full text-xs font-semibold">
+                  <i className="fa-solid fa-clock text-xs" />
+                  <span>Security code expired. Please click &ldquo;Resend Security Code&rdquo; below.</span>
+                </div>
+              ) : (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#F1F5F3] border border-[#D5E2D9] text-[#24352B] rounded-full text-xs font-medium">
+                  <i className="fa-regular fa-clock text-[#0B6B3A] text-xs" />
+                  <span>
+                    Code expires in{' '}
+                    <strong className="text-[#0B6B3A] font-mono font-bold text-sm">
+                      {formatCountdown(remainingTime)}
+                    </strong>
+                  </span>
+                </div>
+              )}
+            </div>
+
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={isVerifying || isSending || digits.join('').length < 6}
+              disabled={isVerifying || isSending || isExpired || digits.join('').length < 6}
               className="saas-btn-primary w-full h-12 rounded-xl bg-[#0B6B3A] hover:bg-[#064826] disabled:opacity-65 text-white text-[15px] font-semibold border-none cursor-pointer flex items-center justify-center gap-2.5 transition shadow-md disabled:cursor-not-allowed"
             >
               {isVerifying ? (

@@ -87,9 +87,23 @@ class Send2FAOTPResponse(BaseModel):
     role: str
     delivery_method: Literal["email", "sms"]
     masked_destination: str
-    expires_in_seconds: int = 300
+    expires_in_seconds: int = 900
+    expires_at_utc: Optional[str] = None
     resend_cooldown_seconds: int = 60
     message: str
+
+
+class TwoFactorStatusResponse(BaseModel):
+    session_id: str
+    role: str
+    otp_active: bool
+    delivery_method: Optional[Literal["email", "sms"]] = None
+    masked_destination: Optional[str] = None
+    expires_in_seconds: int
+    expires_at_utc: Optional[str] = None
+    server_time_utc: str
+    resend_cooldown_remaining_seconds: int
+    attempts_remaining: int
 
 
 class Verify2FARequest(BaseModel):

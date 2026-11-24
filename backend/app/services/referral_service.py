@@ -48,7 +48,7 @@ class ReferralService:
                     doctor_signature_title TEXT NOT NULL DEFAULT '',
                     referring_individual TEXT NOT NULL,
                     referring_signature_title TEXT NOT NULL DEFAULT '',
-                    status TEXT NOT NULL DEFAULT 'Endorsed for Financial Assistance',
+                    status TEXT NOT NULL DEFAULT 'Awaiting MSW Review',
                     charity_case_no TEXT,
                     approved_by TEXT,
                     approved_at TEXT,
@@ -130,7 +130,7 @@ class ReferralService:
                         "Attending Eye Surgeon • License No. 0089421",
                         "Dr. Roberto Reyes, MD, DPBO",
                         "Clinic Medical Administrator & Ophthalmologist",
-                        "Endorsed for Financial Assistance",
+                        "Awaiting MSW Review",
                         "Physician endorsed for immediate charity subsidy casework.",
                         "2026-11-22T08:30:00Z",
                         "2026-11-22T08:30:00Z",
@@ -149,7 +149,7 @@ class ReferralService:
                     (
                         "OFPHIL-FA-2026-0002",
                         "REF-2026-0002",
-                        "MSW_FA_1126-01",
+                        "M26-11-00002",
                         "Maria Clara Ramos",
                         "Mature Senile Cataract, Left Eye (OS)",
                         "OS (Left Eye)",
@@ -162,7 +162,7 @@ class ReferralService:
                         "Attending Eye Surgeon • License No. 0089421",
                         "Dr. Roberto Reyes, MD, DPBO",
                         "Clinic Medical Administrator & Ophthalmologist",
-                        "Endorsed for Financial Assistance",
+                        "Awaiting MSW Review",
                         "Endorsed by Clinic Director for DOH/Charity financial tiering.",
                         "2026-11-23T08:00:00Z",
                         "2026-11-23T08:00:00Z",
@@ -178,6 +178,161 @@ class ReferralService:
             except Exception:
                 d["particulars"] = []
         return d
+
+    def get_patient_assistance_history(
+        self, patient_id: str, exclude_referral_id: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Determines the patient's assistance history using the permanent Patient ID.
+        Counts qualifying previous financial assistance referrals or cases belonging to that patient.
+        Excludes:
+          - The current referral being evaluated (exclude_referral_id)
+          - Duplicate records
+          - Unrelated regular clinical encounters or ordinary visits
+        """
+        clean_pid = (patient_id or "").strip()
+        if not clean_pid:
+            return {
+                "classification": "HISTORY NOT AVAILABLE",
+                "badge_label": "HISTORY NOT AVAILABLE",
+                "is_first_assistance": False,
+                "is_repeat_assistance": False,
+                "total_previous_requests": 0,
+                "previous_msw_approved_cases": 0,
+                "previous_final_approved_grants": 0,
+                "most_recent_request_date": None,
+                "history": [],
+            }
+
+        # Check if patient exists in registered patients registry
+        from app.api.v1.endpoints.endpoints import REGISTERED_PATIENTS_REGISTRY
+        patient_entry = next(
+            (
+                p for p in REGISTERED_PATIENTS_REGISTRY
+                if str(p.get("patient_id") or "").strip().upper() == clean_pid.upper()
+                or str(p.get("charity_case_no") or "").strip().upper() == clean_pid.upper()
+                or str(p.get("id") or "").strip().lower() == clean_pid.lower()
+            ),
+            None,
+        )
+
+        canonical_pid = str(patient_entry.get("patient_id")) if patient_entry else clean_pid
+        alt_pid = str(patient_entry.get("charity_case_no")) if patient_entry and patient_entry.get("charity_case_no") else clean_pid
+
+        with self._connect() as conn:
+            # Query all referrals for this patient (matching either canonical ID or historical case number)
+            rows = conn.execute(
+                "SELECT * FROM financial_referrals WHERE UPPER(patient_id) = UPPER(?) OR UPPER(patient_id) = UPPER(?) ORDER BY created_at DESC",
+                (canonical_pid, alt_pid),
+            ).fetchall()
+            all_refs = [self._row_to_dict(r) for r in rows]
+
+        # Filter out current referral if specified
+        qualifying_refs = [
+            r for r in all_refs
+            if not (exclude_referral_id and (r["id"] == exclude_referral_id or r["referral_no"] == exclude_referral_id))
+        ]
+
+        # Count Disapproved and Promissory in referrals
+        disapproved_referrals_count = sum(
+            1 for r in qualifying_refs if "DISAPPROVED" in str(r.get("status", "")).upper()
+        )
+        promissory_referrals_count = sum(
+            1 for r in qualifying_refs if "PROMISSORY" in str(r.get("status", "")).upper()
+        )
+
+        # Also check encounters in patient registry for previous charity applications & decisions
+        reg_encounters = (patient_entry.get("encounters") if patient_entry else []) or []
+        enc_disapproved = sum(
+            1 for e in reg_encounters if "DISAPPROVED" in str(e.get("status", "")).upper() and "PROMISSORY" not in str(e.get("status", "")).upper()
+        )
+        enc_promissory = sum(
+            1 for e in reg_encounters if "PROMISSORY" in str(e.get("status", "")).upper()
+        )
+        enc_charity_approved = sum(
+            1 for e in reg_encounters if str(e.get("status", "")).upper() in {"APPROVED", "FINAL_APPROVED"} and e.get("classification") == "CHARITY"
+        )
+
+        # 1. Total previous assistance requests (qualifying referrals + qualifying charity encounters not in referrals)
+        if not exclude_referral_id and qualifying_refs:
+            pending_refs = [r for r in qualifying_refs if r.get("status") in {"Awaiting MSW Review", "Endorsed for Financial Assistance"}]
+            if pending_refs:
+                qualifying_refs = [r for r in qualifying_refs if r["id"] != pending_refs[0]["id"]]
+
+        # Total previous requests: sum of distinct historical financial referrals plus non-referral charity applications
+        total_prev_requests = max(len(qualifying_refs), len([e for e in reg_encounters if e.get("classification") == "CHARITY"]))
+
+        # 2. Previously MSW-Approved Cases
+        prev_msw_approved = sum(
+            1 for r in qualifying_refs
+            if r.get("status") in {"MSW APPROVED", "Assessment in Progress", "Referred for Administrative Decision", "Approved", "Assessed"}
+            or bool(r.get("charity_case_no"))
+        )
+        if patient_entry and patient_entry.get("category") == "CHARITY" and patient_entry.get("charity_case_no"):
+            prev_msw_approved = max(prev_msw_approved, 1)
+
+        # 3. Previously Approved Charity Grants
+        from app.services.assessment_service import assessment_service
+        patient_assessments = assessment_service.list_assessments(patient_id=canonical_pid)
+        if not patient_assessments and alt_pid != canonical_pid:
+            patient_assessments = assessment_service.list_assessments(patient_id=alt_pid)
+
+        approved_assessments = [
+            a for a in patient_assessments
+            if (a.get("workflow_status") or "").upper() == "APPROVED"
+        ]
+        prev_final_grants = max(len(approved_assessments), enc_charity_approved)
+
+        # 4. Disapproved Cases & Promissory Cases
+        disapproved_cases = max(disapproved_referrals_count, enc_disapproved)
+        promissory_cases = max(promissory_referrals_count, enc_promissory)
+
+        most_recent_date = None
+        if qualifying_refs:
+            most_recent_date = qualifying_refs[0].get("created_at")
+        elif reg_encounters:
+            most_recent_date = reg_encounters[0].get("encounter_date")
+
+        # Determine Specific Badges and Labels
+        disapproved_badge = None
+        if disapproved_cases > 0:
+            plural = "CASE" if disapproved_cases == 1 else "CASES"
+            disapproved_badge = f"PREVIOUSLY DISAPPROVED — {disapproved_cases} {plural}"
+
+        promissory_badge = None
+        if promissory_cases > 0:
+            plural = "CASE" if promissory_cases == 1 else "CASES"
+            promissory_badge = f"PREVIOUS PROMISSORY — {promissory_cases} {plural}"
+
+        # Classify overall assistance
+        if total_prev_requests == 0 and prev_msw_approved == 0 and prev_final_grants == 0 and disapproved_cases == 0 and promissory_cases == 0:
+            classification = "FIRST ASSISTANCE"
+            badge_label = "FIRST ASSISTANCE"
+            is_first = True
+            is_repeat = False
+        else:
+            is_first = False
+            is_repeat = True
+            count = max(total_prev_requests, prev_msw_approved, disapproved_cases + promissory_cases)
+            classification = "REPEAT ASSISTANCE"
+            plural = "REQUEST" if count == 1 else "REQUESTS"
+            badge_label = f"REPEAT ASSISTANCE — {count} PREVIOUS {plural}"
+
+        return {
+            "classification": classification,
+            "badge_label": badge_label,
+            "is_first_assistance": is_first,
+            "is_repeat_assistance": is_repeat,
+            "total_previous_requests": total_prev_requests,
+            "previous_msw_approved_cases": prev_msw_approved,
+            "previous_final_approved_grants": prev_final_grants,
+            "disapproved_cases": disapproved_cases,
+            "promissory_cases": promissory_cases,
+            "disapproved_badge": disapproved_badge,
+            "promissory_badge": promissory_badge,
+            "most_recent_request_date": most_recent_date,
+            "history": qualifying_refs,
+        }
 
     def list_referrals(self, patient_id: Optional[str] = None) -> List[Dict[str, Any]]:
         with self._connect() as conn:
@@ -225,7 +380,7 @@ class ReferralService:
         doctor_signature_title = payload.get("doctor_signature_title", "Attending Eye Surgeon").strip()
         referring_individual = payload.get("referring_individual", "Dr. Roberto Reyes, MD, DPBO").strip()
         referring_signature_title = payload.get("referring_signature_title", "Clinic Medical Administrator").strip()
-        status_val = payload.get("status", "Endorsed for Financial Assistance")
+        status_val = payload.get("status", "Awaiting MSW Review")
         notes = payload.get("notes", "").strip()
         now = _utc_now()
 
@@ -328,11 +483,18 @@ class ReferralService:
         actor_id: str,
         role: str,
         notes: str = "",
+        expected_patient_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         MSW Approval of a physician-endorsed financial assistance referral.
-        Generates a unique Charity Case Number once and moves referral to 'MSW APPROVED'.
-        Classifies/links the patient into the charity category if needed.
+        Enforces:
+          1. Authenticated MSW role validation.
+          2. Referral existence check.
+          3. Rejection / prior approval check.
+          4. Referral patient matching validation.
+          5. Atomic transaction & unique Charity Case Number generation.
+          6. Referral status update to 'MSW APPROVED'.
+          7. Audit logging.
         """
         role_norm = (role or "").strip().lower()
         if role_norm != "msw":
@@ -342,11 +504,13 @@ class ReferralService:
             )
 
         with self._connect() as conn:
+            conn.execute("BEGIN IMMEDIATE;")
             row = conn.execute(
                 "SELECT * FROM financial_referrals WHERE id = ? OR referral_no = ?",
                 (referral_id.strip(), referral_id.strip()),
             ).fetchone()
             if not row:
+                conn.rollback()
                 raise HTTPException(status_code=404, detail="Referral record not found.")
 
             canonical_id = row["id"]
@@ -354,8 +518,25 @@ class ReferralService:
             patient_id = row["patient_id"]
             existing_case_no = row["charity_case_no"]
 
+            # Validate patient match if passed
+            if expected_patient_id and expected_patient_id.strip().upper() != patient_id.strip().upper():
+                conn.rollback()
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Patient ID mismatch: referral belongs to '{patient_id}', not '{expected_patient_id}'.",
+                )
+
+            # Check if rejected
+            if current_status == "MSW REJECTED":
+                conn.rollback()
+                raise HTTPException(
+                    status_code=400,
+                    detail="Cannot approve a referral that has already been rejected.",
+                )
+
             # Idempotency / Duplicate Prevention: If already MSW APPROVED, return existing without re-generating
             if current_status == "MSW APPROVED" and existing_case_no:
+                conn.rollback()
                 return self.get_referral(canonical_id) or {}
 
             # Determine / Generate Charity Case Number (Format MSW_FA_MMYY-XX)

@@ -308,6 +308,44 @@ class PatientRegisterRequest(BaseModel):
     initial_password: Optional[str] = ""
     send_credentials_email: Optional[bool] = True
 
+def generate_next_patient_id(registry: Optional[List[Dict[str, Any]]] = None) -> str:
+    """
+    Generates dynamic sequential permanent patient ID in format M26-11-0000#
+    where M is prefix, 26 is 2-digit year, 11 is 2-digit month, and 5-digit sequential number.
+    Inspects existing Patient IDs across registry and inquiries database to ensure uniqueness.
+    """
+    now = datetime.date.today()
+    prefix = f"M{now.strftime('%y')}-{now.strftime('%m')}-"
+    reg = registry if registry is not None else REGISTERED_PATIENTS_REGISTRY
+    max_seq = 0
+    for p in reg:
+        pid = str(p.get("patient_id", "")).strip().upper()
+        if pid.startswith(prefix):
+            s = pid[len(prefix):]
+            if s.isdigit():
+                max_seq = max(max_seq, int(s))
+        elif re.match(r"^M\d{2}-\d{2}-\d+$", pid):
+            m = re.match(r"^M(\d{2})-(\d{2})-(\d+)$", pid)
+            if m and m.group(1) == now.strftime('%y') and m.group(2) == now.strftime('%m'):
+                max_seq = max(max_seq, int(m.group(3)))
+
+    # Also check inquiries DB financial referrals if table exists
+    try:
+        from app.services.referral_service import referral_service
+        with referral_service._connect() as conn:
+            rows = conn.execute("SELECT DISTINCT patient_id FROM financial_referrals WHERE patient_id LIKE ?", (f"{prefix}%",)).fetchall()
+            for r in rows:
+                if r and r[0]:
+                    s = str(r[0])[len(prefix):]
+                    if s.isdigit():
+                        max_seq = max(max_seq, int(s))
+    except Exception:
+        pass
+
+    next_num = max_seq + 1
+    return f"{prefix}{next_num:05d}"
+
+
 def generate_next_charity_case_no(registry: Optional[List[Dict[str, Any]]] = None) -> str:
     """
     Generates dynamic sequential charity case numbering in format MSW_FA_MMYY-XX
@@ -405,7 +443,7 @@ INITIAL_PATIENTS_REGISTRY: List[Dict[str, Any]] = [
         "phone_verified": True,
         "email_verified": True,
         "category": "REGULAR",
-        "status": "APPROVED",
+        "status": "AWAITING MSW REVIEW",
         "has_account": True,
         "registration_date": "2026-11-22",
         "initial_password": "Ofphil@2026",
@@ -424,7 +462,7 @@ INITIAL_PATIENTS_REGISTRY: List[Dict[str, Any]] = [
         "encounters": [
             {
                 "id": "ENC-M26-11-00001-01",
-                "charity_case_no": "MSW_FA_1126-00",
+                "charity_case_no": None,
                 "encounter_date": "2026-11-22",
                 "application_type": "Ophthalmic Surgical Financial Assistance",
                 "diagnosis": "Bilateral Cataract, Senile Mature (OD > OS)",
@@ -433,7 +471,7 @@ INITIAL_PATIENTS_REGISTRY: List[Dict[str, Any]] = [
                 "classification": "REGULAR",
                 "total_amount": 11600.0,
                 "approved_financial_assistance": 0.0,
-                "status": "ENDORSED FOR FINANCIAL ASSISTANCE",
+                "status": "AWAITING MSW REVIEW",
                 "assigned_msw": "Maria Santos, RSW (msw_lead)",
                 "notes": "Endorsed from regular eye clinic to MSW for cataract surgery fee assistance."
             }
@@ -442,7 +480,7 @@ INITIAL_PATIENTS_REGISTRY: List[Dict[str, Any]] = [
     },
     {
         "id": "rec-2",
-        "patient_id": "MSW_FA_1126-01",
+        "patient_id": "M26-11-00002",
         "charity_case_no": "MSW_FA_1126-01",
         "first_name": "Maria Clara",
         "middle_name": "Flores",
@@ -508,7 +546,7 @@ INITIAL_PATIENTS_REGISTRY: List[Dict[str, Any]] = [
     },
     {
         "id": "rec-3",
-        "patient_id": "MSW_FA_1126-02",
+        "patient_id": "M26-11-00003",
         "charity_case_no": "MSW_FA_1126-02",
         "first_name": "Pedro",
         "middle_name": "Alvarez",
@@ -574,7 +612,7 @@ INITIAL_PATIENTS_REGISTRY: List[Dict[str, Any]] = [
     },
     {
         "id": "rec-4",
-        "patient_id": "MSW_FA_1126-03",
+        "patient_id": "M26-11-00004",
         "charity_case_no": "MSW_FA_1126-03",
         "first_name": "Elena",
         "middle_name": "Velasco",
@@ -640,7 +678,7 @@ INITIAL_PATIENTS_REGISTRY: List[Dict[str, Any]] = [
     },
     {
         "id": "rec-5",
-        "patient_id": "MSW_FA_1126-04",
+        "patient_id": "M26-11-00005",
         "charity_case_no": "MSW_FA_1126-04",
         "first_name": "Ricardo",
         "middle_name": "Gomez",
@@ -725,6 +763,14 @@ def _save_patients_registry() -> None:
 
 REGISTERED_PATIENTS_REGISTRY: List[Dict[str, Any]] = _load_patients_registry()
 
+@router.get("/patients/next-patient-id")
+def get_next_patient_id():
+    """
+    Returns the next sequential Patient ID based on current YY-MM in format M26-11-0000#.
+    """
+    return {"next_patient_id": generate_next_patient_id()}
+
+
 @router.get("/patients/next-charity-case-no")
 def get_next_charity_case_no():
     """
@@ -738,22 +784,13 @@ def register_patient_record(payload: PatientRegisterRequest):
     req_last = payload.last_name.strip()
     category = "CHARITY" if (payload.category or "").upper() == "CHARITY" else "REGULAR"
 
-    if category == "CHARITY" and (not payload.patient_id or payload.patient_id.strip().upper() in {"", "AUTO"} or payload.patient_id.strip().upper().startswith("AUTO")):
-        req_pid = generate_next_charity_case_no()
-    else:
-        req_pid = (payload.patient_id or "").strip().upper()
-        if not req_pid:
-            # Fallback for regular patients
-            now = datetime.date.today()
-            prefix = f"M{now.strftime('%y')}-{now.strftime('%m')}-"
-            max_seq = 1
-            for p in REGISTERED_PATIENTS_REGISTRY:
-                pid = str(p.get("patient_id", "")).strip().upper()
-                if pid.startswith(prefix):
-                    s = pid[len(prefix):]
-                    if s.isdigit():
-                        max_seq = max(max_seq, int(s))
-            req_pid = f"{prefix}{max_seq + 1:05d}"
+    req_pid = (payload.patient_id or "").strip().upper()
+    if not req_pid or req_pid in {"AUTO", "GENERATE"} or req_pid.startswith("AUTO"):
+        req_pid = generate_next_patient_id()
+
+    charity_case_no = None
+    if category == "CHARITY":
+        charity_case_no = generate_next_charity_case_no()
 
     # Check for duplicate Patient Name (First Name + Last Name case-insensitive) or duplicate Patient ID
     for existing in REGISTERED_PATIENTS_REGISTRY:
@@ -881,9 +918,14 @@ def get_patient_dossier(patient_id: str):
     """
     Returns full patient detail, encounters, surgical procedure quotation, and case documents.
     """
+    clean_target = (patient_id or "").strip()
     found_patient = None
     for item in REGISTERED_PATIENTS_REGISTRY:
-        if item.get("patient_id") == patient_id or item.get("id") == patient_id:
+        if (
+            str(item.get("patient_id") or "").strip().upper() == clean_target.upper()
+            or str(item.get("charity_case_no") or "").strip().upper() == clean_target.upper()
+            or str(item.get("id") or "").strip().lower() == clean_target.lower()
+        ):
             found_patient = item
             break
             
@@ -895,13 +937,18 @@ def get_patient_dossier(patient_id: str):
     inquiries = found_patient.get("inquiries", [])
     total_subsidy = sum(e.get("approved_financial_assistance", 0.0) for e in encounters)
 
+    from app.services.referral_service import referral_service
+    canonical_pid = str(found_patient.get("patient_id") or clean_target)
+    assistance_history = referral_service.get_patient_assistance_history(patient_id=canonical_pid)
+
     return {
         "status": "success",
         "patient": found_patient,
         "encounters": encounters,
         "documents": documents,
         "inquiries": inquiries,
-        "total_assistance": total_subsidy
+        "total_assistance": total_subsidy,
+        "assistance_history": assistance_history,
     }
 
 
@@ -932,6 +979,7 @@ def get_msw_patient_dossier(
     for item in REGISTERED_PATIENTS_REGISTRY:
         if (
             str(item.get("patient_id") or "").strip().upper() == target_id.upper()
+            or str(item.get("charity_case_no") or "").strip().upper() == target_id.upper()
             or str(item.get("id") or "").strip().lower() == target_id.lower()
         ):
             found_patient = item
@@ -1029,7 +1077,7 @@ def get_msw_patient_dossier(
     else:
         assessment_state = {
             "state": "NONE",
-            "action_label": "Start Assessment",
+            "action_label": "Launch Assessment",
             "assessment_id": None,
             "workflow_status": "NOT_STARTED",
             "active_stage": None,
@@ -1146,9 +1194,10 @@ def get_msw_patient_dossier(
         "clinical_encounters": encounter_records,
     }
 
-    # 6. Financial Assistance Referrals for this patient
+    # 6. Financial Assistance Referrals & Assistance History for this patient
     from app.services.referral_service import referral_service
     referrals = referral_service.list_referrals(patient_id=canonical_pid)
+    assistance_history = referral_service.get_patient_assistance_history(patient_id=canonical_pid)
 
     return {
         "status": "success",
@@ -1171,6 +1220,7 @@ def get_msw_patient_dossier(
         "documents": docs,
         "assessments": patient_assessments if is_charity_patient else [],
         "referrals": referrals,
+        "assistance_history": assistance_history,
     }
 
 # -------------------------------------------------------------
@@ -1750,7 +1800,10 @@ def list_patient_records(
 ):
     """
     Returns only legitimately registered patients. Raw thesis/research dataset is completely removed and excluded.
+    Enriches patients with assistance history summary.
     """
+    from app.services.referral_service import referral_service
+
     records = []
     for item in REGISTERED_PATIENTS_REGISTRY:
         if category and category.upper() != "ALL":
@@ -1764,7 +1817,17 @@ def list_patient_records(
             pid = item.get("patient_id", "").lower()
             if q not in pid and q not in full:
                 continue
-        records.append(item)
+
+        # Enrich with assistance history
+        pid_clean = str(item.get("patient_id") or "")
+        history = referral_service.get_patient_assistance_history(patient_id=pid_clean)
+        enriched = {
+            **item,
+            "assistance_history": history,
+            "disapproved_badge": history.get("disapproved_badge"),
+            "promissory_badge": history.get("promissory_badge"),
+        }
+        records.append(enriched)
         if len(records) >= limit:
             break
 
@@ -2098,7 +2161,27 @@ async def upsert_patient_referral_sb(patient_id: str, payload: dict):
 async def get_all_referrals_sb():
     from app.services.referral_service import referral_service
     referrals = referral_service.list_referrals()
-    return {"referrals": referrals}
+    # Enrich referrals with assistance history summary
+    enriched = []
+    for r in referrals:
+        r_dict = dict(r)
+        pid = r_dict.get("patient_id")
+        history_info = referral_service.get_patient_assistance_history(patient_id=pid, exclude_referral_id=r_dict.get("id"))
+        r_dict["assistance_history"] = history_info
+        enriched.append(r_dict)
+    return {"referrals": enriched}
+
+
+@router.get("/patients/{patient_id}/assistance-history")
+async def get_patient_assistance_history_endpoint(
+    patient_id: str,
+    exclude_referral_id: Optional[str] = None,
+):
+    from app.services.referral_service import referral_service
+    history_info = referral_service.get_patient_assistance_history(
+        patient_id=patient_id, exclude_referral_id=exclude_referral_id
+    )
+    return {"status": "ok", "assistance_history": history_info}
 
 
 @router.get("/referrals/{referral_id}")
@@ -2107,6 +2190,10 @@ async def get_single_referral(referral_id: str):
     ref = referral_service.get_referral(referral_id)
     if not ref:
         raise HTTPException(status_code=404, detail=f"Referral '{referral_id}' not found.")
+    history_info = referral_service.get_patient_assistance_history(
+        patient_id=ref.get("patient_id"), exclude_referral_id=ref.get("id")
+    )
+    ref["assistance_history"] = history_info
     return {"referral": ref}
 
 
@@ -2119,11 +2206,13 @@ async def approve_financial_referral(
 ):
     from app.services.referral_service import referral_service
     notes = payload.get("notes", "")
+    expected_patient_id = payload.get("patient_id")
     approved = referral_service.approve_referral(
         referral_id=referral_id,
         actor_id=x_user_id,
         role=x_user_role,
         notes=notes,
+        expected_patient_id=expected_patient_id,
     )
     return {"status": "ok", "referral": approved}
 

@@ -23,38 +23,38 @@ def test_msw_dossier_read_only_and_multi_patient_isolation():
     initial_doc_count = len(document_authenticity_service.list_documents())
 
     # Patient 1: MSW_FA_1126-01 (Maria Clara Ramos)
-    r1 = client.get("/api/v1/msw/patients/MSW_FA_1126-01/dossier", headers=MSW_HDRS)
+    r1 = client.get("/api/v1/msw/patients/M26-11-00002/dossier", headers=MSW_HDRS)
     assert r1.status_code == 200
     d1 = r1.json()
-    assert d1["patient"]["patient_id"] == "MSW_FA_1126-01"
+    assert d1["patient"]["patient_id"] == "M26-11-00002"
     assert d1["patient"]["first_name"] == "Maria Clara"
     assert d1["patient"]["last_name"] == "Ramos"
     assert d1["clinical_profile"]["primary_diagnosis"] == "Senile Cataract, Immature (OS)"
     assert d1["socioeconomic_profile"]["occupation"] == "Market Vendor"
-    assert d1["identifiers"]["patient_id"] == "MSW_FA_1126-01"
+    assert d1["identifiers"]["patient_id"] == "M26-11-00002"
     assert d1["identifiers"]["charity_case_no"] == "MSW_FA_1126-01"
     assert d1["identifiers"]["latest_encounter_no"] == "ENC-2026-1120-01"
     assert d1["identifiers"]["latest_encounter_no"] != d1["identifiers"]["charity_case_no"]
 
     # Patient 2: MSW_FA_1126-02 (Pedro Bautista Sr.)
-    r2 = client.get("/api/v1/msw/patients/MSW_FA_1126-02/dossier", headers=MSW_HDRS)
+    r2 = client.get("/api/v1/msw/patients/M26-11-00003/dossier", headers=MSW_HDRS)
     assert r2.status_code == 200
     d2 = r2.json()
-    assert d2["patient"]["patient_id"] == "MSW_FA_1126-02"
+    assert d2["patient"]["patient_id"] == "M26-11-00003"
     assert d2["patient"]["first_name"] == "Pedro"
     assert d2["patient"]["last_name"] == "Bautista"
     assert d2["clinical_profile"]["primary_diagnosis"] == "Primary Open-Angle Glaucoma (OU)"
     assert d2["socioeconomic_profile"]["occupation"] == "Retired Barangay Aide"
     assert d2["identifiers"]["latest_encounter_no"] == "ENC-2026-1118-02"
     # Verify no cross-contamination from Patient 1
-    assert all(doc["patient_id"] == "MSW_FA_1126-02" for doc in d2["documents"])
-    assert all(enc["patient_id"] == "MSW_FA_1126-02" for enc in d2["encounters"])
+    assert all(doc["patient_id"] == "M26-11-00003" for doc in d2["documents"])
+    assert all(enc["patient_id"] == "M26-11-00003" for enc in d2["encounters"])
 
     # Patient 3: MSW_FA_1126-03 (Elena Santos - Pending assessment)
-    r3 = client.get("/api/v1/msw/patients/MSW_FA_1126-03/dossier", headers=MSW_HDRS)
+    r3 = client.get("/api/v1/msw/patients/M26-11-00004/dossier", headers=MSW_HDRS)
     assert r3.status_code == 200
     d3 = r3.json()
-    assert d3["patient"]["patient_id"] == "MSW_FA_1126-03"
+    assert d3["patient"]["patient_id"] == "M26-11-00004"
     assert d3["patient"]["first_name"] == "Elena"
     assert d3["patient"]["last_name"] == "Santos"
     assert d3["clinical_profile"]["primary_diagnosis"] == "Diabetic Retinopathy (OU)"
@@ -74,11 +74,11 @@ def test_msw_dossier_assessment_entry_states():
     - Patient with a submitted/completed assessment -> 'View Assessment' / 'Review Assessment'
     """
     # Clean any existing assessments for MSW_FA_1126-03
-    for k in [aid for aid, a in list(assessment_service._assessments.items()) if a.get("patient_id") == "MSW_FA_1126-03"]:
+    for k in [aid for aid, a in list(assessment_service._assessments.items()) if a.get("patient_id") == "M26-11-00004"]:
         assessment_service._assessments.pop(k, None)
 
     # 1. No assessment -> Launch Assessment
-    r_none = client.get("/api/v1/msw/patients/MSW_FA_1126-03/dossier", headers=MSW_HDRS)
+    r_none = client.get("/api/v1/msw/patients/M26-11-00004/dossier", headers=MSW_HDRS)
     assert r_none.status_code == 200
     entry_none = r_none.json()["assessment_entry"]
     assert entry_none["state"] == "NONE"
@@ -89,13 +89,13 @@ def test_msw_dossier_assessment_entry_states():
     r_create = client.post(
         "/api/v1/assessments",
         headers=MSW_HDRS,
-        json={"patient_id": "MSW_FA_1126-03", "source_of_referral": "EYE CLINIC REFERRAL"},
+        json={"patient_id": "M26-11-00004", "source_of_referral": "EYE CLINIC REFERRAL"},
     )
     assert r_create.status_code == 201
     draft_id = r_create.json()["id"]
 
     try:
-        r_draft = client.get("/api/v1/msw/patients/MSW_FA_1126-03/dossier", headers=MSW_HDRS)
+        r_draft = client.get("/api/v1/msw/patients/M26-11-00004/dossier", headers=MSW_HDRS)
         assert r_draft.status_code == 200
         entry_draft = r_draft.json()["assessment_entry"]
         assert entry_draft["state"] == "DRAFT"
@@ -104,7 +104,7 @@ def test_msw_dossier_assessment_entry_states():
 
         # 3. Mark assessment as APPROVED -> View Assessment
         assessment_service._assessments[draft_id]["workflow_status"] = "APPROVED"
-        r_done = client.get("/api/v1/msw/patients/MSW_FA_1126-03/dossier", headers=MSW_HDRS)
+        r_done = client.get("/api/v1/msw/patients/M26-11-00004/dossier", headers=MSW_HDRS)
         assert r_done.status_code == 200
         entry_done = r_done.json()["assessment_entry"]
         assert entry_done["state"] == "COMPLETED"
@@ -139,7 +139,7 @@ def test_msw_dossier_document_preview_and_cross_patient_protection():
 
     # Cross-patient document download attempt rejected
     r_cross = client.get(
-        f"/api/v1/documents/{doc_id}/download?patient_id=MSW_FA_1126-02",
+        f"/api/v1/documents/{doc_id}/download?patient_id=M26-11-00003",
         headers=MSW_HDRS,
     )
     assert r_cross.status_code == 403
@@ -171,9 +171,9 @@ def test_msw_notification_system_end_to_end():
         notification_type="APPLICATION_PENDING_ASSESSMENT",
         title="Pending MSW Assessment: Elena Velasco Santos",
         message="Charity application MSW_FA_1126-03 is assigned to you and awaiting assessment.",
-        target_destination="/patients/MSW_FA_1126-03?tab=assessment",
-        related_patient_id="MSW_FA_1126-03",
-        dedup_key="TEST_NOTIF:MSW_FA_1126-03:msw_lead",
+        target_destination="/patients/M26-11-00004?tab=assessment",
+        related_patient_id="M26-11-00004",
+        dedup_key="TEST_NOTIF:M26-11-00004:msw_lead",
     )
     assert created is not None
     notif_id = created["id"]
@@ -192,8 +192,8 @@ def test_msw_notification_system_end_to_end():
     target_item = next((i for i in items if i["id"] == notif_id), None)
     assert target_item is not None
     assert target_item["is_read"] is False
-    assert target_item["related_patient_id"] == "MSW_FA_1126-03"
-    assert target_item["target_destination"] == "/patients/MSW_FA_1126-03?tab=assessment"
+    assert target_item["related_patient_id"] == "M26-11-00004"
+    assert target_item["target_destination"] == "/patients/M26-11-00004?tab=assessment"
 
     # 2. Unrelated MSW account cannot mark msw_lead's notification as read
     OTHER_MSW_HDRS = {"x-user-role": "msw", "x-user-id": "msw_unassigned_99"}
@@ -251,7 +251,7 @@ def test_role_based_charity_status_and_admin_read_only_enforcement():
     ADMIN_HDRS = {"x-user-role": "admin", "x-user-id": "admin_sys"}
 
     # --- Test A: Charity Patient (MSW_FA_1126-01) accessed by Admin ---
-    r_adm_charity = client.get("/api/v1/msw/patients/MSW_FA_1126-01/dossier", headers=ADMIN_HDRS)
+    r_adm_charity = client.get("/api/v1/msw/patients/M26-11-00002/dossier", headers=ADMIN_HDRS)
     assert r_adm_charity.status_code == 200
     d_adm = r_adm_charity.json()
     assert d_adm["is_charity_patient"] is True
@@ -265,7 +265,7 @@ def test_role_based_charity_status_and_admin_read_only_enforcement():
     assert len(d_adm["documents"]) >= 1
     c_doc_id = d_adm["documents"][0]["id"]
     r_adm_doc = client.get(
-        f"/api/v1/documents/{c_doc_id}/download?patient_id=MSW_FA_1126-01&inline=true",
+        f"/api/v1/documents/{c_doc_id}/download?patient_id=M26-11-00002&inline=true",
         headers=ADMIN_HDRS,
     )
     assert r_adm_doc.status_code == 200
@@ -274,7 +274,7 @@ def test_role_based_charity_status_and_admin_read_only_enforcement():
     r_adm_create = client.post(
         "/api/v1/assessments",
         headers=ADMIN_HDRS,
-        json={"patient_id": "MSW_FA_1126-01", "source_of_referral": "ADMIN_BYPASS"},
+        json={"patient_id": "M26-11-00002", "source_of_referral": "ADMIN_BYPASS"},
     )
     assert r_adm_create.status_code == 403
 
@@ -282,7 +282,7 @@ def test_role_based_charity_status_and_admin_read_only_enforcement():
     r_msw_draft = client.post(
         "/api/v1/assessments",
         headers=MSW_HDRS,
-        json={"patient_id": "MSW_FA_1126-02", "source_of_referral": "EYE CLINIC REFERRAL"},
+        json={"patient_id": "M26-11-00003", "source_of_referral": "EYE CLINIC REFERRAL"},
     )
     assert r_msw_draft.status_code == 201
     asmt_id = r_msw_draft.json()["id"]
@@ -322,7 +322,7 @@ def test_role_based_charity_status_and_admin_read_only_enforcement():
         assessment_service._save()
 
     # --- Test B: Charity Patient (MSW_FA_1126-01) accessed by MSW ---
-    r_msw_charity = client.get("/api/v1/msw/patients/MSW_FA_1126-01/dossier", headers=MSW_HDRS)
+    r_msw_charity = client.get("/api/v1/msw/patients/M26-11-00002/dossier", headers=MSW_HDRS)
     assert r_msw_charity.status_code == 200
     d_msw = r_msw_charity.json()
     assert d_msw["is_charity_patient"] is True
@@ -404,7 +404,7 @@ def test_financial_referral_integration_with_assessment_workflow():
     assert r_single.status_code == 200
     ref_data = r_single.json()["referral"]
     assert ref_data["id"] == ref_id
-    assert ref_data["patient_id"] == "MSW_FA_1126-01"
+    assert ref_data["patient_id"] == "M26-11-00002"
     assert ref_data["diagnosis"] == "Mature Senile Cataract, Left Eye (OS)"
     assert ref_data["total"] == 11600.0
     assert ref_data["attending_doctor"] == "Dr. J. E. Garcia, MD"
@@ -415,7 +415,7 @@ def test_financial_referral_integration_with_assessment_workflow():
         "/api/v1/assessments",
         headers=MSW_HDRS,
         json={
-            "patient_id": "MSW_FA_1126-01",
+            "patient_id": "M26-11-00002",
             "referral_id": ref_id,
             "source_of_referral": f"CLINICAL REFERRAL: {ref_data['referring_individual']}",
             "stage1_data": {
@@ -438,7 +438,7 @@ def test_financial_referral_integration_with_assessment_workflow():
     assert r_create_asmt.status_code in (200, 201)
     asmt = r_create_asmt.json()
     asmt_id = asmt["id"]
-    assert asmt["patient_id"] == "MSW_FA_1126-01"
+    assert asmt["patient_id"] == "M26-11-00002"
     assert asmt["referral_id"] == ref_id
 
     # 4. Verify referral status is now 'Assessment in Progress' with audit entry
@@ -450,7 +450,7 @@ def test_financial_referral_integration_with_assessment_workflow():
     assert len(updated_ref["status_history"]) >= 1
 
     # 5. Verify querying latest-draft for this referral returns the exact assessment
-    r_draft = client.get(f"/api/v1/assessments/patient/MSW_FA_1126-01/latest-draft?referral_id={ref_id}", headers=MSW_HDRS)
+    r_draft = client.get(f"/api/v1/assessments/patient/M26-11-00002/latest-draft?referral_id={ref_id}", headers=MSW_HDRS)
     assert r_draft.status_code == 200
     assert r_draft.json()["found"] is True
     assert r_draft.json()["assessment"]["id"] == asmt_id
@@ -459,7 +459,7 @@ def test_financial_referral_integration_with_assessment_workflow():
     ref2_payload = {
         "id": "OFPHIL-FA-2026-TEST-MULTI",
         "referral_no": "REF-2026-MULTI",
-        "patient_id": "MSW_FA_1126-01",
+        "patient_id": "M26-11-00002",
         "patient_name": "Maria Clara Ramos",
         "diagnosis": "Subluxated Lens with Secondary Glaucoma (OS)",
         "eye_laterality": "OS (Left Eye)",
@@ -474,7 +474,7 @@ def test_financial_referral_integration_with_assessment_workflow():
     referral_service.create_referral(ref2_payload, actor_id="admin_sys", role="admin")
 
     # Verify both referrals exist and are distinct
-    r_all_patient_refs = client.get("/api/v1/patients/MSW_FA_1126-01/referral", headers=MSW_HDRS)
+    r_all_patient_refs = client.get("/api/v1/patients/M26-11-00002/referral", headers=MSW_HDRS)
     assert r_all_patient_refs.status_code == 200
     p_refs = r_all_patient_refs.json()["referrals"]
     assert len(p_refs) >= 2

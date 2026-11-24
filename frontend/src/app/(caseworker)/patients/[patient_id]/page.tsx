@@ -63,6 +63,7 @@ function MSWDossierContent() {
   const [encounters, setEncounters] = useState<any[]>([]);
   const [appointments, setAppointments] = useState<any[]>([]);
   const [referrals, setReferrals] = useState<any[]>([]);
+  const [assistanceHistory, setAssistanceHistory] = useState<any | null>(null);
   const [documents, setDocuments] = useState<any[]>([]);
   const [inquiries, setInquiries] = useState<any[]>([]);
   const [assessments, setAssessments] = useState<any[]>([]);
@@ -120,12 +121,14 @@ function MSWDossierContent() {
       let patObj: any = null;
       let baseEncs: any[] = [];
       let baseDocs: any[] = [];
+      let fetchedHistory: any = null;
 
       if (dossierRes && dossierRes.ok) {
         const dossierJson = await dossierRes.json();
         patObj = dossierJson.patient || null;
         baseEncs = Array.isArray(dossierJson.encounters) ? dossierJson.encounters : [];
         baseDocs = Array.isArray(dossierJson.documents) ? dossierJson.documents : [];
+        fetchedHistory = dossierJson.assistance_history || null;
       } else {
         // Fallback: check localStorage for registered patients (same robust pattern as Admin Patient Dossier)
         try {
@@ -168,8 +171,8 @@ function MSWDossierContent() {
             email: 'tan1925alex@gmail.com',
             phone_verified: true,
             email_verified: true,
-            category: 'CHARITY',
-            status: 'APPROVED',
+            category: 'REGULAR',
+            status: 'AWAITING MSW REVIEW',
             has_account: true,
             registration_date: '2026-11-22',
             diagnosis: 'Bilateral Cataract, Senile Mature (OD > OS)',
@@ -248,6 +251,7 @@ function MSWDossierContent() {
         }
       }
       setReferrals(Array.from(refMap.values()));
+      setAssistanceHistory(fetchedHistory);
 
       // Appointments
       let loadedAppts: any[] = [];
@@ -599,7 +603,9 @@ function MSWDossierContent() {
     .replace(/\s+/g, ' ')
     .trim();
   const isCharity = String(patient.category || '').trim().toUpperCase() === 'CHARITY';
-  const patientStatus = String(patient.status || 'PENDING').toUpperCase();
+  const hasApprovedReferral = referrals.some((r) => r.status === 'MSW APPROVED' || Boolean(r.charity_case_no));
+  const isPendingReview = referrals.some((r) => r.status === 'Awaiting MSW Review' || r.status === 'Endorsed for Financial Assistance');
+  const patientStatus = isCharity || hasApprovedReferral ? 'APPROVED' : isPendingReview ? 'AWAITING MSW REVIEW' : String(patient.status || 'PENDING').toUpperCase();
   const hasFinancialReferral = referrals.length > 0;
   const latestReferral = referrals[0] || null;
 
@@ -627,9 +633,41 @@ function MSWDossierContent() {
   const statusBadge =
     patientStatus === 'APPROVED'
       ? { label: 'APPROVED', cls: 'bg-[#DCFCE7] text-[#15803D] border-[#86EFAC]' }
-      : patientStatus === 'PENDING'
-        ? { label: 'PENDING ASSESSMENT', cls: 'bg-[#FEF3C7] text-[#B45309] border-[#FDE68A]' }
-        : { label: patientStatus, cls: 'bg-[#FEE2E2] text-[#B91C1C] border-[#FECACA]' };
+      : patientStatus === 'AWAITING MSW REVIEW'
+        ? { label: 'AWAITING MSW REVIEW', cls: 'bg-[#FEF3C7] text-[#B45309] border-[#FDE68A]' }
+        : patientStatus === 'PENDING'
+          ? { label: 'PENDING ASSESSMENT', cls: 'bg-[#FEF3C7] text-[#B45309] border-[#FDE68A]' }
+          : { label: patientStatus, cls: 'bg-[#FEE2E2] text-[#B91C1C] border-[#FECACA]' };
+
+  // Assistance History details
+  const historyClassification = assistanceHistory?.classification || (referrals.length > 1 ? 'REPEAT ASSISTANCE' : referrals.length === 1 ? 'FIRST ASSISTANCE' : 'FIRST ASSISTANCE');
+  const totalPreviousRequests = assistanceHistory?.total_previous_requests ?? (referrals.length > 0 ? referrals.length - 1 : 0);
+  const previousApprovedCases = assistanceHistory?.previous_msw_approved_cases ?? 0;
+  const previousApprovedGrants = assistanceHistory?.previous_final_approved_grants ?? 0;
+  const previousDisapprovedCases = assistanceHistory?.disapproved_cases ?? 0;
+  const previousPromissoryCases = assistanceHistory?.promissory_cases ?? 0;
+  const disapprovedBadgeLabel = assistanceHistory?.disapproved_badge || (previousDisapprovedCases > 0 ? `PREVIOUSLY DISAPPROVED — ${previousDisapprovedCases} ${previousDisapprovedCases === 1 ? 'CASE' : 'CASES'}` : null);
+  const promissoryBadgeLabel = assistanceHistory?.promissory_badge || (previousPromissoryCases > 0 ? `PREVIOUS PROMISSORY — ${previousPromissoryCases} ${previousPromissoryCases === 1 ? 'CASE' : 'CASES'}` : null);
+  const mostRecentRequestDate = assistanceHistory?.most_recent_request_date ? new Date(assistanceHistory.most_recent_request_date).toLocaleDateString() : null;
+
+  const assistanceHistoryBadge =
+    totalPreviousRequests > 0 || historyClassification === 'REPEAT ASSISTANCE'
+      ? {
+        label: `REPEAT ASSISTANCE — ${totalPreviousRequests || 1} PREVIOUS ${totalPreviousRequests === 1 ? 'REQUEST' : 'REQUESTS'}`,
+        cls: 'bg-amber-50 text-amber-800 border-amber-300',
+        icon: 'fa-clock-rotate-left',
+      }
+      : historyClassification === 'FIRST ASSISTANCE'
+        ? {
+          label: 'FIRST ASSISTANCE',
+          cls: 'bg-emerald-50 text-emerald-800 border-emerald-300',
+          icon: 'fa-star',
+        }
+        : {
+          label: 'HISTORY NOT AVAILABLE',
+          cls: 'bg-slate-100 text-slate-700 border-slate-300',
+          icon: 'fa-question-circle',
+        };
 
   const totalAssistanceApproved = encounters.reduce(
     (acc, e) => acc + Number(e.approved_financial_assistance || 0),
@@ -683,6 +721,31 @@ function MSWDossierContent() {
                 >
                   {statusBadge.label}
                 </span>
+                <span
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-[11px] font-extrabold border ${assistanceHistoryBadge.cls}`}
+                  title={`Total previous requests: ${totalPreviousRequests}, Approved cases: ${previousApprovedCases}, Grants: ${previousApprovedGrants}`}
+                >
+                  <i className={`fa-solid ${assistanceHistoryBadge.icon} text-[10px]`} />
+                  <span>{assistanceHistoryBadge.label}</span>
+                </span>
+                {disapprovedBadgeLabel && (
+                  <span
+                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-[11px] font-extrabold border bg-rose-50 text-rose-800 border-rose-300"
+                    title="Historical assistance record: Previous request was disapproved. Does not disqualify current application."
+                  >
+                    <i className="fa-solid fa-ban text-[10px] text-rose-600" />
+                    <span>{disapprovedBadgeLabel}</span>
+                  </span>
+                )}
+                {promissoryBadgeLabel && (
+                  <span
+                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-[11px] font-extrabold border bg-purple-50 text-purple-800 border-purple-300"
+                    title="Historical assistance record: Previous promissory arrangement recorded."
+                  >
+                    <i className="fa-solid fa-file-signature text-[10px] text-purple-600" />
+                    <span>{promissoryBadgeLabel}</span>
+                  </span>
+                )}
               </div>
 
               <div className="flex items-center gap-4 flex-wrap mt-2 text-xs text-[#5A7466]">
@@ -841,6 +904,149 @@ function MSWDossierContent() {
             <div className="text-[11px] text-[#64748B] mt-0.5">
               Click to view 4-Stage MSW Assessment &amp; Charity Status
             </div>
+          </div>
+        )}
+      </div>
+
+      {/* =====================================================================
+          HIGH-VISIBILITY FINANCIAL ASSISTANCE HISTORY (Positioned Above Tabs)
+         ===================================================================== */}
+      <div className="bg-white rounded-2xl border border-[#D5E2D9] p-5 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-bold text-[#10241A] flex items-center gap-2">
+              <i className="fa-solid fa-clock-rotate-left text-[#0B6B3A]" />
+              <span>Financial Assistance History</span>
+            </h3>
+            <p className="text-[11px] text-[#5A7466] mt-0.5">
+              Institutional tracking of past assistance requests, MSW reviews, and charity grant decisions for Patient ID{' '}
+              <span className="font-mono font-bold text-[#0B6B3A]">{identifiers.patientId}</span>.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold border ${assistanceHistoryBadge.cls}`}>
+              <i className={`fa-solid ${assistanceHistoryBadge.icon} text-[10px]`} />
+              <span>{assistanceHistoryBadge.label}</span>
+            </span>
+            {disapprovedBadgeLabel && (
+              <span
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold border bg-rose-50 text-rose-800 border-rose-300"
+                title="Historical decision recorded. Does not automatically disqualify subsequent requests."
+              >
+                <i className="fa-solid fa-ban text-[10px] text-rose-600" />
+                <span>{disapprovedBadgeLabel}</span>
+              </span>
+            )}
+            {promissoryBadgeLabel && (
+              <span
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold border bg-purple-50 text-purple-800 border-purple-300"
+                title="Historical promissory arrangement on record."
+              >
+                <i className="fa-solid fa-file-signature text-[10px] text-purple-600" />
+                <span>{promissoryBadgeLabel}</span>
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Assistance History 5-Metric Summary Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <div className="p-3.5 rounded-xl bg-[#FAFBF8] border border-[#EEF2EF]">
+            <div className="text-[11px] font-medium text-[#64748B]">Previous Requests</div>
+            <div className="text-base font-mono font-extrabold text-[#10241A] mt-1">{totalPreviousRequests}</div>
+          </div>
+          <div className="p-3.5 rounded-xl bg-[#FAFBF8] border border-[#EEF2EF]">
+            <div className="text-[11px] font-medium text-[#64748B]">MSW-Approved Cases</div>
+            <div className="text-base font-mono font-extrabold text-[#0B6B3A] mt-1">{previousApprovedCases}</div>
+          </div>
+          <div className="p-3.5 rounded-xl bg-[#FAFBF8] border border-[#EEF2EF]">
+            <div className="text-[11px] font-medium text-[#64748B]">Approved Final Grants</div>
+            <div className="text-base font-mono font-extrabold text-emerald-700 mt-1">{previousApprovedGrants}</div>
+          </div>
+          <div className="p-3.5 rounded-xl bg-[#FAFBF8] border border-[#EEF2EF]">
+            <div className="text-[11px] font-medium text-[#64748B]">Disapproved Cases</div>
+            <div className={`text-base font-mono font-extrabold mt-1 ${previousDisapprovedCases > 0 ? 'text-rose-700' : 'text-[#64748B]'}`}>
+              {previousDisapprovedCases}
+            </div>
+          </div>
+          <div className="p-3.5 rounded-xl bg-[#FAFBF8] border border-[#EEF2EF] col-span-2 sm:col-span-1">
+            <div className="text-[11px] font-medium text-[#64748B]">Promissory Cases</div>
+            <div className={`text-base font-mono font-extrabold mt-1 ${previousPromissoryCases > 0 ? 'text-purple-700' : 'text-[#64748B]'}`}>
+              {previousPromissoryCases}
+            </div>
+          </div>
+        </div>
+
+        {/* Historical Referrals Chronological Summary */}
+        {referrals.length === 0 ? (
+          <div className="p-4 text-center bg-[#FAFBF8] rounded-xl border border-[#EEF2EF] text-xs text-[#64748B]">
+            No previous financial assistance referrals or requests recorded for this patient.
+          </div>
+        ) : (
+          <div className="overflow-x-auto rounded-xl border border-[#EEF2EF]">
+            <table className="w-full text-left text-xs text-[#24352B]">
+              <thead className="bg-[#FAFBF8] text-[#5A7466] uppercase text-[10px] tracking-wider border-b border-[#EEF2EF]">
+                <tr>
+                  <th className="py-2.5 px-4 font-semibold">Referral Number</th>
+                  <th className="py-2.5 px-4 font-semibold">Date</th>
+                  <th className="py-2.5 px-4 font-semibold">Diagnosis / Procedure</th>
+                  <th className="py-2.5 px-4 font-semibold">Medical Quotation</th>
+                  <th className="py-2.5 px-4 font-semibold">Endorsing Physician</th>
+                  <th className="py-2.5 px-4 font-semibold">MSW Review Status</th>
+                  <th className="py-2.5 px-4 font-semibold">Charity Case No</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#EEF2EF] bg-white">
+                {referrals.map((histRef) => {
+                  const isApproved = histRef.status === 'MSW APPROVED' || Boolean(histRef.charity_case_no);
+                  const isDisapproved = String(histRef.status || '').toUpperCase().includes('DISAPPROVED') || String(histRef.status || '').toUpperCase().includes('REJECTED');
+                  const isPromissory = String(histRef.status || '').toUpperCase().includes('PROMISSORY');
+                  return (
+                    <tr key={histRef.id} className="hover:bg-[#FAFBF8] transition">
+                      <td className="py-3 px-4 font-mono font-bold text-[#10241A] whitespace-nowrap">
+                        {histRef.referral_no || histRef.id}
+                      </td>
+                      <td className="py-3 px-4 text-[#64748B] whitespace-nowrap">
+                        {histRef.created_at ? new Date(histRef.created_at).toLocaleDateString() : 'N/A'}
+                      </td>
+                      <td className="py-3 px-4 max-w-xs">
+                        <div className="font-semibold text-[#10241A] truncate">{histRef.diagnosis}</div>
+                        <div className="text-[11px] text-[#0B6B3A] truncate">{histRef.procedure}</div>
+                      </td>
+                      <td className="py-3 px-4 font-mono font-bold text-[#0B6B3A] whitespace-nowrap">
+                        ₱{Number(histRef.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      </td>
+                      <td className="py-3 px-4 text-[#10241A] whitespace-nowrap">
+                        {histRef.referring_individual || histRef.attending_doctor || 'N/A'}
+                      </td>
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        <span
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                            isApproved
+                              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                              : isDisapproved
+                              ? 'bg-rose-50 text-rose-800 border border-rose-200'
+                              : isPromissory
+                              ? 'bg-purple-50 text-purple-800 border border-purple-200'
+                              : 'bg-amber-50 text-amber-800 border border-amber-200'
+                          }`}
+                        >
+                          {histRef.status || 'Awaiting MSW Review'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 font-mono font-semibold text-xs whitespace-nowrap">
+                        {histRef.charity_case_no ? (
+                          <span className="text-[#0B6B3A] font-bold">{histRef.charity_case_no}</span>
+                        ) : (
+                          <span className="text-[#94A3B8] italic">Not Assigned</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
@@ -1396,7 +1602,7 @@ function MSWDossierContent() {
                       {ref.clinical_findings && <span>Clinical Findings: {ref.clinical_findings}</span>}
                     </div>
                     <div className="flex items-center gap-2">
-                      {isCharity && role === 'msw' && (() => {
+                      {isCharity && (ref.status === 'MSW APPROVED' || Boolean(ref.charity_case_no)) && role === 'msw' ? (() => {
                         const asmt = assessments.find((a) => a.referral_id === ref.id || a.patient_id === ref.patient_id);
                         const isCompleted = asmt && (asmt.workflow_status === 'APPROVED' || asmt.workflow_status === 'SUBMITTED' || asmt.workflow_status === 'PENDING_APPROVAL');
                         const isDraft = asmt && (asmt.workflow_status === 'DRAFT' || asmt.workflow_status === 'ASSESSMENT_IN_PROGRESS');
@@ -1432,10 +1638,14 @@ function MSWDossierContent() {
                             className="px-4 py-2 rounded-xl bg-[#0B6B3A] hover:bg-[#095830] text-white text-xs font-bold transition inline-flex items-center gap-1.5 shadow-2xs no-underline"
                           >
                             <i className="fa-solid fa-play text-xs" />
-                            <span>Launch Charity Assessment</span>
+                            <span>Start Assessment</span>
                           </Link>
                         );
-                      })()}
+                      })() : (
+                        <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200">
+                          Awaiting MSW Review &amp; Approval
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>

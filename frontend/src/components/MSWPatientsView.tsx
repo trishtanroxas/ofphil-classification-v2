@@ -27,6 +27,9 @@ export interface PatientRecordItem {
   registration_date?: string;
   has_account?: boolean;
   encounters?: any[];
+  assistance_history?: any;
+  disapproved_badge?: string;
+  promissory_badge?: string;
 }
 
 export interface ReferralRecordItem {
@@ -52,6 +55,16 @@ export interface ReferralRecordItem {
   assessment_id?: string;
   created_at?: string;
   contact?: string;
+  assistance_history?: {
+    classification: string;
+    badge_label: string;
+    is_first_assistance: boolean;
+    is_repeat_assistance: boolean;
+    total_previous_requests: number;
+    previous_msw_approved_cases: number;
+    previous_final_approved_grants: number;
+    most_recent_request_date?: string | null;
+  };
 }
 
 export function MSWPatientsContent({
@@ -67,6 +80,7 @@ export function MSWPatientsContent({
   const [referrals, setReferrals] = useState<ReferralRecordItem[]>([]);
   const [selectedReferral, setSelectedReferral] = useState<ReferralRecordItem | null>(null);
   const [approvalModalReferral, setApprovalModalReferral] = useState<ReferralRecordItem | null>(null);
+  const [approvalConfirmed, setApprovalConfirmed] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'charity' | 'referrals' | 'approved_cases' | 'pending' | 'promissory'>(
@@ -193,7 +207,7 @@ export function MSWPatientsContent({
             doctor_signature_title: 'Attending Eye Surgeon • License No. 0089421',
             referring_individual: 'Dr. Roberto Reyes, MD, DPBO',
             referring_signature_title: 'Clinic Medical Administrator & Ophthalmologist',
-            status: 'ENDORSED FOR FINANCIAL ASSISTANCE',
+            status: 'Awaiting MSW Review',
             created_at: '2026-11-22T08:30:00Z',
           },
         ];
@@ -210,6 +224,41 @@ export function MSWPatientsContent({
   useEffect(() => {
     fetchPatientsAndReferrals();
   }, []);
+
+  const handleConfirmApproval = async () => {
+    if (!approvalModalReferral || !approvalConfirmed || isApproving) return;
+    setIsApproving(true);
+    try {
+      const res = await fetchApi(`/referrals/${encodeURIComponent(approvalModalReferral.id)}/approve`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-role': 'msw',
+          'x-user-id': 'msw_lead',
+        },
+        body: JSON.stringify({
+          patient_id: approvalModalReferral.patient_id,
+          notes: 'MSW confirmed approval via review modal.',
+        }),
+      });
+
+      if (res && res.referral) {
+        toast.success(`Referral ${approvalModalReferral.id} approved! Charity Case No: ${res.referral.charity_case_no || 'Assigned'}`);
+        setApprovalModalReferral(null);
+        setApprovalConfirmed(false);
+        if (selectedReferral && selectedReferral.id === approvalModalReferral.id) {
+          setSelectedReferral(res.referral);
+        }
+        await fetchPatientsAndReferrals();
+      } else {
+        toast.error('Failed to approve referral. Please try again.');
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'Error occurred while approving referral.');
+    } finally {
+      setIsApproving(false);
+    }
+  };
 
   // Filter Charity Patients
   const filteredPatients = useMemo(() => {
@@ -758,6 +807,7 @@ export function MSWPatientsContent({
                   <thead className="bg-[#FAFBF8] text-[#5A7466] text-xs uppercase tracking-wider border-b border-[#EEF2EF]">
                     <tr>
                       <th className="py-3.5 px-6 font-semibold">Referred Patient</th>
+                      <th className="py-3.5 px-6 font-semibold">Assistance History</th>
                       <th className="py-3.5 px-6 font-semibold">Diagnosis &amp; Procedure</th>
                       <th className="py-3.5 px-6 font-semibold">Quotation / Fee</th>
                       <th className="py-3.5 px-6 font-semibold">Endorsing Physician / Referring Officer</th>
@@ -765,61 +815,89 @@ export function MSWPatientsContent({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#EEF2EF]">
-                    {paginatedPendingReferrals.map((ref) => (
-                      <tr
-                        key={ref.id}
-                        className="hover:bg-[#FAFBF8] transition cursor-pointer group"
-                        onClick={() => router.push(`/patients/${encodeURIComponent(ref.patient_id)}?tab=referral`)}
-                      >
-                        <td className="py-4 px-6 font-medium text-[#10241A] whitespace-nowrap">
-                          <div className="font-bold text-[#10241A] group-hover:text-[#0B6B3A] transition">
-                            {ref.patient_name}
-                          </div>
-                          <div className="text-[11px] text-[#64748B] flex items-center gap-1.5 font-mono">
-                            <span className="font-semibold text-emerald-800">{ref.patient_id}</span>
-                            <span>&bull;</span>
-                            <span className="text-slate-600 font-mono text-[10px]">{ref.id}</span>
-                          </div>
-                        </td>
-                        <td className="py-4 px-6 max-w-sm">
-                          <div className="font-semibold text-xs text-[#10241A] truncate">{ref.diagnosis}</div>
-                          <div className="text-[11px] text-[#0B6B3A] font-medium truncate mt-0.5">{ref.procedure}</div>
-                        </td>
-                        <td className="py-4 px-6 whitespace-nowrap font-mono font-bold text-[#0B6B3A]">
-                          ₱{Number(ref.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </td>
-                        <td className="py-4 px-6 max-w-xs">
-                          <div className="font-semibold text-xs text-[#10241A]">
-                            {ref.referring_individual || ref.attending_doctor || 'Not Available'}
-                          </div>
-                          <div className="text-[11px] text-[#64748B] truncate mt-0.5">
-                            {ref.referring_signature_title || ref.doctor_signature_title || 'Attending Physician'}
-                          </div>
-                        </td>
-                        <td className="py-4 px-6 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex items-center justify-center gap-2">
-                            <Link
-                              href={`/patients/${encodeURIComponent(ref.patient_id)}?tab=referral`}
-                              className="px-3 py-1.5 rounded-lg border border-[#D5E2D9] bg-white hover:bg-[#FAFBF8] text-[#10241A] font-semibold text-xs transition inline-flex items-center gap-1.5 shadow-2xs no-underline cursor-pointer"
-                              title="Open Patient Dossier and inspect referral details"
-                            >
-                              <i className="fa-solid fa-folder-open text-xs text-[#0B6B3A]" />
-                              <span>View Details</span>
-                            </Link>
+                    {paginatedPendingReferrals.map((ref) => {
+                      const historyInfo = ref.assistance_history;
+                      const isFirst = historyInfo ? historyInfo.is_first_assistance : true;
+                      const isRepeat = historyInfo ? historyInfo.is_repeat_assistance : false;
+                      const badgeText = historyInfo?.badge_label || (isRepeat ? 'REPEAT ASSISTANCE' : 'FIRST ASSISTANCE');
 
-                            <button
-                              type="button"
-                              onClick={() => setApprovalModalReferral(ref)}
-                              className="px-3.5 py-1.5 rounded-lg bg-[#0B6B3A] hover:bg-[#064826] text-white font-semibold text-xs transition inline-flex items-center gap-1.5 shadow-xs cursor-pointer"
-                              title="Approve referral and generate Charity Case Number"
-                            >
-                              <i className="fa-solid fa-check text-xs" />
-                              <span>Approve</span>
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                      return (
+                        <tr
+                          key={ref.id}
+                          className="hover:bg-[#FAFBF8] transition cursor-pointer group"
+                          onClick={() => router.push(`/patients/${encodeURIComponent(ref.patient_id)}?tab=referral`)}
+                        >
+                          <td className="py-4 px-6 font-medium text-[#10241A] whitespace-nowrap">
+                            <div className="font-bold text-[#10241A] group-hover:text-[#0B6B3A] transition">
+                              {ref.patient_name}
+                            </div>
+                            <div className="text-[11px] text-[#64748B] flex items-center gap-1.5 font-mono">
+                              <span className="font-semibold text-emerald-800">{ref.patient_id}</span>
+                              <span>&bull;</span>
+                              <span className="text-slate-600 font-mono text-[10px]">{ref.id}</span>
+                            </div>
+                          </td>
+                          <td className="py-4 px-6 whitespace-nowrap">
+                            {isRepeat ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-300">
+                                <i className="fa-solid fa-clock-rotate-left text-[10px] text-amber-600" />
+                                <span>{badgeText}</span>
+                              </span>
+                            ) : isFirst ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300">
+                                <i className="fa-solid fa-star text-[10px] text-emerald-600" />
+                                <span>FIRST ASSISTANCE</span>
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-300">
+                                <i className="fa-solid fa-question-circle text-[10px]" />
+                                <span>HISTORY NOT AVAILABLE</span>
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-4 px-6 max-w-sm">
+                            <div className="font-semibold text-xs text-[#10241A] truncate">{ref.diagnosis}</div>
+                            <div className="text-[11px] text-[#0B6B3A] font-medium truncate mt-0.5">{ref.procedure}</div>
+                          </td>
+                          <td className="py-4 px-6 whitespace-nowrap font-mono font-bold text-[#0B6B3A]">
+                            ₱{Number(ref.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                          <td className="py-4 px-6 max-w-xs">
+                            <div className="font-semibold text-xs text-[#10241A]">
+                              {ref.referring_individual || ref.attending_doctor || 'Not Available'}
+                            </div>
+                            <div className="text-[11px] text-[#64748B] truncate mt-0.5">
+                              {ref.referring_signature_title || ref.doctor_signature_title || 'Attending Physician'}
+                            </div>
+                          </td>
+                          <td className="py-4 px-6 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center justify-center gap-2">
+                              <Link
+                                href={`/patients/${encodeURIComponent(ref.patient_id)}?tab=referral`}
+                                className="px-3 py-1.5 rounded-lg border border-[#D5E2D9] bg-white hover:bg-[#FAFBF8] text-[#10241A] font-semibold text-xs transition inline-flex items-center gap-1.5 shadow-2xs no-underline cursor-pointer"
+                                title="Open Patient Dossier and inspect referral details"
+                              >
+                                <i className="fa-solid fa-folder-open text-xs text-[#0B6B3A]" />
+                                <span>View Details</span>
+                              </Link>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setApprovalModalReferral(ref);
+                                  setApprovalConfirmed(false);
+                                }}
+                                className="px-3.5 py-1.5 rounded-lg bg-[#0B6B3A] hover:bg-[#064826] text-white font-semibold text-xs transition inline-flex items-center gap-1.5 shadow-xs cursor-pointer"
+                                title="Approve referral and generate Charity Case Number"
+                              >
+                                <i className="fa-solid fa-check text-xs" />
+                                <span>Approve</span>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -990,26 +1068,48 @@ export function MSWPatientsContent({
                           {p.diagnosis || 'Cataract / Refractive Error'}
                         </td>
                         <td className="py-4 px-6 whitespace-nowrap">
-                          <span
-                            className={`px-2.5 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wider inline-flex items-center gap-1 ${
-                              p.status === 'APPROVED'
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                : p.status === 'DISAPPROVED/PROMISSORY' ||
-                                  p.status?.includes('PROMISSORY') ||
-                                  p.status?.includes('DISAPPROVED')
-                                ? 'bg-rose-50 text-rose-700 border-rose-200'
-                                : 'bg-amber-50 text-amber-800 border-amber-200'
-                            }`}
-                          >
-                            {p.status === 'APPROVED' && <i className="fa-solid fa-circle-check text-[9px] text-emerald-600" />}
-                            {(p.status === 'DISAPPROVED/PROMISSORY' ||
-                              p.status?.includes('PROMISSORY') ||
-                              p.status?.includes('DISAPPROVED')) && (
-                              <i className="fa-solid fa-file-signature text-[9px] text-rose-600" />
+                          <div className="flex flex-col gap-1 items-start">
+                            <span
+                              className={`px-2.5 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wider inline-flex items-center gap-1 ${
+                                p.status === 'APPROVED'
+                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                  : p.status === 'DISAPPROVED/PROMISSORY' ||
+                                    p.status?.includes('PROMISSORY') ||
+                                    p.status?.includes('DISAPPROVED')
+                                  ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                  : 'bg-amber-50 text-amber-800 border-amber-200'
+                              }`}
+                            >
+                              {p.status === 'APPROVED' && <i className="fa-solid fa-circle-check text-[9px] text-emerald-600" />}
+                              {(p.status === 'DISAPPROVED/PROMISSORY' ||
+                                p.status?.includes('PROMISSORY') ||
+                                p.status?.includes('DISAPPROVED')) && (
+                                <i className="fa-solid fa-file-signature text-[9px] text-rose-600" />
+                              )}
+                              {p.status === 'PENDING' && <i className="fa-solid fa-clock text-[9px] text-amber-600" />}
+                              <span>{p.status || 'PENDING'}</span>
+                            </span>
+
+                            {/* Informational badges for Disapproved or Promissory assistance history */}
+                            {p.disapproved_badge && (
+                              <span
+                                className="px-2 py-0.5 rounded text-[9.5px] font-bold bg-rose-50 text-rose-700 border border-rose-200 inline-flex items-center gap-1"
+                                title="Previous assistance request was disapproved. Informational only."
+                              >
+                                <i className="fa-solid fa-ban text-[8px] text-rose-600" />
+                                <span>{p.disapproved_badge}</span>
+                              </span>
                             )}
-                            {p.status === 'PENDING' && <i className="fa-solid fa-clock text-[9px] text-amber-600" />}
-                            <span>{p.status || 'PENDING'}</span>
-                          </span>
+                            {p.promissory_badge && (
+                              <span
+                                className="px-2 py-0.5 rounded text-[9.5px] font-bold bg-purple-50 text-purple-700 border border-purple-200 inline-flex items-center gap-1"
+                                title="Previous promissory arrangement on record. Informational only."
+                              >
+                                <i className="fa-solid fa-file-signature text-[8px] text-purple-600" />
+                                <span>{p.promissory_badge}</span>
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="py-4 px-6 text-center whitespace-nowrap">
                           <Link
@@ -1063,6 +1163,160 @@ export function MSWPatientsContent({
           </div>
         </div>
       </div>
+
+      {/* MSW APPROVAL CONFIRMATION MODAL */}
+      {approvalModalReferral && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl border border-[#D5E2D9] max-w-xl w-full flex flex-col overflow-hidden shadow-2xl animate-in fade-in duration-200">
+            {/* Modal Header */}
+            <div className="px-6 py-4 bg-[#F8FBF9] border-b border-[#D5E2D9] flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-100 text-[#0B6B3A] flex items-center justify-center text-lg">
+                  <i className="fa-solid fa-file-signature" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-[#10241A]">
+                    Approve Financial Assistance Referral?
+                  </h3>
+                  <div className="text-[11px] text-[#5A7466]">
+                    Permanent ID: <span className="font-mono font-bold text-[#0B6B3A]">{approvalModalReferral.patient_id}</span>
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setApprovalModalReferral(null);
+                  setApprovalConfirmed(false);
+                }}
+                disabled={isApproving}
+                className="w-8 h-8 rounded-lg bg-white border border-[#D5E2D9] text-[#64748B] hover:text-[#10241A] flex items-center justify-center cursor-pointer transition"
+              >
+                <i className="fa-solid fa-xmark text-sm" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+              {/* Caution Guidance Note */}
+              <div className="p-3.5 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900 leading-relaxed">
+                <div className="flex items-start gap-2.5">
+                  <i className="fa-solid fa-triangle-exclamation text-amber-600 mt-0.5 text-sm shrink-0" />
+                  <div>
+                    Before approving this referral, please confirm that you have reviewed the patient's demographic information, clinical diagnosis, proposed procedure, medical quotation, supporting documents, and endorsing physician details. Once approved, this referral will be registered as an MSW-approved charity case and will proceed to the charity assessment process.
+                  </div>
+                </div>
+              </div>
+
+              {/* Review Summary Card */}
+              <div className="bg-[#FAFBF8] rounded-xl border border-[#EEF2EF] p-4 space-y-3">
+                <div className="text-xs font-bold text-[#5A7466] uppercase tracking-wider border-b border-[#EEF2EF] pb-2">
+                  Referral Review Summary
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <span className="text-[#64748B] block text-[11px]">Patient Name:</span>
+                    <span className="font-bold text-[#10241A]">{approvalModalReferral.patient_name}</span>
+                  </div>
+                  <div>
+                    <span className="text-[#64748B] block text-[11px]">Patient ID:</span>
+                    <span className="font-mono font-bold text-[#0B6B3A]">{approvalModalReferral.patient_id}</span>
+                  </div>
+                  <div>
+                    <span className="text-[#64748B] block text-[11px]">Referral Number:</span>
+                    <span className="font-mono font-bold text-[#10241A]">{approvalModalReferral.referral_no || approvalModalReferral.id}</span>
+                  </div>
+                  <div>
+                    <span className="text-[#64748B] block text-[11px]">Assistance History:</span>
+                    {approvalModalReferral.assistance_history?.is_repeat_assistance ? (
+                      <span className="inline-flex items-center gap-1 font-bold text-amber-800 text-[11px]">
+                        <i className="fa-solid fa-clock-rotate-left text-amber-600" />
+                        {approvalModalReferral.assistance_history.badge_label}
+                      </span>
+                    ) : approvalModalReferral.assistance_history?.is_first_assistance !== false ? (
+                      <span className="inline-flex items-center gap-1 font-bold text-emerald-800 text-[11px]">
+                        <i className="fa-solid fa-star text-emerald-600" />
+                        FIRST ASSISTANCE
+                      </span>
+                    ) : (
+                      <span className="font-semibold text-slate-600 text-[11px]">HISTORY NOT AVAILABLE</span>
+                    )}
+                  </div>
+                  <div className="sm:col-span-2">
+                    <span className="text-[#64748B] block text-[11px]">Diagnosis:</span>
+                    <span className="font-semibold text-[#10241A]">{approvalModalReferral.diagnosis}</span>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <span className="text-[#64748B] block text-[11px]">Surgical Procedure:</span>
+                    <span className="font-semibold text-[#0B6B3A]">{approvalModalReferral.procedure}</span>
+                  </div>
+                  <div>
+                    <span className="text-[#64748B] block text-[11px]">Medical Quotation Total:</span>
+                    <span className="font-mono font-bold text-[#0B6B3A] text-sm">
+                      ₱{Number(approvalModalReferral.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[#64748B] block text-[11px]">Endorsing Physician:</span>
+                    <span className="font-semibold text-[#10241A]">
+                      {approvalModalReferral.referring_individual || approvalModalReferral.attending_doctor || 'Dr. Roberto Reyes, MD'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Required Checkbox */}
+              <div className="pt-2">
+                <label className="flex items-start gap-3 p-3 rounded-xl border border-[#D5E2D9] bg-white hover:bg-emerald-50/50 transition cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={approvalConfirmed}
+                    onChange={(e) => setApprovalConfirmed(e.target.checked)}
+                    disabled={isApproving}
+                    className="mt-0.5 h-4 w-4 rounded text-[#0B6B3A] focus:ring-[#0B6B3A] border-gray-300 cursor-pointer"
+                  />
+                  <span className="text-xs font-semibold text-[#10241A] leading-relaxed">
+                    I confirm that I have reviewed the referral details and supporting information.
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 bg-[#F8FBF9] border-t border-[#D5E2D9] flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setApprovalModalReferral(null);
+                  setApprovalConfirmed(false);
+                }}
+                disabled={isApproving}
+                className="px-4 py-2.5 rounded-xl border border-[#D5E2D9] bg-white hover:bg-[#FAFBF8] text-xs font-bold text-[#64748B] hover:text-[#10241A] transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmApproval}
+                disabled={!approvalConfirmed || isApproving}
+                className="px-5 py-2.5 rounded-xl bg-[#0B6B3A] hover:bg-[#064826] disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold transition flex items-center gap-2 shadow-xs cursor-pointer"
+              >
+                {isApproving ? (
+                  <>
+                    <i className="fa-solid fa-circle-notch fa-spin text-xs" />
+                    <span>Approving &amp; Generating Case No...</span>
+                  </>
+                ) : (
+                  <>
+                    <i className="fa-solid fa-check text-xs" />
+                    <span>Confirm Approval</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }

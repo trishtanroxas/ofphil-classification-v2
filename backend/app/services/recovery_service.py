@@ -42,6 +42,7 @@ from app.schemas.recovery_schemas import (
     Send2FAOTPRequest,
     Send2FAOTPResponse,
     TwoFactorMethodOption,
+    TwoFactorStatusResponse,
     Verify2FARequest,
     Verify2FAResponse,
     VerifyOTPRequest,
@@ -59,8 +60,8 @@ from app.services.sms_service import mask_email, mask_mobile, normalize_ph_mobil
 
 settings = get_settings()
 
-OTP_TTL_SECONDS = 300  # 5 minutes
-PRE_AUTH_TTL_SECONDS = 900  # 15 minutes to complete 2FA
+OTP_TTL_SECONDS = 900  # 15 minutes
+PRE_AUTH_TTL_SECONDS = 1800  # 30 minutes to complete overall 2FA session
 RESET_TOKEN_TTL_SECONDS = 600  # 10 minutes
 RESEND_COOLDOWN_SECONDS = 60
 RATE_WINDOW_SECONDS = 900  # 15 minutes
@@ -753,7 +754,7 @@ class PasswordRecoveryService:
         else:
             sms_text = (
                 f"OFPHIL {role_label} 2FA: Your security code is {otp}. "
-                "Expires in 5 minutes. If you did not initiate this sign-in, secure your account immediately."
+                "Expires in 15 minutes. If you did not initiate this sign-in, secure your account immediately."
             )
             sent, err_msg = send_sms_otp(target_mobile, sms_text)
             masked_dest = mask_mobile(target_mobile)
@@ -783,6 +784,7 @@ class PasswordRecoveryService:
         sess["otp_hash"] = self._hash_secret(payload.session_id, otp)
         sess["otp_active"] = True
         sess["otp_expires_at"] = now + OTP_TTL_SECONDS
+        expires_at_iso = datetime.datetime.fromtimestamp(sess["otp_expires_at"], tz=datetime.timezone.utc).isoformat()
         sess["last_sent_at"] = now
         sess["attempts"] = 0
         self._rate_history.setdefault(rate_key, []).append(now)
@@ -803,8 +805,44 @@ class PasswordRecoveryService:
             delivery_method=payload.delivery_method,
             masked_destination=masked_dest,
             expires_in_seconds=OTP_TTL_SECONDS,
+            expires_at_utc=expires_at_iso,
             resend_cooldown_seconds=RESEND_COOLDOWN_SECONDS,
             message=msg,
+        )
+
+    def get_2fa_status(self, session_id: str) -> TwoFactorStatusResponse:
+        sess = self._sessions.get(session_id)
+        if not sess or sess.get("session_type") != "login_2fa":
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid or expired Two-Factor Authentication session. Please sign in again.",
+            )
+
+        now = time.time()
+        server_now_iso = datetime.datetime.fromtimestamp(now, tz=datetime.timezone.utc).isoformat()
+        otp_exp = float(sess.get("otp_expires_at", 0.0))
+        otp_active = bool(sess.get("otp_active") and sess.get("otp_hash") and now < otp_exp)
+        remaining_seconds = max(0, int(otp_exp - now)) if otp_active else 0
+        expires_at_iso = (
+            datetime.datetime.fromtimestamp(otp_exp, tz=datetime.timezone.utc).isoformat()
+            if otp_exp > 0
+            else None
+        )
+        last_sent = float(sess.get("last_sent_at", 0.0))
+        cd_remaining = max(0, int(RESEND_COOLDOWN_SECONDS - (now - last_sent))) if last_sent > 0 else 0
+        attempts_left = max(0, MAX_OTP_ATTEMPTS - int(sess.get("attempts", 0)))
+
+        return TwoFactorStatusResponse(
+            session_id=session_id,
+            role=sess.get("role", "patient"),
+            otp_active=otp_active,
+            delivery_method=sess.get("delivery_method"),
+            masked_destination=sess.get("masked_destination"),
+            expires_in_seconds=remaining_seconds,
+            expires_at_utc=expires_at_iso,
+            server_time_utc=server_now_iso,
+            resend_cooldown_remaining_seconds=cd_remaining,
+            attempts_remaining=attempts_left,
         )
 
     def verify_2fa(self, payload: Verify2FARequest) -> Verify2FAResponse:
