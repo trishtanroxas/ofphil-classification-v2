@@ -171,7 +171,7 @@ function PatientPortalContent() {
     try {
       localStorage.setItem(`ofphil_appointments_${pid}`, JSON.stringify(updated));
       setTimeout(() => window.dispatchEvent(new Event('ofphil-appointments-updated')), 0);
-    } catch {}
+    } catch { }
     toast.success(`Appointment request ${apptId} cancelled.`);
   };
 
@@ -202,15 +202,15 @@ function PatientPortalContent() {
       updated = appointments.map((item) =>
         item.id === editingApptId
           ? {
-              ...item,
-              appointment_type: reqApptForm.appointment_type,
-              appointment_date: reqApptForm.appointment_date,
-              appointment_time: reqApptForm.appointment_time,
-              notes: reqApptForm.notes.trim(),
-              status: 'Pending Nurse Approval',
-              requested_by: 'patient',
-              updated_at: nowStr,
-            }
+            ...item,
+            appointment_type: reqApptForm.appointment_type,
+            appointment_date: reqApptForm.appointment_date,
+            appointment_time: reqApptForm.appointment_time,
+            notes: reqApptForm.notes.trim(),
+            status: 'Pending Nurse Approval',
+            requested_by: 'patient',
+            updated_at: nowStr,
+          }
           : item
       );
       toast.success(`Appointment request (${editingApptId}) updated and sent to Admin / Nurse Desk for approval!`);
@@ -268,7 +268,7 @@ function PatientPortalContent() {
       fetchApi(`/patients/${pid}/appointments`, {
         method: 'POST',
         body: JSON.stringify(appt),
-      }).catch(() => {});
+      }).catch(() => { });
     });
     setIsSubmittingApptReq(false);
     toast.success(
@@ -281,7 +281,7 @@ function PatientPortalContent() {
     try {
       localStorage.setItem(`ofphil_appointments_${pid}`, JSON.stringify(updated));
       setTimeout(() => window.dispatchEvent(new Event('ofphil-appointments-updated')), 0);
-    } catch {}
+    } catch { }
     setReqApptModalOpen(false);
     setEditingApptId(null);
   };
@@ -395,7 +395,7 @@ function PatientPortalContent() {
       setCharityStatusData(null);
       setCharityStatusError(
         err?.message ||
-          'Access denied: Charity Assistance Status is only available to patients officially classified as a Charity Patient.'
+        'Access denied: Charity Assistance Status is only available to patients officially classified as a Charity Patient.'
       );
     } finally {
       setCharityStatusLoading(false);
@@ -455,7 +455,7 @@ function PatientPortalContent() {
               // Database classification (res.patient.category) always takes authoritative precedence
               p = { ...foundLocal, ...p, category: res.patient.category || foundLocal.category || 'REGULAR' };
             }
-          } catch {}
+          } catch { }
 
           const dbCategory = String(p.category || 'REGULAR').toUpperCase() === 'CHARITY' ? 'CHARITY' : 'REGULAR';
           if (dbCategory === 'CHARITY') {
@@ -524,7 +524,7 @@ function PatientPortalContent() {
           try {
             const sbRes = await fetchApi(`/patients/${pid}/encounters`);
             sbEncs = Array.isArray(sbRes?.encounters) ? sbRes.encounters : [];
-          } catch {}
+          } catch { }
           const apiEncs = res.encounters || [];
           const seenEnc = new Set<string>();
           const mergedEncs = [...sbEncs, ...(Array.isArray(savedEncs) ? savedEncs : []), ...apiEncs].filter((e: any) => {
@@ -542,18 +542,18 @@ function PatientPortalContent() {
       // Load dynamic Urgent Alerts & Inquiries strictly belonging to this authenticated patient (exclude public landing form submissions)
       try {
         const savedAppts = JSON.parse(localStorage.getItem(`ofphil_appointments_${pid}`) || '[]');
-      try {
-        const sbApptRes = await fetchApi(`/patients/${pid}/appointments`);
-        if (Array.isArray(sbApptRes?.appointments) && sbApptRes.appointments.length > 0) {
-          const seenA = new Set<string>();
-          const mergedA = [...sbApptRes.appointments, ...(Array.isArray(savedAppts) ? savedAppts : [])].filter((a: any) => {
-            if (!a?.id || seenA.has(a.id)) return false;
-            seenA.add(a.id);
-            return true;
-          });
-          setAppointments(mergedA);
-        }
-      } catch {}
+        try {
+          const sbApptRes = await fetchApi(`/patients/${pid}/appointments`);
+          if (Array.isArray(sbApptRes?.appointments) && sbApptRes.appointments.length > 0) {
+            const seenA = new Set<string>();
+            const mergedA = [...sbApptRes.appointments, ...(Array.isArray(savedAppts) ? savedAppts : [])].filter((a: any) => {
+              if (!a?.id || seenA.has(a.id)) return false;
+              seenA.add(a.id);
+              return true;
+            });
+            setAppointments(mergedA);
+          }
+        } catch { }
         if (Array.isArray(savedAppts)) setAppointments(savedAppts);
         const savedReadIds = JSON.parse(localStorage.getItem(`ofphil_patient_read_notifs_${pid}`) || '[]');
         if (Array.isArray(savedReadIds)) setReadNotifIds(savedReadIds);
@@ -567,8 +567,8 @@ function PatientPortalContent() {
           if (Array.isArray(inqRes?.items)) {
             setMyInquiries(inqRes.items);
           }
-        } catch {}
-      } catch (e) {}
+        } catch { }
+      } catch (e) { }
     }
     loadPatientPortalData();
 
@@ -578,13 +578,13 @@ function PatientPortalContent() {
       try {
         const savedAppts = JSON.parse(localStorage.getItem(`ofphil_appointments_${pid}`) || '[]');
         if (Array.isArray(savedAppts)) setAppointments(savedAppts);
-      } catch {}
+      } catch { }
       try {
         const savedEncs = JSON.parse(localStorage.getItem(`ofphil_encounters_${pid}`) || '[]');
         if (Array.isArray(savedEncs) && savedEncs.length > 0) {
           setEncounters(savedEncs);
         }
-      } catch {}
+      } catch { }
       try {
         const res = await fetchApi(`/patients/${pid}`);
         if (res?.patient) {
@@ -601,7 +601,7 @@ function PatientPortalContent() {
             setCharityStatusData(null);
           }
         }
-      } catch {}
+      } catch { }
     };
     syncLiveAppts();
     window.addEventListener('storage', syncLiveAppts);
@@ -790,7 +790,7 @@ function PatientPortalContent() {
         method: 'PUT',
         body: JSON.stringify(payload),
       });
-    } catch {}
+    } catch { }
 
     try {
       const list = JSON.parse(localStorage.getItem('ofphil_registered_patients') || '[]');
@@ -803,7 +803,7 @@ function PatientPortalContent() {
         list.push({ patient_id: patient.patient_id, ...payload });
       }
       localStorage.setItem('ofphil_registered_patients', JSON.stringify(list));
-    } catch {}
+    } catch { }
 
     setPatient((prev) => ({
       ...prev,
@@ -1046,16 +1046,15 @@ function PatientPortalContent() {
                           </span>
                           {charityStatusData?.application_info?.charity_application_status && (
                             <span
-                              className={`px-2.5 py-0.5 rounded-full text-[10.5px] font-extrabold border ${
-                                charityStatusData.application_info.charity_application_status === 'Approved'
-                                  ? 'bg-[#DCFCE7] text-[#15803D] border-[#86EFAC]'
-                                  : charityStatusData.application_info.charity_application_status.includes('Disapproved') ||
-                                      charityStatusData.application_info.charity_application_status.includes('Promissory')
-                                    ? 'bg-[#FEE2E2] text-[#B91C1C] border-[#FECACA]'
-                                    : charityStatusData.application_info.charity_application_status === 'No Active Charity Application'
-                                      ? 'bg-[#F1F5F9] text-[#475569] border-[#CBD5E1]'
-                                      : 'bg-[#FEF3C7] text-[#B45309] border-[#FDE68A]'
-                              }`}
+                              className={`px-2.5 py-0.5 rounded-full text-[10.5px] font-extrabold border ${charityStatusData.application_info.charity_application_status === 'Approved'
+                                ? 'bg-[#DCFCE7] text-[#15803D] border-[#86EFAC]'
+                                : charityStatusData.application_info.charity_application_status.includes('Disapproved') ||
+                                  charityStatusData.application_info.charity_application_status.includes('Promissory')
+                                  ? 'bg-[#FEE2E2] text-[#B91C1C] border-[#FECACA]'
+                                  : charityStatusData.application_info.charity_application_status === 'No Active Charity Application'
+                                    ? 'bg-[#F1F5F9] text-[#475569] border-[#CBD5E1]'
+                                    : 'bg-[#FEF3C7] text-[#B45309] border-[#FDE68A]'
+                                }`}
                             >
                               {charityStatusData.application_info.charity_application_status}
                             </span>
@@ -1157,13 +1156,13 @@ function PatientPortalContent() {
                           <div className="font-extrabold text-[#0B6B3A] mt-1">
                             {charityStatusData.eligibility_and_decision?.approved_subsidy_amount != null
                               ? `₱${Number(charityStatusData.eligibility_and_decision.approved_subsidy_amount).toLocaleString('en-PH', {
-                                  minimumFractionDigits: 2,
-                                  maximumFractionDigits: 2,
-                                })}`
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })}`
                               : charityStatusData.eligibility_and_decision?.approved_subsidy_pct != null
                                 ? `${charityStatusData.eligibility_and_decision.approved_subsidy_pct}% Approved Subsidy`
                                 : charityStatusData.eligibility_and_decision?.approved_grant_tier ||
-                                  'Awaiting Final Approval'}
+                                'Awaiting Final Approval'}
                           </div>
                           <div className="text-[10.5px] text-[#64748B] mt-0.5">
                             Updated:{' '}
@@ -1201,7 +1200,7 @@ function PatientPortalContent() {
                     </div>
                   </div>
 
-                  
+
                 </div>
 
                 {appointments.length === 0 ? (
@@ -1211,7 +1210,7 @@ function PatientPortalContent() {
                     <p className="text-[11.5px] text-[#5A7466] max-w-md m-0">
                       You may request an appointment slot between <strong>Monday and Friday (8:00 AM – 5:00 PM)</strong>. Once submitted, the Clinic Nurse / Admin will review and approve your schedule.
                     </p>
-                    
+
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1221,11 +1220,10 @@ function PatientPortalContent() {
                       return (
                         <div
                           key={appt.id}
-                          className={`rounded-xl border p-4 space-y-3 transition ${
-                            isPending
-                              ? 'border-[#FDE68A] bg-[#FFFBEB]/60'
-                              : 'border-[#D5E2D9] bg-[#FAFBF8]'
-                          }`}
+                          className={`rounded-xl border p-4 space-y-3 transition ${isPending
+                            ? 'border-[#FDE68A] bg-[#FFFBEB]/60'
+                            : 'border-[#D5E2D9] bg-[#FAFBF8]'
+                            }`}
                         >
                           <div className="flex items-center justify-between gap-2 flex-wrap">
                             <span className="font-mono text-[11px] font-bold px-2 py-0.5 rounded-md bg-white text-[#0B6B3A] border border-[#D5E2D9]">
@@ -1457,7 +1455,7 @@ function PatientPortalContent() {
                   </div>
                 );
               })()}
-              </div>
+            </div>
           )}
 
           {/* ========================================================
@@ -1926,9 +1924,9 @@ function PatientPortalContent() {
                             <div className="font-extrabold text-[#0B6B3A] mt-0.5">
                               {charityStatusData?.eligibility_and_decision?.approved_subsidy_amount != null
                                 ? `₱${Number(charityStatusData.eligibility_and_decision.approved_subsidy_amount).toLocaleString('en-PH', {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2,
-                                  })}`
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })}`
                                 : charityStatusData?.eligibility_and_decision?.approved_subsidy_pct != null
                                   ? `${charityStatusData.eligibility_and_decision.approved_subsidy_pct}% Subsidy`
                                   : 'Pending'}
@@ -1969,11 +1967,10 @@ function PatientPortalContent() {
                       {(charityStatusData?.application_progress || []).map((st: any) => (
                         <div
                           key={st.stage}
-                          className={`p-3.5 rounded-xl border flex flex-col justify-between gap-2 ${
-                            st.completed
-                              ? 'bg-[#F0F9F3] border-[#86EFAC]'
-                              : 'bg-[#FAFBF8] border-[#E2E8F0]'
-                          }`}
+                          className={`p-3.5 rounded-xl border flex flex-col justify-between gap-2 ${st.completed
+                            ? 'bg-[#F0F9F3] border-[#86EFAC]'
+                            : 'bg-[#FAFBF8] border-[#E2E8F0]'
+                            }`}
                         >
                           <div>
                             <div className="flex items-center justify-between gap-1">
@@ -1981,11 +1978,10 @@ function PatientPortalContent() {
                                 Stage {st.stage}
                               </span>
                               <i
-                                className={`fa-solid ${
-                                  st.completed
-                                    ? 'fa-circle-check text-[#0B6B3A]'
-                                    : 'fa-circle-dot text-[#94A3B8]'
-                                }`}
+                                className={`fa-solid ${st.completed
+                                  ? 'fa-circle-check text-[#0B6B3A]'
+                                  : 'fa-circle-dot text-[#94A3B8]'
+                                  }`}
                               />
                             </div>
                             <div className="font-bold text-[#10241A] mt-1.5 leading-snug">{st.title}</div>
@@ -1995,11 +1991,10 @@ function PatientPortalContent() {
                           </div>
                           <div className="pt-2 border-t border-[#E2ECE5]">
                             <span
-                              className={`inline-block px-2 py-0.5 rounded text-[10px] font-extrabold ${
-                                st.completed
-                                  ? 'bg-[#0B6B3A] text-white'
-                                  : 'bg-[#E2E8F0] text-[#475569]'
-                              }`}
+                              className={`inline-block px-2 py-0.5 rounded text-[10px] font-extrabold ${st.completed
+                                ? 'bg-[#0B6B3A] text-white'
+                                : 'bg-[#E2E8F0] text-[#475569]'
+                                }`}
                             >
                               {st.status}
                             </span>
@@ -2155,7 +2150,7 @@ function PatientPortalContent() {
                       </p>
                     </div>
                   </div>
-                  
+
                 </div>
 
                 {/* Summary Metrics */}
@@ -2186,11 +2181,10 @@ function PatientPortalContent() {
                         key={statusKey}
                         type="button"
                         onClick={() => setApptHistoryFilter(statusKey)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                          apptHistoryFilter === statusKey
-                            ? 'bg-[#0B6B3A] text-white'
-                            : 'bg-[#F1F5F9] text-[#475569] hover:bg-[#E2E8F0]'
-                        }`}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${apptHistoryFilter === statusKey
+                          ? 'bg-[#0B6B3A] text-white'
+                          : 'bg-[#F1F5F9] text-[#475569] hover:bg-[#E2E8F0]'
+                          }`}
                       >
                         {statusKey === 'all' ? 'All Records' : statusKey}
                       </button>
@@ -2234,15 +2228,14 @@ function PatientPortalContent() {
                             <div className="space-y-1.5">
                               <div className="flex flex-wrap items-center gap-2">
                                 <span
-                                  className={`px-2.5 py-0.5 rounded-full text-[10.5px] font-bold uppercase ${
-                                    isScheduled
-                                      ? 'bg-emerald-100 text-emerald-800'
-                                      : isPending
-                                        ? 'bg-amber-100 text-amber-800'
-                                        : isCompleted
-                                          ? 'bg-blue-100 text-blue-800'
-                                          : 'bg-slate-200 text-slate-700'
-                                  }`}
+                                  className={`px-2.5 py-0.5 rounded-full text-[10.5px] font-bold uppercase ${isScheduled
+                                    ? 'bg-emerald-100 text-emerald-800'
+                                    : isPending
+                                      ? 'bg-amber-100 text-amber-800'
+                                      : isCompleted
+                                        ? 'bg-blue-100 text-blue-800'
+                                        : 'bg-slate-200 text-slate-700'
+                                    }`}
                                 >
                                   {appt.status}
                                 </span>
@@ -2394,7 +2387,7 @@ function PatientPortalContent() {
               try {
                 localStorage.setItem(`ofphil_patient_read_notifs_${pid}`, JSON.stringify(next));
                 setTimeout(() => window.dispatchEvent(new Event('ofphil-patient-notifs-updated')), 0);
-              } catch {}
+              } catch { }
             };
 
             const handleMarkAllRead = () => {
@@ -2403,7 +2396,7 @@ function PatientPortalContent() {
               try {
                 localStorage.setItem(`ofphil_patient_read_notifs_${pid}`, JSON.stringify(allIds));
                 setTimeout(() => window.dispatchEvent(new Event('ofphil-patient-notifs-updated')), 0);
-              } catch {}
+              } catch { }
               toast.success('All notifications marked as read!');
             };
 
@@ -2421,11 +2414,10 @@ function PatientPortalContent() {
                           Patient Notifications &amp; Clinic Alerts
                         </h2>
                         <span
-                          className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${
-                            unreadCount > 0
-                              ? 'bg-red-50 text-red-700 border-red-200'
-                              : 'bg-[#E8F5EC] text-[#0B6B3A] border-[#A7F3D0]'
-                          }`}
+                          className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${unreadCount > 0
+                            ? 'bg-red-50 text-red-700 border-red-200'
+                            : 'bg-[#E8F5EC] text-[#0B6B3A] border-[#A7F3D0]'
+                            }`}
                         >
                           {unreadCount} Unread / {unifiedNotifs.length} Total
                         </span>
@@ -2465,11 +2457,10 @@ function PatientPortalContent() {
                       {paginatedNotifs.map((n) => (
                         <div
                           key={n.id}
-                          className={`p-5 rounded-2xl border transition shadow-xs flex flex-col gap-3 ${
-                            n.isRead
-                              ? 'bg-white border-[#E2E8F0]'
-                              : 'bg-[#F0FDF4]/50 border-[#A7F3D0]'
-                          }`}
+                          className={`p-5 rounded-2xl border transition shadow-xs flex flex-col gap-3 ${n.isRead
+                            ? 'bg-white border-[#E2E8F0]'
+                            : 'bg-[#F0FDF4]/50 border-[#A7F3D0]'
+                            }`}
                         >
                           <div className="flex items-start gap-3.5 min-w-0 flex-1">
                             <div className="w-10 h-10 rounded-xl bg-white border border-[#D5E2D9] flex items-center justify-center text-base shrink-0 shadow-2xs">
@@ -2481,11 +2472,10 @@ function PatientPortalContent() {
                                   {n.category}
                                 </span>
                                 <span
-                                  className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
-                                    n.isRead
-                                      ? 'bg-slate-100 text-slate-600'
-                                      : 'bg-[#DC2626] text-white'
-                                  }`}
+                                  className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${n.isRead
+                                    ? 'bg-slate-100 text-slate-600'
+                                    : 'bg-[#DC2626] text-white'
+                                    }`}
                                 >
                                   {n.isRead ? 'READ' : 'UNREAD'}
                                 </span>
@@ -2989,11 +2979,10 @@ function PatientPortalContent() {
                       key={t.key}
                       type="button"
                       onClick={() => setSettingsActiveSubTab(t.key)}
-                      className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer border-0 ${
-                        settingsActiveSubTab === t.key
-                          ? 'text-[#0B6B3A] border-b-2 border-[#0B6B3A] bg-[#E8F5EC]/60 font-bold'
-                          : 'text-[#64748B] hover:text-[#10241A] hover:bg-[#F8FAFC]'
-                      }`}
+                      className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer border-0 ${settingsActiveSubTab === t.key
+                        ? 'text-[#0B6B3A] border-b-2 border-[#0B6B3A] bg-[#E8F5EC]/60 font-bold'
+                        : 'text-[#64748B] hover:text-[#10241A] hover:bg-[#F8FAFC]'
+                        }`}
                     >
                       <i className={`fa-solid ${t.icon} text-xs`} />
                       <span>{t.label}</span>
@@ -3411,15 +3400,14 @@ function PatientPortalContent() {
                               type="button"
                               disabled={disabled}
                               onClick={() => handleReqDateChange(iso)}
-                              className={`h-8 rounded-lg text-[11px] font-bold flex items-center justify-center transition border-0 ${
-                                isSelected
-                                  ? 'bg-[#0B6B3A] text-white shadow-xs cursor-pointer'
-                                  : disabled
-                                    ? 'text-[#94A3B8] opacity-40 cursor-not-allowed bg-transparent'
-                                    : isToday
-                                      ? 'bg-[#E8F5EC] text-[#0B6B3A] ring-1 ring-[#0B6B3A] cursor-pointer hover:bg-[#0B6B3A] hover:text-white'
-                                      : 'bg-white text-[#10241A] hover:bg-[#E8F5EC] hover:text-[#0B6B3A] cursor-pointer'
-                              }`}
+                              className={`h-8 rounded-lg text-[11px] font-bold flex items-center justify-center transition border-0 ${isSelected
+                                ? 'bg-[#0B6B3A] text-white shadow-xs cursor-pointer'
+                                : disabled
+                                  ? 'text-[#94A3B8] opacity-40 cursor-not-allowed bg-transparent'
+                                  : isToday
+                                    ? 'bg-[#E8F5EC] text-[#0B6B3A] ring-1 ring-[#0B6B3A] cursor-pointer hover:bg-[#0B6B3A] hover:text-white'
+                                    : 'bg-white text-[#10241A] hover:bg-[#E8F5EC] hover:text-[#0B6B3A] cursor-pointer'
+                                }`}
                             >
                               {day}
                             </button>
@@ -3458,11 +3446,10 @@ function PatientPortalContent() {
                           key={slot}
                           type="button"
                           onClick={() => setReqApptForm({ ...reqApptForm, appointment_time: slot })}
-                          className={`w-full px-3 py-2 rounded-lg text-[11.5px] font-bold flex items-center justify-between transition cursor-pointer border ${
-                            active
-                              ? 'bg-[#0B6B3A] text-white border-[#A7F3D0] shadow-xs'
-                              : 'bg-white text-[#10241A] border-[#E2E8F0] hover:border-[#0B6B3A] hover:bg-[#E8F5EC]/50'
-                          }`}
+                          className={`w-full px-3 py-2 rounded-lg text-[11.5px] font-bold flex items-center justify-between transition cursor-pointer border ${active
+                            ? 'bg-[#0B6B3A] text-white border-[#A7F3D0] shadow-xs'
+                            : 'bg-white text-[#10241A] border-[#E2E8F0] hover:border-[#0B6B3A] hover:bg-[#E8F5EC]/50'
+                            }`}
                         >
                           <span>
                             <i className={`fa-regular fa-clock mr-2 ${active ? 'text-[#A7F3D0]' : 'text-[#0B6B3A]'}`} />
@@ -3617,9 +3604,8 @@ function PatientPortalContent() {
                       >
                         <div className="flex items-center gap-2 min-w-0">
                           <i
-                            className={`fa-solid ${
-                              att.file_type === 'pdf' ? 'fa-file-pdf text-red-600' : 'fa-file-image text-[#0B6B3A]'
-                            } text-sm shrink-0`}
+                            className={`fa-solid ${att.file_type === 'pdf' ? 'fa-file-pdf text-red-600' : 'fa-file-image text-[#0B6B3A]'
+                              } text-sm shrink-0`}
                           />
                           <div className="min-w-0">
                             <div className="font-semibold text-[#10241A] truncate">{att.original_filename}</div>

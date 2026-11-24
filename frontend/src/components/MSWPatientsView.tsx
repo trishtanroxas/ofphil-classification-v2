@@ -30,6 +30,7 @@ export interface PatientRecordItem {
   assistance_history?: any;
   disapproved_badge?: string;
   promissory_badge?: string;
+  charity_case_no?: string;
 }
 
 export interface ReferralRecordItem {
@@ -1038,6 +1039,7 @@ export function MSWPatientsContent({
                     <tr>
                       <th className="py-3.5 px-6 font-semibold">{activeTab === 'charity' ? 'Charity No. (MSW)' : 'Patient ID'}</th>
                       <th className="py-3.5 px-6 font-semibold">Patient Name</th>
+                      <th className="py-3.5 px-6 font-semibold">Contact Number</th>
                       <th className="py-3.5 px-6 font-semibold">Age / Sex</th>
                       <th className="py-3.5 px-6 font-semibold">Residence</th>
                       <th className="py-3.5 px-6 font-semibold">Diagnosis</th>
@@ -1049,13 +1051,16 @@ export function MSWPatientsContent({
                     {paginatedPatients.map((p) => (
                       <tr key={p.id || p.patient_id} className="hover:bg-[#FAFBF8] transition">
                         <td className="py-4 px-6 font-mono font-bold text-[#10241A] whitespace-nowrap">
-                          {p.patient_id}
+                          {activeTab === 'charity' ? (p.charity_case_no || p.patient_id) : p.patient_id}
                         </td>
                         <td className="py-4 px-6 font-medium text-[#10241A] whitespace-nowrap">
                           <div className="font-bold text-[#10241A]">
                             {p.first_name} {p.last_name}
                           </div>
-                          <div className="text-[11px] text-[#64748B]">{p.contact || 'No phone recorded'}</div>
+                          <div className="text-[11px] text-[#64748B] font-mono">{p.patient_id}</div>
+                        </td>
+                        <td className="py-4 px-6 font-mono text-xs text-[#10241A] whitespace-nowrap">
+                          {p.contact || 'No phone recorded'}
                         </td>
                         <td className="py-4 px-6 text-[#5A7466] whitespace-nowrap">
                           {p.age ?? '—'} yrs &bull; {p.sex}

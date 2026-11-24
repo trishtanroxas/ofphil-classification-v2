@@ -6,7 +6,8 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useLoadingScreen } from '@/context/LoadingScreenContext';
 import { DashboardLayout } from '@/components/DashboardLayout';
-import { getApiUrl } from '@/lib/api';
+import { getApiUrl, fetchApi } from '@/lib/api';
+import { toast } from 'sonner';
 
 type DossierTabId =
   | 'profile'
@@ -71,6 +72,41 @@ function MSWDossierContent() {
 
   // Document preview modal state
   const [previewDoc, setPreviewDoc] = useState<any | null>(null);
+  const [approvingReferralId, setApprovingReferralId] = useState<string | null>(null);
+
+  const handleApproveReferralDirect = async (ref: any) => {
+    if (!ref || approvingReferralId) return;
+    setApprovingReferralId(ref.id);
+    try {
+      const res = await fetchApi(`/referrals/${encodeURIComponent(ref.id)}/approve`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-role': 'msw',
+          'x-user-id': mswUserId,
+        },
+        body: JSON.stringify({
+          patient_id: patientId,
+          notes: 'Direct approval via Unified Patient Dossier Financial Referral tab.',
+        }),
+      });
+
+      if (res && res.referral) {
+        toast.success(`Referral ${ref.id} approved! Charity Case No: ${res.referral.charity_case_no || 'Assigned'}`);
+        setPatient((prev: any) => (prev ? { ...prev, category: 'CHARITY', status: 'APPROVED' } : prev));
+        setReferrals((prev) =>
+          prev.map((r) => (r.id === ref.id ? res.referral : r))
+        );
+        loadDossierData();
+      } else {
+        toast.error('Failed to approve referral. Please try again.');
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'Error occurred while approving referral.');
+    } finally {
+      setApprovingReferralId(null);
+    }
+  };
 
   // Inquiry reply state
   const [selectedInquiry, setSelectedInquiry] = useState<any | null>(null);
@@ -1641,7 +1677,23 @@ function MSWDossierContent() {
                             <span>Start Assessment</span>
                           </Link>
                         );
-                      })() : (
+                      })() : role === 'msw' && ref.status !== 'MSW APPROVED' && !ref.charity_case_no ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200">
+                            Awaiting MSW Review &amp; Approval
+                          </span>
+                          <button
+                            type="button"
+                            disabled={approvingReferralId === ref.id}
+                            onClick={() => handleApproveReferralDirect(ref)}
+                            className="px-3.5 py-1.5 rounded-xl bg-[#0B6B3A] hover:bg-[#064826] text-white text-xs font-bold transition inline-flex items-center gap-1.5 shadow-2xs cursor-pointer disabled:opacity-50"
+                            title="Directly approve this clinical referral and assign Charity Case Number"
+                          >
+                            <i className={`fa-solid ${approvingReferralId === ref.id ? 'fa-spinner fa-spin' : 'fa-check'} text-xs`} />
+                            <span>{approvingReferralId === ref.id ? 'Approving...' : 'Approve Referral'}</span>
+                          </button>
+                        </div>
+                      ) : (
                         <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200">
                           Awaiting MSW Review &amp; Approval
                         </span>

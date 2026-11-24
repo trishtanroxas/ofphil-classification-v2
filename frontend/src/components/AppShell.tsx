@@ -399,18 +399,20 @@ export function Sidebar({
                       <i className="fa-solid fa-users text-[10px] w-3 text-center" />
                       <span>All Patients</span>
                     </Link>
-                    <Link
-                      href="/admin/patient-records/charity"
-                      onClick={(e) => handleNavClick(e, '/admin/patient-records/charity')}
-                      className={`flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition ${
-                        pathname === '/admin/patient-records/charity'
-                          ? 'text-white font-semibold bg-white/20 shadow-xs ring-1 ring-white/25'
-                          : 'text-[#B4CEBE] hover:text-white hover:bg-white/5'
-                      }`}
-                    >
-                      <i className="fa-solid fa-hand-holding-heart text-[10px] w-3 text-center text-[#86EFAC]" />
-                      <span>Charity Patients</span>
-                    </Link>
+                    {role !== 'nurse' && (
+                      <Link
+                        href="/admin/patient-records/charity"
+                        onClick={(e) => handleNavClick(e, '/admin/patient-records/charity')}
+                        className={`flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition ${
+                          pathname === '/admin/patient-records/charity'
+                            ? 'text-white font-semibold bg-white/20 shadow-xs ring-1 ring-white/25'
+                            : 'text-[#B4CEBE] hover:text-white hover:bg-white/5'
+                        }`}
+                      >
+                        <i className="fa-solid fa-hand-holding-heart text-[10px] w-3 text-center text-[#86EFAC]" />
+                        <span>Charity Patients</span>
+                      </Link>
+                    )}
                     <Link
                       href="/admin/patient-records/regular"
                       onClick={(e) => handleNavClick(e, '/admin/patient-records/regular')}
@@ -651,20 +653,6 @@ export function Sidebar({
                   </div>
                 )}
               </div>
-
-              {/* Dedicated Menu Item: Referrals for Financial Assistance */}
-              <Link
-                href="/patients/referrals"
-                onClick={(e) => handleNavClick(e, '/patients/referrals')}
-                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${pathname === '/patients/referrals'
-                  ? 'bg-[#0B6B3A] text-white font-semibold shadow-xs'
-                  : 'text-[#D5E2D9] hover:bg-white/10 hover:text-white'
-                  }`}
-                title="Referrals for Financial Assistance"
-              >
-                <i className="fa-solid fa-file-invoice-dollar text-sm shrink-0 w-4 text-center text-white" />
-                {!collapsed && <span className="truncate">Financial Referrals</span>}
-              </Link>
 
               {/* Evidential Documents */}
               <Link

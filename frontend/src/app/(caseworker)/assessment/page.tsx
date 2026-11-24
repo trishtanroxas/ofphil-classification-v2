@@ -70,7 +70,17 @@ function MSWAssessmentContent() {
           setPatientLoadError(`Patient record '${patientIdParam}' could not be found.`);
           return;
         }
-        const p = res.patient;
+        let p = { ...res.patient };
+        try {
+          const localList = JSON.parse(localStorage.getItem('ofphil_registered_patients') || '[]');
+          const matched = Array.isArray(localList)
+            ? localList.find((item: any) => String(item.patient_id || '').toUpperCase() === (p.patient_id || patientIdParam).toUpperCase())
+            : null;
+          if (matched) {
+            p = { ...matched, ...p };
+          }
+        } catch {}
+
         const pid = p.patient_id || patientIdParam;
         setCanonicalPatientId(pid);
         setCharityCaseNo(p.charity_case_no || '');
@@ -103,17 +113,45 @@ function MSWAssessmentContent() {
         setPatCivilStatus(p.civil_status || 'Single');
         setPatContact(p.contact || '');
         setPatEmail(p.email || '');
-        setPatAddress(p.perm_street || p.address || '');
+
+        // Pre-fill permanent & alternative address
+        const fullPermAddr = [p.perm_street, p.perm_barangay, p.perm_city, p.perm_province].filter(Boolean).join(', ');
+        setPatAddress(fullPermAddr || p.address || p.residence_city || '');
         setPatBarangay(p.perm_barangay || '');
         setPatCity(p.perm_city || p.residence_city || '');
         setPatProvince(p.perm_province || p.residence_region || '');
         setPatRegion(p.residence_region || p.perm_province || '');
-        setPatAltAddress(p.alt_street ? `${p.alt_street}, ${p.alt_barangay || ''}, ${p.alt_city || ''}` : '');
+
+        const fullAltAddr = [p.alt_street, p.alt_barangay, p.alt_city, p.alt_province].filter(Boolean).join(', ');
+        setPatAltAddress(fullAltAddr || '');
+
         setPatOccupation(p.occupation || '');
         setPatEmploymentStatus(p.employment_status || '');
-        setPatIncome(p.monthly_household_income !== undefined ? String(p.monthly_household_income) : '0.0');
+        const rawInc = p.monthly_income !== undefined ? p.monthly_income : (p.monthly_household_income !== undefined ? p.monthly_household_income : p.income);
+        setPatIncome(rawInc !== undefined && rawInc !== null ? String(rawInc) : '0.0');
         setPatEducation(p.educational_attainment || 'High School');
         setPatNumDependents(p.num_dependents !== undefined ? String(p.num_dependents) : '0');
+
+        // Sectoral Membership Pre-fill
+        const secStr = String(p.sectoral_membership || '').toLowerCase();
+        const isSenior = (Number(calcAge) >= 60) || secStr.includes('senior');
+        const isPwd = secStr.includes('pwd') || String(p.disability_status || '').toLowerCase().includes('pwd');
+        setSectoral({
+          artisanalFisherfolk: secStr.includes('fisherfolk'),
+          seniorCitizens: isSenior,
+          urbanPoor: secStr.includes('urban poor') || secStr.includes('indigent'),
+          victimsOfDisasters: secStr.includes('disaster') || secStr.includes('calamity'),
+          farmersLandless: secStr.includes('farmer'),
+          informalSector: secStr.includes('informal') || secStr.includes('driver') || secStr.includes('vendor'),
+          pwd: isPwd,
+          indigenousPeoples: secStr.includes('indigenous'),
+          formalLaborMigrant: secStr.includes('migrant') || secStr.includes('ofw'),
+        });
+        if (isPwd) {
+          setDisabilityStatus('PWD Verified');
+        } else if (p.disability_status) {
+          setDisabilityStatus(p.disability_status);
+        }
 
         if (p.diagnosis) {
           setAdmittingDiagnosis(p.diagnosis);
@@ -404,16 +442,12 @@ function MSWAssessmentContent() {
     ? 'bg-amber-50 border-amber-300'
     : 'bg-[#F8FAFC] border-[#CBD5E1]';
 
-  // STAGE 3: Supporting Documents Checklist State
+  // STAGE 3: Supporting Documents Checklist State (4 Required Documents)
   const [docStatuses, setDocStatuses] = useState<Record<string, 'Pending' | 'Submitted' | 'Verified' | 'N/A'>>({
-    'REFERRAL FORM': 'Pending',
     'SIGNED CERTIFICATE OF INDIGENCY': 'Pending',
     'GOVERNMENT ISSUED ID': 'Pending',
-    'MEDICAL CERTIFICATE / QUOTATION': 'Pending',
-    'LANDLORD’S CONFIRMATION': 'Pending',
     'ELECTRICITY BILL': 'Pending',
     'WATER BILL': 'Pending',
-    'PAY SLIP OF EMPLOYMENT': 'Pending',
   });
 
   const verifiedDocsCount = Object.values(docStatuses).filter((s) => s === 'Verified' || s === 'Submitted').length;
@@ -3383,22 +3417,18 @@ function MSWAssessmentContent() {
                     PATIENT: NEW PATIENT APPLICANT
                   </span>
                   <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-white text-[#0B6B3A]">
-                    {verifiedDocsCount} / 8 VERIFIED
+                    {verifiedDocsCount} / 4 VERIFIED
                   </span>
                 </div>
               </div>
 
-              {/* Grid of 8 Required Documents (Image 4) */}
+              {/* Grid of 4 Required Documents */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 {[
-                  { id: '1. REFERRAL FORM', sub: 'Hospital, Doctor, LGU or Clinic Referral Letter' },
-                  { id: '2. SIGNED CERTIFICATE OF INDIGENCY', sub: 'From City Hall / MSWDO / Barangay' },
-                  { id: '3. GOVERNMENT ISSUED ID', sub: 'PhilSys National ID, Senior Citizen, UMID, Driver’s License, Voter’s' },
-                  { id: '4. MEDICAL CERTIFICATE / QUOTATION', sub: 'Certificate of Other Physician / Prescription / Receipt of Expenses' },
-                  { id: '5. LANDLORD’S CONFIRMATION', sub: 'Lease agreement or certified non-tenancy (if renting)' },
-                  { id: '6. ELECTRICITY BILL', sub: 'Recent Meralco or provincial cooperative power bill' },
-                  { id: '7. WATER BILL', sub: 'Recent Manila Water / Maynilad / Local Water District bill' },
-                  { id: '8. PAY SLIP OF EMPLOYMENT', sub: 'Latest payslip, Certificate of Employment & Compensation (or N/A if informal/unemployed)' },
+                  { id: '1. SIGNED CERTIFICATE OF INDIGENCY', key: 'SIGNED CERTIFICATE OF INDIGENCY', sub: 'From City Hall / MSWDO / Barangay' },
+                  { id: '2. GOVERNMENT ISSUED ID', key: 'GOVERNMENT ISSUED ID', sub: 'PhilSys National ID, Senior Citizen, UMID, Driver’s License, Voter’s' },
+                  { id: '3. ELECTRICITY BILL', key: 'ELECTRICITY BILL', sub: 'Recent Meralco or provincial cooperative power bill' },
+                  { id: '4. WATER BILL', key: 'WATER BILL', sub: 'Recent Manila Water / Maynilad / Local Water District bill' },
                 ].map((doc) => (
                   <div key={doc.id} className="p-3.5 rounded-xl border border-[#CBD5E1] bg-white space-y-2">
                     <div className="font-bold text-[11px] text-[#1E293B] leading-snug">{doc.id}</div>
@@ -3406,10 +3436,11 @@ function MSWAssessmentContent() {
 
                     <div className="flex items-center justify-between pt-2 border-t border-[#EEF2EF]">
                       <select
-                        value={docStatuses[doc.id] || 'Pending'}
+                        value={docStatuses[doc.key] || docStatuses[doc.id] || 'Pending'}
                         onChange={(e) =>
                           setDocStatuses({
                             ...docStatuses,
+                            [doc.key]: e.target.value as any,
                             [doc.id]: e.target.value as any,
                           })
                         }
@@ -3464,12 +3495,12 @@ function MSWAssessmentContent() {
                 </div>
               </div>
 
-              {/* REAL DOCUMENT AUTHENTICITY API UPLOAD & VERIFICATION QUEUE */}
+              {/* REAL DOCUMENT AUTHENTICITY & VERIFICATION UPLOAD QUEUE */}
               <div className="p-4 rounded-xl border border-[#CBD5E1] bg-[#F8FAFC] space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <div className="font-bold text-xs text-[#10241A]">
-                      Document Authenticity API — Secure Upload, OCR &amp; Forensics
+                      Document Authenticity &amp; Verification — Secure Upload, OCR &amp; Forensics
                     </div>
                     <div className="text-[11px] text-[#64748B]">
                       Originals are stored immutably with SHA-256 verification. Automated checks are indicators only and never auto-reject applicants.
@@ -3481,14 +3512,10 @@ function MSWAssessmentContent() {
                       onChange={(e) => setSelectedUploadCategory(e.target.value)}
                       className="h-8 px-2.5 border border-[#CBD5E1] rounded-lg text-xs bg-white font-medium"
                     >
-                      <option value="REFERRAL FORM">1. Referral Form</option>
-                      <option value="SIGNED CERTIFICATE OF INDIGENCY">2. Certificate of Indigency</option>
-                      <option value="GOVERNMENT ISSUED ID">3. Government Issued ID</option>
-                      <option value="MEDICAL CERTIFICATE / QUOTATION">4. Medical Certificate / Quotation</option>
-                      <option value="LANDLORD’S CONFIRMATION">5. Landlord’s Confirmation</option>
-                      <option value="ELECTRICITY BILL">6. Electricity Bill</option>
-                      <option value="WATER BILL">7. Water Bill</option>
-                      <option value="PAY SLIP OF EMPLOYMENT">8. Pay Slip / Employment Cert</option>
+                      <option value="SIGNED CERTIFICATE OF INDIGENCY">1. Certificate of Indigency</option>
+                      <option value="GOVERNMENT ISSUED ID">2. Government Issued ID</option>
+                      <option value="ELECTRICITY BILL">3. Electricity Bill</option>
+                      <option value="WATER BILL">4. Water Bill</option>
                     </select>
 
                     <label className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#0B6B3A] hover:bg-[#064826] text-white text-xs font-bold cursor-pointer transition">
@@ -3701,7 +3728,7 @@ function MSWAssessmentContent() {
                       <strong>Manually Reviewed:</strong> {patientDocs.filter((d) => d.manual_review).length}
                     </div>
                     <div>
-                      <strong>Checklist Verified:</strong> {verifiedDocsCount} / 8 items
+                      <strong>Checklist Verified:</strong> {verifiedDocsCount} / 4 items
                     </div>
                   </div>
                   <div className="p-2.5 rounded-lg bg-[#F8FAFC] border border-[#CBD5E1] text-[11px] space-y-1">

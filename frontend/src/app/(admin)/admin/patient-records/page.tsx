@@ -33,12 +33,13 @@ export default function PatientRecordsPage(props: any) {
   const initialTab = props?.initialTab;
   const router = useRouter();
   const { role } = useAuth();
+  const isNurse = role === 'nurse';
   const { startProgress } = useLoadingScreen();
   const searchParams = useSearchParams();
   const tabFromQuery = searchParams?.get('tab');
 
   const defaultTab = initialTab || (
-    tabFromQuery === 'charity'
+    tabFromQuery === 'charity' && !isNurse
       ? 'charity'
       : tabFromQuery === 'regular' || tabFromQuery === 'non-charity'
         ? 'regular'
@@ -106,7 +107,8 @@ export default function PatientRecordsPage(props: any) {
     return patients.filter((p) => {
       // Tab filter
       if (activeTab === 'charity' && p.category !== 'CHARITY') return false;
-      if (activeTab === 'regular' && p.category !== 'REGULAR') return false;
+      // Dual classification: Charity patients are simultaneously treated as Regular patients
+      if (activeTab === 'regular' && p.category !== 'REGULAR' && p.category !== 'CHARITY') return false;
       if (activeTab === 'with-accounts') {
         const hasAcct = p.has_account === true && p.category !== 'CHARITY';
         if (!hasAcct) return false;
@@ -114,8 +116,9 @@ export default function PatientRecordsPage(props: any) {
 
       // Dropdown filters
       if (sexFilter !== 'All' && p.sex !== sexFilter) return false;
-      if (categoryFilter !== 'All' && p.category !== categoryFilter) return false;
-      if (statusFilter !== 'All' && p.status !== statusFilter) return false;
+      if (categoryFilter === 'CHARITY' && p.category !== 'CHARITY') return false;
+      if (categoryFilter === 'REGULAR' && p.category !== 'REGULAR' && p.category !== 'CHARITY') return false;
+      if (!isNurse && statusFilter !== 'All' && p.status !== statusFilter) return false;
 
       // Search text
       if (searchQuery.trim()) {
@@ -127,12 +130,12 @@ export default function PatientRecordsPage(props: any) {
       }
       return true;
     });
-  }, [patients, activeTab, sexFilter, categoryFilter, statusFilter, searchQuery]);
+  }, [patients, activeTab, sexFilter, categoryFilter, statusFilter, searchQuery, isNurse]);
 
-  // Dynamic counts
+  // Dynamic counts: Charity patients are simultaneously counted in Regular
   const totalCount = patients.length;
   const charityCount = patients.filter((p) => p.category === 'CHARITY').length;
-  const regularCount = patients.filter((p) => p.category === 'REGULAR').length;
+  const regularCount = patients.filter((p) => p.category === 'REGULAR' || p.category === 'CHARITY').length;
   const withAccountsCount = patients.filter((p) => p.has_account === true && p.category !== 'CHARITY').length;
 
   // CSV Export
@@ -322,12 +325,14 @@ export default function PatientRecordsPage(props: any) {
                 Total: <strong className="text-[#10241A] font-bold">{totalCount}</strong>
               </span>
             </span>
-            <span className="flex items-center gap-2 font-medium text-[#5A7466]">
-              <span className="w-2 h-2 rounded-full bg-[#0B6B3A] inline-block" />
-              <span>
-                Charity: <strong className="text-[#10241A] font-bold">{charityCount}</strong>
+            {!isNurse && (
+              <span className="flex items-center gap-2 font-medium text-[#5A7466]">
+                <span className="w-2 h-2 rounded-full bg-[#0B6B3A] inline-block" />
+                <span>
+                  Charity: <strong className="text-[#10241A] font-bold">{charityCount}</strong>
+                </span>
               </span>
-            </span>
+            )}
             <span className="flex items-center gap-2 font-medium text-[#5A7466]">
               <span className="w-2 h-2 rounded-full bg-slate-500 inline-block" />
               <span>
@@ -370,23 +375,25 @@ export default function PatientRecordsPage(props: any) {
                 </span>
               </button>
 
-              <button
-                type="button"
-                onClick={() => {
-                  startProgress();
-                  setActiveTab('charity');
-                }}
-                className={`px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition text-xs cursor-pointer border ${activeTab === 'charity'
-                  ? 'bg-[#E8F5EC] border-[#0B6B3A] text-[#0B6B3A] font-bold shadow-xs'
-                  : 'border-transparent text-[#5A7466] hover:text-[#10241A] hover:bg-white'
-                  }`}
-              >
-                <i className="fa-solid fa-hand-holding-heart text-xs" />
-                <span>Charity Patients</span>
-                <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${activeTab === 'charity' ? 'bg-[#0B6B3A] text-white' : 'bg-white border border-[#D5E2D9]'}`}>
-                  {charityCount}
-                </span>
-              </button>
+              {!isNurse && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    startProgress();
+                    setActiveTab('charity');
+                  }}
+                  className={`px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition text-xs cursor-pointer border ${activeTab === 'charity'
+                    ? 'bg-[#E8F5EC] border-[#0B6B3A] text-[#0B6B3A] font-bold shadow-xs'
+                    : 'border-transparent text-[#5A7466] hover:text-[#10241A] hover:bg-white'
+                    }`}
+                >
+                  <i className="fa-solid fa-hand-holding-heart text-xs" />
+                  <span>Charity Patients</span>
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${activeTab === 'charity' ? 'bg-[#0B6B3A] text-white' : 'bg-white border border-[#D5E2D9]'}`}>
+                    {charityCount}
+                  </span>
+                </button>
+              )}
 
               <button
                 type="button"
@@ -478,32 +485,35 @@ export default function PatientRecordsPage(props: any) {
                     </>
                   )}
                 </th>
-                <th className="py-2.5 px-4 font-semibold whitespace-nowrap">
-                  Status:{' '}
-                  <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="ml-1 text-[10px] bg-transparent border-0 font-bold text-[#10241A] focus:outline-none cursor-pointer"
-                  >
-                    <option value="All">All ▼</option>
-                    <option value="APPROVED">Approved</option>
-                    {activeTab !== 'regular' && (
-                      <>
-                        <option value="DISAPPROVED/PROMISSORY">Disapproved / Promissory</option>
-                        <option value="PENDING">Pending</option>
-                      </>
-                    )}
-                    {activeTab !== 'charity' && (
-                      <option value="FIRST-TIME">First-Time</option>
-                    )}
-                  </select>
-                </th>
+                {!isNurse && (
+                  <th className="py-2.5 px-4 font-semibold whitespace-nowrap">
+                    Status:{' '}
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                      className="ml-1 text-[10px] bg-transparent border-0 font-bold text-[#10241A] focus:outline-none cursor-pointer"
+                    >
+                      <option value="All">All ▼</option>
+                      <option value="APPROVED">Approved</option>
+                      {activeTab !== 'regular' && (
+                        <>
+                          <option value="DISAPPROVED/PROMISSORY">Disapproved / Promissory</option>
+                          <option value="PENDING">Pending</option>
+                        </>
+                      )}
+                      {activeTab !== 'charity' && (
+                        <option value="FIRST-TIME">First-Time</option>
+                      )}
+                    </select>
+                  </th>
+                )}
+                <th className="py-2.5 px-4 font-semibold text-center whitespace-nowrap">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#EEF2EF]">
               {isLoading ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-[#64748B]">
+                  <td colSpan={isNurse ? 8 : 9} className="py-12 text-center text-[#64748B]">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <i className="fa-solid fa-circle-notch fa-spin text-lg text-[#0B6B3A]" />
                       <span className="font-semibold text-xs text-[#334155]">Loading patient records...</span>
@@ -512,7 +522,7 @@ export default function PatientRecordsPage(props: any) {
                 </tr>
               ) : filteredPatients.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-[#64748B]">
+                  <td colSpan={isNurse ? 8 : 9} className="py-12 text-center text-[#64748B]">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <div className="w-12 h-12 rounded-full bg-[#F1F5F9] text-[#94A3B8] flex items-center justify-center text-lg">
                         <i className="fa-solid fa-folder-open" />
@@ -600,10 +610,16 @@ export default function PatientRecordsPage(props: any) {
                       </td>
                       <td className="py-3 px-4 whitespace-nowrap">
                         {p.category === 'CHARITY' ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#E8F5EC] text-[#0B6B3A] border border-[#A8DAC0]">
-                            <i className="fa-solid fa-heart text-[8px]" />
-                            <span>CHARITY</span>
-                          </span>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#FAFBF8] text-[#475569] border border-[#D5E2D9]">
+                              <span className="w-1.5 h-1.5 rounded-full bg-slate-500 inline-block" />
+                              <span>REGULAR</span>
+                            </span>
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#E8F5EC] text-[#0B6B3A] border border-[#A8DAC0]">
+                              <i className="fa-solid fa-heart text-[8px]" />
+                              <span>CHARITY</span>
+                            </span>
+                          </div>
                         ) : (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#FAFBF8] text-[#475569] border border-[#D5E2D9]">
                             <span className="w-1.5 h-1.5 rounded-full bg-slate-500 inline-block" />
@@ -611,30 +627,54 @@ export default function PatientRecordsPage(props: any) {
                           </span>
                         )}
                       </td>
-                      <td className="py-3 px-4 whitespace-nowrap">
-                        {p.status === 'APPROVED' ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            <i className="fa-solid fa-check text-[9px]" />
-                            <span>APPROVED</span>
-                          </span>
-                        ) : p.status === 'DISAPPROVED/PROMISSORY' ||
-                          p.status?.includes('PROMISSORY') ||
-                          p.status?.includes('DISAPPROVED') ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                            <i className="fa-solid fa-file-signature text-[9px] text-rose-600" />
-                            <span>DISAPPROVED / PROMISSORY</span>
-                          </span>
-                        ) : p.status === 'PENDING' ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                            <i className="fa-solid fa-clock text-[9px] text-amber-600" />
-                            <span>PENDING</span>
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                            <span className="w-1.5 h-1.5 rounded-full bg-amber-600 inline-block" />
-                            <span>{p.status || 'FIRST-TIME'}</span>
-                          </span>
-                        )}
+                      {!isNurse && (
+                        <td className="py-3 px-4 whitespace-nowrap">
+                          {p.status === 'APPROVED' ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              <i className="fa-solid fa-check text-[9px]" />
+                              <span>APPROVED</span>
+                            </span>
+                          ) : p.status === 'DISAPPROVED/PROMISSORY' ||
+                            p.status?.includes('PROMISSORY') ||
+                            p.status?.includes('DISAPPROVED') ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                              <i className="fa-solid fa-file-signature text-[9px] text-rose-600" />
+                              <span>DISAPPROVED / PROMISSORY</span>
+                            </span>
+                          ) : p.status === 'PENDING' ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                              <i className="fa-solid fa-clock text-[9px] text-amber-600" />
+                              <span>PENDING</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-600 inline-block" />
+                              <span>{p.status || 'FIRST-TIME'}</span>
+                            </span>
+                          )}
+                        </td>
+                      )}
+                      <td className="py-3 px-4 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
+                          <Link
+                            href={`/admin/patient-records/${p.patient_id}`}
+                            onClick={() => startProgress()}
+                            className="px-2.5 py-1 rounded-lg border border-[#D5E2D9] bg-white hover:border-[#0B6B3A] hover:bg-[#FAFBF8] text-[#0B6B3A] font-semibold text-[11px] transition inline-flex items-center gap-1 shadow-2xs no-underline cursor-pointer"
+                            title={`View Profile for ${p.first_name} ${p.last_name}`}
+                          >
+                            <i className="fa-solid fa-id-card text-[10px]" />
+                            <span>View Profile</span>
+                          </Link>
+                          <Link
+                            href={`/admin/patient-records/${p.patient_id}?edit=true`}
+                            onClick={() => startProgress()}
+                            className="px-2.5 py-1 rounded-lg border border-[#D5E2D9] bg-white hover:border-[#0B6B3A] hover:bg-[#FAFBF8] text-[#475569] hover:text-[#10241A] font-semibold text-[11px] transition inline-flex items-center gap-1 shadow-2xs no-underline cursor-pointer"
+                            title={`Edit details for ${p.first_name} ${p.last_name}`}
+                          >
+                            <i className="fa-solid fa-pen-to-square text-[10px]" />
+                            <span>Edit</span>
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   );
