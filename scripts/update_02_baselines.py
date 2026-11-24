@@ -3,7 +3,7 @@ from pathlib import Path
 
 def generate_baseline_notebook(model_key, model_display_name, model_type, import_statements, pipeline_builder_code, hyperparam_search_code, full_fit_feature_importance_code):
     base_dir = Path("experiments/notebooks/05_model_selection_and_training/02_baseline_models")
-    viz_subdir = model_key.lower()
+    viz_subdir = model_key.split("_", 1)[1] if "_" in model_key else model_key
 
     cells = [
         {
@@ -278,7 +278,7 @@ def generate_baseline_notebook(model_key, model_display_name, model_type, import
                 "ax1.plot(folds_x, df_folds_metric[\"accuracy\"], marker=\"o\", linewidth=2, label=\"Accuracy\", color=\"#1b9e77\")\n",
                 "ax1.plot(folds_x, df_folds_metric[\"macro_f1\"], marker=\"s\", linewidth=2, label=\"Macro F1\", color=\"#d95f02\")\n",
                 "ax1.plot(folds_x, df_folds_metric[\"macro_recall\"], marker=\"^\", linewidth=2, label=\"Macro Recall\", color=\"#7570b3\")\n",
-                "ax1.set_title(f\"{model_display_name} — Fold-by-Fold Performance (K=10)\", fontsize=12, fontweight=\"bold\", pad=10)\n",
+                f"ax1.set_title(\"{model_display_name} — Fold-by-Fold Performance (K=10)\", fontsize=12, fontweight=\"bold\", pad=10)\n",
                 "ax1.set_xlabel(\"Cross-Validation Fold\", fontsize=10, fontweight=\"bold\")\n",
                 "ax1.set_ylabel(\"Metric Score (0.0 - 1.0)\", fontsize=10, fontweight=\"bold\")\n",
                 "ax1.set_ylim(0.5, 1.05)\n",
@@ -290,9 +290,10 @@ def generate_baseline_notebook(model_key, model_display_name, model_type, import
                 "eval_stds = [metrics_std[\"accuracy\"], metrics_std[\"macro_precision\"], metrics_std[\"macro_recall\"], metrics_std[\"macro_f1\"], metrics_std[\"weighted_f1\"], metrics_std[\"roc_auc\"]]\n",
                 "\n",
                 "bars = ax2.bar(eval_names, eval_means, yerr=eval_stds, capsize=4, color=\"#386cb0\", width=0.55, edgecolor=\"black\", linewidth=1.1)\n",
-                "ax2.set_title(f\"{model_display_name} — Mean 10-Fold Metrics (+/- 1 Std)\", fontsize=12, fontweight=\"bold\", pad=10)\n",
+                f"ax2.set_title(\"{model_display_name} — Mean 10-Fold Metrics (+/- 1 Std)\", fontsize=12, fontweight=\"bold\", pad=10)\n",
                 "ax2.set_ylabel(\"Score\", fontsize=10, fontweight=\"bold\")\n",
                 "ax2.set_ylim(0.0, 1.15)\n",
+                "ax2.tick_params(axis=\"x\", rotation=25)\n",
                 "for bar in bars:\n",
                 "    h = bar.get_height()\n",
                 "    ax2.annotate(f\"{h:.3f}\", xy=(bar.get_x() + bar.get_width() / 2, h),\n",
@@ -326,7 +327,7 @@ def generate_baseline_notebook(model_key, model_display_name, model_type, import
                 "\n",
                 "sns.heatmap(cm_norm, annot=annot_matrix, fmt=\"\", cmap=\"Blues\", cbar=False, ax=ax1,\n",
                 "            xticklabels=[\"INELIGIBLE\", \"ELIGIBLE\"], yticklabels=[\"INELIGIBLE\", \"ELIGIBLE\"], linewidths=1.2, linecolor=\"white\")\n",
-                "ax1.set_title(f\"{model_display_name} — Out-of-Fold Confusion Matrix\", fontsize=12, fontweight=\"bold\", pad=10)\n",
+                f"ax1.set_title(\"{model_display_name} — Out-of-Fold Confusion Matrix\", fontsize=12, fontweight=\"bold\", pad=10)\n",
                 "ax1.set_xlabel(\"Predicted Class\", fontsize=10, fontweight=\"bold\")\n",
                 "ax1.set_ylabel(\"Actual Class\", fontsize=10, fontweight=\"bold\")\n",
                 "\n",
@@ -338,7 +339,7 @@ def generate_baseline_notebook(model_key, model_display_name, model_type, import
                 "ax2.set_ylim([0.0, 1.05])\n",
                 "ax2.set_xlabel(\"False Positive Rate\", fontsize=10, fontweight=\"bold\")\n",
                 "ax2.set_ylabel(\"True Positive Rate\", fontsize=10, fontweight=\"bold\")\n",
-                "ax2.set_title(f\"{model_display_name} — Out-of-Fold ROC Curve\", fontsize=12, fontweight=\"bold\", pad=10)\n",
+                f"ax2.set_title(\"{model_display_name} — Out-of-Fold ROC Curve\", fontsize=12, fontweight=\"bold\", pad=10)\n",
                 "ax2.legend(loc=\"lower right\", frameon=True)\n",
                 "\n",
                 "plt.tight_layout()\n",
@@ -373,7 +374,7 @@ def generate_baseline_notebook(model_key, model_display_name, model_type, import
                 "b2 = ax.bar(x, rec_vals, width, label=\"Recall\", color=\"#fc8d62\", edgecolor=\"black\")\n",
                 "b3 = ax.bar(x + width, f1_vals, width, label=\"F1-Score\", color=\"#8da0cb\", edgecolor=\"black\")\n",
                 "\n",
-                "ax.set_title(f\"{model_display_name} — Per-Class Performance Breakdown\", fontsize=12, fontweight=\"bold\", pad=10)\n",
+                f"ax.set_title(\"{model_display_name} — Per-Class Performance Breakdown\", fontsize=12, fontweight=\"bold\", pad=10)\n",
                 "ax.set_ylabel(\"Score\", fontsize=10, fontweight=\"bold\")\n",
                 "ax.set_xticks(x)\n",
                 "ax.set_xticklabels(classes, fontsize=10, fontweight=\"bold\")\n",
@@ -407,7 +408,7 @@ def generate_baseline_notebook(model_key, model_display_name, model_type, import
                 "    top15 = df_importance.head(15).iloc[::-1]\n",
                 "    val_col = \"importance\" if \"importance\" in top15.columns else \"abs_importance\"\n",
                 "    bars = ax.barh(top15[\"feature\"], top15[val_col], color=\"#41b6c4\", edgecolor=\"black\", linewidth=1.1)\n",
-                "    ax.set_title(f\"{model_display_name} — Top 15 Primary Predictors\", fontsize=12, fontweight=\"bold\", pad=10)\n",
+                f"    ax.set_title(\"{model_display_name} — Top 15 Primary Predictors\", fontsize=12, fontweight=\"bold\", pad=10)\n",
                 "    ax.set_xlabel(\"Relative Importance / Weight\", fontsize=10, fontweight=\"bold\")\n",
                 "    for b in bars:\n",
                 "        w = b.get_width()\n",
