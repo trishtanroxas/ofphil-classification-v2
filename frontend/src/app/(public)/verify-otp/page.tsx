@@ -160,9 +160,10 @@ function VerifyOtpContent() {
       setDigits(['', '', '', '', '', '']);
       setCooldown(cooldownSec);
       setStatusMessage(
-        step === 'verify'
-          ? `A new 6-digit security code has been sent to ${res.masked_destination}.`
-          : null
+        res.message ||
+          (step === 'verify'
+            ? `A new 6-digit security code has been sent to ${res.masked_destination}.`
+            : `A 6-digit security code has been sent to ${res.masked_destination}.`)
       );
 
       persistPendingState({
@@ -262,7 +263,7 @@ function VerifyOtpContent() {
       if (res && res.status === 'authenticated') {
         sessionStorage.removeItem('ofphil_pending_2fa');
         sessionStorage.removeItem('ofphil_logged_out');
-        login(res.role || effectiveRole, res.user_name);
+        login(res.role || effectiveRole, res.user_name, res.user_id);
         showLoading('Two-Factor Authentication verified. Opening portal...');
         window.location.replace(res.redirect_url);
       }

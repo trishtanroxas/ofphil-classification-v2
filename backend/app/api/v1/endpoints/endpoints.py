@@ -331,8 +331,49 @@ def generate_next_charity_case_no(registry: Optional[List[Dict[str, Any]]] = Non
     next_num = max_seq + 1
     return f"{prefix}{next_num:02d}"
 
+from app.core.paths import STORAGE_DIR
+
+PATIENTS_REGISTRY_FILE = STORAGE_DIR / "patients_registry.json"
+
 # Registered patients storage initialized with verified records
-REGISTERED_PATIENTS_REGISTRY: List[Dict[str, Any]] = [
+INITIAL_PATIENTS_REGISTRY: List[Dict[str, Any]] = [
+    {
+        "id": "rec-100000",
+        "patient_id": "M26-11-100000",
+        "first_name": "Patient",
+        "middle_name": "",
+        "last_name": "Beneficiary",
+        "suffix": "",
+        "age": 30,
+        "sex": "M",
+        "birthdate": "1995-01-01",
+        "civil_status": "Single",
+        "num_dependents": "0",
+        "perm_province": "Metro Manila (NCR)",
+        "perm_city": "City of Manila",
+        "perm_barangay": "Barangay 659",
+        "perm_street": "Intramuros",
+        "same_address": True,
+        "alt_province": "Metro Manila (NCR)",
+        "alt_city": "City of Manila",
+        "alt_barangay": "Barangay 659",
+        "alt_street": "Intramuros",
+        "educational_attainment": "High School Graduate / Level",
+        "employment_status": "Employed (Full-time / Part-time)",
+        "occupation": "Beneficiary",
+        "residence_city": "City of Manila",
+        "residence_region": "Metro Manila (NCR)",
+        "contact": "09324617365",
+        "email": "agustin.j.bscs@gmail.com",
+        "phone_verified": True,
+        "email_verified": True,
+        "category": "REGULAR",
+        "status": "APPROVED",
+        "has_account": True,
+        "registration_date": "2026-11-24",
+        "initial_password": "pangitka24",
+        "diagnosis": "Comprehensive Eye Care Referral",
+    },
     {
         "id": "rec-1",
         "patient_id": "M26-11-00001",
@@ -367,6 +408,7 @@ REGISTERED_PATIENTS_REGISTRY: List[Dict[str, Any]] = [
         "status": "APPROVED",
         "has_account": True,
         "registration_date": "2026-11-22",
+        "initial_password": "Ofphil@2026",
         "diagnosis": "Bilateral Cataract, Senile Mature (OD > OS)",
         "eye_condition": "Senile Mature Cataract (OD > OS)",
         "clinical_findings": "Visual acuity 20/200 OD, 20/70 OS; dense nuclear sclerosis OD.",
@@ -664,6 +706,25 @@ REGISTERED_PATIENTS_REGISTRY: List[Dict[str, Any]] = [
     }
 ]
 
+def _load_patients_registry() -> List[Dict[str, Any]]:
+    if PATIENTS_REGISTRY_FILE.exists():
+        try:
+            data = json.loads(PATIENTS_REGISTRY_FILE.read_text(encoding="utf-8"))
+            if isinstance(data, list) and len(data) > 0:
+                return data
+        except Exception:
+            pass
+    return list(INITIAL_PATIENTS_REGISTRY)
+
+def _save_patients_registry() -> None:
+    try:
+        PATIENTS_REGISTRY_FILE.parent.mkdir(parents=True, exist_ok=True)
+        PATIENTS_REGISTRY_FILE.write_text(json.dumps(REGISTERED_PATIENTS_REGISTRY, indent=2), encoding="utf-8")
+    except Exception:
+        pass
+
+REGISTERED_PATIENTS_REGISTRY: List[Dict[str, Any]] = _load_patients_registry()
+
 @router.get("/patients/next-charity-case-no")
 def get_next_charity_case_no():
     """
@@ -768,13 +829,30 @@ def register_patient_record(payload: PatientRegisterRequest):
         "email": payload.email_address or "",
         "phone_verified": payload.phone_verified if payload.phone_verified is not None else True,
         "email_verified": payload.email_verified if payload.email_verified is not None else False,
-        "has_account": True if (payload.email_address or payload.initial_password) and category != "CHARITY" else False,
+        "has_account": True,
         "registration_date": datetime.datetime.now().strftime("%Y-%m-%d"),
+        "initial_password": temp_pass,
         "category": category,
         "status": "PENDING" if category == "CHARITY" else "APPROVED",
         "assigned_msw": "Maria Santos, RSW (msw_lead)",
     }
+
+    try:
+        from app.core.security import hash_password
+        from app.services.recovery_service import recovery_service
+        pass_hash = hash_password(temp_pass)
+        new_record["password_hash"] = pass_hash
+        recovery_service._patient_creds[req_pid] = {
+            "patient_id": req_pid,
+            "password_hash": pass_hash,
+            "password_updated_at": datetime.datetime.now(datetime.timezone.utc).isoformat()
+        }
+        recovery_service._save_patient_creds()
+    except Exception as e:
+        print(f"Error persisting credentials for {req_pid}: {e}")
+
     REGISTERED_PATIENTS_REGISTRY.insert(0, new_record)
+    _save_patients_registry()
 
     try:
         from app.services.inquiry_service import inquiry_service
