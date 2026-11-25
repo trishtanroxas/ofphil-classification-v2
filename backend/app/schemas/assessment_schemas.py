@@ -72,6 +72,11 @@ class Stage2EvaluationRequest(BaseModel):
     patient_id: Optional[str] = None
     total_household_income: Optional[Decimal] = None
     household_size: Optional[int] = None
+    total_monthly_expenses: Optional[Decimal] = None
+    sectoral_flags: Optional[Dict[str, bool]] = None
+    gov_assistance_enrolled: Optional[bool] = None
+    other_medical_expenses_count: Optional[int] = None
+    auto_compute_scores: bool = False
     is_initial_load: bool = False
     assessment_context: str = "live_recalculation"
     interview_info: Optional[MSWInterviewInfo] = None
@@ -113,6 +118,7 @@ class Stage2EvaluationResponse(BaseModel):
     total_risk: Optional[Decimal] = None
     total_risk_formula: str = "(Average Severity * 8.5) + (Average Coping * 5.0)"
     total_household_income: Optional[Decimal] = None
+    computed_domain_scores: Optional[Dict[str, Any]] = None
     financial_classification: Optional[Dict[str, Any]] = None
     msw_classification: Optional[Dict[str, Any]] = None
     triggered_conditions: List[Dict[str, Any]] = Field(default_factory=list)

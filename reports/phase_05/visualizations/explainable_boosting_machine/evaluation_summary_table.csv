@@ -1,0 +1,11 @@
+Metric,Mean,Standard Deviation
+Accuracy,0.8932,0.0465
+Macro Precision,0.8942,0.0462
+Macro Recall,0.8931,0.0466
+Macro F1-score,0.8930,0.0466
+Weighted F1-score,0.8931,0.0465
+ROC-AUC,0.9616,0.0240
+Per-Class Precision (INELIGIBLE),0.8977,0.0431
+Per-Class Recall (INELIGIBLE),0.8876,0.0630
+Per-Class Precision (ELIGIBLE),0.8907,0.0569
+Per-Class Recall (ELIGIBLE),0.8985,0.0431

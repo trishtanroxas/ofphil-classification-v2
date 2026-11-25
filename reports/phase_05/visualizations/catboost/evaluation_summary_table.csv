@@ -1,0 +1,13 @@
+Metric,Mean,Standard Deviation
+Train Macro F1,0.9583,0.0221
+Validation Accuracy,0.9014,0.0451
+Validation Macro Precision,0.9026,0.0447
+Validation Macro Recall,0.9012,0.0453
+Validation Macro F1-score,0.9012,0.0452
+Validation Weighted F1-score,0.9013,0.0452
+Validation ROC-AUC,0.9649,0.0222
+Generalization Gap (F1),0.0571,0.0541
+Per-Class Precision (INELIGIBLE),0.9063,0.0460
+Per-Class Recall (INELIGIBLE),0.8956,0.0598
+Per-Class Precision (ELIGIBLE),0.8988,0.0530
+Per-Class Recall (ELIGIBLE),0.9068,0.0470

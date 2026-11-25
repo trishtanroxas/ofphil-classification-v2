@@ -1,0 +1,10 @@
+Metric / Dimension,Value
+Total Records Available,1044
+Training Development Records (N_train),730 (70.0%)
+Hold-out Validation Records (N_val),157 (15.0%)
+Quarantined Final Test Records (N_test),157 (15.0%)
+CV Protocol,"StratifiedKFold (K=10, shuffle=True, seed=42)"
+Number of Folds,10
+Validation Samples per Fold,73-73
+Target Variable,"eligibility (0: INELIGIBLE [50.0%], 1: ELIGIBLE [50.0%])"
+Features Available,"41 (0 nulls, verified contract)"

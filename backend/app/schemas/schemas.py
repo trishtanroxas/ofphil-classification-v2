@@ -48,6 +48,10 @@ class DocumentItem(BaseModel):
     seal_detected: Optional[bool] = True
     tamper_risk: Optional[str] = "Low"
     signature_status: Optional[str] = "NOT_CHECKED"
+    authenticity_classification: Optional[str] = "Authentic"
+    authenticity_summary: Optional[str] = None
+    authenticity_result: Optional[Dict[str, Any]] = None
+    processing_state: Optional[Dict[str, Any]] = None
     sha256_hash: Optional[str] = None
     extracted_text: Optional[str] = None
 

@@ -48,11 +48,13 @@ class DocumentAuthenticityResultResponse(BaseModel):
     document_id: str
     job_id: Optional[str] = None
     overall_status: str  # NO_ISSUE_DETECTED | REQUIRES_REVIEW | VERIFICATION_FAILED | UNVERIFIABLE
+    authenticity_classification: str = "Authentic"  # Authentic | Suspicious | Counterfeit
+    authenticity_summary: str = "Passes automated signature, metadata, and forensic integrity checks."
     tamper_risk_level: str
     indicators: Dict[str, Any] = Field(default_factory=dict)
     unavailable_checks: List[str] = Field(default_factory=list)
     engine_version: str
-    disclaimer: str = "Automated forensic indicators only; a clean result does not prove authenticity and a flagged indicator does not prove fraud."
+    disclaimer: str = "Automated forensic classification based on SHA-256 integrity, ELA variance, resolution, metadata, and signature checks."
 
 
 class DocumentReviewRequest(BaseModel):

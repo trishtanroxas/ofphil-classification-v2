@@ -1,0 +1,13 @@
+Evaluation Dimension,Value
+Champion Model Architecture,CatBoost
+Test Sample Count (N_test),157
+Final Test Accuracy,0.8981
+Final Test Macro Precision,0.8990
+Final Test Macro Recall,0.8982
+Final Test Macro F1-score,0.8981
+Final Test Weighted F1-score,0.8980
+Final Test ROC-AUC,0.9598
+Indigent / Eligible Recall,0.9231
+10-Fold CV Mean Macro F1,0.9012
+Generalization Gap (CV - Test),+0.0032
+Per-Sample Inference Latency,0.073 ms

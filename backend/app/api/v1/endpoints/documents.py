@@ -266,6 +266,8 @@ def get_authenticity_results(
         document_id=document_id,
         job_id=state.get("job_id"),
         overall_status=auth.get("overall_status", "UNVERIFIABLE"),
+        authenticity_classification=auth.get("authenticity_classification") or doc.get("authenticity_classification") or "Suspicious",
+        authenticity_summary=auth.get("authenticity_summary") or doc.get("authenticity_summary") or "Automated forensic screening completed.",
         tamper_risk_level=auth.get("tamper_risk_level", "Not Checked"),
         indicators=auth.get("indicators", {}),
         unavailable_checks=auth.get("unavailable_checks", []),

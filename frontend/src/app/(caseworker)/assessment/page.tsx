@@ -44,6 +44,85 @@ function extractIsoDate(val: any): string | null {
   return match ? match[1] : null;
 }
 
+export type DocAuthenticityLabel = 'Authentic' | 'Suspicious' | 'Counterfeit';
+
+function resolveDocAuthenticity(docOrAuth: any): {
+  label: DocAuthenticityLabel;
+  summary: string;
+  badgeCls: string;
+  bannerCls: string;
+  iconCls: string;
+} {
+  const rawLabel = String(
+    docOrAuth?.authenticity_classification ||
+      docOrAuth?.authenticity_result?.authenticity_classification ||
+      ''
+  )
+    .trim()
+    .toLowerCase();
+  const rawStatus = String(
+    docOrAuth?.overall_status ||
+      docOrAuth?.authenticity_result?.overall_status ||
+      docOrAuth?.verification_status ||
+      ''
+  )
+    .trim()
+    .toUpperCase();
+  const rawRisk = String(
+    docOrAuth?.tamper_risk_level ||
+      docOrAuth?.authenticity_result?.tamper_risk_level ||
+      docOrAuth?.tamper_risk ||
+      ''
+  )
+    .trim()
+    .toLowerCase();
+
+  let label: DocAuthenticityLabel = 'Authentic';
+  if (rawLabel === 'counterfeit' || rawStatus === 'VERIFICATION_FAILED' || rawRisk === 'high') {
+    label = 'Counterfeit';
+  } else if (
+    rawLabel === 'suspicious' ||
+    rawStatus === 'REQUIRES_REVIEW' ||
+    rawStatus === 'UNVERIFIABLE' ||
+    rawRisk === 'medium' ||
+    rawRisk === 'review required' ||
+    rawRisk === 'unverifiable'
+  ) {
+    label = 'Suspicious';
+  } else {
+    label = 'Authentic';
+  }
+
+  const customSummary =
+    docOrAuth?.authenticity_summary || docOrAuth?.authenticity_result?.authenticity_summary || '';
+
+  if (label === 'Authentic') {
+    return {
+      label: 'Authentic',
+      summary: customSummary || 'Passes signature, metadata, and forensic integrity checks.',
+      badgeCls: 'bg-emerald-50 text-emerald-800 border border-emerald-300',
+      bannerCls: 'bg-emerald-50/80 border-emerald-300 text-emerald-950',
+      iconCls: 'fa-circle-check text-emerald-600',
+    };
+  }
+  if (label === 'Counterfeit') {
+    return {
+      label: 'Counterfeit',
+      summary: customSummary || 'Detected tampering, forged layout, or failed forensic verification.',
+      badgeCls: 'bg-rose-50 text-rose-800 border border-rose-300',
+      bannerCls: 'bg-rose-50/80 border-rose-300 text-rose-950',
+      iconCls: 'fa-circle-xmark text-rose-600',
+    };
+  }
+  return {
+    label: 'Suspicious',
+    summary: customSummary || 'Flagged anomalies, low resolution, or partial discrepancies requiring closer inspection.',
+    badgeCls: 'bg-amber-50 text-amber-800 border border-amber-300',
+    bannerCls: 'bg-amber-50/80 border-amber-300 text-amber-950',
+    iconCls: 'fa-triangle-exclamation text-amber-600',
+  };
+}
+
 function MSWAssessmentContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -789,8 +868,6 @@ function MSWAssessmentContent() {
   const [selectedUploadCategory, setSelectedUploadCategory] = useState('SIGNED CERTIFICATE OF INDIGENCY');
   const [inspectDoc, setInspectDoc] = useState<any>(null);
   const [inspectDetails, setInspectDetails] = useState<{ ocr?: any; sig?: any; auth?: any } | null>(null);
-  const [manualDecision, setManualDecision] = useState<'ACCEPTED' | 'REJECTED' | 'RESUBMISSION_REQUIRED'>('ACCEPTED');
-  const [manualReviewNotes, setManualReviewNotes] = useState('');
 
   // Stage 4 MSW Recommendation, Institutional Approval & ML state
   const [mswCaseNotes, setMswCaseNotes] = useState('');
@@ -1072,7 +1149,7 @@ function MSWAssessmentContent() {
     }
   }, [inspectDoc, dossierOpen]);
 
-  // Backend-authoritative OFPHIL Stage 2 Interview Assessment Evaluation
+  // Backend-authoritative Automated Stage 2 Socioeconomic & Eligibility Evaluation
   const runBackendClassification = async () => {
     const hs = Math.max(1, familyMembers.length + 1);
     const inc = Math.max(0, totalHouseholdIncome);
@@ -1086,6 +1163,11 @@ function MSWAssessmentContent() {
           patient_id: patientIdParam,
           total_household_income: inc,
           household_size: hs,
+          total_monthly_expenses: Math.max(0, totalMonthlyExpenses),
+          sectoral_flags: sectoral,
+          gov_assistance_enrolled: govAssistanceEnrolled === 'Yes',
+          other_medical_expenses_count: otherMedicalExpenses.length,
+          auto_compute_scores: true,
           is_initial_load: true,
           assessment_context: 'live_recalculation',
           interview_info: {
@@ -1143,24 +1225,15 @@ function MSWAssessmentContent() {
           },
           health_factors: healthFactors.map((hf) => ({
             factor: hf.factor,
-            severity_level: hf.severityLevel,
-            coping_level: hf.copingLevel,
             patient_reported: hf.patientReported,
             msw_observation: hf.mswObservation,
           })),
-          discrimination_severity_level: discrimSeverityLevel,
-          discrimination_coping_level: discrimCopingLevel,
           discrimination_patient_reported: discrimPatientReported,
           discrimination_msw_observation: discrimMswObs,
-          safety_severity_level: safetySeverityLevel,
-          safety_coping_level: safetyCopingLevel,
           safety_patient_reported: safetyPatientReported,
           safety_msw_observation: safetyMswObs,
-          roles_severity_level: roleSeverityLevel,
-          roles_coping_level: roleCopingLevel,
           roles_patient_reported: rolePatientReported,
           roles_msw_observation: roleMswObs,
-          environment_severity_level: envSeverityLevel,
           environment_patient_reported: envPatientReported,
           environment_msw_observation: envMswObs,
         }),
@@ -1176,24 +1249,31 @@ function MSWAssessmentContent() {
   useEffect(() => {
     const t = setTimeout(() => {
       runBackendClassification();
-    }, 400);
+    }, 350);
     return () => clearTimeout(t);
   }, [
     totalHouseholdIncome,
+    totalMonthlyExpenses,
     familyMembers.length,
+    sectoral,
+    govAssistanceEnrolled,
+    otherMedicalExpenses.length,
+    estimatedExpenses,
     interviewDate,
-    interviewStartTime,
-    interviewEndTime,
-    assignedMsw,
     interviewedPerson,
     healthFactors,
-    discrimSeverityLevel,
-    discrimCopingLevel,
-    safetySeverityLevel,
-    safetyCopingLevel,
-    roleSeverityLevel,
-    roleCopingLevel,
-    envSeverityLevel,
+    discrimPatientReported,
+    discrimMswObs,
+    safetyPatientReported,
+    safetyMswObs,
+    rolePatientReported,
+    roleMswObs,
+    envPatientReported,
+    envMswObs,
+    discriminationExperienced,
+    safetyHazards,
+    employmentSituation,
+    livingSituation,
   ]);
 
   const handleSaveInterviewDraft = async (markCompleted: boolean = false) => {
@@ -1263,8 +1343,6 @@ function MSWAssessmentContent() {
             },
             health_factors: healthFactors.map((hf) => ({
               factor: hf.factor,
-              severity_level: hf.severityLevel,
-              coping_level: hf.copingLevel,
               patient_reported: hf.patientReported,
               msw_observation: hf.mswObservation,
             })),
@@ -1374,6 +1452,7 @@ function MSWAssessmentContent() {
       treatment_plan: presentTreatmentPlan,
     },
     stage2_data: {
+      auto_compute_scores: true,
       interview_info: {
         interview_date: interviewDate,
         interview_start_time: interviewStartTime,
@@ -1429,24 +1508,15 @@ function MSWAssessmentContent() {
       },
       health_factors: healthFactors.map((hf) => ({
         factor: hf.factor,
-        severity_level: hf.severityLevel,
-        coping_level: hf.copingLevel,
         patient_reported: hf.patientReported,
         msw_observation: hf.mswObservation,
       })),
-      discrimination_severity_level: discrimSeverityLevel,
-      discrimination_coping_level: discrimCopingLevel,
       discrimination_patient_reported: discrimPatientReported,
       discrimination_msw_observation: discrimMswObs,
-      safety_severity_level: safetySeverityLevel,
-      safety_coping_level: safetyCopingLevel,
       safety_patient_reported: safetyPatientReported,
       safety_msw_observation: safetyMswObs,
-      roles_severity_level: roleSeverityLevel,
-      roles_coping_level: roleCopingLevel,
       roles_patient_reported: rolePatientReported,
       roles_msw_observation: roleMswObs,
-      environment_severity_level: envSeverityLevel,
       environment_patient_reported: envPatientReported,
       environment_msw_observation: envMswObs,
       average_severity: backendEval?.average_severity,
@@ -1523,7 +1593,7 @@ function MSWAssessmentContent() {
         throw new Error(err.detail || 'Upload failed');
       }
       const doc = await res.json();
-      toast.success(`Uploaded ${doc.filename}. Starting Document Authenticity processing...`);
+      toast.success(`Uploaded ${doc.filename}. Running automated Document Authenticity verification...`);
 
       await fetchApi(`/documents/${doc.id}/process`, {
         method: 'POST',
@@ -1531,7 +1601,26 @@ function MSWAssessmentContent() {
         body: JSON.stringify({ assessment_id: assessmentId, ocr_engine: 'auto', run_forensics: true, run_signature_detection: true }),
       });
 
-      setTimeout(() => loadPatientDocuments(patientIdParam), 800);
+      setDocStatuses((prev) => ({
+        ...prev,
+        [selectedUploadCategory]: 'Submitted',
+      }));
+
+      setTimeout(async () => {
+        try {
+          const docs = await fetchApi(`/documents?patient_id=${encodeURIComponent(patientIdParam)}`, { headers: MSW_HDRS });
+          if (Array.isArray(docs)) {
+            setPatientDocs(docs);
+            const uploadedItem = docs.find((item: any) => item.id === doc.id);
+            if (uploadedItem) {
+              const authInfo = resolveDocAuthenticity(uploadedItem);
+              if (authInfo.label === 'Authentic') {
+                setDocStatuses((prev) => ({ ...prev, [selectedUploadCategory]: 'Verified' }));
+              }
+            }
+          }
+        } catch {}
+      }, 900);
       loadPatientDocuments(patientIdParam);
     } catch (err: any) {
       toast.error(err?.message || 'Document upload failed.');
@@ -1552,31 +1641,6 @@ function MSWAssessmentContent() {
       setInspectDetails({ ocr, sig, auth });
     } catch (err: any) {
       toast.error(err?.message || 'Failed to load authenticity details.');
-    }
-  };
-
-  const handleSubmitManualDocReview = async () => {
-    if (!inspectDoc) return;
-    if (!manualReviewNotes.trim() || manualReviewNotes.trim().length < 3) {
-      toast.error('Please enter review notes before recording decision.');
-      return;
-    }
-    try {
-      await fetchApi(`/documents/${inspectDoc.id}/review`, {
-        method: 'POST',
-        headers: MSW_HDRS,
-        body: JSON.stringify({
-          decision: manualDecision,
-          review_notes: manualReviewNotes,
-          reviewer_name: 'Maria Santos, RSW',
-        }),
-      });
-      toast.success(`Manual review (${manualDecision}) recorded.`);
-      setManualReviewNotes('');
-      setInspectDoc(null);
-      loadPatientDocuments(patientIdParam);
-    } catch (err: any) {
-      toast.error(err?.message || 'Failed to record manual review.');
     }
   };
 
@@ -3516,16 +3580,15 @@ function MSWAssessmentContent() {
                       </div>
                     </div>
 
-                    {/* Read-Only DOH-PIE Domain-by-Domain Rubric Breakdown Table */}
+                    {/* Read-Only DOH-PIE Qualitative Documentation & Automated Domain Breakdown Table */}
                     <div className="bg-white border border-[#CBD5E1] rounded-xl overflow-x-auto">
                       <table className="w-full text-left border-collapse text-xs">
                         <thead>
                           <tr className="bg-[#F8FAFC] border-b border-[#E2E8F0] text-[10.5px] uppercase text-[#475569]">
                             <th className="py-2.5 px-3">DOH-PIE Clinical Domain</th>
-                            <th className="py-2.5 px-3">Severity Level</th>
-                            <th className="py-2.5 px-3">Coping Level</th>
-                            <th className="py-2.5 px-3">Patient Response</th>
-                            <th className="py-2.5 px-3">MSW Observation</th>
+                            <th className="py-2.5 px-3">Auto-Computed Score</th>
+                            <th className="py-2.5 px-3">Patient / Representative Response</th>
+                            <th className="py-2.5 px-3">MSW Clinical Observation &amp; Evidence</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-[#EEF2EF]">
@@ -3535,10 +3598,9 @@ function MSWAssessmentContent() {
                                 V-{idx + 1}. {hf.factor}
                               </td>
                               <td className="py-2 px-3 font-mono text-[11px] text-[#0B6B3A] font-bold">
-                                {SEVERITY_LEVEL_OPTIONS.find((o) => o.value === hf.severityLevel)?.label || hf.severityLevel}
-                              </td>
-                              <td className="py-2 px-3 font-mono text-[11px] text-[#0284C7] font-bold">
-                                {COPING_LEVEL_OPTIONS.find((o) => o.value === hf.copingLevel)?.label || hf.copingLevel}
+                                {backendEval?.computed_domain_scores
+                                  ? `Sev ${Number(backendEval.computed_domain_scores.health_severity_avg ?? averageSeverity).toFixed(2)} / Cop ${Number(backendEval.computed_domain_scores.health_coping_avg ?? averageCoping).toFixed(2)}`
+                                  : 'Auto-Computed'}
                               </td>
                               <td className="py-2 px-3 text-[#334155]">{hf.patientReported || '—'}</td>
                               <td className="py-2 px-3 text-[#14532D]">{hf.mswObservation || '—'}</td>
@@ -3547,10 +3609,9 @@ function MSWAssessmentContent() {
                           <tr>
                             <td className="py-2 px-3 font-semibold text-[#10241A]">VI. Discrimination Burden</td>
                             <td className="py-2 px-3 font-mono text-[11px] text-[#0B6B3A] font-bold">
-                              {SEVERITY_LEVEL_OPTIONS.find((o) => o.value === discrimSeverityLevel)?.label || discrimSeverityLevel}
-                            </td>
-                            <td className="py-2 px-3 font-mono text-[11px] text-[#0284C7] font-bold">
-                              {COPING_LEVEL_OPTIONS.find((o) => o.value === discrimCopingLevel)?.label || discrimCopingLevel}
+                              {backendEval?.computed_domain_scores
+                                ? `Sev ${Number(backendEval.computed_domain_scores.discrimination_severity ?? 0).toFixed(2)} / Cop ${Number(backendEval.computed_domain_scores.discrimination_coping ?? 0).toFixed(2)}`
+                                : 'Auto-Computed'}
                             </td>
                             <td className="py-2 px-3 text-[#334155]">{discrimPatientReported || '—'}</td>
                             <td className="py-2 px-3 text-[#14532D]">{discrimMswObs || '—'}</td>
@@ -3558,10 +3619,9 @@ function MSWAssessmentContent() {
                           <tr>
                             <td className="py-2 px-3 font-semibold text-[#10241A]">VII. Safety / Hazards</td>
                             <td className="py-2 px-3 font-mono text-[11px] text-[#0B6B3A] font-bold">
-                              {SEVERITY_LEVEL_OPTIONS.find((o) => o.value === safetySeverityLevel)?.label || safetySeverityLevel}
-                            </td>
-                            <td className="py-2 px-3 font-mono text-[11px] text-[#0284C7] font-bold">
-                              {COPING_LEVEL_OPTIONS.find((o) => o.value === safetyCopingLevel)?.label || safetyCopingLevel}
+                              {backendEval?.computed_domain_scores
+                                ? `Sev ${Number(backendEval.computed_domain_scores.safety_severity ?? 0).toFixed(2)} / Cop ${Number(backendEval.computed_domain_scores.safety_coping ?? 0).toFixed(2)}`
+                                : 'Auto-Computed'}
                             </td>
                             <td className="py-2 px-3 text-[#334155]">{safetyPatientReported || '—'}</td>
                             <td className="py-2 px-3 text-[#14532D]">{safetyMswObs || '—'}</td>
@@ -3569,10 +3629,9 @@ function MSWAssessmentContent() {
                           <tr>
                             <td className="py-2 px-3 font-semibold text-[#10241A]">VIII. Social Roles</td>
                             <td className="py-2 px-3 font-mono text-[11px] text-[#0B6B3A] font-bold">
-                              {SEVERITY_LEVEL_OPTIONS.find((o) => o.value === roleSeverityLevel)?.label || roleSeverityLevel}
-                            </td>
-                            <td className="py-2 px-3 font-mono text-[11px] text-[#0284C7] font-bold">
-                              {COPING_LEVEL_OPTIONS.find((o) => o.value === roleCopingLevel)?.label || roleCopingLevel}
+                              {backendEval?.computed_domain_scores
+                                ? `Sev ${Number(backendEval.computed_domain_scores.roles_severity ?? 0).toFixed(2)} / Cop ${Number(backendEval.computed_domain_scores.roles_coping ?? 0).toFixed(2)}`
+                                : 'Auto-Computed'}
                             </td>
                             <td className="py-2 px-3 text-[#334155]">{rolePatientReported || '—'}</td>
                             <td className="py-2 px-3 text-[#14532D]">{roleMswObs || '—'}</td>
@@ -3580,9 +3639,10 @@ function MSWAssessmentContent() {
                           <tr>
                             <td className="py-2 px-3 font-semibold text-[#10241A]">IX. Environment &amp; Basic Needs</td>
                             <td className="py-2 px-3 font-mono text-[11px] text-[#0B6B3A] font-bold">
-                              {SEVERITY_LEVEL_OPTIONS.find((o) => o.value === envSeverityLevel)?.label || envSeverityLevel}
+                              {backendEval?.computed_domain_scores
+                                ? `Sev ${Number(backendEval.computed_domain_scores.environment_severity ?? 0).toFixed(2)}`
+                                : 'Auto-Computed'}
                             </td>
-                            <td className="py-2 px-3 text-[11px] text-[#94A3B8]">N/A (Severity Only)</td>
                             <td className="py-2 px-3 text-[#334155]">{envPatientReported || '—'}</td>
                             <td className="py-2 px-3 text-[#14532D]">{envMswObs || '—'}</td>
                           </tr>
@@ -4307,71 +4367,48 @@ function MSWAssessmentContent() {
                 </div>
               </div>
 
-              {/* LIVE DOH-PIE COMPOSITE SCORING & MSW CLASSIFICATION DASHBOARD (100% API CALCULATED) */}
+              {/* LIVE AUTOMATED SOCIOECONOMIC SCORING & ELIGIBILITY OUTPUT (100% AUTOMATIC — NO MANUAL OVERRIDES) */}
               <div className="p-4 rounded-xl border border-[#0B6B3A]/30 bg-[#F0FDF4] space-y-4 shadow-sm">
                 <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-[#BBF7D0]">
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-lg bg-[#0B6B3A] text-white flex items-center justify-center text-sm font-bold shadow-xs">
-                      <i className="fa-solid fa-chart-line" />
+                      <i className="fa-solid fa-gears" />
                     </div>
                     <div>
                       <h4 className="font-['Outfit'] font-bold text-sm text-[#14532D] m-0">
-                        Live DOH-PIE Clinical Scoring &amp; Decision Advisory
+                        Automated Socioeconomic Risk Score &amp; Charity Eligibility Output
                       </h4>
                       <p className="text-[11px] text-[#166534] m-0">
-                        Deterministically calculated by backend API using approved OFPHIL qualitative rubric mappings
+                        Automatically computed in the background from Stage 1 intake/financial data and OFPHIL system rules — no manual tier selection required
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    {backendEval?.is_complete ? (
-                      <>
-                        <span className="text-[11px] font-bold text-[#14532D]">MSW Classification:</span>
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold border ${badgeColor} shadow-2xs`}>
-                          {mswClassification}
-                        </span>
-                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-[#0B6B3A] text-white shadow-2xs">
-                          {subsidyLevel}
-                        </span>
-                      </>
-                    ) : (
-                      <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300 shadow-2xs flex items-center gap-1.5">
-                        <i className="fa-solid fa-triangle-exclamation text-amber-600" />
-                        <span>ASSESSMENT INCOMPLETE — CLASSIFICATION PENDING</span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {isEvaluating && (
+                      <span className="text-[11px] font-semibold text-[#0B6B3A] flex items-center gap-1">
+                        <i className="fa-solid fa-circle-notch fa-spin text-[10px]" />
+                        <span>Updating...</span>
                       </span>
                     )}
+                    <span className="text-[11px] font-bold text-[#14532D]">Computed Tier:</span>
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold border ${badgeColor} shadow-2xs`}>
+                      {mswClassification}
+                    </span>
+                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-[#0B6B3A] text-white shadow-2xs">
+                      {subsidyLevel}
+                    </span>
                   </div>
                 </div>
 
-                {/* Incomplete assessment warning alert */}
-                {backendEval && !backendEval.is_complete && (
-                  <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 text-xs space-y-1.5">
-                    <div className="font-bold flex items-center gap-1.5">
-                      <i className="fa-solid fa-circle-exclamation text-amber-600" />
-                      <span>The following required interview or rubric factors are pending completion:</span>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      {(backendEval.missing_factors || []).map((mf: string, idx: number) => (
-                        <span key={idx} className="px-2 py-0.5 rounded bg-white border border-amber-300 text-amber-800 text-[10.5px] font-semibold">
-                          {mf}
-                        </span>
-                      ))}
-                    </div>
-                    <p className="text-[10.5px] text-amber-700 m-0 pt-1">
-                      OFPHIL institutional policy prohibits fabricating or manually calculating scores. Complete the qualitative options below to generate official classification.
-                    </p>
-                  </div>
-                )}
-
-                {/* 4 Metric Cards (API-calculated) */}
+                {/* 4 Metric Cards (Automatically Computed) */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
                   <div className="p-3 bg-white border border-[#CBD5E1] rounded-xl shadow-2xs">
                     <div className="text-[10px] font-bold text-[#64748B] uppercase">Average Severity</div>
                     <div className="text-xl font-extrabold text-[#0B6B3A] my-0.5">
                       {backendEval?.is_complete ? averageSeverity.toFixed(2) : '—'}
                     </div>
-                    <div className="text-[10px] text-[#94A3B8]">Threshold &ge; 3.8 / 2.8</div>
+                    <div className="text-[10px] text-[#94A3B8]">Auto-Computed (&ge; 3.8 / 2.8)</div>
                   </div>
 
                   <div className="p-3 bg-white border border-[#CBD5E1] rounded-xl shadow-2xs">
@@ -4379,7 +4416,7 @@ function MSWAssessmentContent() {
                     <div className="text-xl font-extrabold text-[#0284C7] my-0.5">
                       {backendEval?.is_complete ? averageCoping.toFixed(2) : '—'}
                     </div>
-                    <div className="text-[10px] text-[#94A3B8]">Threshold &ge; 3.8 / 2.8</div>
+                    <div className="text-[10px] text-[#94A3B8]">Auto-Computed (&ge; 3.8 / 2.8)</div>
                   </div>
 
                   <div className="p-3 bg-white border border-[#CBD5E1] rounded-xl shadow-2xs">
@@ -4393,7 +4430,9 @@ function MSWAssessmentContent() {
                   <div className="p-3 bg-white border border-[#CBD5E1] rounded-xl shadow-2xs">
                     <div className="text-[10px] font-bold text-[#64748B] uppercase">Total Household Income</div>
                     <div className="text-xl font-extrabold text-[#10241A] my-0.5">₱{totalHouseholdIncome.toLocaleString()}</div>
-                    <div className="text-[10px] text-[#94A3B8]">Initial Load: &le; ₱14k / &le; ₱25k</div>
+                    <div className="text-[10px] text-[#94A3B8]">
+                      Per Capita: ₱{Number(backendEval?.financial_classification?.monthly_per_capita_income ?? (totalHouseholdIncome / Math.max(1, familyMembers.length + 1))).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
                   </div>
                 </div>
 
@@ -4401,49 +4440,49 @@ function MSWAssessmentContent() {
                 <div className="bg-white border border-[#CBD5E1] rounded-xl p-3 text-xs overflow-x-auto">
                   <div className="font-bold text-[11px] uppercase tracking-wide text-[#0B6B3A] mb-2 flex items-center gap-1.5">
                     <i className="fa-solid fa-table-list" />
-                    <span>Official OFPHIL MSW Classification Rubric &amp; Trigger Conditions</span>
+                    <span>Official OFPHIL Automated Classification Rubric &amp; Trigger Conditions</span>
                   </div>
                   <table className="w-full text-left border-collapse text-[11px]">
                     <thead>
                       <tr className="bg-[#FAFBF8] border-b border-[#E2E8F0] text-[#64748B]">
-                        <th className="py-1.5 px-2.5">MSW Classification</th>
-                        <th className="py-1.5 px-2.5">Trigger Condition (Live Rubric &amp; Initial Load)</th>
+                        <th className="py-1.5 px-2.5">Charity Classification Tier</th>
+                        <th className="py-1.5 px-2.5">Automated Trigger Rule</th>
                         <th className="py-1.5 px-2.5">Subsidy Level</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#EEF2EF]">
-                      <tr className={mswClassification === 'Indigent' ? 'bg-[#F0FDF4] font-bold text-[#14532D]' : ''}>
+                      <tr className={currentMswClass === 'INDIGENT' ? 'bg-[#F0FDF4] font-bold text-[#14532D]' : ''}>
                         <td className="py-1.5 px-2.5">Indigent</td>
                         <td className="py-1.5 px-2.5 font-mono text-[10.5px]">
                           Average Severity &ge; 3.8 <strong className="text-[#0B6B3A]">OR</strong> Average Coping &ge; 3.8 <strong className="text-[#0B6B3A]">OR</strong> Total Risk &ge; 65.0% (or Total Household Income &le; ₱14,000 on initial load)
                         </td>
                         <td className="py-1.5 px-2.5">100% Full Charity Subsidy</td>
                       </tr>
-                      <tr className={mswClassification === 'Financially Incapacitated (B1)' ? 'bg-[#EFF6FF] font-bold text-[#1E40AF]' : ''}>
-                        <td className="py-1.5 px-2.5">Financially Incapacitated (B1)</td>
+                      <tr className={currentMswClass === 'FINANCIALLY_INCAPACITATED_B1' ? 'bg-[#EFF6FF] font-bold text-[#1E40AF]' : ''}>
+                        <td className="py-1.5 px-2.5">Financially Incapacitated B1</td>
                         <td className="py-1.5 px-2.5 font-mono text-[10.5px]">
                           Average Severity &ge; 2.8 <strong className="text-[#0B6B3A]">OR</strong> Average Coping &ge; 2.8 <strong className="text-[#0B6B3A]">OR</strong> Total Risk &ge; 45.0%
                         </td>
-                        <td className="py-1.5 px-2.5">High Partial Charity Subsidy</td>
+                        <td className="py-1.5 px-2.5">High Partial Charity Subsidy (75% – 90%)</td>
                       </tr>
-                      <tr className={mswClassification === 'Financially Incapacitated (B2)' ? 'bg-[#FFFBEB] font-bold text-[#92400E]' : ''}>
-                        <td className="py-1.5 px-2.5">Financially Incapacitated (B2)</td>
+                      <tr className={currentMswClass === 'FINANCIALLY_INCAPACITATED_B2' ? 'bg-[#FFFBEB] font-bold text-[#92400E]' : ''}>
+                        <td className="py-1.5 px-2.5">Financially Incapacitated B2</td>
                         <td className="py-1.5 px-2.5 font-mono text-[10.5px]">
                           Total Risk &ge; 30.0% (or Total Household Income &le; ₱25,000 on initial load)
                         </td>
-                        <td className="py-1.5 px-2.5">Moderate Partial Subsidy</td>
+                        <td className="py-1.5 px-2.5">Moderate Partial Charity Subsidy (50% – 74%)</td>
                       </tr>
-                      <tr className={mswClassification === 'Financially Capacitated (Full Pay)' ? 'bg-[#F8FAFC] font-bold text-[#334155]' : ''}>
-                        <td className="py-1.5 px-2.5">Financially Capacitated (Full Pay)</td>
-                        <td className="py-1.5 px-2.5 font-mono text-[10.5px]">All scores below the thresholds above</td>
-                        <td className="py-1.5 px-2.5">Full Pay (Non-Charity)</td>
+                      <tr className={currentMswClass === 'FINANCIALLY_CAPACITATED' ? 'bg-[#F8FAFC] font-bold text-[#334155]' : ''}>
+                        <td className="py-1.5 px-2.5">Financially Capacitated</td>
+                        <td className="py-1.5 px-2.5 font-mono text-[10.5px]">All scores below the charity thresholds above</td>
+                        <td className="py-1.5 px-2.5">Full Pay / Non-Charity (0%)</td>
                       </tr>
                     </tbody>
                   </table>
                 </div>
               </div>
 
-              {/* V. HEALTH (PHYSICAL & MENTAL HEALTH SERVICES / ACCESS) - QUALITATIVE OPTIONS */}
+              {/* V. HEALTH (PHYSICAL & MENTAL HEALTH SERVICES / ACCESS) — QUALITATIVE DOCUMENTATION ONLY */}
               <div className="p-4 rounded-xl border border-[#E2E8F0] bg-white space-y-4">
                 <div className="flex items-center justify-between pb-2 border-b border-[#EEF2EF]">
                   <span className="font-bold text-xs text-[#0B6B3A] flex items-center gap-1.5 uppercase tracking-wide">
@@ -4451,65 +4490,21 @@ function MSWAssessmentContent() {
                     <span>V. HEALTH (PHYSICAL &amp; MENTAL HEALTH SERVICES / ACCESS)</span>
                   </span>
                   <span className="text-[10px] font-bold uppercase text-[#0B6B3A] bg-[#E8F5EC] px-2 py-0.5 rounded">
-                    QUALITATIVE CLINICAL TIERS
+                    QUALITATIVE DOCUMENTATION
                   </span>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-3.5">
                   {healthFactors.map((hf, i) => (
-                    <div key={i} className="p-3.5 bg-[#FAFBF8] border border-[#CBD5E1] rounded-xl space-y-3">
+                    <div key={i} className="p-3.5 bg-[#FAFBF8] border border-[#CBD5E1] rounded-xl space-y-2.5">
                       <div className="font-semibold text-xs text-[#1E293B] flex items-center justify-between">
                         <span>{i + 1}. {hf.factor}</span>
-                        <span className="text-[10px] text-[#64748B] font-normal">DOH-PIE Clinical Factor</span>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-[10px] font-bold text-[#0B6B3A] uppercase mb-1">
-                            Severity Tier (Qualitative) *
-                          </label>
-                          <select
-                            value={hf.severityLevel}
-                            onChange={(e) => {
-                              const updated = [...healthFactors];
-                              updated[i].severityLevel = e.target.value;
-                              setHealthFactors(updated);
-                            }}
-                            className="w-full h-8 px-2 border border-[#CBD5E1] rounded text-xs bg-white font-bold text-[#0B6B3A]"
-                          >
-                            {SEVERITY_LEVEL_OPTIONS.map((opt) => (
-                              <option key={opt.value} value={opt.value}>
-                                {opt.label}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-
-                        <div>
-                          <label className="block text-[10px] font-bold text-[#0284C7] uppercase mb-1">
-                            Coping Tier (Qualitative) *
-                          </label>
-                          <select
-                            value={hf.copingLevel}
-                            onChange={(e) => {
-                              const updated = [...healthFactors];
-                              updated[i].copingLevel = e.target.value;
-                              setHealthFactors(updated);
-                            }}
-                            className="w-full h-8 px-2 border border-[#CBD5E1] rounded text-xs bg-white font-bold text-[#0284C7]"
-                          >
-                            {COPING_LEVEL_OPTIONS.map((opt) => (
-                              <option key={opt.value} value={opt.value}>
-                                {opt.label}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
+                        <span className="text-[10px] text-[#64748B] font-normal">Casework Interview &amp; Evidence</span>
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                         <div>
-                          <label className="block text-[10px] font-bold text-blue-900 uppercase mb-0.5">
+                          <label className="block text-[10px] font-bold text-blue-900 uppercase mb-1">
                             Patient / Representative Response
                           </label>
                           <input
@@ -4521,12 +4516,12 @@ function MSWAssessmentContent() {
                               setHealthFactors(updated);
                             }}
                             placeholder="Reported accessibility barrier or difficulty..."
-                            className="w-full h-8 px-2.5 border border-[#CBD5E1] rounded text-xs bg-white"
+                            className="w-full h-8 px-2.5 border border-[#CBD5E1] rounded text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
                           />
                         </div>
 
                         <div>
-                          <label className="block text-[10px] font-bold text-[#14532D] uppercase mb-0.5">
+                          <label className="block text-[10px] font-bold text-[#14532D] uppercase mb-1">
                             MSW Clinical Observation &amp; Evidence
                           </label>
                           <input
@@ -4538,7 +4533,7 @@ function MSWAssessmentContent() {
                               setHealthFactors(updated);
                             }}
                             placeholder="Clinical finding, referral cross-check..."
-                            className="w-full h-8 px-2.5 border border-[#CBD5E1] rounded text-xs bg-white"
+                            className="w-full h-8 px-2.5 border border-[#CBD5E1] rounded text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
                           />
                         </div>
                       </div>
@@ -4547,15 +4542,15 @@ function MSWAssessmentContent() {
                 </div>
               </div>
 
-              {/* VI to IX SUBTOPIC ADJUSTERS - QUALITATIVE OPTIONS */}
+              {/* VI to IX. PSYCHOSOCIAL DOMAINS — QUALITATIVE INTERVIEW & OBSERVATIONS ONLY */}
               <div className="p-4 bg-white border border-[#E2E8F0] rounded-xl space-y-4">
                 <div className="flex items-center justify-between pb-2 border-b border-[#EEF2EF]">
                   <span className="font-bold text-xs text-[#0B6B3A] flex items-center gap-1.5 uppercase tracking-wide">
                     <i className="fa-solid fa-layer-group text-sm" />
-                    <span>VI to IX. Psychosocial Domains (Qualitative Tiers &amp; Dual Observations)</span>
+                    <span>VI to IX. Psychosocial Domains (Interview Responses &amp; MSW Observations)</span>
                   </span>
                   <span className="text-[10px] font-bold uppercase text-[#0B6B3A] bg-[#E8F5EC] px-2 py-0.5 rounded">
-                    INTERVIEW RUBRIC
+                    AUTO-SCORED DOMAINS
                   </span>
                 </div>
 
@@ -4563,176 +4558,124 @@ function MSWAssessmentContent() {
                   {/* VI. Discrimination Burden */}
                   <div className="p-3.5 bg-[#FAFBF8] border border-[#CBD5E1] rounded-xl space-y-2.5">
                     <div className="font-bold text-xs text-[#1E293B]">VI. Discrimination Burden</div>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-2 text-xs">
                       <div>
-                        <label className="block text-[9.5px] font-bold text-[#0B6B3A] uppercase mb-1">Severity</label>
-                        <select
-                          value={discrimSeverityLevel}
-                          onChange={(e) => setDiscrimSeverityLevel(e.target.value)}
-                          className="w-full h-8 px-2 border border-[#CBD5E1] rounded text-[11px] font-bold text-[#0B6B3A] bg-white"
-                        >
-                          {SEVERITY_LEVEL_OPTIONS.map((o) => (
-                            <option key={o.value} value={o.value}>{o.label}</option>
-                          ))}
-                        </select>
+                        <label className="block text-[10px] font-bold text-blue-900 uppercase mb-0.5">
+                          Patient / Representative Response
+                        </label>
+                        <input
+                          type="text"
+                          value={discrimPatientReported}
+                          onChange={(e) => setDiscrimPatientReported(e.target.value)}
+                          placeholder="Patient reported discrimination..."
+                          className="w-full h-8 px-2.5 border border-[#CBD5E1] rounded text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
+                        />
                       </div>
                       <div>
-                        <label className="block text-[9.5px] font-bold text-[#0284C7] uppercase mb-1">Coping</label>
-                        <select
-                          value={discrimCopingLevel}
-                          onChange={(e) => setDiscrimCopingLevel(e.target.value)}
-                          className="w-full h-8 px-2 border border-[#CBD5E1] rounded text-[11px] font-bold text-[#0284C7] bg-white"
-                        >
-                          {COPING_LEVEL_OPTIONS.map((o) => (
-                            <option key={o.value} value={o.value}>{o.label}</option>
-                          ))}
-                        </select>
+                        <label className="block text-[10px] font-bold text-[#14532D] uppercase mb-0.5">
+                          MSW Clinical Observation &amp; Evidence
+                        </label>
+                        <input
+                          type="text"
+                          value={discrimMswObs}
+                          onChange={(e) => setDiscrimMswObs(e.target.value)}
+                          placeholder="MSW clinical observation..."
+                          className="w-full h-8 px-2.5 border border-[#CBD5E1] rounded text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
+                        />
                       </div>
-                    </div>
-                    <div className="space-y-1.5 text-xs">
-                      <input
-                        type="text"
-                        value={discrimPatientReported}
-                        onChange={(e) => setDiscrimPatientReported(e.target.value)}
-                        placeholder="Patient reported discrimination..."
-                        className="w-full h-7 px-2 border border-[#CBD5E1] rounded text-[11px] bg-white"
-                      />
-                      <input
-                        type="text"
-                        value={discrimMswObs}
-                        onChange={(e) => setDiscrimMswObs(e.target.value)}
-                        placeholder="MSW clinical observation..."
-                        className="w-full h-7 px-2 border border-[#CBD5E1] rounded text-[11px] bg-white"
-                      />
                     </div>
                   </div>
 
                   {/* VII. Safety / Hazards */}
                   <div className="p-3.5 bg-[#FAFBF8] border border-[#CBD5E1] rounded-xl space-y-2.5">
                     <div className="font-bold text-xs text-[#1E293B]">VII. Safety / Hazards</div>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-2 text-xs">
                       <div>
-                        <label className="block text-[9.5px] font-bold text-[#0B6B3A] uppercase mb-1">Severity</label>
-                        <select
-                          value={safetySeverityLevel}
-                          onChange={(e) => setSafetySeverityLevel(e.target.value)}
-                          className="w-full h-8 px-2 border border-[#CBD5E1] rounded text-[11px] font-bold text-[#0B6B3A] bg-white"
-                        >
-                          {SEVERITY_LEVEL_OPTIONS.map((o) => (
-                            <option key={o.value} value={o.value}>{o.label}</option>
-                          ))}
-                        </select>
+                        <label className="block text-[10px] font-bold text-blue-900 uppercase mb-0.5">
+                          Patient / Representative Response
+                        </label>
+                        <input
+                          type="text"
+                          value={safetyPatientReported}
+                          onChange={(e) => setSafetyPatientReported(e.target.value)}
+                          placeholder="Patient reported safety risks..."
+                          className="w-full h-8 px-2.5 border border-[#CBD5E1] rounded text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
+                        />
                       </div>
                       <div>
-                        <label className="block text-[9.5px] font-bold text-[#0284C7] uppercase mb-1">Coping</label>
-                        <select
-                          value={safetyCopingLevel}
-                          onChange={(e) => setSafetyCopingLevel(e.target.value)}
-                          className="w-full h-8 px-2 border border-[#CBD5E1] rounded text-[11px] font-bold text-[#0284C7] bg-white"
-                        >
-                          {COPING_LEVEL_OPTIONS.map((o) => (
-                            <option key={o.value} value={o.value}>{o.label}</option>
-                          ))}
-                        </select>
+                        <label className="block text-[10px] font-bold text-[#14532D] uppercase mb-0.5">
+                          MSW Clinical Observation &amp; Evidence
+                        </label>
+                        <input
+                          type="text"
+                          value={safetyMswObs}
+                          onChange={(e) => setSafetyMswObs(e.target.value)}
+                          placeholder="MSW domestic hazard observation..."
+                          className="w-full h-8 px-2.5 border border-[#CBD5E1] rounded text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
+                        />
                       </div>
-                    </div>
-                    <div className="space-y-1.5 text-xs">
-                      <input
-                        type="text"
-                        value={safetyPatientReported}
-                        onChange={(e) => setSafetyPatientReported(e.target.value)}
-                        placeholder="Patient reported safety risks..."
-                        className="w-full h-7 px-2 border border-[#CBD5E1] rounded text-[11px] bg-white"
-                      />
-                      <input
-                        type="text"
-                        value={safetyMswObs}
-                        onChange={(e) => setSafetyMswObs(e.target.value)}
-                        placeholder="MSW domestic hazard observation..."
-                        className="w-full h-7 px-2 border border-[#CBD5E1] rounded text-[11px] bg-white"
-                      />
                     </div>
                   </div>
 
                   {/* VIII. Social Roles */}
                   <div className="p-3.5 bg-[#FAFBF8] border border-[#CBD5E1] rounded-xl space-y-2.5">
                     <div className="font-bold text-xs text-[#1E293B]">VIII. Social Roles</div>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-2 text-xs">
                       <div>
-                        <label className="block text-[9.5px] font-bold text-[#0B6B3A] uppercase mb-1">Severity</label>
-                        <select
-                          value={roleSeverityLevel}
-                          onChange={(e) => setRoleSeverityLevel(e.target.value)}
-                          className="w-full h-8 px-2 border border-[#CBD5E1] rounded text-[11px] font-bold text-[#0B6B3A] bg-white"
-                        >
-                          {SEVERITY_LEVEL_OPTIONS.map((o) => (
-                            <option key={o.value} value={o.value}>{o.label}</option>
-                          ))}
-                        </select>
+                        <label className="block text-[10px] font-bold text-blue-900 uppercase mb-0.5">
+                          Patient / Representative Response
+                        </label>
+                        <input
+                          type="text"
+                          value={rolePatientReported}
+                          onChange={(e) => setRolePatientReported(e.target.value)}
+                          placeholder="Patient role strain disclosure..."
+                          className="w-full h-8 px-2.5 border border-[#CBD5E1] rounded text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
+                        />
                       </div>
                       <div>
-                        <label className="block text-[9.5px] font-bold text-[#0284C7] uppercase mb-1">Coping</label>
-                        <select
-                          value={roleCopingLevel}
-                          onChange={(e) => setRoleCopingLevel(e.target.value)}
-                          className="w-full h-8 px-2 border border-[#CBD5E1] rounded text-[11px] font-bold text-[#0284C7] bg-white"
-                        >
-                          {COPING_LEVEL_OPTIONS.map((o) => (
-                            <option key={o.value} value={o.value}>{o.label}</option>
-                          ))}
-                        </select>
+                        <label className="block text-[10px] font-bold text-[#14532D] uppercase mb-0.5">
+                          MSW Clinical Observation &amp; Evidence
+                        </label>
+                        <input
+                          type="text"
+                          value={roleMswObs}
+                          onChange={(e) => setRoleMswObs(e.target.value)}
+                          placeholder="MSW breadwinner role strain observation..."
+                          className="w-full h-8 px-2.5 border border-[#CBD5E1] rounded text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
+                        />
                       </div>
-                    </div>
-                    <div className="space-y-1.5 text-xs">
-                      <input
-                        type="text"
-                        value={rolePatientReported}
-                        onChange={(e) => setRolePatientReported(e.target.value)}
-                        placeholder="Patient role strain disclosure..."
-                        className="w-full h-7 px-2 border border-[#CBD5E1] rounded text-[11px] bg-white"
-                      />
-                      <input
-                        type="text"
-                        value={roleMswObs}
-                        onChange={(e) => setRoleMswObs(e.target.value)}
-                        placeholder="MSW breadwinner role strain observation..."
-                        className="w-full h-7 px-2 border border-[#CBD5E1] rounded text-[11px] bg-white"
-                      />
                     </div>
                   </div>
 
-                  {/* IX. Environment Basic Needs */}
+                  {/* IX. Environment & Basic Needs */}
                   <div className="p-3.5 bg-[#FAFBF8] border border-[#CBD5E1] rounded-xl space-y-2.5">
                     <div className="font-bold text-xs text-[#1E293B]">IX. Environment &amp; Basic Needs</div>
-                    <div>
-                      <label className="block text-[9.5px] font-bold text-[#0B6B3A] uppercase mb-1">
-                        Severity (Basic Needs Barrier)
-                      </label>
-                      <select
-                        value={envSeverityLevel}
-                        onChange={(e) => setEnvSeverityLevel(e.target.value)}
-                        className="w-full h-8 px-2 border border-[#CBD5E1] rounded text-[11px] font-bold text-[#0B6B3A] bg-white"
-                      >
-                        {SEVERITY_LEVEL_OPTIONS.map((o) => (
-                          <option key={o.value} value={o.value}>{o.label}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="space-y-1.5 text-xs">
-                      <input
-                        type="text"
-                        value={envPatientReported}
-                        onChange={(e) => setEnvPatientReported(e.target.value)}
-                        placeholder="Patient basic needs dwelling report..."
-                        className="w-full h-7 px-2 border border-[#CBD5E1] rounded text-[11px] bg-white"
-                      />
-                      <input
-                        type="text"
-                        value={envMswObs}
-                        onChange={(e) => setEnvMswObs(e.target.value)}
-                        placeholder="MSW living condition observation..."
-                        className="w-full h-7 px-2 border border-[#CBD5E1] rounded text-[11px] bg-white"
-                      />
+                    <div className="space-y-2 text-xs">
+                      <div>
+                        <label className="block text-[10px] font-bold text-blue-900 uppercase mb-0.5">
+                          Patient / Representative Response
+                        </label>
+                        <input
+                          type="text"
+                          value={envPatientReported}
+                          onChange={(e) => setEnvPatientReported(e.target.value)}
+                          placeholder="Patient basic needs dwelling report..."
+                          className="w-full h-8 px-2.5 border border-[#CBD5E1] rounded text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-[#14532D] uppercase mb-0.5">
+                          MSW Clinical Observation &amp; Evidence
+                        </label>
+                        <input
+                          type="text"
+                          value={envMswObs}
+                          onChange={(e) => setEnvMswObs(e.target.value)}
+                          placeholder="MSW living condition observation..."
+                          className="w-full h-8 px-2.5 border border-[#CBD5E1] rounded text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -4916,52 +4859,60 @@ function MSWAssessmentContent() {
                           <th className="py-2.5 px-3">Processing</th>
                           <th className="py-2.5 px-3">Signature Indicator</th>
                           <th className="py-2.5 px-3">Authenticity</th>
-                          <th className="py-2.5 px-3">Manual Review</th>
+                          <th className="py-2.5 px-3">Automated Verification Summary</th>
                           <th className="py-2.5 px-3 text-right">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-[#EEF2EF]">
-                        {patientDocs.map((d) => (
-                          <tr key={d.id} className="hover:bg-[#FAFBF8]">
-                            <td className="py-2.5 px-3">
-                              <div className="font-bold text-[#10241A]">{d.filename}</div>
-                              <div className="text-[10.5px] text-[#64748B]">{d.document_type}</div>
-                            </td>
-                            <td className="py-2.5 px-3">
-                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#EFF6FF] text-[#1D4ED8]">
-                                {d.processing_state?.processing_status || (d.ocr_processed ? 'COMPLETED' : 'NOT_CHECKED')}
-                              </span>
-                            </td>
-                            <td className="py-2.5 px-3">
-                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#F1F5F9] text-[#334155]">
-                                {d.signature_status || 'NOT_CHECKED'}
-                              </span>
-                            </td>
-                            <td className="py-2.5 px-3">
-                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#FFFBEB] text-[#92400E]">
-                                {d.authenticity_result?.overall_status || d.verification_status || 'UNVERIFIABLE'}
-                              </span>
-                            </td>
-                            <td className="py-2.5 px-3">
-                              {d.manual_review ? (
-                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#E8F5EC] text-[#0B6B3A]">
-                                  {d.manual_review.review_decision}
+                        {patientDocs.map((d) => {
+                          const procStatus =
+                            d.processing_state?.processing_status || (d.ocr_processed ? 'COMPLETED' : 'NOT_CHECKED');
+                          const isScanning = procStatus === 'QUEUED' || procStatus === 'PROCESSING';
+                          const authBadge = resolveDocAuthenticity(d);
+                          return (
+                            <tr key={d.id} className="hover:bg-[#FAFBF8]">
+                              <td className="py-2.5 px-3">
+                                <div className="font-bold text-[#10241A]">{d.filename}</div>
+                                <div className="text-[10.5px] text-[#64748B]">{d.document_type}</div>
+                              </td>
+                              <td className="py-2.5 px-3">
+                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#EFF6FF] text-[#1D4ED8]">
+                                  {procStatus}
                                 </span>
-                              ) : (
-                                <span className="text-[10.5px] text-[#94A3B8]">Pending MSW Review</span>
-                              )}
-                            </td>
-                            <td className="py-2.5 px-3 text-right space-x-1.5">
-                              <button
-                                type="button"
-                                onClick={() => handleInspectDocument(d)}
-                                className="px-2.5 py-1 rounded-lg border border-[#0B6B3A] text-[#0B6B3A] hover:bg-[#E8F5EC] text-[11px] font-semibold cursor-pointer"
-                              >
-                                Inspect &amp; Review
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
+                              </td>
+                              <td className="py-2.5 px-3">
+                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#F1F5F9] text-[#334155]">
+                                  {d.signature_status || 'NOT_CHECKED'}
+                                </span>
+                              </td>
+                              <td className="py-2.5 px-3">
+                                {isScanning ? (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                    <i className="fa-solid fa-circle-notch fa-spin text-[9px]" />
+                                    <span>Scanning...</span>
+                                  </span>
+                                ) : (
+                                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold ${authBadge.badgeCls}`}>
+                                    <i className={`fa-solid ${authBadge.iconCls} text-[10px]`} />
+                                    <span>{authBadge.label}</span>
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-2.5 px-3 text-[11px] text-[#475569] max-w-xs">
+                                <div className="line-clamp-1">{authBadge.summary}</div>
+                              </td>
+                              <td className="py-2.5 px-3 text-right space-x-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => handleInspectDocument(d)}
+                                  className="px-2.5 py-1 rounded-lg border border-[#0B6B3A] text-[#0B6B3A] hover:bg-[#E8F5EC] text-[11px] font-semibold cursor-pointer"
+                                >
+                                  Inspect &amp; Review
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -5088,11 +5039,21 @@ function MSWAssessmentContent() {
                 </div>
 
                 <div className="p-4 rounded-xl border border-[#E2E8F0] bg-white space-y-2.5">
-                  <div className="font-bold text-xs text-[#10241A]">Document Verification &amp; ML Readiness Summary</div>
+                  <div className="font-bold text-xs text-[#10241A]">Document Authenticity &amp; ML Readiness Summary</div>
                   <div className="text-[11px] text-[#475569] space-y-1">
                     <div>
                       <strong>Uploaded Credentials:</strong> {patientDocs.length} file(s) &bull;{' '}
-                      <strong>Manually Reviewed:</strong> {patientDocs.filter((d) => d.manual_review).length}
+                      <strong className="text-emerald-700">
+                        Authentic: {patientDocs.filter((d) => resolveDocAuthenticity(d).label === 'Authentic').length}
+                      </strong>{' '}
+                      &bull;{' '}
+                      <strong className="text-amber-700">
+                        Suspicious: {patientDocs.filter((d) => resolveDocAuthenticity(d).label === 'Suspicious').length}
+                      </strong>{' '}
+                      &bull;{' '}
+                      <strong className="text-rose-700">
+                        Counterfeit: {patientDocs.filter((d) => resolveDocAuthenticity(d).label === 'Counterfeit').length}
+                      </strong>
                     </div>
                     <div>
                       <strong>Checklist Verified:</strong> {verifiedDocsCount} / 4 items
@@ -5353,13 +5314,13 @@ function MSWAssessmentContent() {
         </div>
       </div>
 
-      {/* Document Authenticity Inspection & Manual Review Modal */}
+      {/* Document Authenticity & Verification Modal (Automated Classification Only) */}
       {inspectDoc && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl border border-[#CBD5E1] max-w-2xl w-full max-h-[85vh] overflow-y-auto p-6 space-y-4 shadow-xl text-xs">
             <div className="flex items-center justify-between border-b border-[#EEF2EF] pb-3">
               <div>
-                <h4 className="font-bold text-sm text-[#10241A] m-0">Document Authenticity &amp; Manual Review</h4>
+                <h4 className="font-bold text-sm text-[#10241A] m-0">Document Authenticity &amp; Verification</h4>
                 <div className="text-[11px] text-[#64748B]">
                   {inspectDoc.filename} &bull; SHA-256: <span className="font-mono">{inspectDoc.sha256_hash?.slice(0, 16) || 'N/A'}...</span>
                 </div>
@@ -5367,68 +5328,78 @@ function MSWAssessmentContent() {
               <button
                 type="button"
                 onClick={() => setInspectDoc(null)}
-                className="px-2.5 py-1 rounded-lg border border-[#CBD5E1] text-xs font-semibold cursor-pointer"
+                className="px-3 py-1 rounded-lg border border-[#CBD5E1] hover:bg-slate-50 text-xs font-semibold cursor-pointer"
               >
                 Close
               </button>
             </div>
 
             {!inspectDetails ? (
-              <div className="py-8 text-center text-[#64748B]">Loading OCR, signature, and forensic results...</div>
+              <div className="py-8 text-center text-[#64748B]">Loading OCR, signature, and forensic verification results...</div>
             ) : (
-              <div className="space-y-3">
-                <div className="p-3 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
-                  <div className="font-bold text-[#10241A] mb-1">OCR Extraction ({inspectDetails.ocr?.engine_used})</div>
-                  <pre className="whitespace-pre-wrap text-[11px] text-[#334155] font-mono max-h-32 overflow-y-auto">
-                    {inspectDetails.ocr?.extracted_text || inspectDetails.ocr?.unavailable_reason || 'No text extracted.'}
-                  </pre>
-                </div>
+              (() => {
+                const modalAuth = resolveDocAuthenticity(inspectDetails.auth || inspectDoc);
+                const ind = inspectDetails.auth?.indicators || {};
+                return (
+                  <div className="space-y-3.5">
+                    {/* Automated Authenticity Classification Banner */}
+                    <div className={`p-4 rounded-xl border ${modalAuth.bannerCls} flex flex-wrap items-center justify-between gap-3`}>
+                      <div className="space-y-1">
+                        <div className="text-[10px] font-bold uppercase opacity-75">
+                          Automated Document Authenticity Classification
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${modalAuth.badgeCls}`}>
+                            <i className={`fa-solid ${modalAuth.iconCls}`} />
+                            <span>{modalAuth.label}</span>
+                          </span>
+                          <span className="text-[11px] font-semibold opacity-90">
+                            Tamper Risk: {inspectDetails.auth?.tamper_risk_level || inspectDoc.tamper_risk || 'Low'}
+                          </span>
+                        </div>
+                        <div className="text-xs pt-0.5">{modalAuth.summary}</div>
+                      </div>
+                    </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="p-3 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
-                    <div className="font-bold text-[#10241A]">Signature Presence</div>
-                    <div className="font-mono text-[#0B6B3A] font-bold mt-1">{inspectDetails.sig?.signature_status}</div>
-                    <div className="text-[10px] text-[#64748B] mt-1">{inspectDetails.sig?.disclaimer}</div>
-                  </div>
-                  <div className="p-3 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
-                    <div className="font-bold text-[#10241A]">Forensic Indicators</div>
-                    <div className="font-mono text-[#92400E] font-bold mt-1">{inspectDetails.auth?.overall_status}</div>
-                    <div className="text-[10px] text-[#64748B] mt-1">{inspectDetails.auth?.disclaimer}</div>
-                  </div>
-                </div>
+                    {/* OCR Extraction */}
+                    <div className="p-3 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
+                      <div className="font-bold text-[#10241A] mb-1">OCR Extraction ({inspectDetails.ocr?.engine_used})</div>
+                      <pre className="whitespace-pre-wrap text-[11px] text-[#334155] font-mono max-h-32 overflow-y-auto m-0">
+                        {inspectDetails.ocr?.extracted_text || inspectDetails.ocr?.unavailable_reason || 'No text extracted.'}
+                      </pre>
+                    </div>
 
-                <div className="p-3 rounded-xl border border-[#CBD5E1] space-y-2">
-                  <div className="font-bold text-[#10241A]">MSW Manual Verification Decision</div>
-                  <div className="flex gap-2">
-                    {(['ACCEPTED', 'RESUBMISSION_REQUIRED', 'REJECTED'] as const).map((d) => (
-                      <button
-                        key={d}
-                        type="button"
-                        onClick={() => setManualDecision(d)}
-                        className={`px-3 py-1 rounded-lg text-[11px] font-bold border cursor-pointer ${
-                          manualDecision === d ? 'bg-[#0B6B3A] text-white border-[#0B6B3A]' : 'bg-white text-[#334155] border-[#CBD5E1]'
-                        }`}
-                      >
-                        {d.replace(/_/g, ' ')}
-                      </button>
-                    ))}
+                    {/* Signature & Forensic Integrity Cards */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="p-3 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-1">
+                        <div className="font-bold text-[#10241A]">Signature Presence</div>
+                        <div className="font-mono text-[#0B6B3A] font-bold">
+                          {inspectDetails.sig?.signature_status || 'NOT_CHECKED'}
+                        </div>
+                        <div className="text-[10px] text-[#64748B]">{inspectDetails.sig?.disclaimer}</div>
+                      </div>
+
+                      <div className="p-3 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-[#10241A]">Forensic Integrity Check</span>
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${modalAuth.badgeCls}`}>
+                            <i className={`fa-solid ${modalAuth.iconCls} text-[9px]`} />
+                            <span>{modalAuth.label}</span>
+                          </span>
+                        </div>
+                        {Object.keys(ind).length > 0 && (
+                          <div className="text-[10.5px] text-[#334155] font-mono space-y-0.5">
+                            {ind.resolution && <div>Resolution: {ind.resolution}</div>}
+                            {ind.ela_std_diff !== undefined && <div>ELA Std Variance: {ind.ela_std_diff}</div>}
+                            {ind.splicing_indicator && <div>Profile: {ind.splicing_indicator}</div>}
+                          </div>
+                        )}
+                        <div className="text-[10px] text-[#64748B]">{inspectDetails.auth?.disclaimer}</div>
+                      </div>
+                    </div>
                   </div>
-                  <textarea
-                    rows={2}
-                    value={manualReviewNotes}
-                    onChange={(e) => setManualReviewNotes(e.target.value)}
-                    placeholder="Enter manual inspection findings..."
-                    className="w-full p-2 border border-[#CBD5E1] rounded-lg text-xs"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleSubmitManualDocReview}
-                    className="px-4 py-1.5 rounded-lg bg-[#0B6B3A] text-white text-xs font-bold cursor-pointer"
-                  >
-                    Record Manual Review
-                  </button>
-                </div>
-              </div>
+                );
+              })()
             )}
           </div>
         </div>

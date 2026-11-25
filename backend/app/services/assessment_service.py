@@ -21,6 +21,7 @@ from app.schemas.assessment_schemas import (
 )
 from app.schemas.classification_schemas import CombinedClassificationRequest, MSWScoreFactors
 from app.services.classification_service import (
+    compute_automated_stage2_scores,
     evaluate_combined,
     evaluate_stage2_interview,
     resolve_qualitative_coping,
@@ -286,18 +287,29 @@ class AssessmentService:
 
         household_size = int(stage1.get("household_size") or (len(family_members) + 1))
 
-        # Resolve Stage 2 scores (supports both structured qualitative levels and legacy numeric scores)
+        # Resolve Stage 2 scores (supports automated socioeconomic computation, qualitative levels, and legacy numeric scores)
         factors_payload = None
         avg_sev = stage2.get("average_severity")
         avg_cop = stage2.get("average_coping")
+        auto_mode = bool(stage2.get("auto_compute_scores"))
 
-        if stage2.get("health_factors") is not None:
-            hf = stage2["health_factors"]
-            if not hf:
-                raise HTTPException(status_code=422, detail="At least one health factor is required in Stage 2.")
+        hf_list = stage2.get("health_factors") or []
+        has_manual_hf_levels = bool(
+            not auto_mode
+            and hf_list
+            and any(
+                x.get("severity_level") is not None
+                or x.get("severity") is not None
+                or x.get("coping_level") is not None
+                or x.get("coping") is not None
+                for x in hf_list
+            )
+        )
+
+        if has_manual_hf_levels:
             sev_vals = []
             cop_vals = []
-            for x in hf:
+            for x in hf_list:
                 s, _ = resolve_qualitative_severity(x.get("severity_level", x.get("severity", 0)))
                 c, _ = resolve_qualitative_coping(x.get("coping_level", x.get("coping", 0)))
                 sev_vals.append(float(s) if s is not None else float(x.get("severity", 0)))
@@ -326,6 +338,37 @@ class AssessmentService:
                 safety_coping=safety_cop if safety_cop is not None else Decimal(str(stage2.get("safety_coping", 0))),
                 roles_coping=roles_cop if roles_cop is not None else Decimal(str(stage2.get("roles_coping", 0))),
             )
+        elif auto_mode or (avg_sev is None or avg_cop is None):
+            se_exp = stage1.get("socio_economic_expenses") or {}
+            med_diff = stage2.get("medical_difficulties") or {}
+            bg = stage2.get("background") or {}
+            psy = stage2.get("psychosocial") or {}
+            health_concat = " ".join(
+                f"{x.get('patient_reported') or ''} {x.get('msw_observation') or ''}" for x in hf_list
+            )
+            auto_scores = compute_automated_stage2_scores(
+                total_household_income=total_income,
+                household_size=household_size,
+                total_monthly_expenses=Decimal(str(se_exp.get("total_monthly_expenses") or 0)),
+                estimated_treatment_expenses=(
+                    Decimal(str(med_diff.get("estimated_treatment_expenses")))
+                    if med_diff.get("estimated_treatment_expenses") is not None
+                    else None
+                ),
+                sectoral_flags=stage1.get("sectoral") if isinstance(stage1.get("sectoral"), dict) else None,
+                gov_assistance_enrolled=(str(se_exp.get("gov_assistance_enrolled") or "").lower() == "yes"),
+                other_medical_expenses_count=len(se_exp.get("other_medical_expenses") or []),
+                narrative_texts={
+                    "health": health_concat,
+                    "discrimination": f"{stage2.get('discrimination_patient_reported') or ''} {stage2.get('discrimination_msw_observation') or ''} {psy.get('discrimination_experienced') or ''}",
+                    "safety": f"{stage2.get('safety_patient_reported') or ''} {stage2.get('safety_msw_observation') or ''} {psy.get('safety_hazards') or ''}",
+                    "roles": f"{stage2.get('roles_patient_reported') or ''} {stage2.get('roles_msw_observation') or ''} {bg.get('employment_situation') or ''}",
+                    "environment": f"{stage2.get('environment_patient_reported') or ''} {stage2.get('environment_msw_observation') or ''} {bg.get('living_situation') or ''}",
+                },
+            )
+            factors_payload = MSWScoreFactors(**auto_scores)
+            avg_sev = None
+            avg_cop = None
 
         combined_req = CombinedClassificationRequest(
             total_monthly_household_income=total_income,
