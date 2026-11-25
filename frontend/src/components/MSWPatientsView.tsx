@@ -40,7 +40,7 @@ export interface ReferralRecordItem {
   patient_name: string;
   diagnosis: string;
   procedure: string;
-  particulars?: { description: string; amount: number }[];
+  particulars?: { id?: number | string; name?: string; description?: string; amount: number }[];
   total: number;
   attending_doctor?: string;
   doctor_signature_title?: string;
@@ -132,15 +132,26 @@ export function MSWPatientsContent({
         setAssessmentsByPatient(map);
       }
 
-      if (Array.isArray(patientsData)) {
-        // MSW ONLY HANDLES CHARITY PATIENTS (Exclude regular clinic patients from charity list)
-        const charityOnly = patientsData.filter((p: any) => p.category === 'CHARITY');
-        setPatients(charityOnly);
-      }
-
       let refList: ReferralRecordItem[] = Array.isArray(referralsData?.referrals)
         ? referralsData.referrals
         : [];
+
+      const approvedPatientIds = new Set(
+        refList
+          .filter((r) => r.status === 'MSW APPROVED' || r.status === 'APPROVED' || Boolean(r.charity_case_no))
+          .map((r) => String(r.patient_id || '').trim().toUpperCase())
+      );
+
+      if (Array.isArray(patientsData)) {
+        // Include patients with category === 'CHARITY' OR an MSW-approved referral / charity case no
+        const charityOnly = patientsData.filter(
+          (p: any) =>
+            p.category === 'CHARITY' ||
+            Boolean(p.charity_case_no) ||
+            approvedPatientIds.has(String(p.patient_id || '').trim().toUpperCase())
+        );
+        setPatients(charityOnly);
+      }
 
       // Check localStorage for any newly filed clinical referral slips
       if (typeof window !== 'undefined') {
@@ -157,61 +168,6 @@ export function MSWPatientsContent({
           } catch { }
         }
 
-        const juanRef = localStorage.getItem('ofphil_referral_M26-11-00001') || localStorage.getItem('ofphil_referral_P26-11-00001');
-        if (juanRef) {
-          try {
-            const jParsed = JSON.parse(juanRef);
-            if (jParsed && !refList.some((r) => r.patient_id === 'M26-11-00001' || r.patient_id === 'P26-11-00001')) {
-              refList.unshift({
-                id: jParsed.id || 'OFPHIL-FA-2026-0001',
-                patient_id: 'M26-11-00001',
-                patient_name: 'Juan Santos Dela Cruz',
-                contact: '0917 888 1678',
-                diagnosis: jParsed.diagnosis || 'Bilateral Cataract, Senile Mature (OD > OS)',
-                procedure: jParsed.procedure || 'Phacoemulsification with Foldable IOL Implant (OD)',
-                particulars: jParsed.particulars || [
-                  { description: 'Operating Room & Surgical Microscope Fee', amount: 4500 },
-                  { description: 'Foldable Acrylic Intraocular Lens (IOL) Pack', amount: 3500 },
-                  { description: 'Ophthalmic Viscosurgical Device (OVD) & Consumables', amount: 1800 },
-                  { description: 'Post-Operative Med Pack (Moxifloxacin + Prednisolone)', amount: 1800 },
-                ],
-                total: Number(jParsed.total) || 11600,
-                attending_doctor: jParsed.attending_doctor || 'Dr. J. E. Garcia, MD',
-                doctor_signature_title: jParsed.doctor_signature_title || 'Attending Eye Surgeon • License No. 0089421',
-                referring_individual: jParsed.referring_individual || 'Dr. Roberto Reyes, MD, DPBO',
-                referring_signature_title: jParsed.referring_signature_title || 'Clinic Medical Administrator & Ophthalmologist',
-                status: jParsed.status || 'ENDORSED FOR FINANCIAL ASSISTANCE',
-                created_at: jParsed.created_at || '2026-11-22T08:30:00Z',
-              });
-            }
-          } catch { }
-        }
-      }
-
-      if (refList.length === 0) {
-        refList = [
-          {
-            id: 'OFPHIL-FA-2026-0001',
-            patient_id: 'M26-11-00001',
-            patient_name: 'Juan Santos Dela Cruz',
-            contact: '0917 888 1678',
-            diagnosis: 'Bilateral Cataract, Senile Mature (OD > OS)',
-            procedure: 'Phacoemulsification with Foldable IOL Implant (OD)',
-            particulars: [
-              { description: 'Operating Room & Surgical Microscope Fee', amount: 4500 },
-              { description: 'Foldable Acrylic Intraocular Lens (IOL) Pack', amount: 3500 },
-              { description: 'Ophthalmic Viscosurgical Device (OVD) & Consumables', amount: 1800 },
-              { description: 'Post-Operative Med Pack (Moxifloxacin + Prednisolone)', amount: 1800 },
-            ],
-            total: 11600,
-            attending_doctor: 'Dr. J. E. Garcia, MD',
-            doctor_signature_title: 'Attending Eye Surgeon • License No. 0089421',
-            referring_individual: 'Dr. Roberto Reyes, MD, DPBO',
-            referring_signature_title: 'Clinic Medical Administrator & Ophthalmologist',
-            status: 'Awaiting MSW Review',
-            created_at: '2026-11-22T08:30:00Z',
-          },
-        ];
       }
 
       setReferrals(refList);
@@ -486,22 +442,32 @@ export function MSWPatientsContent({
                 <table className="w-full text-xs">
                   <thead className="bg-[#FAFBF8] border-b border-[#EEF2EF] text-[#5A7466]">
                     <tr>
+                      <th className="py-2.5 px-4 text-left font-bold uppercase text-[10px] w-12">No.</th>
                       <th className="py-2.5 px-4 text-left font-bold uppercase text-[10px]">Item Particulars / Description</th>
                       <th className="py-2.5 px-4 text-right font-bold uppercase text-[10px] w-36">Quotation Amount</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#EEF2EF]">
-                    {(selectedReferral.particulars || []).map((p, idx) => (
-                      <tr key={idx} className="hover:bg-[#FAFBF8]">
-                        <td className="py-2.5 px-4 text-[#10241A] font-medium">{p.description}</td>
-                        <td className="py-2.5 px-4 text-right font-mono text-[#10241A]">
-                          ₱{Number(p.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    {(!selectedReferral.particulars || selectedReferral.particulars.length === 0) ? (
+                      <tr>
+                        <td colSpan={3} className="py-4 px-4 text-center text-xs text-[#5A7466] italic">
+                          Itemized quotation details unavailable
                         </td>
                       </tr>
-                    ))}
+                    ) : (
+                      selectedReferral.particulars.map((p, idx) => (
+                        <tr key={idx} className="hover:bg-[#FAFBF8]">
+                          <td className="py-2.5 px-4 font-mono text-[#5A7466]">{idx + 1}</td>
+                          <td className="py-2.5 px-4 text-[#10241A] font-medium">{p.name || p.description || '—'}</td>
+                          <td className="py-2.5 px-4 text-right font-mono text-[#10241A]">
+                            ₱{Number(p.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          </td>
+                        </tr>
+                      ))
+                    )}
                     <tr className="bg-[#E8F5EC]/40 font-bold">
-                      <td className="py-3 px-4 text-[#0B6B3A] uppercase tracking-wider text-[11px]">
-                        Total Financial Assistance / Subsidy Requested
+                      <td colSpan={2} className="py-3 px-4 text-[#0B6B3A] uppercase tracking-wider text-[11px]">
+                        TOTAL ESTIMATED SURGICAL QUOTATION
                       </td>
                       <td className="py-3 px-4 text-right font-mono text-base font-bold text-[#0B6B3A]">
                         ₱{Number(selectedReferral.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
@@ -522,7 +488,7 @@ export function MSWPatientsContent({
                 <div className="flex items-center justify-between gap-3 pt-1">
                   <span className="text-[10.5px] uppercase font-bold text-[#5A7466]">Signature:</span>
                   <div className="h-8 px-3 border border-[#E2E8F0] rounded-lg bg-[#FAFBF8] flex items-center text-xs italic font-medium text-[#0B6B3A]">
-                    {(selectedReferral as any).doctor_signature || selectedReferral.attending_doctor || 'Dr. J. E. Garcia, MD'}
+                    {(selectedReferral as any).doctor_signature_title || (selectedReferral as any).attending_signature || (selectedReferral as any).doctor_signature || selectedReferral.attending_doctor || 'Dr. J. E. Garcia, MD'}
                   </div>
                 </div>
               </div>
@@ -629,15 +595,6 @@ export function MSWPatientsContent({
               <i className="fa-solid fa-arrows-rotate text-xs text-[#0B6B3A]" />
               <span>Refresh</span>
             </button>
-
-            <Link
-              href="/admin/register-patient"
-              className="px-4 py-2.5 rounded-xl bg-[#0B6B3A] hover:bg-[#064826] text-white text-xs font-bold transition flex items-center gap-2 cursor-pointer shadow-xs"
-              title="Register new indigent charity beneficiary with dynamic sequential case numbering"
-            >
-              <i className="fa-solid fa-user-plus text-xs" />
-              <span>New Charity Case</span>
-            </Link>
           </div>
         </div>
 
@@ -1232,20 +1189,26 @@ export function MSWPatientsContent({
                     <span className="font-mono font-bold text-[#10241A]">{approvalModalReferral.referral_no || approvalModalReferral.id}</span>
                   </div>
                   <div>
-                    <span className="text-[#64748B] block text-[11px]">Assistance History:</span>
+                    <span className="text-[#64748B] block text-[11px]">Assistance History / Order:</span>
                     {approvalModalReferral.assistance_history?.is_repeat_assistance ? (
                       <span className="inline-flex items-center gap-1 font-bold text-amber-800 text-[11px]">
                         <i className="fa-solid fa-clock-rotate-left text-amber-600" />
-                        {approvalModalReferral.assistance_history.badge_label}
+                        {(approvalModalReferral.assistance_history.total_previous_requests || 1) + 1}th/nd/rd Assistance &bull; {approvalModalReferral.assistance_history.badge_label}
                       </span>
                     ) : approvalModalReferral.assistance_history?.is_first_assistance !== false ? (
                       <span className="inline-flex items-center gap-1 font-bold text-emerald-800 text-[11px]">
                         <i className="fa-solid fa-star text-emerald-600" />
-                        FIRST ASSISTANCE
+                        1st Assistance (FIRST ASSISTANCE)
                       </span>
                     ) : (
-                      <span className="font-semibold text-slate-600 text-[11px]">HISTORY NOT AVAILABLE</span>
+                      <span className="font-semibold text-slate-600 text-[11px]">1st Assistance</span>
                     )}
+                  </div>
+                  <div>
+                    <span className="text-[#64748B] block text-[11px]">Charity Case No.:</span>
+                    <span className="font-mono font-bold text-[#0B6B3A] text-xs">
+                      {approvalModalReferral.charity_case_no || 'Auto-assigned upon approval'}
+                    </span>
                   </div>
                   <div className="sm:col-span-2">
                     <span className="text-[#64748B] block text-[11px]">Diagnosis:</span>

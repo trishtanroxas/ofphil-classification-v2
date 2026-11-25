@@ -11,6 +11,7 @@ export interface PasswordStrengthResult {
     length: boolean;
     hasNumber: boolean;
     hasLetter: boolean;
+    hasUppercase: boolean;
     hasSpecial: boolean;
   };
 }
@@ -23,7 +24,7 @@ export function evaluatePasswordStrength(pwd: string): PasswordStrengthResult {
       color: '#94A3B8',
       bgColor: 'bg-slate-200',
       borderColor: 'border-slate-200',
-      checks: { length: false, hasNumber: false, hasLetter: false, hasSpecial: false },
+      checks: { length: false, hasNumber: false, hasLetter: false, hasUppercase: false, hasSpecial: false },
     };
   }
 
@@ -31,6 +32,7 @@ export function evaluatePasswordStrength(pwd: string): PasswordStrengthResult {
   const longEnough = pwd.length >= 8;
   const hasNumber = /[0-9]/.test(pwd);
   const hasLetter = /[a-zA-Z]/.test(pwd);
+  const hasUppercase = /[A-Z]/.test(pwd);
   const hasSpecial = /[^A-Za-z0-9]/.test(pwd);
 
   if (pwd.length < 6) {
@@ -40,7 +42,7 @@ export function evaluatePasswordStrength(pwd: string): PasswordStrengthResult {
       color: '#DC2626',
       bgColor: 'bg-red-500',
       borderColor: 'border-red-500',
-      checks: { length, hasNumber, hasLetter, hasSpecial },
+      checks: { length, hasNumber, hasLetter, hasUppercase, hasSpecial },
     };
   }
 
@@ -58,7 +60,7 @@ export function evaluatePasswordStrength(pwd: string): PasswordStrengthResult {
       color: '#EA580C', // Orange
       bgColor: 'bg-orange-500',
       borderColor: 'border-orange-500',
-      checks: { length, hasNumber, hasLetter, hasSpecial },
+      checks: { length, hasNumber, hasLetter, hasUppercase, hasSpecial },
     };
   } else if (points <= 2) {
     return {
@@ -67,7 +69,7 @@ export function evaluatePasswordStrength(pwd: string): PasswordStrengthResult {
       color: '#D97706', // Amber/Yellow
       bgColor: 'bg-amber-500',
       borderColor: 'border-amber-500',
-      checks: { length, hasNumber, hasLetter, hasSpecial },
+      checks: { length, hasNumber, hasLetter, hasUppercase, hasSpecial },
     };
   } else {
     return {
@@ -76,7 +78,7 @@ export function evaluatePasswordStrength(pwd: string): PasswordStrengthResult {
       color: '#0B6B3A', // OFPHIL Deep Green
       bgColor: 'bg-[#0B6B3A]',
       borderColor: 'border-[#0B6B3A]',
-      checks: { length, hasNumber, hasLetter, hasSpecial },
+      checks: { length, hasNumber, hasLetter, hasUppercase, hasSpecial },
     };
   }
 }
@@ -158,6 +160,10 @@ export default function PasswordStrengthMeter({ password, className = '', showCh
           <div className={`flex items-center gap-1 ${strength.checks.hasSpecial ? 'text-[#0B6B3A] font-semibold' : ''}`}>
             <i className={`fa-solid ${strength.checks.hasSpecial ? 'fa-check text-emerald-600' : 'fa-circle-dot text-slate-300'}`} />
             <span>Special character</span>
+          </div>
+          <div className={`flex items-center gap-1 ${strength.checks.hasUppercase ? 'text-[#0B6B3A] font-semibold' : ''}`}>
+            <i className={`fa-solid ${strength.checks.hasUppercase ? 'fa-check text-emerald-600' : 'fa-circle-dot text-slate-300'}`} />
+            <span>1+ uppercase letter (A-Z)</span>
           </div>
         </div>
       )}

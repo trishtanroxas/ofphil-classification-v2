@@ -106,7 +106,8 @@ export default function PatientAppShell({
   useEffect(() => {
     const syncPatientNotifs = () => {
       try {
-        const pid = 'M26-11-00001';
+        const storedPid = localStorage.getItem('ofphil_patient_id');
+        const pid = (storedPid || user?.id || user?.username || 'M26-11-00001').trim();
         const readIds: string[] = JSON.parse(localStorage.getItem(`ofphil_patient_read_notifs_${pid}`) || '[]');
         const readSet = new Set(Array.isArray(readIds) ? readIds : []);
 

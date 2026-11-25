@@ -73,6 +73,7 @@ function MSWDossierContent() {
   // Document preview modal state
   const [previewDoc, setPreviewDoc] = useState<any | null>(null);
   const [approvingReferralId, setApprovingReferralId] = useState<string | null>(null);
+  const [confirmApproveReferral, setConfirmApproveReferral] = useState<any | null>(null);
 
   const handleApproveReferralDirect = async (ref: any) => {
     if (!ref || approvingReferralId) return;
@@ -1624,7 +1625,7 @@ function MSWDossierContent() {
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {ref.particulars.map((pt: any, idx: number) => (
                           <div key={idx} className="flex justify-between items-center py-1 px-2.5 rounded bg-[#FAFBF8] border border-[#EEF2EF] text-[11px]">
-                            <span className="text-[#334155]">{pt.description}</span>
+                            <span className="text-[#334155] font-medium">{idx + 1}. {pt.name || pt.description || '—'}</span>
                             <span className="font-mono font-bold text-[#0B6B3A]">₱{Number(pt.amount || 0).toLocaleString()}</span>
                           </div>
                         ))}
@@ -1638,7 +1639,7 @@ function MSWDossierContent() {
                       {ref.clinical_findings && <span>Clinical Findings: {ref.clinical_findings}</span>}
                     </div>
                     <div className="flex items-center gap-2">
-                      {isCharity && (ref.status === 'MSW APPROVED' || Boolean(ref.charity_case_no)) && role === 'msw' ? (() => {
+                      {(ref.status === 'MSW APPROVED' || ref.status === 'APPROVED' || Boolean(ref.charity_case_no)) && role === 'msw' ? (() => {
                         const asmt = assessments.find((a) => a.referral_id === ref.id || a.patient_id === ref.patient_id);
                         const isCompleted = asmt && (asmt.workflow_status === 'APPROVED' || asmt.workflow_status === 'SUBMITTED' || asmt.workflow_status === 'PENDING_APPROVAL');
                         const isDraft = asmt && (asmt.workflow_status === 'DRAFT' || asmt.workflow_status === 'ASSESSMENT_IN_PROGRESS');
@@ -1685,7 +1686,7 @@ function MSWDossierContent() {
                           <button
                             type="button"
                             disabled={approvingReferralId === ref.id}
-                            onClick={() => handleApproveReferralDirect(ref)}
+                            onClick={() => setConfirmApproveReferral(ref)}
                             className="px-3.5 py-1.5 rounded-xl bg-[#0B6B3A] hover:bg-[#064826] text-white text-xs font-bold transition inline-flex items-center gap-1.5 shadow-2xs cursor-pointer disabled:opacity-50"
                             title="Directly approve this clinical referral and assign Charity Case Number"
                           >
@@ -2349,6 +2350,49 @@ function MSWDossierContent() {
                 </table>
               </div>
             )}
+          </div>
+        </div>
+      )}
+      {confirmApproveReferral && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-[2px] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-[#D5E2D9] shadow-2xl max-w-md w-full p-6 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                <i className="fa-solid fa-triangle-exclamation text-base" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-[#10241A] m-0 font-['Outfit']">
+                  Caution: Confirm Referral Approval
+                </h3>
+                <p className="text-xs text-[#5A7466] m-0 leading-relaxed">
+                  Are you sure you want to approve referral <span className="font-mono font-bold text-[#10241A]">{confirmApproveReferral.referral_no || confirmApproveReferral.id}</span>?
+                  Did you double-check the clinical diagnosis, surgical procedure, and itemized quotation (<span className="font-mono font-bold text-[#0B6B3A]">₱{Number(confirmApproveReferral.total || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span>)?
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2.5 pt-1">
+              <button
+                type="button"
+                disabled={approvingReferralId === confirmApproveReferral.id}
+                onClick={() => setConfirmApproveReferral(null)}
+                className="px-4 py-2 rounded-xl bg-white hover:bg-[#FAFBF8] text-[#10241A] border border-[#D5E2D9] font-bold text-xs cursor-pointer disabled:opacity-50"
+              >
+                Cancel / Double-Check
+              </button>
+              <button
+                type="button"
+                disabled={approvingReferralId === confirmApproveReferral.id}
+                onClick={async () => {
+                  const target = confirmApproveReferral;
+                  setConfirmApproveReferral(null);
+                  await handleApproveReferralDirect(target);
+                }}
+                className="px-4 py-2 rounded-xl bg-[#0B6B3A] hover:bg-[#084D29] text-white font-bold text-xs flex items-center gap-2 cursor-pointer border-0 shadow-xs disabled:opacity-60"
+              >
+                <i className="fa-solid fa-check text-xs" />
+                <span>Yes, Approve Referral</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

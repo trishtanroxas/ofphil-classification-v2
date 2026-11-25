@@ -156,35 +156,38 @@ const PROVINCE_OPTIONS = Object.keys(PHILIPPINE_GEO_DATA);
 export default function RegisterPatientPage() {
   const router = useRouter();
 
-  // Section 1: Assigned Identifier State (Auto-incremented after M26-11-00001 Juan Dela Cruz)
+  // Section 1: Assigned Identifier State (Synchronized with backend MYY-MM-XXXXXX)
   const [patientCategory, setPatientCategory] = useState<'REGULAR' | 'CHARITY'>('REGULAR');
-  const [patientId, setPatientId] = useState('M26-11-00002');
-  const [existingPatients, setExistingPatients] = useState<Array<{ patient_id: string; first_name: string; last_name: string }>>([
-    { patient_id: 'M26-11-00001', first_name: 'Juan', last_name: 'Dela Cruz' },
-  ]);
+  const [patientId, setPatientId] = useState(() => {
+    const now = new Date();
+    const yy = String(now.getFullYear()).slice(-2);
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    return `M${yy}-${mm}-000001`;
+  });
+  const [existingPatients, setExistingPatients] = useState<Array<{ patient_id: string; first_name: string; last_name: string }>>([]);
 
-  // Helper to compute next available non-duplicate M26-11-XXXXX sequence ID
+  // Helper to compute next available non-duplicate MYY-MM-XXXXXX sequence ID
   const computeNextPatientId = (records: Array<{ patient_id: string }>) => {
     const now = new Date();
     const yy = String(now.getFullYear()).slice(-2);
     const mm = String(now.getMonth() + 1).padStart(2, '0');
     const prefix = `M${yy}-${mm}-`;
     const usedIds = new Set(records.map((r) => (r.patient_id || '').trim().toUpperCase()));
-    let maxSeq = 1; // M26-11-00001 is reserved for Juan Dela Cruz
+    let maxSeq = 0;
     records.forEach((r) => {
       const pid = (r.patient_id || '').trim().toUpperCase();
       if (pid.startsWith(prefix)) {
         const num = parseInt(pid.slice(prefix.length), 10);
-        if (!isNaN(num) && num > maxSeq) {
+        if (!isNaN(num) && num < 100000 && num > maxSeq) {
           maxSeq = num;
         }
       }
     });
     let nextSeq = maxSeq + 1;
-    let candidate = `${prefix}${String(nextSeq).padStart(5, '0')}`;
+    let candidate = `${prefix}${String(nextSeq).padStart(6, '0')}`;
     while (usedIds.has(candidate)) {
       nextSeq++;
-      candidate = `${prefix}${String(nextSeq).padStart(5, '0')}`;
+      candidate = `${prefix}${String(nextSeq).padStart(6, '0')}`;
     }
     return candidate;
   };
@@ -235,9 +238,7 @@ export default function RegisterPatientPage() {
   // Fetch existing patients from backend + localStorage on mount to auto-assign next sequence ID
   useEffect(() => {
     async function loadExistingPatientsForSeq() {
-      const combined: Array<{ patient_id: string; first_name: string; last_name: string }> = [
-        { patient_id: 'M26-11-00001', first_name: 'Juan', last_name: 'Dela Cruz' },
-      ];
+      const combined: Array<{ patient_id: string; first_name: string; last_name: string }> = [];
       try {
         const res = await fetch('http://localhost:8000/api/v1/patients');
         if (res.ok) {
@@ -734,7 +735,7 @@ export default function RegisterPatientPage() {
                   }`}
                 >
                   <i className="fa-solid fa-user text-[10px]" />
-                  <span>Regular Patient (M26-11-XXXXX)</span>
+                  <span>Regular Patient (MYY-MM-XXXXXX)</span>
                 </button>
                 <button
                   type="button"
@@ -779,14 +780,30 @@ export default function RegisterPatientPage() {
                   />
                   <button
                     type="button"
-                    onClick={() => {
-                      const nextId = patientCategory === 'CHARITY'
-                        ? computeNextCharityId(existingPatients)
-                        : computeNextPatientId(existingPatients);
-                      setPatientId(nextId);
-                      toast.success(`Assigned next sequential ID: ${nextId}`);
+                    onClick={async () => {
+                      if (patientCategory === 'CHARITY') {
+                        const nextId = computeNextCharityId(existingPatients);
+                        setPatientId(nextId);
+                        toast.success(`Previewing next sequential ID: ${nextId}`);
+                        return;
+                      }
+                      try {
+                        const res = await fetch('http://localhost:8000/api/v1/patients/next-patient-id');
+                        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                        const data = await res.json();
+                        if (data?.next_patient_id) {
+                          setPatientId(data.next_patient_id);
+                          toast.success(`Previewing next sequential ID: ${data.next_patient_id}`);
+                          return;
+                        }
+                        throw new Error('Missing next_patient_id in response');
+                      } catch {
+                        const fallbackId = computeNextPatientId(existingPatients);
+                        setPatientId(fallbackId);
+                        toast.error('Backend ID preview unavailable; showing local sequential preview.');
+                      }
                     }}
-                    title="Auto-generate next available sequential ID"
+                    title="Preview next available sequential ID"
                     className="h-12 px-3.5 rounded-xl border border-[#CBD5E1] bg-white hover:bg-[#F8FAFC] text-[#0B6B3A] font-semibold text-xs flex items-center gap-1.5 shrink-0 cursor-pointer transition"
                   >
                     <i className="fa-solid fa-rotate text-xs" />
@@ -822,7 +839,7 @@ export default function RegisterPatientPage() {
                     <span>
                       {patientCategory === 'CHARITY'
                         ? 'Dynamic sequential charity case numbering for current month & year (November 2026: 1126).'
-                        : 'Auto-incremented after existing record M26-11-00001 (Juan Dela Cruz) to prevent ID duplication.'}
+                        : 'Backend-synchronized sequential Patient ID (MYY-MM-XXXXXX) to prevent ID duplication.'}
                     </span>
                   </div>
                 )}

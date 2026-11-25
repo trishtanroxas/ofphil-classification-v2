@@ -107,10 +107,10 @@ export default function PatientRecordsPage(props: any) {
     return patients.filter((p) => {
       // Tab filter
       if (activeTab === 'charity' && p.category !== 'CHARITY') return false;
-      // Dual classification: Charity patients are simultaneously treated as Regular patients
-      if (activeTab === 'regular' && p.category !== 'REGULAR' && p.category !== 'CHARITY') return false;
+      // Regular tab shows only non-charity Regular patients
+      if (activeTab === 'regular' && p.category !== 'REGULAR') return false;
       if (activeTab === 'with-accounts') {
-        const hasAcct = p.has_account === true && p.category !== 'CHARITY';
+        const hasAcct = p.has_account === true;
         if (!hasAcct) return false;
       }
 
@@ -135,8 +135,8 @@ export default function PatientRecordsPage(props: any) {
   // Dynamic counts: Charity patients are simultaneously counted in Regular
   const totalCount = patients.length;
   const charityCount = patients.filter((p) => p.category === 'CHARITY').length;
-  const regularCount = patients.filter((p) => p.category === 'REGULAR' || p.category === 'CHARITY').length;
-  const withAccountsCount = patients.filter((p) => p.has_account === true && p.category !== 'CHARITY').length;
+  const regularCount = patients.filter((p) => p.category === 'REGULAR').length;
+  const withAccountsCount = patients.filter((p) => p.has_account === true).length;
 
   // CSV Export
   const handleExportCSV = () => {

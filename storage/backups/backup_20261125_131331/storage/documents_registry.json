@@ -1,0 +1,302 @@
+{
+  "doc-001": {
+    "id": "doc-001",
+    "patient_id": "M26-11-00001",
+    "patient_name": "Juan Dela Cruz",
+    "filename": "Government_Valid_ID_DelaCruz.jpg",
+    "document_type": "Government Valid ID",
+    "file_size_bytes": 284100,
+    "uploaded_at": "2026-11-22",
+    "status": "processed",
+    "ocr_processed": true,
+    "manipulation_risk": "clean",
+    "verification_status": "Verified Authentic",
+    "seal_detected": true,
+    "tamper_risk": "Low",
+    "extracted_text": "REPUBLIC OF THE PHILIPPINES\nUNIFIED MULTI-PURPOSE ID (UMID)\nCRN: 0111-2948192-4\nNAME: DELA CRUZ, JUAN\nDATE OF BIRTH: MAY 15, 1978\nADDRESS: DISTRICT 4, SAMPALOC, MANILA",
+    "processing_state": {
+      "job_id": "seed-doc-001",
+      "processing_status": "COMPLETED",
+      "engine_version": "seed-v1",
+      "started_at": "2026-11-22",
+      "completed_at": "2026-11-22",
+      "processing_time_ms": 0.0,
+      "unavailable_checks": []
+    },
+    "ocr_result": {
+      "engine_used": "Seeded",
+      "engine_version": "seed-v1",
+      "extracted_text": "REPUBLIC OF THE PHILIPPINES\nUNIFIED MULTI-PURPOSE ID (UMID)\nCRN: 0111-2948192-4\nNAME: DELA CRUZ, JUAN\nDATE OF BIRTH: MAY 15, 1978\nADDRESS: DISTRICT 4, SAMPALOC, MANILA",
+      "confidence_score": null,
+      "fields_detected": {},
+      "missing_information": []
+    },
+    "signature_result": {
+      "signature_status": "NOT_CHECKED",
+      "signatures_detected_count": 1,
+      "regions": [],
+      "engine_version": "seed-v1"
+    },
+    "authenticity_result": {
+      "overall_status": "NO_ISSUE_DETECTED",
+      "tamper_risk_level": "Low",
+      "indicators": {},
+      "unavailable_checks": [],
+      "engine_version": "seed-v1"
+    },
+    "manual_review": null,
+    "storage_path": "C:\\Users\\ASUS TUF\\Desktop\\Project in Program\\Thesis Project\\ofphil-classification-v2\\storage\\uploads\\originals\\doc-001_Government_Valid_ID_DelaCruz.jpg",
+    "sha256_hash": "8aa441b1bc3f6febe135f5ade21bb7ce4d74adc313266ffb3ad797d6017c5880",
+    "mime_type": "image/jpeg"
+  },
+  "doc-002": {
+    "id": "doc-002",
+    "patient_id": "M26-11-00001",
+    "patient_name": "Juan Dela Cruz",
+    "filename": "Initial_Eye_Examination_Record.pdf",
+    "document_type": "Initial Clinic Examination Record",
+    "file_size_bytes": 195400,
+    "uploaded_at": "2026-11-22",
+    "status": "processed",
+    "ocr_processed": true,
+    "manipulation_risk": "clean",
+    "verification_status": "Verified Authentic",
+    "seal_detected": false,
+    "tamper_risk": "Low",
+    "extracted_text": "OFPHIL EYE CENTER - OUTPATIENT REGULAR CLINIC\nPATIENT: Juan Dela Cruz (M26-11-00001)\nCHIEF COMPLAINT: Blurring of vision on both eyes\nDIAGNOSIS: Bilateral Cataract, Senile Mature (OD > OS)\nATTENDING PHYSICIAN: Dr. J. E. Garcia, MD",
+    "processing_state": {
+      "job_id": "seed-doc-002",
+      "processing_status": "COMPLETED",
+      "engine_version": "seed-v1",
+      "started_at": "2026-11-22",
+      "completed_at": "2026-11-22",
+      "processing_time_ms": 0.0,
+      "unavailable_checks": []
+    },
+    "ocr_result": {
+      "engine_used": "Seeded",
+      "engine_version": "seed-v1",
+      "extracted_text": "OFPHIL EYE CENTER - OUTPATIENT REGULAR CLINIC\nPATIENT: Juan Dela Cruz (M26-11-00001)\nCHIEF COMPLAINT: Blurring of vision on both eyes\nDIAGNOSIS: Bilateral Cataract, Senile Mature (OD > OS)\nATTENDING PHYSICIAN: Dr. J. E. Garcia, MD",
+      "confidence_score": null,
+      "fields_detected": {},
+      "missing_information": []
+    },
+    "signature_result": {
+      "signature_status": "NOT_CHECKED",
+      "signatures_detected_count": 0,
+      "regions": [],
+      "engine_version": "seed-v1"
+    },
+    "authenticity_result": {
+      "overall_status": "NO_ISSUE_DETECTED",
+      "tamper_risk_level": "Low",
+      "indicators": {},
+      "unavailable_checks": [],
+      "engine_version": "seed-v1"
+    },
+    "manual_review": null,
+    "storage_path": "C:\\Users\\ASUS TUF\\Desktop\\Project in Program\\Thesis Project\\ofphil-classification-v2\\storage\\uploads\\originals\\doc-002_Initial_Eye_Examination_Record.pdf",
+    "sha256_hash": "0ff72e07c73a70ebf47283965e62ff2230c1c5c742db0f1f52b7811a1bf9b241",
+    "mime_type": "application/pdf"
+  },
+  "doc-003": {
+    "id": "doc-003",
+    "patient_id": "MSW_FA_1126-01",
+    "patient_name": "Maria Clara Ramos",
+    "filename": "Barangay_Indigency_Ramos.pdf",
+    "document_type": "Barangay Certificate of Indigency",
+    "file_size_bytes": 215800,
+    "uploaded_at": "2026-11-20",
+    "status": "processed",
+    "ocr_processed": true,
+    "manipulation_risk": "clean",
+    "verification_status": "Verified Authentic",
+    "seal_detected": true,
+    "tamper_risk": "Low",
+    "extracted_text": "REPUBLIC OF THE PHILIPPINES\nBARANGAY 12, CALOOCAN CITY\nCERTIFICATE OF INDIGENCY\nPATIENT: Maria Clara Flores Ramos (MSW_FA_1126-01)\nOCCUPATION: Market Vendor\nPURPOSE: Ophthalmic Surgery Financial Assistance (Senile Cataract OS)",
+    "processing_state": {
+      "job_id": "seed-doc-003",
+      "processing_status": "COMPLETED",
+      "engine_version": "seed-v1",
+      "started_at": "2026-11-20",
+      "completed_at": "2026-11-20",
+      "processing_time_ms": 0.0,
+      "unavailable_checks": []
+    },
+    "ocr_result": {
+      "engine_used": "Seeded",
+      "engine_version": "seed-v1",
+      "extracted_text": "REPUBLIC OF THE PHILIPPINES\nBARANGAY 12, CALOOCAN CITY\nCERTIFICATE OF INDIGENCY\nPATIENT: Maria Clara Flores Ramos (MSW_FA_1126-01)\nOCCUPATION: Market Vendor\nPURPOSE: Ophthalmic Surgery Financial Assistance (Senile Cataract OS)",
+      "confidence_score": null,
+      "fields_detected": {},
+      "missing_information": []
+    },
+    "signature_result": {
+      "signature_status": "NOT_CHECKED",
+      "signatures_detected_count": 1,
+      "regions": [],
+      "engine_version": "seed-v1"
+    },
+    "authenticity_result": {
+      "overall_status": "NO_ISSUE_DETECTED",
+      "tamper_risk_level": "Low",
+      "indicators": {},
+      "unavailable_checks": [],
+      "engine_version": "seed-v1"
+    },
+    "manual_review": null,
+    "storage_path": "C:\\Users\\ASUS TUF\\Desktop\\Project in Program\\Thesis Project\\ofphil-classification-v2\\storage\\uploads\\originals\\doc-003_Barangay_Indigency_Ramos.pdf",
+    "sha256_hash": "912c69408919757d6acd9c1c0099422f2a6aae2dddd66c74ff0ab5d679a74ddf",
+    "mime_type": "application/pdf"
+  },
+  "doc-004": {
+    "id": "doc-004",
+    "patient_id": "MSW_FA_1126-01",
+    "patient_name": "Maria Clara Ramos",
+    "filename": "Surgical_Quotation_Ramos.png",
+    "document_type": "Hospital Surgical Quotation",
+    "file_size_bytes": 178400,
+    "uploaded_at": "2026-11-20",
+    "status": "processed",
+    "ocr_processed": true,
+    "manipulation_risk": "clean",
+    "verification_status": "Verified Authentic",
+    "seal_detected": true,
+    "tamper_risk": "Low",
+    "extracted_text": "OFPHIL EYE CENTER - SURGICAL QUOTATION\nPATIENT: Maria Clara Ramos (MSW_FA_1126-01)\nDIAGNOSIS: Senile Cataract, Immature (OS)\nPROCEDURE: Phacoemulsification with Foldable IOL Implant (OS)\nESTIMATED TOTAL: PHP 11,600.00",
+    "processing_state": {
+      "job_id": "seed-doc-004",
+      "processing_status": "COMPLETED",
+      "engine_version": "seed-v1",
+      "started_at": "2026-11-20",
+      "completed_at": "2026-11-20",
+      "processing_time_ms": 0.0,
+      "unavailable_checks": []
+    },
+    "ocr_result": {
+      "engine_used": "Seeded",
+      "engine_version": "seed-v1",
+      "extracted_text": "OFPHIL EYE CENTER - SURGICAL QUOTATION\nPATIENT: Maria Clara Ramos (MSW_FA_1126-01)\nDIAGNOSIS: Senile Cataract, Immature (OS)\nPROCEDURE: Phacoemulsification with Foldable IOL Implant (OS)\nESTIMATED TOTAL: PHP 11,600.00",
+      "confidence_score": null,
+      "fields_detected": {},
+      "missing_information": []
+    },
+    "signature_result": {
+      "signature_status": "NOT_CHECKED",
+      "signatures_detected_count": 1,
+      "regions": [],
+      "engine_version": "seed-v1"
+    },
+    "authenticity_result": {
+      "overall_status": "NO_ISSUE_DETECTED",
+      "tamper_risk_level": "Low",
+      "indicators": {},
+      "unavailable_checks": [],
+      "engine_version": "seed-v1"
+    },
+    "manual_review": null,
+    "storage_path": "C:\\Users\\ASUS TUF\\Desktop\\Project in Program\\Thesis Project\\ofphil-classification-v2\\storage\\uploads\\originals\\doc-004_Surgical_Quotation_Ramos.png",
+    "sha256_hash": "5c6fa1eee2f57efcd74547a75e9fe35f539ea4a145e052ac09d044e904eaac68",
+    "mime_type": "image/jpeg"
+  },
+  "doc-005": {
+    "id": "doc-005",
+    "patient_id": "MSW_FA_1126-02",
+    "patient_name": "Pedro Bautista Sr.",
+    "filename": "Senior_Citizen_ID_Bautista.jpg",
+    "document_type": "Senior Citizen / Government Valid ID",
+    "file_size_bytes": 162400,
+    "uploaded_at": "2026-11-18",
+    "status": "processed",
+    "ocr_processed": true,
+    "manipulation_risk": "clean",
+    "verification_status": "Verified Authentic",
+    "seal_detected": true,
+    "tamper_risk": "Low",
+    "extracted_text": "REPUBLIC OF THE PHILIPPINES\nOFFICE FOR SENIOR CITIZENS AFFAIRS (OSCA) - QUEZON CITY\nNAME: BAUTISTA, PEDRO ALVAREZ SR.\nBARANGAY: COMMONWEALTH, QUEZON CITY\nDIAGNOSIS: Primary Open-Angle Glaucoma (OU)",
+    "processing_state": {
+      "job_id": "seed-doc-005",
+      "processing_status": "COMPLETED",
+      "engine_version": "seed-v1",
+      "started_at": "2026-11-18",
+      "completed_at": "2026-11-18",
+      "processing_time_ms": 0.0,
+      "unavailable_checks": []
+    },
+    "ocr_result": {
+      "engine_used": "Seeded",
+      "engine_version": "seed-v1",
+      "extracted_text": "REPUBLIC OF THE PHILIPPINES\nOFFICE FOR SENIOR CITIZENS AFFAIRS (OSCA) - QUEZON CITY\nNAME: BAUTISTA, PEDRO ALVAREZ SR.\nBARANGAY: COMMONWEALTH, QUEZON CITY\nDIAGNOSIS: Primary Open-Angle Glaucoma (OU)",
+      "confidence_score": null,
+      "fields_detected": {},
+      "missing_information": []
+    },
+    "signature_result": {
+      "signature_status": "NOT_CHECKED",
+      "signatures_detected_count": 1,
+      "regions": [],
+      "engine_version": "seed-v1"
+    },
+    "authenticity_result": {
+      "overall_status": "NO_ISSUE_DETECTED",
+      "tamper_risk_level": "Low",
+      "indicators": {},
+      "unavailable_checks": [],
+      "engine_version": "seed-v1"
+    },
+    "manual_review": null,
+    "storage_path": "C:\\Users\\ASUS TUF\\Desktop\\Project in Program\\Thesis Project\\ofphil-classification-v2\\storage\\uploads\\originals\\doc-005_Senior_Citizen_ID_Bautista.jpg",
+    "sha256_hash": "aa6fb457f6914969239b7d1a948c8d7824b5af95e7be299b0230ec22285090f5",
+    "mime_type": "image/jpeg"
+  },
+  "doc-006": {
+    "id": "doc-006",
+    "patient_id": "MSW_FA_1126-03",
+    "patient_name": "Elena Santos",
+    "filename": "Clinical_Eye_Exam_Santos.pdf",
+    "document_type": "Ophthalmic Clinical Findings & Referral",
+    "file_size_bytes": 184200,
+    "uploaded_at": "2026-11-21",
+    "status": "processed",
+    "ocr_processed": true,
+    "manipulation_risk": "clean",
+    "verification_status": "Pending MSW Verification",
+    "seal_detected": true,
+    "tamper_risk": "Low",
+    "extracted_text": "OFPHIL EYE CENTER - RETINA & VITREOUS CLINIC\nPATIENT: Elena Velasco Santos (MSW_FA_1126-03)\nDIAGNOSIS: Diabetic Retinopathy (OU)\nRECOMMENDED TREATMENT: Panretinal Photocoagulation / Anti-VEGF Therapy",
+    "processing_state": {
+      "job_id": "seed-doc-006",
+      "processing_status": "COMPLETED",
+      "engine_version": "seed-v1",
+      "started_at": "2026-11-21",
+      "completed_at": "2026-11-21",
+      "processing_time_ms": 0.0,
+      "unavailable_checks": []
+    },
+    "ocr_result": {
+      "engine_used": "Seeded",
+      "engine_version": "seed-v1",
+      "extracted_text": "OFPHIL EYE CENTER - RETINA & VITREOUS CLINIC\nPATIENT: Elena Velasco Santos (MSW_FA_1126-03)\nDIAGNOSIS: Diabetic Retinopathy (OU)\nRECOMMENDED TREATMENT: Panretinal Photocoagulation / Anti-VEGF Therapy",
+      "confidence_score": null,
+      "fields_detected": {},
+      "missing_information": []
+    },
+    "signature_result": {
+      "signature_status": "NOT_CHECKED",
+      "signatures_detected_count": 1,
+      "regions": [],
+      "engine_version": "seed-v1"
+    },
+    "authenticity_result": {
+      "overall_status": "NO_ISSUE_DETECTED",
+      "tamper_risk_level": "Low",
+      "indicators": {},
+      "unavailable_checks": [],
+      "engine_version": "seed-v1"
+    },
+    "manual_review": null,
+    "storage_path": "C:\\Users\\ASUS TUF\\Desktop\\Project in Program\\Thesis Project\\ofphil-classification-v2\\storage\\uploads\\originals\\doc-006_Clinical_Eye_Exam_Santos.pdf",
+    "sha256_hash": "4adbe5c8b252827f3e9e8f0d8ea219048f106824454640e35e530c1e7be8bdbe",
+    "mime_type": "application/pdf"
+  }
+}

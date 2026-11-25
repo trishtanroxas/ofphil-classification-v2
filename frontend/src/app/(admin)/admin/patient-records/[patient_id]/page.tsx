@@ -165,6 +165,13 @@ export default function PatientDossierPage() {
   // Referral Form State & Editable Mode (empty by default for new/regular patients)
   const [isEditingReferral, setIsEditingReferral] = useState(false);
   const [hasReferralSlip, setHasReferralSlip] = useState(false);
+  const [showReferralConfirmModal, setShowReferralConfirmModal] = useState(false);
+  const [isSubmittingReferral, setIsSubmittingReferral] = useState(false);
+  const [showCancelReferralModal, setShowCancelReferralModal] = useState(false);
+  const [isCancellingReferral, setIsCancellingReferral] = useState(false);
+  const [cancelReferralReason, setCancelReferralReason] = useState('');
+  const [viewSlipModalReferral, setViewSlipModalReferral] = useState<any | null>(null);
+  const [savedReferralMeta, setSavedReferralMeta] = useState<{ id?: string; status?: string; created_at?: string; assigned_msw?: string } | null>(null);
   const [referralFeedbackModal, setReferralFeedbackModal] = useState<{ title: string; message: string } | null>(null);
   const [referralData, setReferralData] = useState({
     diagnosis: '',
@@ -397,7 +404,9 @@ export default function PatientDossierPage() {
     sms_sent: boolean;
     created_at: string;
   }>>([]);
-  const [dossierTab, setDossierTab] = useState<'profile' | 'appointments' | 'procedures' | 'referral' | 'documents' | 'alerts' | 'charity_status'>('profile');
+  const [dossierTab, setDossierTab] = useState<'profile' | 'appointments' | 'procedures' | 'referral' | 'documents' | 'alerts' | 'assistance_history' | 'charity_status'>('profile');
+  const [patientReferralsHistory, setPatientReferralsHistory] = useState<any[]>([]);
+  const [patientAssistanceSummary, setPatientAssistanceSummary] = useState<any>(null);
   const [charityAssessments, setCharityAssessments] = useState<any[]>([]);
   const [charityBackendDocs, setCharityBackendDocs] = useState<any[]>([]);
   const [isLoadingCharityStatus, setIsLoadingCharityStatus] = useState(false);
@@ -838,6 +847,47 @@ export default function PatientDossierPage() {
       setIsLoading(true);
       try {
         const res = await fetchApi(`/patients/${patientId}`);
+        if (Array.isArray(res?.referrals)) {
+          setPatientReferralsHistory(res.referrals);
+        }
+        if (res?.assistance_history) {
+          setPatientAssistanceSummary(res.assistance_history);
+        }
+        // Hydrate persisted Financial Assistance Referral from backend
+        try {
+          const refRes = await fetchApi(`/patients/${encodeURIComponent(patientId)}/referral`);
+          if (Array.isArray(refRes?.referrals) && refRes.referrals.length > 0) {
+            setPatientReferralsHistory(refRes.referrals);
+          }
+          const persistedRef = refRes?.referral || (Array.isArray(res?.referrals) ? res.referrals[0] : null);
+          const persistedStatus = String(persistedRef?.status || '').toUpperCase();
+          const isPersistedResolved = ['APPROVED', 'MSW APPROVED', 'DISAPPROVED', 'MSW REJECTED', 'CANCELLED'].includes(persistedStatus);
+          if (persistedRef && persistedRef.id && !isPersistedResolved) {
+            setHasReferralSlip(true);
+            setIsEditingReferral(false);
+            setSavedReferralMeta({
+              id: persistedRef.referral_no || persistedRef.id,
+              status: persistedRef.status || 'PENDING',
+              created_at: persistedRef.created_at,
+              assigned_msw: persistedRef.assigned_msw,
+            });
+            setReferralData({
+              diagnosis: persistedRef.diagnosis || '',
+              procedure: persistedRef.procedure || '',
+              particulars: Array.isArray(persistedRef.particulars) && persistedRef.particulars.length > 0
+                ? persistedRef.particulars.map((p: any, idx: number) => ({
+                    id: p.id || idx + 1,
+                    name: p.name || '',
+                    amount: Number(p.amount) || 0,
+                  }))
+                : [{ id: 1, name: 'OPERATION FEE / SURGICAL PACKAGE', amount: 0 }],
+              attending_doctor: persistedRef.attending_doctor || '',
+              doctor_signature_title: persistedRef.attending_signature || persistedRef.doctor_signature_title || '',
+              referring_individual: persistedRef.referring_individual || '',
+              referring_signature_title: persistedRef.referring_signature || persistedRef.referring_signature_title || '',
+            });
+          }
+        } catch { }
         if (res?.patient) {
           setPatientData(res.patient);
           const savedEncs = JSON.parse(localStorage.getItem(`ofphil_encounters_${patientId}`) || '[]');
@@ -1397,7 +1447,8 @@ export default function PatientDossierPage() {
     setCheckupModalOpen(false);
   };
 
-  const isCharity = String(patientData?.category || '').trim().toUpperCase() === 'CHARITY';
+  const hasApprovedReferral = patientReferralsHistory.some((r) => ['MSW APPROVED', 'APPROVED'].includes(String(r.status || '').toUpperCase()) || Boolean(r.charity_case_no));
+  const isCharity = String(patientData?.category || '').trim().toUpperCase() === 'CHARITY' || hasApprovedReferral;
 
   useEffect(() => {
     if (!isCharity && dossierTab === 'charity_status') {
@@ -1587,6 +1638,7 @@ export default function PatientDossierPage() {
             { id: 'referral' as const, label: 'Financial Referral', icon: 'fa-file-invoice-dollar' },
             { id: 'documents' as const, label: 'Documents & Vault', icon: 'fa-folder-open' },
             { id: 'alerts' as const, label: 'Requests & Inquiries', icon: 'fa-file-circle-question' },
+            { id: 'assistance_history' as const, label: 'Financial Assistance History', icon: 'fa-clock-rotate-left', count: patientReferralsHistory.length },
             ...(isCharity
               ? [
                   {
@@ -2234,9 +2286,13 @@ export default function PatientDossierPage() {
                     <i className="fa-solid fa-file-signature" />
                   </div>
                   <div className="space-y-1 max-w-md">
-                    <div className="font-bold text-sm text-[#10241A]">No Financial Assistance Referral Slip Filed</div>
+                    <div className="font-bold text-sm text-[#10241A]">
+                      {patientReferralsHistory.length > 0 ? 'No Active Financial Assistance Referral' : 'No Financial Assistance Referral Slip Filed'}
+                    </div>
                     <p className="text-xs text-[#5A7466] m-0 leading-relaxed">
-                      This regular clinic patient does not have an active charity referral form yet. Issue a referral slip if endorsing to Medical Social Services.
+                      {patientReferralsHistory.length > 0
+                        ? 'Previous referrals for this patient have already been resolved. Issue another referral slip if endorsing again to Medical Social Services.'
+                        : 'This regular clinic patient does not have an active charity referral form yet. Issue a referral slip if endorsing to Medical Social Services.'}
                     </p>
                   </div>
                   <button
@@ -2251,7 +2307,63 @@ export default function PatientDossierPage() {
                     <span>+ Create Financial Assistance Referral Form</span>
                   </button>
                 </div>
-              ) : (
+              ) : (() => {
+                const isReferralSubmitted = Boolean(savedReferralMeta?.id);
+                const rawStatus = String(savedReferralMeta?.status || 'PENDING').toUpperCase();
+                const statusBadgeLabel =
+                  rawStatus === 'UNDER_REVIEW' || rawStatus === 'ASSESSMENT IN PROGRESS'
+                    ? 'UNDER MSW REVIEW'
+                    : rawStatus === 'APPROVED' || rawStatus === 'MSW APPROVED'
+                    ? 'APPROVED'
+                    : rawStatus === 'DISAPPROVED' || rawStatus === 'MSW REJECTED'
+                    ? 'DISAPPROVED'
+                    : rawStatus === 'RETURNED_FOR_CORRECTION'
+                    ? 'RETURNED FOR CORRECTION'
+                    : rawStatus === 'CANCELLED'
+                    ? 'CANCELLED'
+                    : 'PENDING — MSW APPROVAL';
+                const statusBadgeStyle =
+                  rawStatus === 'APPROVED' || rawStatus === 'MSW APPROVED'
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    : rawStatus === 'DISAPPROVED' || rawStatus === 'MSW REJECTED'
+                    ? 'bg-red-50 text-red-700 border-red-200'
+                    : rawStatus === 'CANCELLED'
+                    ? 'bg-slate-100 text-slate-700 border-slate-300'
+                    : rawStatus === 'RETURNED_FOR_CORRECTION'
+                    ? 'bg-orange-50 text-orange-700 border-orange-200'
+                    : rawStatus === 'UNDER_REVIEW' || rawStatus === 'ASSESSMENT IN PROGRESS'
+                    ? 'bg-blue-50 text-blue-700 border-blue-200'
+                    : 'bg-amber-50 text-amber-800 border-amber-300';
+                const formattedSubmittedAt = savedReferralMeta?.created_at
+                  ? new Date(savedReferralMeta.created_at).toLocaleString('en-PH', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })
+                  : '—';
+                const getAssistanceOrdinalBadge = (n: number) => {
+                  if (n <= 1) return 'FIRST ASSISTANCE';
+                  if (n === 2) return 'SECOND ASSISTANCE';
+                  if (n === 3) return 'THIRD ASSISTANCE';
+                  return `${n}TH ASSISTANCE`;
+                };
+                const currentOrderNum = isReferralSubmitted
+                  ? Math.max(1, patientReferralsHistory.length)
+                  : patientReferralsHistory.filter((r) => !['CANCELLED', 'DELETED'].includes(String(r.status || '').toUpperCase())).length + 1;
+                const currentOrdinalBadge = getAssistanceOrdinalBadge(currentOrderNum);
+                const latestAssessmentCls =
+                  charityAssessments?.[0]?.final_classification ||
+                  charityAssessments?.[0]?.msw_classification ||
+                  (patientData as any)?.classification ||
+                  '';
+                const currentClassificationBadge =
+                  rawStatus === 'DISAPPROVED' || rawStatus === 'MSW REJECTED'
+                    ? (latestAssessmentCls || 'Financially Capacitated (Full Pay)')
+                    : latestAssessmentCls;
+
+                return (
                 <div className="space-y-5">
                   {/* Top Action Bar */}
                   <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-[#EEF2EF]">
@@ -2260,67 +2372,125 @@ export default function PatientDossierPage() {
                         <i className="fa-solid fa-eye" />
                       </div>
                       <div>
-                        <span className="inline-block px-2 py-0.5 rounded-full text-[9.5px] font-bold uppercase tracking-wider bg-[#E8F5EC] text-[#0B6B3A] border border-[#A7F3D0] mb-0.5">
-                          OFFICIAL CLINIC REFERRAL SLIP &bull; OFPHIL-FA-2026-0001
-                        </span>
+                        <div className="flex flex-wrap items-center gap-2 mb-0.5">
+                          <span className="inline-block px-2 py-0.5 rounded-full text-[9.5px] font-bold uppercase tracking-wider bg-[#E8F5EC] text-[#0B6B3A] border border-[#A7F3D0]">
+                            OFFICIAL CLINIC REFERRAL SLIP &bull; {savedReferralMeta?.id || 'NEW DRAFT'}
+                          </span>
+                          <span className="inline-block px-2.5 py-0.5 rounded-full text-[9.5px] font-extrabold uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200">
+                            {currentOrdinalBadge}
+                          </span>
+                          {currentClassificationBadge && (
+                            <span className={`inline-block px-2.5 py-0.5 rounded-full text-[9.5px] font-extrabold uppercase tracking-wider border ${
+                              String(currentClassificationBadge).toLowerCase().includes('capacitated')
+                                ? 'bg-red-50 text-red-700 border-red-200'
+                                : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            }`}>
+                              {currentClassificationBadge}
+                            </span>
+                          )}
+                          {isReferralSubmitted && (
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider border ${statusBadgeStyle}`}>
+                              <i className="fa-solid fa-clock text-[9px]" />
+                              {statusBadgeLabel}
+                            </span>
+                          )}
+                        </div>
                         <h2 className="text-base font-bold text-[#10241A] m-0 font-['Outfit']">
                           Financial Assistance Referral Form
                         </h2>
                         <p className="text-[11px] text-[#5A7466] m-0">
                           Ophthalmological Foundation of the Philippines, Inc. &mdash; Medical Social Service &amp; Charity Department
                         </p>
+                        {isReferralSubmitted && (
+                          <div className="mt-1.5 space-y-0.5">
+                            <p className="text-[11.5px] font-medium text-[#10241A] m-0">
+                              This financial assistance referral has been successfully submitted and is awaiting review by the Medical Social Worker.
+                            </p>
+                            <p className="text-[11px] text-[#5A7466] m-0">
+                              Referral No.: <span className="font-mono font-bold text-[#10241A]">{savedReferralMeta?.id}</span> &bull; Submitted: <span className="font-semibold text-[#10241A]">{formattedSubmittedAt}</span>
+                            </p>
+                            {!['APPROVED', 'MSW APPROVED', 'DISAPPROVED', 'MSW REJECTED', 'CANCELLED'].includes(rawStatus) && (
+                              <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1 mt-1 inline-block">
+                                This patient already has a financial assistance referral awaiting MSW review. Another referral can only be created after the current referral has been resolved.
+                              </p>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setHasReferralSlip(false)}
-                        className="px-3.5 py-2 rounded-xl border border-[#D5E2D9] bg-white hover:bg-[#FAFBF8] text-[#10241A] font-bold text-xs flex items-center gap-1.5 cursor-pointer"
-                      >
-                        <i className="fa-solid fa-arrow-left text-[11px]" />
-                        <span>Back</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          try {
-                            localStorage.setItem(
-                              `ofphil_referral_${patientId}`,
-                              JSON.stringify({ ...referralData, total: referralTotal, updated_at: new Date().toISOString() })
-                            );
-                          } catch { }
-                          setIsEditingReferral(false);
-                          setReferralFeedbackModal({
-                            title: 'Referral Changes Saved',
-                            message: 'Financial Assistance Referral Form has been saved and updated for this patient.',
-                          });
-                        }}
-                        className="px-3.5 py-2 rounded-xl bg-[#0B6B3A] hover:bg-[#084D29] text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer border-0 shadow-xs"
-                      >
-                        <i className="fa-solid fa-check text-[11px]" />
-                        <span>Save Referral Changes</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          try {
-                            localStorage.setItem(
-                              `ofphil_referral_${patientId}`,
-                              JSON.stringify({ ...referralData, total: referralTotal, status: 'ENDORSED_TO_MSS', updated_at: new Date().toISOString() })
-                            );
-                          } catch { }
-                          setIsEditingReferral(false);
-                          setReferralFeedbackModal({
-                            title: 'Endorsed for Charitable Assistance',
-                            message: 'Patient has been endorsed to Medical Social Services (MSS) for Charitable Assistance.',
-                          });
-                        }}
-                        className="px-3.5 py-2 rounded-xl bg-[#0B6B3A] hover:bg-[#084D29] text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer border-0 shadow-xs"
-                      >
-                        <i className="fa-solid fa-hand-holding-heart text-[11px]" />
-                        <span>Apply for Charitable Assistance</span>
-                      </button>
+                      {!isReferralSubmitted && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => setHasReferralSlip(false)}
+                            className="px-3.5 py-2 rounded-xl border border-[#D5E2D9] bg-white hover:bg-[#FAFBF8] text-[#10241A] font-bold text-xs flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <i className="fa-solid fa-arrow-left text-[11px]" />
+                            <span>Back</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!referralData.diagnosis?.trim() || !referralData.procedure?.trim()) {
+                                toast.error('Please enter both Diagnosis and Surgical Procedure before submitting.');
+                                return;
+                              }
+                              setShowReferralConfirmModal(true);
+                            }}
+                            className="px-3.5 py-2 rounded-xl bg-[#0B6B3A] hover:bg-[#084D29] text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer border-0 shadow-xs"
+                          >
+                            <i className="fa-solid fa-paper-plane text-[11px]" />
+                            <span>Save &amp; Send to MSW</span>
+                          </button>
+                        </>
+                      )}
+                      {isReferralSubmitted && !['APPROVED', 'MSW APPROVED', 'DISAPPROVED', 'MSW REJECTED', 'CANCELLED'].includes(rawStatus) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCancelReferralReason('');
+                            setShowCancelReferralModal(true);
+                          }}
+                          className="px-3.5 py-2 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 font-bold text-xs flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <i className="fa-solid fa-ban text-[11px]" />
+                          <span>Cancel Referral</span>
+                        </button>
+                      )}
+                      {isReferralSubmitted && (
+                        <button
+                          type="button"
+                          disabled={!['APPROVED', 'MSW APPROVED', 'DISAPPROVED', 'MSW REJECTED', 'CANCELLED'].includes(rawStatus)}
+                          title={
+                            !['APPROVED', 'MSW APPROVED', 'DISAPPROVED', 'MSW REJECTED', 'CANCELLED'].includes(rawStatus)
+                              ? 'This patient already has a financial assistance referral awaiting MSW review. Another referral can only be created after the current referral has been resolved.'
+                              : 'Create a new Financial Assistance Referral for this patient'
+                          }
+                          onClick={() => {
+                            setSavedReferralMeta(null);
+                            setIsEditingReferral(true);
+                            setReferralData({
+                              diagnosis: '',
+                              procedure: '',
+                              particulars: [{ id: Date.now(), name: 'OPERATION FEE / SURGICAL PACKAGE', amount: 0 }],
+                              attending_doctor: '',
+                              doctor_signature_title: '',
+                              referring_individual: '',
+                              referring_signature_title: '',
+                            });
+                          }}
+                          className={`px-3.5 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 border ${
+                            ['APPROVED', 'MSW APPROVED', 'DISAPPROVED', 'MSW REJECTED', 'CANCELLED'].includes(rawStatus)
+                              ? 'bg-[#0B6B3A] hover:bg-[#084D29] text-white border-transparent cursor-pointer shadow-xs'
+                              : 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
+                          }`}
+                        >
+                          <i className="fa-solid fa-plus text-[11px]" />
+                          <span>Another Referral</span>
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => window.print()}
@@ -2396,20 +2566,24 @@ export default function PatientDossierPage() {
                         <label className="block text-[10.5px] font-bold uppercase text-[#5A7466] mb-1">Diagnosis :</label>
                         <input
                           type="text"
+                          disabled={isReferralSubmitted}
+                          readOnly={isReferralSubmitted}
                           value={referralData.diagnosis}
                           onChange={(e) => setReferralData({ ...referralData, diagnosis: e.target.value })}
                           placeholder="e.g. Bilateral Cataract, Senile Mature (OD > OS)"
-                          className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs font-semibold text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
+                          className={`w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs font-semibold text-[#10241A] focus:outline-none focus:border-[#0B6B3A] ${isReferralSubmitted ? 'bg-[#FAFBF8] text-[#334155] cursor-not-allowed' : ''}`}
                         />
                       </div>
                       <div>
                         <label className="block text-[10.5px] font-bold uppercase text-[#5A7466] mb-1">Procedure :</label>
                         <input
                           type="text"
+                          disabled={isReferralSubmitted}
+                          readOnly={isReferralSubmitted}
                           value={referralData.procedure}
                           onChange={(e) => setReferralData({ ...referralData, procedure: e.target.value })}
                           placeholder="e.g. Phacoemulsification with Foldable IOL Implant"
-                          className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs font-semibold text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
+                          className={`w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs font-semibold text-[#10241A] focus:outline-none focus:border-[#0B6B3A] ${isReferralSubmitted ? 'bg-[#FAFBF8] text-[#334155] cursor-not-allowed' : ''}`}
                         />
                       </div>
                     </div>
@@ -2420,21 +2594,23 @@ export default function PatientDossierPage() {
                         <span className="text-[11px] font-bold uppercase tracking-wider text-[#10241A]">
                           Quotation Particulars
                         </span>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setReferralData({
-                              ...referralData,
-                              particulars: [
-                                ...referralData.particulars,
-                                { id: Date.now(), name: '', amount: 0 },
-                              ],
-                            })
-                          }
-                          className="text-xs font-bold text-[#0B6B3A] hover:underline bg-transparent border-0 cursor-pointer"
-                        >
-                          + Add Particular Row
-                        </button>
+                        {!isReferralSubmitted && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setReferralData({
+                                ...referralData,
+                                particulars: [
+                                  ...referralData.particulars,
+                                  { id: Date.now(), name: '', amount: 0 },
+                                ],
+                              })
+                            }
+                            className="text-xs font-bold text-[#0B6B3A] hover:underline bg-transparent border-0 cursor-pointer"
+                          >
+                            + Add Particular Row
+                          </button>
+                        )}
                       </div>
 
                       <div className="overflow-x-auto">
@@ -2444,7 +2620,7 @@ export default function PatientDossierPage() {
                               <th className="py-2 pr-2 w-10">No.</th>
                               <th className="py-2 px-2">Particulars</th>
                               <th className="py-2 px-2 w-40 text-right">Amount (PHP)</th>
-                              <th className="py-2 pl-2 w-12 text-center">Act</th>
+                              {!isReferralSubmitted && <th className="py-2 pl-2 w-12 text-center">Act</th>}
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-[#EEF2EF]">
@@ -2454,6 +2630,8 @@ export default function PatientDossierPage() {
                                 <td className="py-2 px-2">
                                   <input
                                     type="text"
+                                    disabled={isReferralSubmitted}
+                                    readOnly={isReferralSubmitted}
                                     value={item.name}
                                     onChange={(e) => {
                                       const next = [...referralData.particulars];
@@ -2461,7 +2639,7 @@ export default function PatientDossierPage() {
                                       setReferralData({ ...referralData, particulars: next });
                                     }}
                                     placeholder="Particular item description..."
-                                    className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs font-semibold text-[#10241A]"
+                                    className={`w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs font-semibold text-[#10241A] ${isReferralSubmitted ? 'bg-[#FAFBF8] text-[#334155] cursor-not-allowed' : ''}`}
                                   />
                                 </td>
                                 <td className="py-2 px-2">
@@ -2469,31 +2647,35 @@ export default function PatientDossierPage() {
                                     <span className="text-[#64748B] font-bold">&#8369;</span>
                                     <input
                                       type="number"
+                                      disabled={isReferralSubmitted}
+                                      readOnly={isReferralSubmitted}
                                       value={item.amount}
                                       onChange={(e) => {
                                         const next = [...referralData.particulars];
                                         next[idx] = { ...next[idx], amount: Number(e.target.value) || 0 };
                                         setReferralData({ ...referralData, particulars: next });
                                       }}
-                                      className="w-28 h-9 px-2.5 border border-[#CBD5E1] rounded-lg text-xs font-bold text-[#10241A] text-right"
+                                      className={`w-28 h-9 px-2.5 border border-[#CBD5E1] rounded-lg text-xs font-bold text-[#10241A] text-right ${isReferralSubmitted ? 'bg-[#FAFBF8] text-[#334155] cursor-not-allowed' : ''}`}
                                     />
                                   </div>
                                 </td>
-                                <td className="py-2 pl-2 text-center">
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setReferralData({
-                                        ...referralData,
-                                        particulars: referralData.particulars.filter((_, i) => i !== idx),
-                                      })
-                                    }
-                                    className="text-red-500 hover:text-red-700 bg-transparent border-0 cursor-pointer"
-                                    title="Remove row"
-                                  >
-                                    <i className="fa-solid fa-trash-can" />
-                                  </button>
-                                </td>
+                                {!isReferralSubmitted && (
+                                  <td className="py-2 pl-2 text-center">
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setReferralData({
+                                          ...referralData,
+                                          particulars: referralData.particulars.filter((_, i) => i !== idx),
+                                        })
+                                      }
+                                      className="text-red-500 hover:text-red-700 bg-transparent border-0 cursor-pointer"
+                                      title="Remove row"
+                                    >
+                                      <i className="fa-solid fa-trash-can" />
+                                    </button>
+                                  </td>
+                                )}
                               </tr>
                             ))}
                           </tbody>
@@ -2516,19 +2698,23 @@ export default function PatientDossierPage() {
                         <label className="block text-[10.5px] font-bold uppercase text-[#5A7466]">Attending Doctor :</label>
                         <input
                           type="text"
+                          disabled={isReferralSubmitted}
+                          readOnly={isReferralSubmitted}
                           value={referralData.attending_doctor}
                           onChange={(e) => setReferralData({ ...referralData, attending_doctor: e.target.value })}
                           placeholder="e.g. Dr. J. E. Garcia, MD"
-                          className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs font-semibold text-[#10241A]"
+                          className={`w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs font-semibold text-[#10241A] ${isReferralSubmitted ? 'bg-[#FAFBF8] text-[#334155] cursor-not-allowed' : ''}`}
                         />
                         <div className="flex items-center justify-between gap-2 pt-1 text-[11px] text-[#64748B]">
                           <span className="uppercase font-bold shrink-0">Signature:</span>
                           <input
                             type="text"
+                            disabled={isReferralSubmitted}
+                            readOnly={isReferralSubmitted}
                             value={referralData.doctor_signature_title}
                             onChange={(e) => setReferralData({ ...referralData, doctor_signature_title: e.target.value })}
                             placeholder="e.g. Dr. J. E. Garcia, MD"
-                            className="w-48 h-8 px-2.5 border border-[#E2E8F0] rounded-lg bg-[#FAFBF8] italic font-semibold text-[#0B6B3A] text-xs"
+                            className={`w-48 h-8 px-2.5 border border-[#E2E8F0] rounded-lg bg-[#FAFBF8] italic font-semibold text-[#0B6B3A] text-xs ${isReferralSubmitted ? 'cursor-not-allowed' : ''}`}
                           />
                         </div>
                       </div>
@@ -2536,27 +2722,103 @@ export default function PatientDossierPage() {
                         <label className="block text-[10.5px] font-bold uppercase text-[#5A7466]">Referring Individual :</label>
                         <input
                           type="text"
+                          disabled={isReferralSubmitted}
+                          readOnly={isReferralSubmitted}
                           value={referralData.referring_individual}
                           onChange={(e) => setReferralData({ ...referralData, referring_individual: e.target.value })}
                           placeholder="e.g. Anna Liza D. Borja, RN"
-                          className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs font-semibold text-[#10241A]"
+                          className={`w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs font-semibold text-[#10241A] ${isReferralSubmitted ? 'bg-[#FAFBF8] text-[#334155] cursor-not-allowed' : ''}`}
                         />
                         <div className="flex items-center justify-between gap-2 pt-1 text-[11px] text-[#64748B]">
                           <span className="uppercase font-bold shrink-0">Signature:</span>
                           <input
                             type="text"
+                            disabled={isReferralSubmitted}
+                            readOnly={isReferralSubmitted}
                             value={referralData.referring_signature_title}
                             onChange={(e) => setReferralData({ ...referralData, referring_signature_title: e.target.value })}
                             placeholder="e.g. A. L. Borja, RN"
-                            className="w-48 h-8 px-2.5 border border-[#E2E8F0] rounded-lg bg-[#FAFBF8] italic font-semibold text-[#0B6B3A] text-xs"
+                            className={`w-48 h-8 px-2.5 border border-[#E2E8F0] rounded-lg bg-[#FAFBF8] italic font-semibold text-[#0B6B3A] text-xs ${isReferralSubmitted ? 'cursor-not-allowed' : ''}`}
                           />
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              )}
+                );
+              })()}
             </div>
+
+            {/* Separate Container: Previous / Resolved Referral Slips */}
+            {patientReferralsHistory.filter((r) => !savedReferralMeta?.id || (r.id !== savedReferralMeta.id && r.referral_no !== savedReferralMeta.id)).length > 0 && (
+              <div className="bg-white border border-[#D5E2D9] rounded-2xl p-6 sm:p-8 shadow-2xs space-y-4">
+                <div className="flex items-center justify-between border-b border-[#EEF2EF] pb-3">
+                  <div>
+                    <h3 className="text-sm font-bold text-[#10241A] m-0 font-['Outfit'] flex items-center gap-2">
+                      <i className="fa-solid fa-clock-rotate-left text-[#0B6B3A]" />
+                      <span>Previous &amp; Resolved Referral Slips</span>
+                    </h3>
+                    <p className="text-[11px] text-[#5A7466] m-0 mt-0.5">
+                      Preserved referral history for this patient (separate from the active/new referral form above).
+                    </p>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  {patientReferralsHistory
+                    .filter((r) => !savedReferralMeta?.id || (r.id !== savedReferralMeta.id && r.referral_no !== savedReferralMeta.id))
+                    .map((histRef, idx, arr) => {
+                      const orderNum = arr.length - idx;
+                      const ordLabel =
+                        orderNum <= 1 ? 'FIRST ASSISTANCE' : orderNum === 2 ? 'SECOND ASSISTANCE' : orderNum === 3 ? 'THIRD ASSISTANCE' : `${orderNum}TH ASSISTANCE`;
+                      const histStatus = String(histRef.status || '').toUpperCase();
+                      const histCls =
+                        histRef.classification ||
+                        charityAssessments.find((a: any) => a.referral_id === histRef.id)?.final_classification ||
+                        (histStatus === 'DISAPPROVED' || histStatus === 'MSW REJECTED' ? 'Financially Capacitated (Full Pay)' : charityAssessments?.[0]?.final_classification || '');
+                      return (
+                        <button
+                          type="button"
+                          key={histRef.id || histRef.referral_no}
+                          onClick={() => setViewSlipModalReferral(histRef)}
+                          className="w-full text-left rounded-xl border border-[#E2E8F0] hover:border-[#0B6B3A] bg-[#FAFBF8] hover:bg-white p-4 flex flex-wrap items-center justify-between gap-4 transition cursor-pointer"
+                        >
+                          <div className="space-y-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="font-mono font-bold text-xs text-[#0B6B3A]">{histRef.referral_no || histRef.id}</span>
+                              <span className="px-2 py-0.5 rounded-full text-[9.5px] font-extrabold uppercase bg-blue-50 text-blue-700 border border-blue-200">
+                                {ordLabel}
+                              </span>
+                              <span className="px-2 py-0.5 rounded-full text-[9.5px] font-bold uppercase bg-[#E8F5EC] text-[#0B6B3A] border border-[#A7F3D0]">
+                                {histRef.status || 'APPROVED'}
+                              </span>
+                              {histCls && (
+                                <span className={`px-2 py-0.5 rounded-full text-[9.5px] font-extrabold uppercase border ${
+                                  String(histCls).toLowerCase().includes('capacitated')
+                                    ? 'bg-red-50 text-red-700 border-red-200'
+                                    : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                }`}>
+                                  {histCls}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs font-semibold text-[#10241A]">{histRef.diagnosis || '—'}</div>
+                            <div className="text-[11px] text-[#5A7466]">{histRef.procedure || '—'}</div>
+                          </div>
+                          <div className="text-right space-y-1">
+                            <div className="font-mono font-bold text-sm text-[#0B6B3A]">
+                              ₱{Number(histRef.total || histRef.total_quotation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                            </div>
+                            <div className="text-[11px] text-[#5A7466]">
+                              {histRef.created_at ? new Date(histRef.created_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                            </div>
+                            <div className="text-[10px] font-bold text-[#0B6B3A]">Click to view slip &rarr;</div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                </div>
+              </div>
+            )}
 
           </>
         )}
@@ -3154,6 +3416,117 @@ export default function PatientDossierPage() {
         {/* =====================================================================
             TAB 7: CHARITY STATUS (ADMIN STRICT READ-ONLY ACCESS — CHARITY PATIENTS ONLY)
            ===================================================================== */}
+        {dossierTab === 'assistance_history' && (() => {
+          const activeStatuses = new Set(['PENDING', 'AWAITING MSW REVIEW', 'ENDORSED FOR FINANCIAL ASSISTANCE', 'NEW', 'UNDER_REVIEW', 'ASSESSMENT IN PROGRESS', 'RETURNED_FOR_CORRECTION']);
+          const historicalReferrals = patientReferralsHistory.filter((r) => {
+            const st = String(r.status || '').toUpperCase();
+            if (st === 'CANCELLED' || st === 'DELETED') return false;
+            if (savedReferralMeta?.id && (r.id === savedReferralMeta.id || r.referral_no === savedReferralMeta.id)) return false;
+            if (!savedReferralMeta?.id && activeStatuses.has(st)) return false;
+            return true;
+          });
+          const totalReqs = historicalReferrals.length;
+          const mswApproved = historicalReferrals.filter((r) => ['MSW APPROVED', 'APPROVED'].includes(String(r.status || '').toUpperCase())).length;
+          const finalGrants = patientAssistanceSummary?.approved_final_grants ?? mswApproved;
+          const disapproved = historicalReferrals.filter((r) => ['MSW REJECTED', 'DISAPPROVED'].includes(String(r.status || '').toUpperCase())).length;
+          const promissory = historicalReferrals.filter((r) => String(r.status || '').toUpperCase().includes('PROMISSORY')).length;
+          const isRepeat = totalReqs >= 1;
+
+          return (
+            <div className="bg-white border border-[#D5E2D9] rounded-2xl p-6 sm:p-8 shadow-2xs space-y-6">
+              <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-[#EEF2EF]">
+                <div>
+                  <h2 className="text-base font-bold text-[#10241A] m-0 font-['Outfit'] flex items-center gap-2">
+                    <i className="fa-solid fa-clock-rotate-left text-[#0B6B3A]" />
+                    <span>Financial Assistance History</span>
+                  </h2>
+                  <p className="text-xs text-[#5A7466] m-0 mt-0.5">
+                    Chronological record of financial assistance referrals and MSW review outcomes for this patient.
+                  </p>
+                </div>
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10.5px] font-extrabold uppercase tracking-wider border ${
+                  isRepeat ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-[#E8F5EC] text-[#0B6B3A] border-[#A7F3D0]'
+                }`}>
+                  {isRepeat ? `REPEAT ASSISTANCE — ${totalReqs} PREVIOUS REQUESTS` : 'FIRST ASSISTANCE'}
+                </span>
+              </div>
+
+              {/* A. Assistance Summary */}
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                {[
+                  { label: 'Previous Requests', value: totalReqs, color: 'text-[#10241A]' },
+                  { label: 'MSW-Approved Cases', value: mswApproved, color: 'text-[#0B6B3A]' },
+                  { label: 'Approved Final Grants', value: finalGrants, color: 'text-emerald-700' },
+                  { label: 'Disapproved Cases', value: disapproved, color: 'text-red-600' },
+                  { label: 'Promissory Cases', value: promissory, color: 'text-amber-700' },
+                ].map((stat) => (
+                  <div key={stat.label} className="p-3.5 rounded-xl border border-[#E2E8F0] bg-[#FAFBF8]">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-[#5A7466]">{stat.label}</div>
+                    <div className={`text-xl font-extrabold font-['Outfit'] mt-1 ${stat.color}`}>{stat.value}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* C. Referral History Table */}
+              <div className="border border-[#E2E8F0] rounded-xl overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs border-collapse">
+                    <thead className="bg-[#FAFBF8] border-b border-[#E2E8F0] text-[10.5px] font-bold uppercase text-[#5A7466] text-left">
+                      <tr>
+                        <th className="py-3 px-4">Referral Number</th>
+                        <th className="py-3 px-4">Date</th>
+                        <th className="py-3 px-4">Diagnosis / Procedure</th>
+                        <th className="py-3 px-4 text-right">Medical Quotation</th>
+                        <th className="py-3 px-4">Endorsing Physician</th>
+                        <th className="py-3 px-4">MSW Review Status</th>
+                        <th className="py-3 px-4">Charity Case Number</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#EEF2EF]">
+                      {historicalReferrals.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} className="py-8 px-4 text-center text-xs text-[#5A7466]">
+                            First-time applicant — no previous financial assistance referrals recorded.
+                          </td>
+                        </tr>
+                      ) : (
+                        historicalReferrals.map((ref) => (
+                          <tr key={ref.id || ref.referral_no} className="hover:bg-[#FAFBF8]">
+                            <td className="py-3 px-4 font-mono font-bold text-[#0B6B3A]">
+                              {ref.referral_no || ref.id}
+                            </td>
+                            <td className="py-3 px-4 text-[#5A7466] whitespace-nowrap">
+                              {ref.created_at ? new Date(ref.created_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="font-semibold text-[#10241A]">{ref.diagnosis || '—'}</div>
+                              <div className="text-[11px] text-[#5A7466]">{ref.procedure || '—'}</div>
+                            </td>
+                            <td className="py-3 px-4 text-right font-mono font-bold text-[#10241A]">
+                              ₱{Number(ref.total || ref.total_quotation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                            </td>
+                            <td className="py-3 px-4 text-[#10241A]">
+                              {ref.attending_doctor || ref.referring_individual || '—'}
+                            </td>
+                            <td className="py-3 px-4">
+                              <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-[#E8F5EC] text-[#0B6B3A] border border-[#A7F3D0]">
+                                {ref.status || 'PENDING'}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 font-mono text-[#5A7466]">
+                              {ref.charity_case_no || 'Not Assigned'}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
         {isCharity && dossierTab === 'charity_status' && (() => {
           const latestAsmt = selectedCharityAsmt || charityAssessments[0] || null;
           const canonicalPid = patientData?.patient_id || patientId;
@@ -5014,6 +5387,320 @@ export default function PatientDossierPage() {
                   : apptActionConfirm.type === 'complete'
                     ? 'Confirm Completed'
                     : 'Confirm & Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Double-Check Confirmation Modal before Submitting Referral */}
+      {viewSlipModalReferral && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-[2px] flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl border border-[#D5E2D9] shadow-2xl max-w-2xl w-full p-6 space-y-4 my-8">
+            <div className="flex items-start justify-between gap-3 border-b border-[#EEF2EF] pb-3">
+              <div>
+                <div className="flex flex-wrap items-center gap-2 mb-1">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-[#E8F5EC] text-[#0B6B3A] border border-[#A7F3D0]">
+                    {viewSlipModalReferral.referral_no || viewSlipModalReferral.id}
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    {viewSlipModalReferral.status || 'APPROVED'}
+                  </span>
+                </div>
+                <h3 className="text-base font-bold text-[#10241A] m-0 font-['Outfit']">
+                  Financial Assistance Referral Slip
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setViewSlipModalReferral(null)}
+                className="w-8 h-8 rounded-full bg-[#FAFBF8] hover:bg-[#EEF2EF] text-[#5A7466] flex items-center justify-center border border-[#E2E8F0] cursor-pointer"
+              >
+                <i className="fa-solid fa-xmark text-xs" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div className="p-3 rounded-xl bg-[#FAFBF8] border border-[#E2E8F0]">
+                <div className="text-[10px] font-bold uppercase text-[#5A7466]">Diagnosis</div>
+                <div className="font-semibold text-[#10241A] mt-0.5">{viewSlipModalReferral.diagnosis || '—'}</div>
+              </div>
+              <div className="p-3 rounded-xl bg-[#FAFBF8] border border-[#E2E8F0]">
+                <div className="text-[10px] font-bold uppercase text-[#5A7466]">Procedure</div>
+                <div className="font-semibold text-[#10241A] mt-0.5">{viewSlipModalReferral.procedure || '—'}</div>
+              </div>
+            </div>
+
+            <div className="border border-[#E2E8F0] rounded-xl overflow-hidden">
+              <table className="w-full text-xs border-collapse">
+                <thead className="bg-[#FAFBF8] border-b border-[#E2E8F0] text-[10px] font-bold uppercase text-[#5A7466] text-left">
+                  <tr>
+                    <th className="py-2 px-3 w-10">No.</th>
+                    <th className="py-2 px-3">Particulars</th>
+                    <th className="py-2 px-3 text-right">Amount (PHP)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#EEF2EF]">
+                  {(Array.isArray(viewSlipModalReferral.particulars) ? viewSlipModalReferral.particulars : []).map((p: any, i: number) => (
+                    <tr key={i}>
+                      <td className="py-2 px-3 font-mono text-[#5A7466]">{i + 1}</td>
+                      <td className="py-2 px-3 font-medium text-[#10241A]">{p.name || p.description || '—'}</td>
+                      <td className="py-2 px-3 text-right font-mono font-bold text-[#10241A]">
+                        ₱{Number(p.amount || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                      </td>
+                    </tr>
+                  ))}
+                  <tr className="bg-[#E8F5EC]/50 font-bold">
+                    <td colSpan={2} className="py-2.5 px-3 text-[#0B6B3A] uppercase text-[10.5px]">
+                      Total Estimated Surgical Quotation
+                    </td>
+                    <td className="py-2.5 px-3 text-right font-mono text-sm text-[#0B6B3A]">
+                      ₱{Number(viewSlipModalReferral.total || viewSlipModalReferral.total_quotation || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div className="p-3 rounded-xl bg-[#FAFBF8] border border-[#E2E8F0]">
+                <div className="text-[10px] font-bold uppercase text-[#5A7466]">Attending Doctor</div>
+                <div className="font-semibold text-[#10241A] mt-0.5">{viewSlipModalReferral.attending_doctor || '—'}</div>
+              </div>
+              <div className="p-3 rounded-xl bg-[#FAFBF8] border border-[#E2E8F0]">
+                <div className="text-[10px] font-bold uppercase text-[#5A7466]">Referring Individual</div>
+                <div className="font-semibold text-[#10241A] mt-0.5">{viewSlipModalReferral.referring_individual || '—'}</div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#EEF2EF]">
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="px-4 py-2 rounded-xl border border-[#D5E2D9] bg-white hover:bg-[#FAFBF8] text-[#10241A] font-bold text-xs flex items-center gap-1.5 cursor-pointer"
+              >
+                <i className="fa-solid fa-print text-xs" />
+                <span>Print Slip</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewSlipModalReferral(null)}
+                className="px-4 py-2 rounded-xl bg-[#0B6B3A] hover:bg-[#084D29] text-white font-bold text-xs cursor-pointer border-0"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCancelReferralModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-[2px] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-[#D5E2D9] shadow-2xl max-w-md w-full p-6 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-red-50 text-red-600 flex items-center justify-center shrink-0">
+                <i className="fa-solid fa-ban text-base" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-[#10241A] m-0 font-['Outfit']">
+                  Cancel Financial Assistance Referral?
+                </h3>
+                <p className="text-xs text-[#5A7466] m-0 leading-relaxed">
+                  Are you sure you want to cancel referral <span className="font-mono font-bold text-[#10241A]">{savedReferralMeta?.id}</span>? This will mark the referral as <span className="font-bold text-red-700">CANCELLED</span> and stop MSW review.
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[10.5px] font-bold uppercase text-[#5A7466] mb-1">
+                Reason for Cancellation (Optional)
+              </label>
+              <input
+                type="text"
+                value={cancelReferralReason}
+                onChange={(e) => setCancelReferralReason(e.target.value)}
+                placeholder="e.g. Patient opted for regular billing / duplicate entry"
+                className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs text-[#10241A] focus:outline-none focus:border-red-400"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-1">
+              <button
+                type="button"
+                disabled={isCancellingReferral}
+                onClick={() => setShowCancelReferralModal(false)}
+                className="px-4 py-2 rounded-xl bg-white hover:bg-[#FAFBF8] text-[#10241A] border border-[#D5E2D9] font-bold text-xs cursor-pointer disabled:opacity-50"
+              >
+                Keep Referral
+              </button>
+              <button
+                type="button"
+                disabled={isCancellingReferral}
+                onClick={async () => {
+                  if (isCancellingReferral || !savedReferralMeta?.id) return;
+                  setIsCancellingReferral(true);
+                  try {
+                    const res = await fetchApi(`/referrals/${encodeURIComponent(savedReferralMeta.id)}/status`, {
+                      method: 'PATCH',
+                      body: JSON.stringify({
+                        status: 'CANCELLED',
+                        reason: cancelReferralReason.trim() || 'Cancelled by clinic staff',
+                      }),
+                    });
+                    const updatedStatus = res?.referral?.status || 'CANCELLED';
+                    setSavedReferralMeta((prev) => (prev ? { ...prev, status: updatedStatus } : prev));
+                    setShowCancelReferralModal(false);
+                    toast.success('Financial Assistance Referral has been cancelled.');
+                  } catch (err: any) {
+                    toast.error(err?.message || 'Failed to cancel Financial Assistance Referral.');
+                  } finally {
+                    setIsCancellingReferral(false);
+                  }
+                }}
+                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs flex items-center gap-2 cursor-pointer border-0 shadow-xs disabled:opacity-60"
+              >
+                {isCancellingReferral ? (
+                  <>
+                    <i className="fa-solid fa-spinner fa-spin text-xs" />
+                    <span>Cancelling...</span>
+                  </>
+                ) : (
+                  <span>Confirm Cancellation</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showReferralConfirmModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl max-w-lg w-full border border-[#D5E2D9] shadow-2xl p-6 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center text-lg shrink-0">
+                <i className="fa-solid fa-triangle-exclamation" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-['Outfit'] text-base font-bold text-[#10241A] m-0">
+                  Review Before Submitting
+                </h3>
+                <p className="text-xs text-[#5A7466] m-0 leading-relaxed">
+                  Please double-check all patient information, clinical details, referring physician information, and quotation amounts before submitting this Financial Assistance Referral. Once submitted, the referral will be forwarded to the Medical Social Worker for review.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-[#FAFBF8] border border-[#E2ECE5] rounded-xl p-3.5 space-y-2 text-xs">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <span className="text-[#5A7466] block text-[10px] font-semibold uppercase">Patient Name</span>
+                  <span className="font-bold text-[#10241A]">{patientData?.name || `${patientData?.first_name || ''} ${patientData?.last_name || ''}`.trim() || patientId}</span>
+                </div>
+                <div>
+                  <span className="text-[#5A7466] block text-[10px] font-semibold uppercase">Patient ID</span>
+                  <span className="font-mono font-bold text-[#0B6B3A]">{patientId}</span>
+                </div>
+              </div>
+              <div>
+                <span className="text-[#5A7466] block text-[10px] font-semibold uppercase">Diagnosis</span>
+                <span className="font-semibold text-[#10241A]">{referralData.diagnosis}</span>
+              </div>
+              <div>
+                <span className="text-[#5A7466] block text-[10px] font-semibold uppercase">Procedure</span>
+                <span className="font-semibold text-[#10241A]">{referralData.procedure}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 pt-1 border-t border-[#E2ECE5]">
+                <div>
+                  <span className="text-[#5A7466] block text-[10px] font-semibold uppercase">Attending Doctor</span>
+                  <span className="font-semibold text-[#10241A]">{referralData.attending_doctor || '—'}</span>
+                </div>
+                <div>
+                  <span className="text-[#5A7466] block text-[10px] font-semibold uppercase">Referring Individual</span>
+                  <span className="font-semibold text-[#10241A]">{referralData.referring_individual || '—'}</span>
+                </div>
+              </div>
+              <div className="pt-1 border-t border-[#E2ECE5] flex items-center justify-between">
+                <span className="text-[#5A7466] text-[10px] font-semibold uppercase">Total Estimated Surgical Quotation</span>
+                <span className="font-['Outfit'] text-sm font-bold text-[#0B6B3A]">
+                  ₱{referralTotal.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                disabled={isSubmittingReferral}
+                onClick={() => setShowReferralConfirmModal(false)}
+                className="px-4 py-2 rounded-xl bg-white hover:bg-[#FAFBF8] text-[#10241A] border border-[#D5E2D9] font-bold text-xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel / Go Back
+              </button>
+              <button
+                type="button"
+                disabled={isSubmittingReferral}
+                onClick={async () => {
+                  if (isSubmittingReferral) return;
+                  setIsSubmittingReferral(true);
+                  try {
+                    const data = await fetchApi(`/patients/${encodeURIComponent(patientId)}/referral`, {
+                      method: 'POST',
+                      body: JSON.stringify({
+                        patient_name: patientData?.name || `${patientData?.first_name || ''} ${patientData?.last_name || ''}`.trim() || patientId,
+                        diagnosis: referralData.diagnosis,
+                        procedure: referralData.procedure,
+                        particulars: referralData.particulars,
+                        total_quotation: referralTotal,
+                        attending_doctor: referralData.attending_doctor,
+                        attending_signature: referralData.doctor_signature_title,
+                        referring_individual: referralData.referring_individual,
+                        referring_signature: referralData.referring_signature_title,
+                        status: 'PENDING',
+                      }),
+                    });
+                    const savedRef = data?.referral || {};
+                    const meta = {
+                      id: savedRef.id,
+                      status: savedRef.status || 'PENDING',
+                      created_at: savedRef.created_at || new Date().toISOString(),
+                      assigned_msw: savedRef.assigned_msw || 'Maria Santos, RSW (msw_lead)',
+                    };
+                    setSavedReferralMeta(meta);
+                    try {
+                      localStorage.setItem(
+                        `ofphil_referral_${patientId}`,
+                        JSON.stringify({ ...referralData, id: meta.id, total: referralTotal, status: meta.status, updated_at: meta.created_at })
+                      );
+                    } catch { }
+                    setShowReferralConfirmModal(false);
+                    setIsEditingReferral(false);
+                    toast.success('Financial Assistance Referral successfully submitted to MSW.');
+                    setReferralFeedbackModal({
+                      title: 'Financial Assistance Referral Successfully Submitted',
+                      message: `Referral Number: ${meta.id || 'N/A'} • Patient: ${patientData?.name || patientId} (${patientId}) • Status: PENDING • Email Notification: ${data?.email_sent ? 'Sent to MSW' : 'Saved (Email queued/skipped)'}`,
+                    });
+                  } catch (err: any) {
+                    const msg = err?.message === 'Failed to fetch'
+                      ? 'Unable to reach the backend server. Please verify the backend is running and try again.'
+                      : (err?.message || 'Failed to save Financial Assistance Referral.');
+                    toast.error(msg);
+                  } finally {
+                    setIsSubmittingReferral(false);
+                  }
+                }}
+                className="px-4 py-2 rounded-xl bg-[#0B6B3A] hover:bg-[#084D29] text-white font-bold text-xs flex items-center gap-2 cursor-pointer border-0 shadow-xs disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {isSubmittingReferral ? (
+                  <>
+                    <i className="fa-solid fa-spinner fa-spin text-xs" />
+                    <span>Submitting Referral...</span>
+                  </>
+                ) : (
+                  <>
+                    <i className="fa-solid fa-paper-plane text-xs" />
+                    <span>Confirm &amp; Submit Referral</span>
+                  </>
+                )}
               </button>
             </div>
           </div>

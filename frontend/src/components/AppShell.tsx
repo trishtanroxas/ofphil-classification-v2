@@ -90,13 +90,16 @@ export function Sidebar({
         const readSet = new Set(Array.isArray(readList) ? readList : []);
 
         const globalInqs = JSON.parse(localStorage.getItem('ofphil_public_inquiries') || '[]');
-        const juanInqs = JSON.parse(localStorage.getItem('ofphil_inquiries_M26-11-00001') || '[]');
-        const allInqs = [...globalInqs, ...juanInqs];
+        const allInqs = [...globalInqs];
         const seen = new Set<string>();
         let unread = 0;
         for (const item of allInqs) {
           if (!item || !item.id || seen.has(item.id)) continue;
           seen.add(item.id);
+          const status = String(item.status || '').toLowerCase();
+          if (status === 'read' || status === 'answered' || status === 'completed' || status === 'resolved') {
+            continue;
+          }
           if (!readSet.has(`inq-${item.id}`)) {
             unread += 1;
           }
@@ -918,13 +921,16 @@ export function Header({
         const readSet = new Set(Array.isArray(readList) ? readList : []);
 
         const globalInqs = JSON.parse(localStorage.getItem('ofphil_public_inquiries') || '[]');
-        const juanInqs = JSON.parse(localStorage.getItem('ofphil_inquiries_M26-11-00001') || '[]');
-        const allInqs = [...globalInqs, ...juanInqs];
+        const allInqs = [...globalInqs];
         const seen = new Set<string>();
         let unread = 0;
         for (const item of allInqs) {
           if (!item || !item.id || seen.has(item.id)) continue;
           seen.add(item.id);
+          const status = String(item.status || '').toLowerCase();
+          if (status === 'read' || status === 'answered' || status === 'completed' || status === 'resolved') {
+            continue;
+          }
           if (!readSet.has(`inq-${item.id}`)) {
             unread += 1;
           }
