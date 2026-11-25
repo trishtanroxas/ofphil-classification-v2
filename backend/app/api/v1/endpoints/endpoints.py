@@ -310,40 +310,13 @@ class PatientRegisterRequest(BaseModel):
 
 def generate_next_patient_id(registry: Optional[List[Dict[str, Any]]] = None) -> str:
     """
-    Generates dynamic sequential permanent patient ID in format M26-11-0000#
-    where M is prefix, 26 is 2-digit year, 11 is 2-digit month, and 5-digit sequential number.
-    Inspects existing Patient IDs across registry and inquiries database to ensure uniqueness.
+    Generates dynamic sequential permanent patient ID in format MYY-MM-XXXXXX
+    where M is prefix, YY is 2-digit year, MM is 2-digit month, and XXXXXX is 6-digit sequential number.
+    Uses institutional timezone (Asia/Manila) and previews without consuming the sequence.
     """
-    now = datetime.date.today()
-    prefix = f"M{now.strftime('%y')}-{now.strftime('%m')}-"
+    from app.services.patient_id_service import patient_id_service
     reg = registry if registry is not None else REGISTERED_PATIENTS_REGISTRY
-    max_seq = 0
-    for p in reg:
-        pid = str(p.get("patient_id", "")).strip().upper()
-        if pid.startswith(prefix):
-            s = pid[len(prefix):]
-            if s.isdigit():
-                max_seq = max(max_seq, int(s))
-        elif re.match(r"^M\d{2}-\d{2}-\d+$", pid):
-            m = re.match(r"^M(\d{2})-(\d{2})-(\d+)$", pid)
-            if m and m.group(1) == now.strftime('%y') and m.group(2) == now.strftime('%m'):
-                max_seq = max(max_seq, int(m.group(3)))
-
-    # Also check inquiries DB financial referrals if table exists
-    try:
-        from app.services.referral_service import referral_service
-        with referral_service._connect() as conn:
-            rows = conn.execute("SELECT DISTINCT patient_id FROM financial_referrals WHERE patient_id LIKE ?", (f"{prefix}%",)).fetchall()
-            for r in rows:
-                if r and r[0]:
-                    s = str(r[0])[len(prefix):]
-                    if s.isdigit():
-                        max_seq = max(max_seq, int(s))
-    except Exception:
-        pass
-
-    next_num = max_seq + 1
-    return f"{prefix}{next_num:05d}"
+    return patient_id_service.preview_next_patient_id(registry=reg)
 
 
 def generate_next_charity_case_no(registry: Optional[List[Dict[str, Any]]] = None) -> str:
@@ -369,397 +342,35 @@ def generate_next_charity_case_no(registry: Optional[List[Dict[str, Any]]] = Non
     next_num = max_seq + 1
     return f"{prefix}{next_num:02d}"
 
+import json
+import os
 from app.core.paths import STORAGE_DIR
 
 PATIENTS_REGISTRY_FILE = STORAGE_DIR / "patients_registry.json"
 
 # Registered patients storage initialized with verified records
-INITIAL_PATIENTS_REGISTRY: List[Dict[str, Any]] = [
-    {
-        "id": "rec-100000",
-        "patient_id": "M26-11-100000",
-        "first_name": "Patient",
-        "middle_name": "",
-        "last_name": "Beneficiary",
-        "suffix": "",
-        "age": 30,
-        "sex": "M",
-        "birthdate": "1995-01-01",
-        "civil_status": "Single",
-        "num_dependents": "0",
-        "perm_province": "Metro Manila (NCR)",
-        "perm_city": "City of Manila",
-        "perm_barangay": "Barangay 659",
-        "perm_street": "Intramuros",
-        "same_address": True,
-        "alt_province": "Metro Manila (NCR)",
-        "alt_city": "City of Manila",
-        "alt_barangay": "Barangay 659",
-        "alt_street": "Intramuros",
-        "educational_attainment": "High School Graduate / Level",
-        "employment_status": "Employed (Full-time / Part-time)",
-        "occupation": "Beneficiary",
-        "residence_city": "City of Manila",
-        "residence_region": "Metro Manila (NCR)",
-        "contact": "09324617365",
-        "email": "agustin.j.bscs@gmail.com",
-        "phone_verified": True,
-        "email_verified": True,
-        "category": "REGULAR",
-        "status": "APPROVED",
-        "has_account": True,
-        "registration_date": "2026-11-24",
-        "initial_password": "pangitka24",
-        "diagnosis": "Comprehensive Eye Care Referral",
-    },
-    {
-        "id": "rec-1",
-        "patient_id": "M26-11-00001",
-        "first_name": "Juan",
-        "middle_name": "Santos",
-        "last_name": "Dela Cruz",
-        "suffix": "",
-        "age": 48,
-        "sex": "M",
-        "birthdate": "1978-05-15",
-        "civil_status": "Married",
-        "num_dependents": "2",
-        "perm_province": "Metro Manila (NCR)",
-        "perm_city": "City of Manila",
-        "perm_barangay": "Barangay 659 (Intramuros)",
-        "perm_street": "Block 4 Lot 12, St. Jude Street",
-        "same_address": True,
-        "alt_province": "Metro Manila (NCR)",
-        "alt_city": "City of Manila",
-        "alt_barangay": "Barangay 659 (Intramuros)",
-        "alt_street": "Block 4 Lot 12, St. Jude Street",
-        "educational_attainment": "High School Graduate / Level",
-        "employment_status": "Employed (Full-time / Part-time)",
-        "occupation": "Public Utility Driver",
-        "residence_city": "City of Manila",
-        "residence_region": "Metro Manila (NCR)",
-        "contact": "0917 888 1678",
-        "email": "tan1925alex@gmail.com",
-        "phone_verified": True,
-        "email_verified": True,
-        "category": "REGULAR",
-        "status": "AWAITING MSW REVIEW",
-        "has_account": True,
-        "registration_date": "2026-11-22",
-        "initial_password": "Ofphil@2026",
-        "diagnosis": "Bilateral Cataract, Senile Mature (OD > OS)",
-        "eye_condition": "Senile Mature Cataract (OD > OS)",
-        "clinical_findings": "Visual acuity 20/200 OD, 20/70 OS; dense nuclear sclerosis OD.",
-        "medical_history": "Controlled Type 2 Diabetes Mellitus (3 years), No known drug allergies.",
-        "surgical_history": "None prior to current ophthalmic referral.",
-        "recommended_procedure": "Phacoemulsification with Foldable IOL Implant (OD)",
-        "attending_doctor": "Dr. J. E. Garcia, MD",
-        "religion": "Roman Catholic",
-        "monthly_household_income": 12000.0,
-        "philhealth_category": "Employed / Direct Contributor",
-        "philhealth_coverage": "Active PhilHealth Coverage",
-        "assigned_msw": "Maria Santos, RSW (msw_lead)",
-        "encounters": [
-            {
-                "id": "ENC-M26-11-00001-01",
-                "charity_case_no": None,
-                "encounter_date": "2026-11-22",
-                "application_type": "Ophthalmic Surgical Financial Assistance",
-                "diagnosis": "Bilateral Cataract, Senile Mature (OD > OS)",
-                "procedure": "Phacoemulsification with Foldable IOL Implant (OD)",
-                "attending_doctor": "Dr. J. E. Garcia, MD",
-                "classification": "REGULAR",
-                "total_amount": 11600.0,
-                "approved_financial_assistance": 0.0,
-                "status": "AWAITING MSW REVIEW",
-                "assigned_msw": "Maria Santos, RSW (msw_lead)",
-                "notes": "Endorsed from regular eye clinic to MSW for cataract surgery fee assistance."
-            }
-        ],
-        "inquiries": []
-    },
-    {
-        "id": "rec-2",
-        "patient_id": "M26-11-00002",
-        "charity_case_no": "MSW_FA_1126-01",
-        "first_name": "Maria Clara",
-        "middle_name": "Flores",
-        "last_name": "Ramos",
-        "suffix": "",
-        "age": 58,
-        "sex": "F",
-        "birthdate": "1968-08-20",
-        "civil_status": "Widowed",
-        "religion": "Roman Catholic",
-        "num_dependents": "3",
-        "perm_province": "Metro Manila (NCR)",
-        "perm_city": "Caloocan City",
-        "perm_barangay": "Barangay 12",
-        "perm_street": "Purok 2, Kaunlaran St.",
-        "same_address": True,
-        "alt_province": "Metro Manila (NCR)",
-        "alt_city": "Caloocan City",
-        "alt_barangay": "Barangay 12",
-        "alt_street": "Purok 2, Kaunlaran St.",
-        "educational_attainment": "Elementary Graduate",
-        "employment_status": "Informal / Vendor",
-        "occupation": "Market Vendor",
-        "monthly_household_income": 6500.0,
-        "philhealth_category": "Indigent / Sponsored Member",
-        "philhealth_coverage": "Active Indigent Coverage",
-        "residence_city": "Caloocan City",
-        "residence_region": "Metro Manila (NCR)",
-        "contact": "0928 555 3412",
-        "email": "maria.ramos@example.ph",
-        "phone_verified": True,
-        "email_verified": False,
-        "category": "CHARITY",
-        "status": "APPROVED",
-        "has_account": False,
-        "registration_date": "2026-11-20",
-        "diagnosis": "Senile Cataract, Immature (OS)",
-        "eye_condition": "Senile Immature Cataract (OS)",
-        "clinical_findings": "Progressive blurring of left eye vision over 18 months; lens opacity OS.",
-        "medical_history": "Mild Stage 1 Hypertension (on Amlodipine 5mg).",
-        "surgical_history": "None.",
-        "recommended_procedure": "Phacoemulsification with Foldable IOL Implant (OS)",
-        "attending_doctor": "Dr. J. E. Garcia, MD",
-        "assigned_msw": "Maria Santos, RSW (msw_lead)",
-        "encounters": [
-            {
-                "id": "ENC-2026-1120-01",
-                "charity_case_no": "MSW_FA_1126-01",
-                "encounter_date": "2026-11-20",
-                "application_type": "Charity Surgical Grant Application",
-                "diagnosis": "Senile Cataract, Immature (OS)",
-                "procedure": "Phacoemulsification with Foldable IOL Implant (OS)",
-                "attending_doctor": "Dr. J. E. Garcia, MD",
-                "classification": "CHARITY",
-                "total_amount": 11600.0,
-                "approved_financial_assistance": 11600.0,
-                "status": "APPROVED",
-                "assigned_msw": "Maria Santos, RSW (msw_lead)",
-                "notes": "Approved for 100% Indigent Charity Grant following MSW socioeconomic assessment."
-            }
-        ],
-        "inquiries": []
-    },
-    {
-        "id": "rec-3",
-        "patient_id": "M26-11-00003",
-        "charity_case_no": "MSW_FA_1126-02",
-        "first_name": "Pedro",
-        "middle_name": "Alvarez",
-        "last_name": "Bautista",
-        "suffix": "Sr.",
-        "age": 64,
-        "sex": "M",
-        "birthdate": "1962-03-10",
-        "civil_status": "Married",
-        "religion": "Roman Catholic",
-        "num_dependents": "1",
-        "perm_province": "Metro Manila (NCR)",
-        "perm_city": "Quezon City",
-        "perm_barangay": "Barangay Commonwealth",
-        "perm_street": "Area B, Gate 3",
-        "same_address": True,
-        "alt_province": "Metro Manila (NCR)",
-        "alt_city": "Quezon City",
-        "alt_barangay": "Barangay Commonwealth",
-        "alt_street": "Area B, Gate 3",
-        "educational_attainment": "High School Level",
-        "employment_status": "Unemployed / Senior",
-        "occupation": "Retired Barangay Aide",
-        "monthly_household_income": 4500.0,
-        "philhealth_category": "Senior Citizen (RA 10645)",
-        "philhealth_coverage": "Active Senior Coverage",
-        "residence_city": "Quezon City",
-        "residence_region": "Metro Manila (NCR)",
-        "contact": "0919 777 9821",
-        "email": "pedro.bautista@example.ph",
-        "phone_verified": True,
-        "email_verified": False,
-        "category": "CHARITY",
-        "status": "APPROVED",
-        "has_account": False,
-        "registration_date": "2026-11-18",
-        "diagnosis": "Primary Open-Angle Glaucoma (OU)",
-        "eye_condition": "Bilateral Primary Open-Angle Glaucoma",
-        "clinical_findings": "Elevated intraocular pressure (26 mmHg OU); optic disc cupping 0.7.",
-        "medical_history": "Senior citizen, history of elevated IOP for 2 years.",
-        "surgical_history": "None.",
-        "recommended_procedure": "Trabeculectomy / Glaucoma Filtering Surgery (OU)",
-        "attending_doctor": "Dr. Roberto Reyes, MD, DPBO",
-        "assigned_msw": "Maria Santos, RSW (msw_lead)",
-        "encounters": [
-            {
-                "id": "ENC-2026-1118-02",
-                "charity_case_no": "MSW_FA_1126-02",
-                "encounter_date": "2026-11-18",
-                "application_type": "Charity Glaucoma Surgery Application",
-                "diagnosis": "Primary Open-Angle Glaucoma (OU)",
-                "procedure": "Trabeculectomy / Glaucoma Filtering Surgery (OU)",
-                "attending_doctor": "Dr. Roberto Reyes, MD, DPBO",
-                "classification": "CHARITY",
-                "total_amount": 14500.0,
-                "approved_financial_assistance": 14500.0,
-                "status": "APPROVED",
-                "assigned_msw": "Maria Santos, RSW (msw_lead)",
-                "notes": "Senior citizen indigent case approved for full glaucoma surgery grant."
-            }
-        ],
-        "inquiries": []
-    },
-    {
-        "id": "rec-4",
-        "patient_id": "M26-11-00004",
-        "charity_case_no": "MSW_FA_1126-03",
-        "first_name": "Elena",
-        "middle_name": "Velasco",
-        "last_name": "Santos",
-        "suffix": "",
-        "age": 52,
-        "sex": "F",
-        "birthdate": "1974-06-18",
-        "civil_status": "Single",
-        "religion": "Christian",
-        "num_dependents": "2",
-        "perm_province": "Metro Manila (NCR)",
-        "perm_city": "Pasay City",
-        "perm_barangay": "Barangay 183 (Villamor)",
-        "perm_street": "14 Sampaguita St.",
-        "same_address": True,
-        "alt_province": "Metro Manila (NCR)",
-        "alt_city": "Pasay City",
-        "alt_barangay": "Barangay 183 (Villamor)",
-        "alt_street": "14 Sampaguita St.",
-        "educational_attainment": "High School Graduate",
-        "employment_status": "Self-employed / Laundry",
-        "occupation": "Laundry Worker",
-        "monthly_household_income": 7000.0,
-        "philhealth_category": "Informal Economy / Self-Earning",
-        "philhealth_coverage": "Inactive / Arrears",
-        "residence_city": "Pasay City",
-        "residence_region": "Metro Manila (NCR)",
-        "contact": "0918 333 4455",
-        "email": "elena.santos@example.ph",
-        "phone_verified": True,
-        "email_verified": False,
-        "category": "CHARITY",
-        "status": "PENDING",
-        "has_account": False,
-        "registration_date": "2026-11-21",
-        "diagnosis": "Diabetic Retinopathy (OU)",
-        "eye_condition": "Proliferative Diabetic Retinopathy (OU)",
-        "clinical_findings": "Neovascularization and macular edema OU; requires laser therapy.",
-        "medical_history": "Type 2 Diabetes Mellitus (8 years).",
-        "surgical_history": "None.",
-        "recommended_procedure": "Panretinal Photocoagulation Laser Therapy (OU)",
-        "attending_doctor": "Dr. J. E. Garcia, MD",
-        "assigned_msw": "Maria Santos, RSW (msw_lead)",
-        "encounters": [
-            {
-                "id": "ENC-2026-1121-03",
-                "charity_case_no": "MSW_FA_1126-03",
-                "encounter_date": "2026-11-21",
-                "application_type": "Retinal Treatment Charity Application",
-                "diagnosis": "Diabetic Retinopathy (OU)",
-                "procedure": "Panretinal Photocoagulation Laser Therapy (OU)",
-                "attending_doctor": "Dr. J. E. Garcia, MD",
-                "classification": "CHARITY",
-                "total_amount": 9800.0,
-                "approved_financial_assistance": 0.0,
-                "status": "PENDING MSW ASSESSMENT",
-                "assigned_msw": "Maria Santos, RSW (msw_lead)",
-                "notes": "Awaiting initial MSW socioeconomic interview and document verification."
-            }
-        ],
-        "inquiries": []
-    },
-    {
-        "id": "rec-5",
-        "patient_id": "M26-11-00005",
-        "charity_case_no": "MSW_FA_1126-04",
-        "first_name": "Ricardo",
-        "middle_name": "Gomez",
-        "last_name": "Dalisay",
-        "suffix": "",
-        "age": 61,
-        "sex": "M",
-        "birthdate": "1965-02-14",
-        "civil_status": "Married",
-        "religion": "Roman Catholic",
-        "num_dependents": "4",
-        "perm_province": "Metro Manila (NCR)",
-        "perm_city": "Quezon City",
-        "perm_barangay": "Barangay Batasan Hills",
-        "perm_street": "Phase 2, Block 8",
-        "same_address": True,
-        "alt_province": "Metro Manila (NCR)",
-        "alt_city": "Quezon City",
-        "alt_barangay": "Barangay Batasan Hills",
-        "alt_street": "Phase 2, Block 8",
-        "educational_attainment": "High School Level",
-        "employment_status": "Informal / Construction",
-        "occupation": "Construction Worker",
-        "monthly_household_income": 15500.0,
-        "philhealth_category": "Informal Sector",
-        "philhealth_coverage": "Active Coverage",
-        "residence_city": "Quezon City",
-        "residence_region": "Metro Manila (NCR)",
-        "contact": "0927 666 7788",
-        "email": "ricardo.dalisay@example.ph",
-        "phone_verified": True,
-        "email_verified": False,
-        "category": "CHARITY",
-        "status": "DISAPPROVED/PROMISSORY",
-        "has_account": False,
-        "registration_date": "2026-11-19",
-        "diagnosis": "Mature Cataract with Glaucoma (OD)",
-        "eye_condition": "Phacomorphic Glaucoma / Mature Cataract (OD)",
-        "clinical_findings": "Mature lens opacity with secondary angle closure OD.",
-        "medical_history": "History of ocular trauma 5 years ago.",
-        "surgical_history": "None.",
-        "recommended_procedure": "Combined Cataract Extraction & Glaucoma Procedure (OD)",
-        "attending_doctor": "Dr. Roberto Reyes, MD, DPBO",
-        "assigned_msw": "Maria Santos, RSW (msw_lead)",
-        "encounters": [
-            {
-                "id": "ENC-2026-1119-04",
-                "charity_case_no": "MSW_FA_1126-04",
-                "encounter_date": "2026-11-19",
-                "application_type": "Partial Subsidy / Promissory Application",
-                "diagnosis": "Mature Cataract with Glaucoma (OD)",
-                "procedure": "Combined Cataract Extraction & Glaucoma Procedure (OD)",
-                "attending_doctor": "Dr. Roberto Reyes, MD, DPBO",
-                "classification": "CHARITY",
-                "total_amount": 16200.0,
-                "approved_financial_assistance": 4860.0,
-                "status": "DISAPPROVED/PROMISSORY",
-                "assigned_msw": "Maria Santos, RSW (msw_lead)",
-                "notes": "Classified under partial promissory arrangement due to combined household income above full indigency threshold."
-            }
-        ],
-        "inquiries": []
-    }
-]
+INITIAL_PATIENTS_REGISTRY: List[Dict[str, Any]] = []
 
 def _load_patients_registry() -> List[Dict[str, Any]]:
     if PATIENTS_REGISTRY_FILE.exists():
         try:
             data = json.loads(PATIENTS_REGISTRY_FILE.read_text(encoding="utf-8"))
-            if isinstance(data, list) and len(data) > 0:
+            if isinstance(data, list):
                 return data
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[ERROR] Failed to load patients registry from {PATIENTS_REGISTRY_FILE}: {e}")
+            raise
     return list(INITIAL_PATIENTS_REGISTRY)
 
 def _save_patients_registry() -> None:
     try:
         PATIENTS_REGISTRY_FILE.parent.mkdir(parents=True, exist_ok=True)
-        PATIENTS_REGISTRY_FILE.write_text(json.dumps(REGISTERED_PATIENTS_REGISTRY, indent=2), encoding="utf-8")
-    except Exception:
-        pass
+        tmp_file = PATIENTS_REGISTRY_FILE.with_suffix(".json.tmp")
+        tmp_file.write_text(json.dumps(REGISTERED_PATIENTS_REGISTRY, indent=2), encoding="utf-8")
+        os.replace(tmp_file, PATIENTS_REGISTRY_FILE)
+    except Exception as e:
+        print(f"[ERROR] Failed to save patients registry to {PATIENTS_REGISTRY_FILE}: {e}")
+        raise
 
 REGISTERED_PATIENTS_REGISTRY: List[Dict[str, Any]] = _load_patients_registry()
 
@@ -784,9 +395,12 @@ def register_patient_record(payload: PatientRegisterRequest):
     req_last = payload.last_name.strip()
     category = "CHARITY" if (payload.category or "").upper() == "CHARITY" else "REGULAR"
 
+    from app.services.patient_id_service import patient_id_service
     req_pid = (payload.patient_id or "").strip().upper()
     if not req_pid or req_pid in {"AUTO", "GENERATE"} or req_pid.startswith("AUTO"):
-        req_pid = generate_next_patient_id()
+        req_pid = patient_id_service.reserve_next_patient_id(registry=REGISTERED_PATIENTS_REGISTRY)
+    else:
+        patient_id_service.record_assigned_patient_id(req_pid)
 
     charity_case_no = None
     if category == "CHARITY":
@@ -1387,10 +1001,13 @@ def get_authenticated_patient_charity_status(
     canonical_pid = str(found_patient.get("patient_id"))
     current_cls = str(found_patient.get("category") or "REGULAR").strip().upper()
 
-    if current_cls != "CHARITY":
+    from app.services.referral_service import referral_service
+    patient_referrals = referral_service.list_referrals(patient_id=canonical_pid)
+
+    if current_cls != "CHARITY" and not patient_referrals:
         raise HTTPException(
             status_code=403,
-            detail="Access denied: Charity Assistance Status is only available to patients officially classified as a Charity Patient.",
+            detail="Access denied: Charity Assistance Status is only available to patients with a Charity classification or an existing Financial Assistance Referral.",
         )
 
     from app.services.assessment_service import assessment_service
@@ -1425,7 +1042,7 @@ def get_authenticated_patient_charity_status(
         or (latest_enc.get("id") or latest_enc.get("assessment_id") if latest_enc else None)
     )
 
-    has_active_application = bool(latest_asmt or charity_encounters or is_native_charity_id)
+    has_active_application = bool(latest_asmt or charity_encounters or is_native_charity_id or patient_referrals)
 
     # Derive accurate application & assessment statuses from actual records
     wf_status = str(latest_asmt.get("workflow_status") or "").upper() if latest_asmt else ""
@@ -1674,6 +1291,188 @@ def get_authenticated_patient_charity_status(
     }
 
 
+@router.get("/patient-portal/charity-assistance-status/{referral_id}")
+def get_authenticated_patient_charity_referral_detail(
+    referral_id: str,
+    x_user_role: Optional[str] = Header(default=None),
+    x_user_id: Optional[str] = Header(default=None),
+):
+    """
+    Read-only Charity Assistance Status detail endpoint for a specific referral owned by the authenticated patient.
+    """
+    role_norm = (x_user_role or "").strip().lower()
+    uid_norm = (x_user_id or "").strip()
+    if role_norm != "patient" or not uid_norm:
+        raise HTTPException(
+            status_code=403,
+            detail="Access denied: Only an authenticated patient session can access patient charity assistance status.",
+        )
+
+    found_patient = None
+    for item in REGISTERED_PATIENTS_REGISTRY:
+        if str(item.get("patient_id") or "").strip().upper() == uid_norm.upper():
+            found_patient = item
+            break
+
+    if not found_patient:
+        raise HTTPException(status_code=404, detail=f"Authenticated patient '{uid_norm}' not found.")
+
+    canonical_pid = str(found_patient.get("patient_id"))
+    from app.services.referral_service import referral_service
+    from app.services.assessment_service import assessment_service
+
+    patient_referrals = referral_service.list_referrals(patient_id=canonical_pid)
+    target_ref = None
+    for r in patient_referrals:
+        if str(r.get("id") or "") == referral_id or str(r.get("referral_no") or "") == referral_id:
+            target_ref = r
+            break
+
+    if not target_ref:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Referral '{referral_id}' not found for authenticated patient '{canonical_pid}'.",
+        )
+
+    full_name = (
+        f"{found_patient.get('first_name', '')} {found_patient.get('middle_name', '')} "
+        f"{found_patient.get('last_name', '')} {found_patient.get('suffix', '')}"
+    ).replace("  ", " ").strip()
+
+    assessments = assessment_service.list_assessments(patient_id=canonical_pid)
+    linked_asmt = None
+    ref_asmt_id = target_ref.get("assessment_id")
+    ref_case_no = target_ref.get("charity_case_no")
+    for a in assessments:
+        if ref_asmt_id and str(a.get("id") or "") == str(ref_asmt_id):
+            linked_asmt = a
+            break
+        if ref_case_no and str(a.get("charity_case_no") or "") == str(ref_case_no):
+            linked_asmt = a
+            break
+
+    ref_status = str(target_ref.get("status") or "PENDING").upper()
+    wf_status = str(linked_asmt.get("workflow_status") or "").upper() if linked_asmt else ""
+    inst_approval = (linked_asmt.get("institutional_approval") if linked_asmt else None) or {}
+    msw_rec = (linked_asmt.get("msw_recommendation") if linked_asmt else None) or {}
+    cls_res = (linked_asmt.get("classification_result") if linked_asmt else None) or {}
+
+    if inst_approval.get("decision") == "APPROVED" or wf_status == "APPROVED" or ref_status in {"APPROVED", "MSW APPROVED", "COMPLETED"}:
+        charity_application_status = "Approved"
+        assessment_status_label = "Completed & Approved"
+        submission_status = "Submitted & Approved"
+    elif inst_approval.get("decision") in {"REJECTED", "DISAPPROVED"} or wf_status == "REJECTED" or ref_status in {"REJECTED", "DISAPPROVED"}:
+        charity_application_status = "Disapproved / Promissory"
+        assessment_status_label = "Evaluated — Disapproved / Promissory"
+        submission_status = "Submitted & Reviewed"
+    elif wf_status == "PENDING_APPROVAL" or bool(msw_rec) or bool(target_ref.get("msw_recommendation")):
+        charity_application_status = "Pending Administrative Decision"
+        assessment_status_label = "MSW Recommendation Submitted"
+        submission_status = "Submitted for Final Approval"
+    elif wf_status in {"DRAFT", "ASSESSMENT_IN_PROGRESS", "PENDING_DOCUMENT_REVIEW", "PENDING_MSW_REVIEW", "RETURNED_FOR_REVISION"}:
+        charity_application_status = "Under MSW Review"
+        assessment_status_label = f"Stage {linked_asmt.get('active_stage', 1)} of 4 ({wf_status.replace('_', ' ').title()})"
+        submission_status = "In Progress" if wf_status in {"DRAFT", "ASSESSMENT_IN_PROGRESS"} else "Under Review"
+    else:
+        charity_application_status = "Assessment Pending"
+        assessment_status_label = "Assessment Pending"
+        submission_status = "Awaiting MSW Intake"
+
+    recorded_eligibility_rec = (
+        target_ref.get("msw_recommendation")
+        or msw_rec.get("recommended_tier")
+        or cls_res.get("combined_recommendation")
+        or None
+    )
+    recommended_subsidy_pct = msw_rec.get("recommended_subsidy_pct")
+
+    if inst_approval.get("decision"):
+        final_authorized_decision = str(inst_approval.get("decision")).upper()
+        approved_grant_tier = (
+            msw_rec.get("recommended_tier")
+            or cls_res.get("combined_recommendation")
+            or ("Charity Subsidy Grant" if final_authorized_decision == "APPROVED" else None)
+        )
+        approved_subsidy_pct = inst_approval.get("approved_subsidy_percentage")
+        decision_date = inst_approval.get("decided_at") or (linked_asmt.get("updated_at") if linked_asmt else None)
+        decision_explanation = inst_approval.get("decision_notes")
+        authorized_reviewer = inst_approval.get("decided_by") or inst_approval.get("reviewer_name") or "Authorized Reviewer"
+    elif ref_status in {"APPROVED", "MSW APPROVED", "COMPLETED"}:
+        final_authorized_decision = "APPROVED"
+        approved_grant_tier = target_ref.get("approved_grant_tier") or recorded_eligibility_rec or "Charity Subsidy Grant"
+        approved_subsidy_pct = target_ref.get("approved_subsidy_pct")
+        decision_date = target_ref.get("decision_date") or target_ref.get("updated_at") or target_ref.get("created_at")
+        decision_explanation = target_ref.get("decision_notes") or "Approved under OFPHIL Charity Assistance Program."
+        authorized_reviewer = target_ref.get("authorized_reviewer") or "Authorized Reviewer"
+    else:
+        final_authorized_decision = target_ref.get("final_decision") or "Pending Official Decision"
+        approved_grant_tier = target_ref.get("approved_grant_tier")
+        approved_subsidy_pct = target_ref.get("approved_subsidy_pct")
+        decision_date = target_ref.get("decision_date")
+        decision_explanation = target_ref.get("decision_notes")
+        authorized_reviewer = target_ref.get("authorized_reviewer")
+
+    approved_subsidy_amount = target_ref.get("approved_grant_amount") or target_ref.get("approved_subsidy_amount")
+    charity_case_no = target_ref.get("charity_case_no") or (linked_asmt.get("charity_case_no") if linked_asmt else None) or found_patient.get("charity_case_no")
+    application_encounter_no = target_ref.get("encounter_no") or (linked_asmt.get("encounter_no") if linked_asmt else None) or target_ref.get("referral_no")
+
+    stage_1_done = str(found_patient.get("category") or "REGULAR").strip().upper() == "CHARITY"
+    stage_2_done = True
+    stage_3_done = bool(linked_asmt and (linked_asmt.get("stage2_evaluation", {}).get("is_complete") or (linked_asmt.get("active_stage") or 1) >= 2 or wf_status not in {"", "DRAFT"})) or ref_status in {"APPROVED", "MSW APPROVED", "COMPLETED"}
+    stage_4_done = bool(linked_asmt and ((linked_asmt.get("active_stage") or 1) >= 3 or wf_status in {"PENDING_MSW_REVIEW", "PENDING_APPROVAL", "APPROVED", "REJECTED"})) or ref_status in {"APPROVED", "MSW APPROVED", "COMPLETED"}
+    stage_5_done = bool(recorded_eligibility_rec) or ref_status in {"APPROVED", "MSW APPROVED", "COMPLETED"}
+    stage_6_done = final_authorized_decision in {"APPROVED", "REJECTED", "DISAPPROVED", "DISAPPROVED / PROMISSORY"}
+    stage_7_done = stage_6_done
+
+    progress_stages = [
+        {"stage": 1, "title": "Patient Classified as Charity Beneficiary", "completed": stage_1_done, "status": "Completed" if stage_1_done else "Pending", "description": f"Account {canonical_pid} is classified as CHARITY."},
+        {"stage": 2, "title": "Assessment Pending", "completed": stage_2_done, "status": "Completed", "description": f"Referral {target_ref.get('referral_no') or referral_id} recorded for MSW evaluation."},
+        {"stage": 3, "title": "MSW Assessment", "completed": stage_3_done, "status": "Completed" if stage_3_done else ("In Progress" if linked_asmt else "Pending"), "description": f"Assigned MSW: {found_patient.get('assigned_msw') or 'Maria Santos, RSW'}."},
+        {"stage": 4, "title": "Supporting Documents Review", "completed": stage_4_done, "status": "Completed" if stage_4_done else "Pending", "description": "Supporting documents verification stage."},
+        {"stage": 5, "title": "Eligibility Recommendation", "completed": stage_5_done, "status": "Completed" if stage_5_done else "Pending", "description": f"MSW Recommendation: {recorded_eligibility_rec}" if recorded_eligibility_rec else "Awaiting official MSW eligibility recommendation."},
+        {"stage": 6, "title": "Authorized Administrative Decision", "completed": stage_6_done, "status": "Completed" if stage_6_done else "Pending", "description": f"Final Decision: {final_authorized_decision}"},
+        {"stage": 7, "title": "Charity Grant Finalized", "completed": stage_7_done, "status": "Completed" if stage_7_done else "Pending", "description": "Charity assistance grant finalized." if stage_7_done else "Awaiting final grant authorization."},
+    ]
+
+    return {
+        "patient_id": canonical_pid,
+        "referral": target_ref,
+        "application_info": {
+            "patient_name": full_name,
+            "patient_id": canonical_pid,
+            "charity_case_no": charity_case_no,
+            "application_encounter_no": application_encounter_no,
+            "application_date": (target_ref.get("created_at") or "")[:10] or None,
+            "beneficiary_classification": "CHARITY",
+            "charity_application_status": charity_application_status,
+        },
+        "assessment_status": {
+            "current_status": assessment_status_label,
+            "workflow_status": wf_status or ref_status,
+            "assigned_msw": found_patient.get("assigned_msw") or "Maria Santos, RSW",
+            "assessment_date": (linked_asmt.get("created_at") if linked_asmt else target_ref.get("created_at")),
+            "assessment_stage": f"Stage {linked_asmt.get('active_stage', 1)} of 4" if linked_asmt else ("Completed" if stage_6_done else "Pending"),
+            "submission_status": submission_status,
+            "last_updated": target_ref.get("updated_at") or target_ref.get("created_at"),
+        },
+        "eligibility_and_decision": {
+            "msw_eligibility_recommendation": recorded_eligibility_rec,
+            "recommended_grant_tier": recorded_eligibility_rec,
+            "recommended_subsidy_pct": recommended_subsidy_pct,
+            "recommendation_status": "Submitted" if recorded_eligibility_rec else "Pending",
+            "recommendation_date": (linked_asmt.get("updated_at") if linked_asmt else target_ref.get("created_at")) if recorded_eligibility_rec else None,
+            "final_authorized_decision": final_authorized_decision,
+            "approved_grant_tier": approved_grant_tier,
+            "approved_subsidy_pct": approved_subsidy_pct,
+            "approved_subsidy_amount": approved_subsidy_amount,
+            "decision_date": decision_date,
+            "authorized_reviewer": authorized_reviewer,
+            "decision_explanation": decision_explanation,
+        },
+        "application_progress": progress_stages,
+    }
+
+
 class PatientUpdateRequest(BaseModel):
     first_name: Optional[str] = None
     middle_name: Optional[str] = None
@@ -1700,6 +1499,8 @@ class PatientUpdateRequest(BaseModel):
     residence_region: Optional[str] = None
     contact: Optional[str] = None
     email: Optional[str] = None
+    email_verified: Optional[bool] = None
+    phone_verified: Optional[bool] = None
     category: Optional[str] = None
     status: Optional[str] = None
     new_password: Optional[str] = None
@@ -1717,6 +1518,7 @@ def update_patient_record(patient_id: str, payload: PatientUpdateRequest):
                 "same_address", "alt_province", "alt_city", "alt_barangay", "alt_street",
                 "educational_attainment", "employment_status", "occupation",
                 "residence_city", "residence_region", "contact", "email",
+                "email_verified", "phone_verified",
                 "category", "status", "diagnosis", "assigned_msw"
             ]:
                 val = getattr(payload, field_key, None)
@@ -2129,11 +1931,14 @@ async def get_patient_referral_sb(patient_id: str):
 @router.post("/patients/{patient_id}/referral")
 async def upsert_patient_referral_sb(patient_id: str, payload: dict):
     from app.services.referral_service import referral_service
-    created = referral_service.create_referral(
-        {**payload, "patient_id": patient_id},
-        actor_id="admin_sys",
-        role="admin",
-    )
+    try:
+        created = referral_service.create_referral(
+            {**payload, "patient_id": patient_id},
+            actor_id="admin_sys",
+            role="admin",
+        )
+    except ValueError as ex:
+        raise HTTPException(status_code=400, detail=str(ex))
     try:
         from app.services.inquiry_service import inquiry_service
         target_msw = "msw_lead"
@@ -2154,7 +1959,42 @@ async def upsert_patient_referral_sb(patient_id: str, payload: dict):
         )
     except Exception:
         pass
-    return {"status": "ok", "referral": created}
+    email_sent = False
+    email_error = None
+    try:
+        from app.core.config import get_settings
+        import smtplib
+        from email.mime.text import MIMEText
+        cfg = get_settings()
+        msw_email = getattr(cfg, "MSW_NOTIFICATION_EMAIL", None) or getattr(cfg, "SMTP_FROM_EMAIL", None) or getattr(cfg, "SMTP_USER", None)
+        if msw_email and getattr(cfg, "SMTP_HOST", None) and getattr(cfg, "SMTP_USER", None) and getattr(cfg, "SMTP_PASSWORD", None):
+            subject = f"New Financial Assistance Referral — {p_name}"
+            body = (
+                f"New Financial Assistance Referral Submitted\n\n"
+                f"Referral Number: {created.get('id')}\n"
+                f"Patient Name: {p_name}\n"
+                f"Patient ID: {patient_id}\n"
+                f"Diagnosis: {created.get('diagnosis') or payload.get('diagnosis', '')}\n"
+                f"Surgical Procedure: {created.get('procedure') or payload.get('procedure', '')}\n"
+                f"Total Estimated Quotation: PHP {float(created.get('total_quotation') or payload.get('total_quotation') or 0):,.2f}\n"
+                f"Referring Physician / Officer: {created.get('referring_individual') or payload.get('referring_individual', '')}\n"
+                f"Submission Date: {created.get('created_at', '')}\n"
+                f"Status: {created.get('status', 'AWAITING MSW REVIEW')}\n\n"
+                f"Open MSW Referral Directory: {cfg.FRONTEND_URL}/patients/{patient_id}?tab=referral\n"
+            )
+            msg = MIMEText(body)
+            msg["Subject"] = subject
+            msg["From"] = getattr(cfg, "SMTP_FROM_EMAIL", None) or cfg.SMTP_USER
+            msg["To"] = msw_email
+            with smtplib.SMTP(cfg.SMTP_HOST, int(getattr(cfg, "SMTP_PORT", 587) or 587), timeout=10) as server:
+                server.starttls()
+                server.login(cfg.SMTP_USER, cfg.SMTP_PASSWORD)
+                server.send_message(msg)
+            email_sent = True
+    except Exception as ex:
+        email_error = str(ex)
+
+    return {"status": "ok", "referral": created, "email_sent": email_sent, "email_error": email_error}
 
 
 @router.get("/referrals")

@@ -11,6 +11,8 @@ import PasswordStrengthMeter from '@/components/PasswordStrengthMeter';
 import PsgcAddressSelector from '@/components/PsgcAddressSelector';
 import ProfilePasswordChangeCard from '@/components/ProfilePasswordChangeCard';
 import SecureContactChangeModal, { ContactChangeType } from '@/components/SecureContactChangeModal';
+import { ReferralSummaryCard } from '@/components/patient/ReferralSummaryCard';
+import { CharityHistorySection } from '@/components/patient/CharityHistorySection';
 
 interface PatientState {
   name: string;
@@ -49,6 +51,7 @@ function PatientPortalContent() {
   const [charityStatusData, setCharityStatusData] = useState<any | null>(null);
   const [charityStatusLoading, setCharityStatusLoading] = useState(false);
   const [charityStatusError, setCharityStatusError] = useState<string | null>(null);
+  const [selectedReferralForStatus, setSelectedReferralForStatus] = useState<any | null>(null);
   const [charityDocPreview, setCharityDocPreview] = useState<{ name: string; url: string; type: 'pdf' | 'image' } | null>(null);
   const [apptHistoryFilter, setApptHistoryFilter] = useState<'all' | 'Scheduled' | 'Pending Nurse Approval' | 'Completed' | 'Cancelled'>('all');
   const [apptHistorySearch, setApptHistorySearch] = useState('');
@@ -62,36 +65,47 @@ function PatientPortalContent() {
 
   const [isLoading, setIsLoading] = useState(false);
 
-  const [patient, setPatient] = useState<PatientState>(() => {
-    const storedPid = typeof window !== 'undefined' ? localStorage.getItem('ofphil_user_id') : null;
-    const storedName = typeof window !== 'undefined' ? localStorage.getItem('ofphil_user_name') : null;
-    return {
-      name: storedName || user?.name || 'Patient',
-      first_name: storedName?.split(' ')[0] || '',
-      middle_name: '',
-      last_name: storedName?.split(' ').slice(1).join(' ') || '',
-      suffix: '',
-      birthdate: '',
-      civil_status: 'Single',
-      num_dependents: '0',
-      perm_province: 'Metro Manila (NCR)',
-      perm_city: 'City of Manila',
-      perm_barangay: '',
-      perm_street: '',
-      educational_attainment: 'High School Graduate / Level',
-      employment_status: 'Employed (Full-time / Part-time)',
-      occupation: '',
-      username: storedPid || user?.username || 'M26-11-00001',
-      patient_id: storedPid || user?.id || 'M26-11-00001',
-      sex: 'M',
-      age: null,
-      residence: 'City of Manila, Metro Manila (NCR)',
-      contact: '',
-      email: '',
-      category: 'REGULAR',
-      status: 'APPROVED',
-    };
-  });
+  const [patient, setPatient] = useState<PatientState>(() => ({
+    name: 'Patient',
+    first_name: '',
+    middle_name: '',
+    last_name: '',
+    suffix: '',
+    birthdate: '',
+    civil_status: 'Single',
+    num_dependents: '0',
+    perm_province: 'Metro Manila (NCR)',
+    perm_city: 'City of Manila',
+    perm_barangay: '',
+    perm_street: '',
+    educational_attainment: 'High School Graduate / Level',
+    employment_status: 'Employed (Full-time / Part-time)',
+    occupation: '',
+    username: '',
+    patient_id: '',
+    sex: 'M',
+    age: null,
+    residence: 'City of Manila, Metro Manila (NCR)',
+    contact: '',
+    email: '',
+    category: 'REGULAR',
+    status: 'APPROVED',
+  }));
+
+  useEffect(() => {
+    const storedPid = localStorage.getItem('ofphil_user_id') || user?.id || user?.username || '';
+    const storedName = localStorage.getItem('ofphil_user_name') || user?.name || '';
+    if (storedPid || storedName) {
+      setPatient((prev) => ({
+        ...prev,
+        name: storedName || prev.name,
+        first_name: storedName ? storedName.split(' ')[0] : prev.first_name,
+        last_name: storedName ? storedName.split(' ').slice(1).join(' ') : prev.last_name,
+        username: storedPid || prev.username,
+        patient_id: storedPid || prev.patient_id,
+      }));
+    }
+  }, [user]);
 
   const [encounters, setEncounters] = useState<any[]>([]);
   const [appointments, setAppointments] = useState<any[]>([]);
@@ -384,13 +398,19 @@ function PatientPortalContent() {
     setCharityStatusLoading(true);
     setCharityStatusError(null);
     try {
-      const res = await fetchApi('/patient-portal/charity-assistance-status', {
-        headers: {
-          'x-user-role': 'patient',
-          'x-user-id': pid,
-        },
+      const [res, refRes] = await Promise.all([
+        fetchApi('/patient-portal/charity-assistance-status', {
+          headers: {
+            'x-user-role': 'patient',
+            'x-user-id': pid,
+          },
+        }),
+        fetchApi(`/patients/${encodeURIComponent(pid)}/referral`).catch(() => ({ referrals: [] })),
+      ]);
+      setCharityStatusData({
+        ...res,
+        referrals: Array.isArray(refRes?.referrals) ? refRes.referrals : (res?.referrals || []),
       });
-      setCharityStatusData(res);
     } catch (err: any) {
       setCharityStatusData(null);
       setCharityStatusError(
@@ -458,7 +478,8 @@ function PatientPortalContent() {
           } catch { }
 
           const dbCategory = String(p.category || 'REGULAR').toUpperCase() === 'CHARITY' ? 'CHARITY' : 'REGULAR';
-          if (dbCategory === 'CHARITY') {
+          const hasReferrals = Array.isArray(res?.referrals) && res.referrals.length > 0;
+          if (dbCategory === 'CHARITY' || hasReferrals) {
             fetchAuthenticatedCharityStatus(p.patient_id || pid);
           } else {
             setCharityStatusData(null);
@@ -519,7 +540,7 @@ function PatientPortalContent() {
           setSettingsEmail(p.email || 'juan.delacruz@example.ph');
           setSettingsPhone(p.contact || '0917 888 1678');
           setSettingsAddress(`${str}, ${bgy}, ${cty}, ${prov}`);
-          const savedEncs = JSON.parse(localStorage.getItem('ofphil_encounters_M26-11-00001') || '[]');
+          const savedEncs = JSON.parse(localStorage.getItem(`ofphil_encounters_${pid}`) || '[]');
           let sbEncs: any[] = [];
           try {
             const sbRes = await fetchApi(`/patients/${pid}/encounters`);
@@ -1742,330 +1763,20 @@ function PatientPortalContent() {
                     </div>
                   )}
 
-                  {/* SECTION A: CHARITY APPLICATION INFORMATION & SECTION B: ASSESSMENT STATUS */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* A. Charity Application Information */}
-                    <div className="bg-white rounded-2xl border border-[#D5E2D9] p-6 shadow-xs space-y-4">
-                      <div className="border-b border-[#EEF2EF] pb-3 flex items-center justify-between">
-                        <h3 className="font-['Outfit'] text-sm font-bold text-[#10241A] m-0 flex items-center gap-2">
-                          <i className="fa-solid fa-id-card-clip text-[#0B6B3A]" />
-                          <span>A. Charity Application Information</span>
-                        </h3>
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#E8F5EC] text-[#0B6B3A]">
-                          {charityStatusData?.application_info?.beneficiary_classification || 'CHARITY'}
-                        </span>
+                  {/* Current Charity Referral & Charity History ONLY */}
+                  {Array.isArray(charityStatusData?.referrals) && charityStatusData.referrals.length > 0 && (() => {
+                    const portalReferrals = charityStatusData.referrals;
+                    const latestRef = portalReferrals[0];
+                    const orderNum = portalReferrals.length;
+                    const ordBadge = orderNum <= 1 ? 'FIRST ASSISTANCE' : orderNum === 2 ? 'SECOND ASSISTANCE' : orderNum === 3 ? 'THIRD ASSISTANCE' : `${orderNum}TH ASSISTANCE`;
+                    const pastRefs = portalReferrals.slice(1);
+                    return (
+                      <div className="space-y-6">
+                        <ReferralSummaryCard referral={latestRef} assistanceClassification={ordBadge} />
+                        <CharityHistorySection referrals={pastRefs} />
                       </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                        <div className="p-3 rounded-xl bg-[#FAFBF8] border border-[#EEF2EF]">
-                          <div className="text-[10px] font-bold uppercase text-[#64748B]">Patient Name</div>
-                          <div className="font-bold text-[#10241A] mt-0.5">
-                            {charityStatusData?.application_info?.patient_name || patient.name}
-                          </div>
-                        </div>
-                        <div className="p-3 rounded-xl bg-[#FAFBF8] border border-[#EEF2EF]">
-                          <div className="text-[10px] font-bold uppercase text-[#64748B]">Patient ID</div>
-                          <div className="font-mono font-extrabold text-[#10241A] mt-0.5">
-                            {charityStatusData?.application_info?.patient_id || patient.patient_id}
-                          </div>
-                        </div>
-                        <div className="p-3 rounded-xl bg-[#FAFBF8] border border-[#EEF2EF]">
-                          <div className="text-[10px] font-bold uppercase text-[#64748B]">Charity Case Number</div>
-                          <div className="font-mono font-bold text-[#0B6B3A] mt-0.5">
-                            {charityStatusData?.application_info?.charity_case_no || 'Not Yet Assigned'}
-                          </div>
-                        </div>
-                        <div className="p-3 rounded-xl bg-[#FAFBF8] border border-[#EEF2EF]">
-                          <div className="text-[10px] font-bold uppercase text-[#64748B]">
-                            Application Encounter Number
-                          </div>
-                          <div className="font-mono font-bold text-[#0369A1] mt-0.5">
-                            {charityStatusData?.application_info?.application_encounter_no || 'No Active Application'}
-                          </div>
-                        </div>
-                        <div className="p-3 rounded-xl bg-[#FAFBF8] border border-[#EEF2EF]">
-                          <div className="text-[10px] font-bold uppercase text-[#64748B]">Application Date</div>
-                          <div className="font-bold text-[#10241A] mt-0.5">
-                            {charityStatusData?.application_info?.application_date || 'Not Recorded'}
-                          </div>
-                        </div>
-                        <div className="p-3 rounded-xl bg-[#FAFBF8] border border-[#EEF2EF]">
-                          <div className="text-[10px] font-bold uppercase text-[#64748B]">
-                            Beneficiary Classification
-                          </div>
-                          <div className="font-extrabold text-[#0B6B3A] mt-0.5">Charity Patient (CHARITY)</div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* B. Assessment Status */}
-                    <div className="bg-white rounded-2xl border border-[#D5E2D9] p-6 shadow-xs space-y-4">
-                      <div className="border-b border-[#EEF2EF] pb-3 flex items-center justify-between">
-                        <h3 className="font-['Outfit'] text-sm font-bold text-[#10241A] m-0 flex items-center gap-2">
-                          <i className="fa-solid fa-clipboard-user text-[#0B6B3A]" />
-                          <span>B. MSW Assessment Status</span>
-                        </h3>
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#F1F5F9] text-[#334155]">
-                          {charityStatusData?.assessment_status?.submission_status || 'Not Submitted'}
-                        </span>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                        <div className="p-3 rounded-xl bg-[#FAFBF8] border border-[#EEF2EF]">
-                          <div className="text-[10px] font-bold uppercase text-[#64748B]">Current Assessment Status</div>
-                          <div className="font-bold text-[#10241A] mt-0.5">
-                            {charityStatusData?.assessment_status?.current_status || 'No Active Charity Application'}
-                          </div>
-                        </div>
-                        <div className="p-3 rounded-xl bg-[#FAFBF8] border border-[#EEF2EF]">
-                          <div className="text-[10px] font-bold uppercase text-[#64748B]">Assigned MSW</div>
-                          <div className="font-bold text-[#10241A] mt-0.5">
-                            {charityStatusData?.assessment_status?.assigned_msw || 'Maria Santos, RSW'}
-                          </div>
-                        </div>
-                        <div className="p-3 rounded-xl bg-[#FAFBF8] border border-[#EEF2EF]">
-                          <div className="text-[10px] font-bold uppercase text-[#64748B]">Assessment Date</div>
-                          <div className="font-bold text-[#10241A] mt-0.5">
-                            {charityStatusData?.assessment_status?.assessment_date
-                              ? new Date(charityStatusData.assessment_status.assessment_date).toLocaleDateString()
-                              : 'Not Started'}
-                          </div>
-                        </div>
-                        <div className="p-3 rounded-xl bg-[#FAFBF8] border border-[#EEF2EF]">
-                          <div className="text-[10px] font-bold uppercase text-[#64748B]">Assessment Stage</div>
-                          <div className="font-bold text-[#0B6B3A] mt-0.5">
-                            {charityStatusData?.assessment_status?.assessment_stage || 'Not Started'}
-                          </div>
-                        </div>
-                        <div className="p-3 rounded-xl bg-[#FAFBF8] border border-[#EEF2EF]">
-                          <div className="text-[10px] font-bold uppercase text-[#64748B]">Submission Status</div>
-                          <div className="font-bold text-[#10241A] mt-0.5">
-                            {charityStatusData?.assessment_status?.submission_status || 'Not Submitted'}
-                          </div>
-                        </div>
-                        <div className="p-3 rounded-xl bg-[#FAFBF8] border border-[#EEF2EF]">
-                          <div className="text-[10px] font-bold uppercase text-[#64748B]">Last Updated Date</div>
-                          <div className="font-bold text-[#10241A] mt-0.5">
-                            {charityStatusData?.assessment_status?.last_updated
-                              ? new Date(charityStatusData.assessment_status.last_updated).toLocaleString()
-                              : 'N/A'}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* SECTION C: ELIGIBILITY AND CHARITY DECISION */}
-                  <div className="bg-white rounded-2xl border border-[#D5E2D9] p-6 shadow-xs space-y-4">
-                    <div className="border-b border-[#EEF2EF] pb-3">
-                      <h3 className="font-['Outfit'] text-sm font-bold text-[#10241A] m-0 flex items-center gap-2">
-                        <i className="fa-solid fa-scale-balanced text-[#0B6B3A]" />
-                        <span>C. Eligibility Recommendation &amp; Final Authorized Charity Decision</span>
-                      </h3>
-                      <p className="text-[11px] text-[#5A7466] m-0 mt-0.5">
-                        An MSW eligibility recommendation is distinct from the final authorized administrative charity decision.
-                      </p>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                      {/* Left box: MSW Eligibility Recommendation */}
-                      <div className="p-4 rounded-xl bg-[#FAFBF8] border border-[#D5E2D9] space-y-2.5">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10.5px] font-extrabold uppercase tracking-wider text-[#0369A1]">
-                            1. MSW Eligibility Recommendation
-                          </span>
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#E0F2FE] text-[#0369A1]">
-                            Social Work Assessment
-                          </span>
-                        </div>
-                        <div>
-                          <div className="text-[10px] font-bold uppercase text-[#64748B]">
-                            Recorded Eligibility Recommendation / Grant Tier
-                          </div>
-                          <div className="text-sm font-extrabold text-[#10241A] mt-0.5">
-                            {charityStatusData?.eligibility_and_decision?.msw_eligibility_recommendation ||
-                              'Pending MSW Recommendation'}
-                          </div>
-                        </div>
-                        {charityStatusData?.eligibility_and_decision?.recommended_subsidy_pct != null && (
-                          <div className="text-[11px] text-[#334155]">
-                            Recommended Subsidy Percentage:{' '}
-                            <strong>{charityStatusData.eligibility_and_decision.recommended_subsidy_pct}%</strong>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Right box: Final Authorized Charity Decision */}
-                      <div className="p-4 rounded-xl bg-[#F0F9F3] border border-[#A7F3D0] space-y-2.5">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10.5px] font-extrabold uppercase tracking-wider text-[#0B6B3A]">
-                            2. Final Authorized Charity Decision
-                          </span>
-                          <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-[#0B6B3A] text-white">
-                            Institutional Authority
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                          <div>
-                            <div className="text-[10px] font-bold uppercase text-[#5A7466]">Authorized Decision</div>
-                            <div className="text-sm font-extrabold text-[#0B6B3A] mt-0.5">
-                              {charityStatusData?.eligibility_and_decision?.final_authorized_decision ||
-                                'Pending Official Decision'}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="text-[10px] font-bold uppercase text-[#5A7466]">Approved Grant Tier</div>
-                            <div className="font-bold text-[#10241A] mt-0.5">
-                              {charityStatusData?.eligibility_and_decision?.approved_grant_tier || 'Not Yet Finalized'}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="text-[10px] font-bold uppercase text-[#5A7466]">Approved Subsidy</div>
-                            <div className="font-extrabold text-[#0B6B3A] mt-0.5">
-                              {charityStatusData?.eligibility_and_decision?.approved_subsidy_amount != null
-                                ? `₱${Number(charityStatusData.eligibility_and_decision.approved_subsidy_amount).toLocaleString('en-PH', {
-                                  minimumFractionDigits: 2,
-                                  maximumFractionDigits: 2,
-                                })}`
-                                : charityStatusData?.eligibility_and_decision?.approved_subsidy_pct != null
-                                  ? `${charityStatusData.eligibility_and_decision.approved_subsidy_pct}% Subsidy`
-                                  : 'Pending'}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="text-[10px] font-bold uppercase text-[#5A7466]">Decision Date</div>
-                            <div className="font-bold text-[#10241A] mt-0.5">
-                              {charityStatusData?.eligibility_and_decision?.decision_date
-                                ? new Date(charityStatusData.eligibility_and_decision.decision_date).toLocaleDateString()
-                                : 'Pending'}
-                            </div>
-                          </div>
-                        </div>
-                        {charityStatusData?.eligibility_and_decision?.decision_explanation && (
-                          <div className="pt-2 border-t border-[#BBF7D0] text-[11px] text-[#1E293B]">
-                            <strong>Decision Remarks:</strong>{' '}
-                            {charityStatusData.eligibility_and_decision.decision_explanation}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* SECTION D: APPLICATION PROGRESS (7 STAGES) */}
-                  <div className="bg-white rounded-2xl border border-[#D5E2D9] p-6 shadow-xs space-y-4">
-                    <div className="border-b border-[#EEF2EF] pb-3">
-                      <h3 className="font-['Outfit'] text-sm font-bold text-[#10241A] m-0 flex items-center gap-2">
-                        <i className="fa-solid fa-diagram-project text-[#0B6B3A]" />
-                        <span>D. Charity Application Progress</span>
-                      </h3>
-                      <p className="text-[11px] text-[#5A7466] m-0 mt-0.5">
-                        Each stage is marked complete only when confirmed by an official backend record.
-                      </p>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3 text-xs">
-                      {(charityStatusData?.application_progress || []).map((st: any) => (
-                        <div
-                          key={st.stage}
-                          className={`p-3.5 rounded-xl border flex flex-col justify-between gap-2 ${st.completed
-                            ? 'bg-[#F0F9F3] border-[#86EFAC]'
-                            : 'bg-[#FAFBF8] border-[#E2E8F0]'
-                            }`}
-                        >
-                          <div>
-                            <div className="flex items-center justify-between gap-1">
-                              <span className="text-[10px] font-extrabold uppercase text-[#5A7466]">
-                                Stage {st.stage}
-                              </span>
-                              <i
-                                className={`fa-solid ${st.completed
-                                  ? 'fa-circle-check text-[#0B6B3A]'
-                                  : 'fa-circle-dot text-[#94A3B8]'
-                                  }`}
-                              />
-                            </div>
-                            <div className="font-bold text-[#10241A] mt-1.5 leading-snug">{st.title}</div>
-                            <p className="text-[10.5px] text-[#5A7466] mt-1 m-0 leading-relaxed">
-                              {st.description}
-                            </p>
-                          </div>
-                          <div className="pt-2 border-t border-[#E2ECE5]">
-                            <span
-                              className={`inline-block px-2 py-0.5 rounded text-[10px] font-extrabold ${st.completed
-                                ? 'bg-[#0B6B3A] text-white'
-                                : 'bg-[#E2E8F0] text-[#475569]'
-                                }`}
-                            >
-                              {st.status}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* SECTION E: SUPPORTING DOCUMENTS */}
-                  <div className="bg-white rounded-2xl border border-[#D5E2D9] p-6 shadow-xs space-y-4">
-                    <div className="border-b border-[#EEF2EF] pb-3 flex items-center justify-between">
-                      <div>
-                        <h3 className="font-['Outfit'] text-sm font-bold text-[#10241A] m-0 flex items-center gap-2">
-                          <i className="fa-solid fa-folder-open text-[#0B6B3A]" />
-                          <span>
-                            E. Supporting Documents ({(charityStatusData?.supporting_documents || []).length})
-                          </span>
-                        </h3>
-                        <p className="text-[11px] text-[#5A7466] m-0 mt-0.5">
-                          Authorized supporting documents linked to your charity assistance record.
-                        </p>
-                      </div>
-                    </div>
-
-                    {(charityStatusData?.supporting_documents || []).length === 0 ? (
-                      <div className="p-8 text-center rounded-xl bg-[#FAFBF8] border border-dashed border-[#D5E2D9] text-xs text-[#5A7466]">
-                        No supporting documents are currently attached to your charity assistance record.
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 text-xs">
-                        {charityStatusData.supporting_documents.map((doc: any) => (
-                          <div
-                            key={doc.id}
-                            className="p-4 rounded-xl bg-[#FAFBF8] border border-[#D5E2D9] flex items-center justify-between gap-3"
-                          >
-                            <div className="min-w-0">
-                              <div className="font-bold text-[#10241A] truncate">{doc.document_type}</div>
-                              <div className="text-[11px] text-[#5A7466] truncate">{doc.filename}</div>
-                              <div className="flex items-center gap-2 mt-1">
-                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#E8F5EC] text-[#0B6B3A]">
-                                  {doc.review_status}
-                                </span>
-                                {doc.upload_date && (
-                                  <span className="text-[10px] text-[#64748B]">
-                                    {new Date(doc.upload_date).toLocaleDateString()}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              <button
-                                type="button"
-                                onClick={() => handleCharityDocumentAction(doc, false)}
-                                className="px-2.5 py-1.5 rounded-lg border border-[#D5E2D9] bg-white hover:border-[#0B6B3A] text-[#0B6B3A] font-bold text-xs cursor-pointer"
-                              >
-                                View
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleCharityDocumentAction(doc, true)}
-                                className="px-2.5 py-1.5 rounded-lg bg-[#0B6B3A] text-white font-bold text-xs cursor-pointer border-0"
-                              >
-                                Download
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                    );
+                  })()}
 
                   {/* Charity Document Preview Modal */}
                   {charityDocPreview && (
