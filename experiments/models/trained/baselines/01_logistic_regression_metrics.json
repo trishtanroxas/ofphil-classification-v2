@@ -1,0 +1,194 @@
+{
+  "model_name": "Logistic Regression",
+  "model_type": "baseline_linear",
+  "cv_protocol": "StratifiedKFold-10Fold",
+  "best_hyperparameters": {
+    "C": 0.1
+  },
+  "cv_metrics_mean": {
+    "fold": 5.5,
+    "accuracy": 0.9914285714285714,
+    "macro_precision": 0.991503267973856,
+    "macro_recall": 0.991503267973856,
+    "macro_f1": 0.9914239028944911,
+    "weighted_f1": 0.9914285714285714,
+    "prec_ineligible": 0.988562091503268,
+    "rec_ineligible": 0.9941176470588236,
+    "prec_eligible": 0.9944444444444445,
+    "rec_eligible": 0.9888888888888889,
+    "roc_auc": 0.9993464052287582
+  },
+  "cv_metrics_std": {
+    "fold": 3.0276503540974917,
+    "accuracy": 0.019284244506015805,
+    "macro_precision": 0.019207360153282095,
+    "macro_recall": 0.019207360153282095,
+    "macro_f1": 0.01929731093664906,
+    "weighted_f1": 0.019284244506015805,
+    "prec_ineligible": 0.024125527876198375,
+    "rec_ineligible": 0.018601633295108118,
+    "prec_eligible": 0.01756820922315767,
+    "rec_eligible": 0.02342427896421023,
+    "roc_auc": 0.0013778987626005962
+  },
+  "fold_details": [
+    {
+      "fold": 1,
+      "accuracy": 1.0,
+      "macro_precision": 1.0,
+      "macro_recall": 1.0,
+      "macro_f1": 1.0,
+      "weighted_f1": 1.0,
+      "prec_ineligible": 1.0,
+      "rec_ineligible": 1.0,
+      "prec_eligible": 1.0,
+      "rec_eligible": 1.0,
+      "roc_auc": 1.0
+    },
+    {
+      "fold": 2,
+      "accuracy": 1.0,
+      "macro_precision": 1.0,
+      "macro_recall": 1.0,
+      "macro_f1": 1.0,
+      "weighted_f1": 1.0,
+      "prec_ineligible": 1.0,
+      "rec_ineligible": 1.0,
+      "prec_eligible": 1.0,
+      "rec_eligible": 1.0,
+      "roc_auc": 1.0
+    },
+    {
+      "fold": 3,
+      "accuracy": 1.0,
+      "macro_precision": 1.0,
+      "macro_recall": 1.0,
+      "macro_f1": 1.0,
+      "weighted_f1": 1.0,
+      "prec_ineligible": 1.0,
+      "rec_ineligible": 1.0,
+      "prec_eligible": 1.0,
+      "rec_eligible": 1.0,
+      "roc_auc": 1.0
+    },
+    {
+      "fold": 4,
+      "accuracy": 1.0,
+      "macro_precision": 1.0,
+      "macro_recall": 1.0,
+      "macro_f1": 1.0,
+      "weighted_f1": 1.0,
+      "prec_ineligible": 1.0,
+      "rec_ineligible": 1.0,
+      "prec_eligible": 1.0,
+      "rec_eligible": 1.0,
+      "roc_auc": 1.0
+    },
+    {
+      "fold": 5,
+      "accuracy": 1.0,
+      "macro_precision": 1.0,
+      "macro_recall": 1.0,
+      "macro_f1": 1.0,
+      "weighted_f1": 1.0,
+      "prec_ineligible": 1.0,
+      "rec_ineligible": 1.0,
+      "prec_eligible": 1.0,
+      "rec_eligible": 1.0,
+      "roc_auc": 1.0
+    },
+    {
+      "fold": 6,
+      "accuracy": 1.0,
+      "macro_precision": 1.0,
+      "macro_recall": 1.0,
+      "macro_f1": 1.0,
+      "weighted_f1": 1.0,
+      "prec_ineligible": 1.0,
+      "rec_ineligible": 1.0,
+      "prec_eligible": 1.0,
+      "rec_eligible": 1.0,
+      "roc_auc": 1.0
+    },
+    {
+      "fold": 7,
+      "accuracy": 1.0,
+      "macro_precision": 1.0,
+      "macro_recall": 1.0,
+      "macro_f1": 1.0,
+      "weighted_f1": 1.0,
+      "prec_ineligible": 1.0,
+      "rec_ineligible": 1.0,
+      "prec_eligible": 1.0,
+      "rec_eligible": 1.0,
+      "roc_auc": 1.0
+    },
+    {
+      "fold": 8,
+      "accuracy": 0.9714285714285714,
+      "macro_precision": 0.9722222222222222,
+      "macro_recall": 0.9722222222222222,
+      "macro_f1": 0.9714285714285714,
+      "weighted_f1": 0.9714285714285714,
+      "prec_ineligible": 0.9444444444444444,
+      "rec_ineligible": 1.0,
+      "prec_eligible": 1.0,
+      "rec_eligible": 0.9444444444444444,
+      "roc_auc": 0.9967320261437909
+    },
+    {
+      "fold": 9,
+      "accuracy": 1.0,
+      "macro_precision": 1.0,
+      "macro_recall": 1.0,
+      "macro_f1": 1.0,
+      "weighted_f1": 1.0,
+      "prec_ineligible": 1.0,
+      "rec_ineligible": 1.0,
+      "prec_eligible": 1.0,
+      "rec_eligible": 1.0,
+      "roc_auc": 1.0
+    },
+    {
+      "fold": 10,
+      "accuracy": 0.9428571428571428,
+      "macro_precision": 0.9428104575163399,
+      "macro_recall": 0.9428104575163399,
+      "macro_f1": 0.9428104575163399,
+      "weighted_f1": 0.9428571428571428,
+      "prec_ineligible": 0.9411764705882353,
+      "rec_ineligible": 0.9411764705882353,
+      "prec_eligible": 0.9444444444444444,
+      "rec_eligible": 0.9444444444444444,
+      "roc_auc": 0.9967320261437909
+    }
+  ],
+  "total_cv_time_ms": 381.18,
+  "top_5_features": [
+    {
+      "feature": "xf_rob_clinical_documentation_count",
+      "importance": 1.0885564275182114,
+      "abs_importance": 1.0885564275182114
+    },
+    {
+      "feature": "xf_log_rob_treatment_cost_to_per_capita_income_ratio",
+      "importance": 0.5404643834272765,
+      "abs_importance": 0.5404643834272765
+    },
+    {
+      "feature": "xf_log_rob_per_capita_monthly_income",
+      "importance": -0.511375088614768,
+      "abs_importance": 0.511375088614768
+    },
+    {
+      "feature": "has_outstanding_medical_bills_flag",
+      "importance": -0.45081036659540863,
+      "abs_importance": 0.45081036659540863
+    },
+    {
+      "feature": "xf_yj_net_monthly_household_margin",
+      "importance": -0.3875260202534164,
+      "abs_importance": 0.3875260202534164
+    }
+  ]
+}

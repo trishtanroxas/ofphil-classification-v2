@@ -1,0 +1,13 @@
+# OFPHIL AI/ML Model Inventory
+
+| Model Identifier | Component / Track | Architecture / Engine | Version / Runtime | Active Status | Primary Task & Scope | Explicit Exclusions & Boundaries |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **YOLO11s** | Track A: Document Fraud | Ultralytics YOLOv11 small | PyTorch / ONNX | **Active** | Detection of document bounding boxes (Header, Field, Table, Stamp, Signature). | Does NOT authenticate signatures or stamps; detects localization only. |
+| **PaddleOCR** | Track A: Document Fraud | PP-OCRv6 Text Detection & Recognition | PaddlePaddle / Python | **Active** | Text extraction with bounding boxes and transcription confidence. | Does not validate semantic correctness; outputs text for Python validator. |
+| **ORB / SIFT & CMFD** | Track A: Document Fraud | OpenCV Feature Matching & Keypoint CMFD | OpenCV 4.x | **Active** | Visual feature matching, stamp comparison, and duplicated region detection. | Visual similarity only; cannot definitively prove forgery alone. |
+| **Siamese Network** | Track A: Document Fraud | Deep Metric Siamese / Triplet Network | N/A | **EXCLUDED** | Previously proposed signature comparison. | **Removed from architecture.** No deep comparison model is used. |
+| **Qwen3-4B-Instruct-2507** | Track B: Patient Interview | 4-Billion Parameter Decoder LLM | Ollama / llama.cpp | **Active** | Conversational intake assistance, follow-up formulation, and structured JSON extraction. | Strictly forbidden from calculating eligibility, approving grants, or diagnosing. |
+| **Random Forest (RF)** | Track C: Eligibility Classification | Scikit-learn Random Forest Classifier | scikit-learn | **Active** | Non-linear tree ensemble baseline for charity grant tier prediction. | Decision-support only; human caseworker retains final authority. |
+| **CatBoost** | Track C: Eligibility Classification | Categorical Gradient Boosted Decision Trees | catboost | **Active** | High-performance non-linear tabular classification on complex socioeconomic features. | Decision-support only; fitted only on training folds. |
+| **Explainable Boosting Machine (EBM)** | Track C: Eligibility Classification | Tree-based $GA^2M$ Generalized Additive Model | interpret | **Active** | Glassbox interpretable classification with exact feature shape curves and interaction terms. | Decision-support only; requires calibrated probabilities. |
+| **Logistic Regression** | Track C: Eligibility Classification | Linear Generalized Linear Model (GLM) | scikit-learn | **EXCLUDED** | Linear baseline. | **Excluded from active model comparison** due to severe non-linear underfitting. |

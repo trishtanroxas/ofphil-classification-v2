@@ -1,0 +1,18 @@
+{
+  "checkpoint": "best.pt",
+  "architecture": "Ultralytics YOLOv8n",
+  "precision_mp": 0.6135178841205163,
+  "recall_mr": 0.619789622887304,
+  "map50": 0.5718429177997736,
+  "map50_95": 0.2686268575236246,
+  "speed_inference_ms": 9.55476375857693,
+  "status": "EVALUATED",
+  "per_class_map50_95": {
+    "FORM_SECTION": 0.2495497806122356,
+    "HANDWRITTEN_ENTRY": 0.2873487500768877,
+    "SIGNATURE": 0.23228098301211234,
+    "STAMP_OR_SEAL": 0.17482866287141652,
+    "TABLE_CELL": 0.3872729349015718,
+    "CHECKMARK_OR_CHECKBOX": 0.2804800336675235
+  }
+}

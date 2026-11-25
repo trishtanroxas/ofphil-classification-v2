@@ -1,0 +1,15 @@
+batch: 16
+data: C:/Users/ASUS TUF/Desktop/Project in Program/Thesis Project/ofphil-classification-v2/data/processed/yolo_dataset/data.yaml
+deterministic: true
+device: 0
+epochs: 50
+imgsz: 640
+model: yolov8n.pt
+name: ofphil_yolo_detector
+patience: 15
+pretrained: true
+project: C:/Users/ASUS TUF/Desktop/Project in Program/Thesis Project/ofphil-classification-v2/models/trained/yolo
+save: true
+save_period: 5
+seed: 20261123
+workers: 4

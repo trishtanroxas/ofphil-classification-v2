@@ -1,0 +1,9 @@
+nc: 7
+names:
+  0: header
+  1: patient_info_field
+  2: clinical_findings_field
+  3: financial_quotation_table
+  4: date_field
+  5: signature_region
+  6: official_stamp_seal
