@@ -1226,42 +1226,6 @@
       }
     ]
   },
-  "asmt-9e9df6a87a": {
-    "id": "asmt-9e9df6a87a",
-    "patient_id": "M26-11-00002",
-    "encounter_no": "MSW_FA_1126-01",
-    "interview_date": "2026-11-23",
-    "source_of_referral": "",
-    "active_stage": 1,
-    "workflow_status": "DRAFT",
-    "is_initial_load": true,
-    "stage1_data": {
-      "patient_income": 5000
-    },
-    "stage2_data": {},
-    "stage3_documents": [],
-    "classification_result": null,
-    "classification_history": [],
-    "ml_prediction": null,
-    "msw_recommendation": null,
-    "institutional_approval": null,
-    "created_by": "msw_test",
-    "created_at": "2026-11-22T16:58:25.308490+00:00",
-    "updated_at": "2026-11-22T16:58:25.308490+00:00",
-    "history": [
-      {
-        "timestamp": "2026-11-22T16:58:25.308490+00:00",
-        "event": "ASSESSMENT_CREATED",
-        "actor_id": "msw_test",
-        "role": "msw",
-        "workflow_status": "DRAFT",
-        "details": {
-          "encounter_no": "MSW_FA_1126-01"
-        }
-      }
-    ],
-    "charity_case_no": "MSW_FA_1126-01"
-  },
   "asmt-b8b7fb4e4b": {
     "id": "asmt-b8b7fb4e4b",
     "patient_id": "M26-11-TEST01",
@@ -13362,12 +13326,12 @@
       }
     ]
   },
-  "asmt-d37d635173": {
-    "id": "asmt-d37d635173",
+  "asmt-5c26def868": {
+    "id": "asmt-5c26def868",
     "patient_id": "M26-11-00002",
     "referral_id": "OFPHIL-FA-2026-0002",
-    "encounter_no": "MSW_FA_1126-01",
-    "interview_date": "2026-11-23",
+    "encounter_no": "ENC-M26-11-00002",
+    "interview_date": "2026-11-25",
     "source_of_referral": "CLINICAL REFERRAL: Dr. Roberto Reyes, MD, DPBO",
     "active_stage": 1,
     "workflow_status": "DRAFT",
@@ -13394,21 +13358,20 @@
     "msw_recommendation": null,
     "institutional_approval": null,
     "created_by": "msw_lead",
-    "created_at": "2026-11-23T08:55:03.152943+00:00",
-    "updated_at": "2026-11-23T08:55:03.152943+00:00",
+    "created_at": "2026-11-25T04:17:05.769514+00:00",
+    "updated_at": "2026-11-25T04:17:05.769514+00:00",
     "history": [
       {
-        "timestamp": "2026-11-23T08:55:03.152943+00:00",
+        "timestamp": "2026-11-25T04:17:05.769514+00:00",
         "event": "ASSESSMENT_CREATED",
         "actor_id": "msw_lead",
         "role": "msw",
         "workflow_status": "DRAFT",
         "details": {
-          "encounter_no": "MSW_FA_1126-01",
+          "encounter_no": "ENC-M26-11-00002",
           "referral_id": "OFPHIL-FA-2026-0002"
         }
       }
-    ],
-    "charity_case_no": "MSW_FA_1126-01"
+    ]
   }
 }

@@ -1,14 +1,11 @@
 # Phase 05 — Model Selection and Training
 
 ## Overview
-Phase 05 establishes the active supervised machine learning models for Charity Patient Eligibility Classification.
+Phase 05 houses two **independent** tracks:
+1. **Track C — Charity Patient Eligibility Classification:** Strictly **Random Forest (RF)**, **CatBoost**, and **Explainable Boosting Machine (EBM)**.
+2. **Track B — LLM-Powered Patient Interview Assistant (`07_llm_interview_assistant/`):** **Qwen3-4B-Instruct-2507** (Ollama / llama.cpp) for conversational intake and structured JSON extraction.
 
-In accordance with the approved architecture, the active candidate models are strictly:
-1. **Random Forest (RF)** — Non-linear tree ensemble baseline
-2. **CatBoost** — Advanced categorical gradient boosted decision tree classifier
-3. **Explainable Boosting Machine (EBM)** — Glassbox interpretable Generalized Additive Model ($GA^2M$)
-
-*Note: Logistic Regression, Decision Tree, SVM, and XGBoost have been removed from the active model comparison pipeline and archived. The LLM Interview Assistant is maintained as an independent operational module outside the tabular classification comparison.*
+*Note: Logistic Regression, Decision Tree, SVM, and XGBoost are excluded from the active model comparison. The LLM Interview Assistant is never mixed into the eligibility classification comparison.*
 
 ## Active Notebook Structure
 
@@ -21,13 +18,17 @@ In accordance with the approved architecture, the active candidate models are st
 ├── 04_explainable_boosting_machine.ipynb
 ├── 05_model_comparison_and_tuning.ipynb
 ├── 06_final_model_evaluation.ipynb
+├── 07_llm_interview_assistant/
+│   ├── 01_qwen_model_selection_and_setup.ipynb
+│   ├── 02_interview_prompt_engineering.ipynb
+│   ├── 03_interview_conversation_and_followup_generation.ipynb
+│   ├── 04_structured_response_extraction_and_validation.ipynb
+│   └── 05_llm_interview_assistant_evaluation.ipynb
+├── 08_sbert_semantic_text_processing/
+│   ├── 01_sbert_model_selection_and_setup.ipynb
+│   ├── 02_text_preprocessing_and_embedding_generation.ipynb
+│   ├── 03_semantic_similarity_analysis.ipynb
+│   ├── 04_interview_text_representation.ipynb
+│   └── 05_sbert_evaluation.ipynb
 └── README.md
 ```
-
-## Notebook Responsibilities
-1. **01_training_data_setup.ipynb**: Loads prepared development cohorts, verifies class balance, ensures strict leakage-free features, and partitions datasets into nested cross-validation folds.
-2. **02_random_forest.ipynb**: Evaluates Random Forest ensemble under nested stratified 10-fold cross-validation with Brier score and calibration analysis.
-3. **03_catboost.ipynb**: Evaluates CatBoost gradient boosting, managing categorical interactions and optimal split depths.
-4. **04_explainable_boosting_machine.ipynb**: Trains EBM glassbox classifier, generating feature shape functions and interaction heatmaps for clinical social work auditability.
-5. **05_model_comparison_and_tuning.ipynb**: Benchmark comparison across RF, CatBoost, and EBM under identical CV splits, comparing Accuracy, Precision, Recall, F1, ROC-AUC, Brier score, and calibration curves.
-6. **06_final_model_evaluation.ipynb**: Final validation of the selected model on the untouched test partition, computing publication-ready visualizations and confusion matrices.

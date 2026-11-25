@@ -1089,6 +1089,73 @@ class InquiryService:
             conn.commit()
             return {"status": "ok", "id": notif_id}
 
+    def delete_notification(self, notif_id: str, actor_role: str, actor_id: str) -> Dict[str, Any]:
+        """Permanently deletes a single notification owned by the authenticated actor without affecting clinical records."""
+        role_norm = (actor_role or "").strip().lower()
+        uid_norm = (actor_id or "").strip()
+
+        with self._connect() as conn:
+            if role_norm == "msw" or notif_id.startswith("MSWN-"):
+                if role_norm != "msw":
+                    raise HTTPException(status_code=403, detail="Unauthorized: MSW role required.")
+                msw_row = conn.execute("SELECT * FROM msw_notifications WHERE id = ?", (notif_id,)).fetchone()
+                if not msw_row:
+                    raise HTTPException(status_code=404, detail="MSW Notification not found.")
+                resolved_uid = self.resolve_msw_user_id(uid_norm).lower()
+                rec_uid = str(msw_row["recipient_user_id"] or "").strip().lower()
+                if rec_uid != resolved_uid and rec_uid.upper() != "ALL_MSW":
+                    raise HTTPException(
+                        status_code=403,
+                        detail="Unauthorized: cannot delete notifications assigned to another MSW.",
+                    )
+                conn.execute("DELETE FROM msw_notifications WHERE id = ?", (notif_id,))
+                conn.commit()
+                return {"status": "ok", "deleted_id": notif_id}
+
+            row = conn.execute("SELECT * FROM inquiry_notifications WHERE id = ?", (notif_id,)).fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Notification not found.")
+            if role_norm == "patient":
+                if row["recipient_role"] != "patient" or str(row["recipient_id"]).upper() != uid_norm.upper():
+                    raise HTTPException(status_code=403, detail="Unauthorized: cannot delete another patient's notification.")
+            elif role_norm not in ("admin", "nurse") or row["recipient_role"] != "admin":
+                raise HTTPException(status_code=403, detail="Unauthorized.")
+
+            conn.execute("DELETE FROM inquiry_notifications WHERE id = ?", (notif_id,))
+            conn.commit()
+            return {"status": "ok", "deleted_id": notif_id}
+
+    def delete_all_notifications(self, actor_role: str, actor_id: str) -> Dict[str, Any]:
+        """Permanently deletes all notifications belonging to the authenticated actor."""
+        role_norm = (actor_role or "").strip().lower()
+        uid_norm = (actor_id or "").strip()
+
+        with self._connect() as conn:
+            if role_norm == "msw":
+                resolved_uid = self.resolve_msw_user_id(uid_norm)
+                cur = conn.execute(
+                    """
+                    DELETE FROM msw_notifications
+                    WHERE recipient_role = 'msw'
+                      AND (LOWER(recipient_user_id) = LOWER(?) OR UPPER(recipient_user_id) = 'ALL_MSW')
+                    """,
+                    (resolved_uid,),
+                )
+                conn.commit()
+                return {"status": "ok", "deleted_count": cur.rowcount}
+            elif role_norm == "patient":
+                cur = conn.execute(
+                    "DELETE FROM inquiry_notifications WHERE recipient_role = 'patient' AND UPPER(recipient_id) = UPPER(?)",
+                    (uid_norm,),
+                )
+                conn.commit()
+                return {"status": "ok", "deleted_count": cur.rowcount}
+            elif role_norm in ("admin", "nurse"):
+                cur = conn.execute("DELETE FROM inquiry_notifications WHERE recipient_role = 'admin'")
+                conn.commit()
+                return {"status": "ok", "deleted_count": cur.rowcount}
+            raise HTTPException(status_code=403, detail="Unauthorized role.")
+
     def mark_all_notifications_read(self, actor_role: str, actor_id: str) -> Dict[str, Any]:
         now = _utc_now_iso()
         role_norm = (actor_role or "").strip().lower()

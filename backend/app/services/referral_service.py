@@ -368,6 +368,24 @@ class ReferralService:
         ref_id = payload.get("id") or f"OFPHIL-FA-{uuid.uuid4().hex[:6].upper()}"
         ref_no = payload.get("referral_no") or f"REF-{uuid.uuid4().hex[:6].upper()}"
         patient_id = payload.get("patient_id", "").strip()
+
+        # Enforce: one active unapproved referral per patient at a time
+        if patient_id:
+            with self._connect() as conn:
+                existing_pending = conn.execute(
+                    """
+                    SELECT id, referral_no, status FROM financial_referrals
+                    WHERE UPPER(patient_id) = UPPER(?)
+                      AND UPPER(status) IN ('AWAITING MSW REVIEW', 'ENDORSED FOR FINANCIAL ASSISTANCE', 'NEW', 'PENDING')
+                    LIMIT 1
+                    """,
+                    (patient_id,),
+                ).fetchone()
+                if existing_pending:
+                    raise ValueError(
+                        "An existing financial assistance referral is awaiting MSW review. "
+                        "You can create another referral once the current referral has been approved."
+                    )
         patient_name = payload.get("patient_name", "").strip()
         diagnosis = payload.get("diagnosis", "").strip()
         eye_laterality = payload.get("eye_laterality", "Bilateral").strip()

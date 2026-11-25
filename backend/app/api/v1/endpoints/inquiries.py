@@ -173,6 +173,25 @@ def mark_inquiry_notification_read(
     return inquiry_service.mark_notification_read(notif_id=notif_id, actor_role=role, actor_id=uid)
 
 
+@router.delete("/notifications/all")
+def delete_all_user_notifications(
+    x_user_role: Optional[str] = Header(default=None),
+    x_user_id: Optional[str] = Header(default=None),
+):
+    role, uid = _require_actor(x_user_role, x_user_id)
+    return inquiry_service.delete_all_notifications(actor_role=role, actor_id=uid)
+
+
+@router.delete("/notifications/{notif_id}")
+def delete_single_user_notification(
+    notif_id: str,
+    x_user_role: Optional[str] = Header(default=None),
+    x_user_id: Optional[str] = Header(default=None),
+):
+    role, uid = _require_actor(x_user_role, x_user_id)
+    return inquiry_service.delete_notification(notif_id=notif_id, actor_role=role, actor_id=uid)
+
+
 @router.get("/{inquiry_id}")
 def get_inquiry_conversation(
     inquiry_id: str,

@@ -82,6 +82,63 @@ export default function MSWNotificationsPage() {
   const pageSize = 10;
   const [loading, setLoading] = useState(true);
   const [markingAll, setMarkingAll] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<MSWNotificationItem | null>(null);
+  const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(null), 3500);
+  };
+
+  const handleConfirmDeleteOne = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(getApiUrl(`/inquiries/notifications/${encodeURIComponent(deleteTarget.id)}`), {
+        method: 'DELETE',
+        headers: {
+          'x-user-role': 'msw',
+          'x-user-id': String(mswUserId),
+        },
+      });
+      if (res.ok) {
+        const wasUnread = !deleteTarget.is_read;
+        setNotifications((prev) => prev.filter((n) => n.id !== deleteTarget.id));
+        if (wasUnread) {
+          setUnreadCount((c) => Math.max(0, c - 1));
+        }
+        window.dispatchEvent(new Event('ofphil-msw-notifications-updated'));
+        showToast('Notification deleted successfully.');
+      }
+    } catch {} finally {
+      setDeleting(false);
+      setDeleteTarget(null);
+    }
+  };
+
+  const handleConfirmDeleteAll = async () => {
+    setDeleting(true);
+    try {
+      const res = await fetch(getApiUrl('/inquiries/notifications/all'), {
+        method: 'DELETE',
+        headers: {
+          'x-user-role': 'msw',
+          'x-user-id': String(mswUserId),
+        },
+      });
+      if (res.ok) {
+        setNotifications([]);
+        setUnreadCount(0);
+        window.dispatchEvent(new Event('ofphil-msw-notifications-updated'));
+        showToast('All notifications deleted successfully.');
+      }
+    } catch {} finally {
+      setDeleting(false);
+      setShowDeleteAllModal(false);
+    }
+  };
   const [readFilter, setReadFilter] = useState<'ALL' | 'UNREAD' | 'READ'>('ALL');
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -277,6 +334,15 @@ export default function MSWNotificationsPage() {
           >
             <i className="fa-solid fa-check-double" />
             <span>{markingAll ? 'Updating...' : 'Mark All as Read'}</span>
+          </button>
+          <button
+            type="button"
+            disabled={notifications.length === 0 || deleting}
+            onClick={() => setShowDeleteAllModal(true)}
+            className="px-3.5 py-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 disabled:opacity-50 text-rose-700 text-xs font-bold transition cursor-pointer flex items-center gap-1.5"
+          >
+            <i className="fa-solid fa-trash-can" />
+            <span>Delete All</span>
           </button>
         </div>
       </div>
@@ -501,6 +567,17 @@ export default function MSWNotificationsPage() {
                       <span>Open Dossier</span>
                       <i className="fa-solid fa-arrow-right text-[10px]" />
                     </Link>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleteTarget(item);
+                      }}
+                      title="Delete Notification"
+                      className="px-2.5 py-1.5 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition cursor-pointer inline-flex items-center justify-center"
+                    >
+                      <i className="fa-solid fa-trash-can text-[11px]" />
+                    </button>
                   </div>
                 </div>
               );
@@ -549,6 +626,91 @@ export default function MSWNotificationsPage() {
         )}
       </div>
     </div>
+
+    {/* Toast Notification */}
+    {toastMsg && (
+      <div className="fixed bottom-5 right-5 z-50 bg-[#0B6B3A] text-white px-4 py-2.5 rounded-xl shadow-lg text-xs font-bold flex items-center gap-2">
+        <i className="fa-solid fa-circle-check" />
+        <span>{toastMsg}</span>
+      </div>
+    )}
+
+    {/* Delete Individual Notification Modal */}
+    {deleteTarget && (
+      <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl border border-[#D5E2D9] max-w-md w-full p-6 shadow-xl space-y-4">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
+              <i className="fa-solid fa-triangle-exclamation text-base" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-[#10241A]">Delete This Notification?</h3>
+              <p className="text-xs text-[#5A7466] mt-1">
+                Are you sure you want to delete this notification? This action will remove it from your notification list.
+              </p>
+              <div className="mt-2 p-2.5 rounded-lg bg-[#FAFBF8] border border-[#EEF2EF] text-xs font-semibold text-[#10241A]">
+                {deleteTarget.title}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center justify-end gap-2.5 pt-2">
+            <button
+              type="button"
+              disabled={deleting}
+              onClick={() => setDeleteTarget(null)}
+              className="px-4 py-2 rounded-xl border border-[#D5E2D9] bg-white hover:bg-[#FAFBF8] text-xs font-bold text-[#1E293B] transition cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={deleting}
+              onClick={handleConfirmDeleteOne}
+              className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition cursor-pointer border-0"
+            >
+              {deleting ? 'Deleting...' : 'Delete Notification'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* Delete All Notifications Modal */}
+    {showDeleteAllModal && (
+      <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl border border-[#D5E2D9] max-w-md w-full p-6 shadow-xl space-y-4">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
+              <i className="fa-solid fa-triangle-exclamation text-base" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-[#10241A]">Delete All Notifications?</h3>
+              <p className="text-xs text-[#5A7466] mt-1">
+                Are you sure you want to delete all your notifications? All notifications in your notification center, including read and unread notifications, will be removed from your list. This action cannot be undone.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center justify-end gap-2.5 pt-2">
+            <button
+              type="button"
+              disabled={deleting}
+              onClick={() => setShowDeleteAllModal(false)}
+              className="px-4 py-2 rounded-xl border border-[#D5E2D9] bg-white hover:bg-[#FAFBF8] text-xs font-bold text-[#1E293B] transition cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={deleting}
+              onClick={handleConfirmDeleteAll}
+              className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition cursor-pointer border-0"
+            >
+              {deleting ? 'Deleting...' : 'Delete All Notifications'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
     </DashboardLayout>
   );
 }

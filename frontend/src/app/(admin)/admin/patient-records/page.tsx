@@ -485,28 +485,6 @@ export default function PatientRecordsPage(props: any) {
                     </>
                   )}
                 </th>
-                {!isNurse && (
-                  <th className="py-2.5 px-4 font-semibold whitespace-nowrap">
-                    Status:{' '}
-                    <select
-                      value={statusFilter}
-                      onChange={(e) => setStatusFilter(e.target.value)}
-                      className="ml-1 text-[10px] bg-transparent border-0 font-bold text-[#10241A] focus:outline-none cursor-pointer"
-                    >
-                      <option value="All">All ▼</option>
-                      <option value="APPROVED">Approved</option>
-                      {activeTab !== 'regular' && (
-                        <>
-                          <option value="DISAPPROVED/PROMISSORY">Disapproved / Promissory</option>
-                          <option value="PENDING">Pending</option>
-                        </>
-                      )}
-                      {activeTab !== 'charity' && (
-                        <option value="FIRST-TIME">First-Time</option>
-                      )}
-                    </select>
-                  </th>
-                )}
                 <th className="py-2.5 px-4 font-semibold text-center whitespace-nowrap">Actions</th>
               </tr>
             </thead>
@@ -628,31 +606,9 @@ export default function PatientRecordsPage(props: any) {
                         )}
                       </td>
                       {!isNurse && (
-                        <td className="py-3 px-4 whitespace-nowrap">
-                          {p.status === 'APPROVED' ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                              <i className="fa-solid fa-check text-[9px]" />
-                              <span>APPROVED</span>
-                            </span>
-                          ) : p.status === 'DISAPPROVED/PROMISSORY' ||
-                            p.status?.includes('PROMISSORY') ||
-                            p.status?.includes('DISAPPROVED') ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                              <i className="fa-solid fa-file-signature text-[9px] text-rose-600" />
-                              <span>DISAPPROVED / PROMISSORY</span>
-                            </span>
-                          ) : p.status === 'PENDING' ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                              <i className="fa-solid fa-clock text-[9px] text-amber-600" />
-                              <span>PENDING</span>
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                              <span className="w-1.5 h-1.5 rounded-full bg-amber-600 inline-block" />
-                              <span>{p.status || 'FIRST-TIME'}</span>
-                            </span>
-                          )}
-                        </td>
+                        <>
+                          {/* Status column removed per Admin Patient Records Directory specification */}
+                        </>
                       )}
                       <td className="py-3 px-4 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">

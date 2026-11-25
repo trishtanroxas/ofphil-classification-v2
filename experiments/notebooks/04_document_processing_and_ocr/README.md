@@ -1,9 +1,11 @@
 # Phase 04 — Document Processing and OCR
 
 ## Overview
-Phase 04 establishes the active computer vision and optical character recognition pipelines for the OFPHIL Charity Patient Classification system.
+Phase 04 establishes the active computer vision, optical character recognition, and image-forensics screening pipelines for the OFPHIL Charity Patient Classification system (Track A).
 
-The authoritative OCR engine for this phase is **PaddleOCR PP-OCRv6 ONLY**. Obsolete and comparative engines (EasyOCR, TrOCR, comparative fine-tuning) have been deprecated and archived.
+- **Object Detection:** **YOLO11s** (`yolo11s.pt`)
+- **OCR Engine:** **PaddleOCR PP-OCRv6 ONLY** (EasyOCR, TrOCR, and OCR fine-tuning are excluded)
+- **Image Forensics:** OpenCV, ORB/SIFT, and Copy-Move Forgery Detection (CMFD) — *No Siamese Network*
 
 ## Active Notebook Structure
 
@@ -23,13 +25,17 @@ The authoritative OCR engine for this phase is **PaddleOCR PP-OCRv6 ONLY**. Obso
 ├── 04_paddleocr_text_extraction.ipynb
 ├── 05_document_classification_and_linkage.ipynb
 ├── 06_document_extraction_validation.ipynb
+├── 07_image_forgery_screening.ipynb
+├── 08_signature_and_stamp_screening.ipynb
 └── README.md
 ```
 
 ## Module Responsibilities
-1. **01_document_inventory_and_validation.ipynb**: Comprehensive audit of uploaded synthetic and authorized patient documents.
-2. **02_document_preprocessing.ipynb**: OpenCV image enhancement, contrast adjustment (CLAHE), deskewing, and boundary cropping.
-3. **03_yolo_document_detection**: YOLO document layout and element detection (Header, Field, Table, Stamp, Signature).
-4. **04_paddleocr_text_extraction.ipynb**: Authoritative PaddleOCR PP-OCRv6 text transcription, bounding coordinates, confidence metrics, and CER/WER error benchmark against ground truth.
-5. **05_document_classification_and_linkage.ipynb**: Automated taxonomy assignment (Certificate of Indigency, Clinical Abstract, Surgical Quotation, Valid ID) and foreign-key linkage to patient records.
+1. **01_document_inventory_and_validation.ipynb**: Audit of uploaded synthetic and authorized patient documents.
+2. **02_document_preprocessing.ipynb**: OpenCV image enhancement, contrast adjustment (CLAHE), deskewing, and alignment.
+3. **03_yolo_document_detection**: **YOLO11s** (`yolo11s.pt`) layout and element detection (Header, Patient Info, Findings, Tables, Dates, Signature, Stamp).
+4. **04_paddleocr_text_extraction.ipynb**: Authoritative PaddleOCR PP-OCRv6 text transcription, bounding coordinates, confidence metrics, and CER/WER benchmarking.
+5. **05_document_classification_and_linkage.ipynb**: Functional taxonomy assignment and foreign-key linkage to patient records.
 6. **06_document_extraction_validation.ipynb**: Structural and semantic validation of OCR metadata prior to MSW review.
+7. **07_image_forgery_screening.ipynb**: ORB/SIFT feature matching and modular CMFD screening for duplicated regions.
+8. **08_signature_and_stamp_screening.ipynb**: YOLO11s signature/stamp localization and visual consistency screening (manual institutional verification required).
