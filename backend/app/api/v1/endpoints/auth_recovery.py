@@ -58,6 +58,33 @@ def login_and_verify_credentials(payload: LoginRequestPayload):
     return recovery_service.authenticate_credentials(payload)
 
 
+@router.post("/patient/login")
+def patient_login(payload: dict):
+    """
+    Authenticates a registered patient using Patient ID and password,
+    returning a cryptographically signed Bearer access token.
+    """
+    from fastapi import HTTPException
+    from app.core.security import verify_password, create_access_token
+
+    pid = str(payload.get("patient_id") or "").strip().upper()
+    password = str(payload.get("password") or "")
+    if not pid or not password:
+        raise HTTPException(status_code=400, detail="Patient ID and password are required.")
+
+    cred = recovery_service._patient_creds.get(pid)
+    if not cred or not verify_password(password, cred.get("password_hash", "")):
+        raise HTTPException(status_code=401, detail="Invalid Patient ID or password.")
+
+    token = create_access_token(sub=pid, role="patient")
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "patient_id": pid,
+        "role": "patient",
+    }
+
+
 @router.post("/2fa/send-otp", response_model=Send2FAOTPResponse)
 def send_two_factor_otp(payload: Send2FAOTPRequest):
     """

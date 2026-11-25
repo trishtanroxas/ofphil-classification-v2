@@ -6,8 +6,10 @@ Roles:
   - Researcher: Synthetic data inspection, model benchmarking, ablation experiments (no direct PHI modification).
 """
 from enum import Enum
-from typing import List
+from typing import List, Optional
 from fastapi import Header, HTTPException, status
+from itsdangerous import BadSignature, SignatureExpired
+from app.core.security import verify_access_token
 
 
 class UserRole(str, Enum):
@@ -51,3 +53,49 @@ def require_roles(allowed_roles: List[UserRole]):
         return role
 
     return role_checker
+
+
+def get_current_authenticated_patient(
+    authorization: Optional[str] = Header(default=None),
+) -> str:
+    """
+    Extracts and verifies the Bearer access token for an authenticated patient.
+    Returns the canonical patient_id from verified token claims (`sub`).
+    Ignores client-supplied `x-user-id` or `x-user-role` headers.
+    """
+    if not authorization or not authorization.lower().startswith("bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required: missing or invalid Bearer token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    token = authorization.split(" ", 1)[1].strip()
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required: empty Bearer token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    try:
+        claims = verify_access_token(token)
+    except SignatureExpired:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication token has expired.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    except BadSignature:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or tampered authentication token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    role = str(claims.get("role") or "").strip().lower()
+    sub = str(claims.get("sub") or "").strip()
+    if role != "patient" or not sub:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied: valid patient role token required.",
+        )
+    return sub

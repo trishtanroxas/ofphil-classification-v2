@@ -3,6 +3,7 @@ import uuid
 from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Header, Depends, Response, Request
 from app.core.config import get_settings
+from app.core.rbac import get_current_authenticated_patient
 from app.schemas.schemas import (
     APIResponse, HealthResponse, DatasetCreate, DatasetItem,
     DocumentItem, OCRProcessingRequest, OCRResultResponse,
@@ -393,7 +394,10 @@ def get_next_charity_case_no():
 def register_patient_record(payload: PatientRegisterRequest):
     req_first = payload.first_name.strip()
     req_last = payload.last_name.strip()
-    category = "CHARITY" if (payload.category or "").upper() == "CHARITY" else "REGULAR"
+    # New applicants always start with REGULAR registration classification.
+    # Charity beneficiary status is granted only after MSW approval of a referral.
+    registration_type = "REGULAR"
+    category = "REGULAR"
 
     from app.services.patient_id_service import patient_id_service
     req_pid = (payload.patient_id or "").strip().upper()
@@ -403,8 +407,6 @@ def register_patient_record(payload: PatientRegisterRequest):
         patient_id_service.record_assigned_patient_id(req_pid)
 
     charity_case_no = None
-    if category == "CHARITY":
-        charity_case_no = generate_next_charity_case_no()
 
     # Check for duplicate Patient Name (First Name + Last Name case-insensitive) or duplicate Patient ID
     for existing in REGISTERED_PATIENTS_REGISTRY:
@@ -483,8 +485,12 @@ def register_patient_record(payload: PatientRegisterRequest):
         "has_account": True,
         "registration_date": datetime.datetime.now().strftime("%Y-%m-%d"),
         "initial_password": temp_pass,
+        "registration_type": registration_type,
         "category": category,
-        "status": "PENDING" if category == "CHARITY" else "APPROVED",
+        "charity_status": "NONE",
+        "charity_case_no": charity_case_no,
+        "is_charity_beneficiary": False,
+        "status": "APPROVED",
         "assigned_msw": "Maria Santos, RSW (msw_lead)",
     }
 
@@ -607,17 +613,12 @@ def get_msw_patient_dossier(
     is_charity_patient = raw_category == "CHARITY"
     from app.services.referral_service import referral_service
     patient_referrals = referral_service.list_referrals(patient_id=canonical_pid)
-    # Check if patient has any approved referral
     approved_ref = next((r for r in patient_referrals if r.get("status") in {"MSW APPROVED", "Assessment in Progress", "Referred for Administrative Decision", "Approved", "Assessed"}), None)
-    if approved_ref and approved_ref.get("charity_case_no"):
-        is_charity_patient = True
-        charity_case_no = approved_ref.get("charity_case_no")
-    else:
-        charity_case_no = (
-            (found_patient.get("charity_case_no") or (canonical_pid if canonical_pid.startswith("MSW_FA_") else None))
-            if is_charity_patient
-            else None
-        )
+    charity_case_no = (
+        (found_patient.get("charity_case_no") or (approved_ref.get("charity_case_no") if approved_ref else None) or (canonical_pid if canonical_pid.startswith("MSW_FA_") else None))
+        if is_charity_patient
+        else None
+    )
 
     from app.services.assessment_service import assessment_service
     from app.services.document_authenticity_service import document_authenticity_service
@@ -906,6 +907,7 @@ async def update_patient_classification(
         "reason": (payload.reason or f"Authorized administrative classification change from {previous_cls} to {new_cls}.").strip(),
     }
     target_patient["classification_history"].insert(0, change_record)
+    _save_patients_registry()
 
     # Record in system audit log
     from app.core.audit import log_audit_event
@@ -971,23 +973,13 @@ async def update_patient_classification(
 
 @router.get("/patient-portal/charity-assistance-status")
 def get_authenticated_patient_charity_status(
-    x_user_role: Optional[str] = Header(default=None),
-    x_user_id: Optional[str] = Header(default=None),
+    authenticated_patient_id: str = Depends(get_current_authenticated_patient),
 ):
     """
     Read-only Charity Assistance Status endpoint for the authenticated patient.
-    - Derives patient identity strictly from authenticated session header (x-user-id), never from a query/body parameter.
-    - Verifies that the authenticated user is a patient AND that their database classification is 'CHARITY'.
-    - Rejects access (403 Forbidden) if a REGULAR patient attempts to access this route directly.
-    - Never fabricates an application number, charity case number, or charity decision when no application exists yet.
+    - Derives patient identity strictly from verified Bearer token (`sub`), never from client-supplied headers.
     """
-    role_norm = (x_user_role or "").strip().lower()
-    uid_norm = (x_user_id or "").strip()
-    if role_norm != "patient" or not uid_norm:
-        raise HTTPException(
-            status_code=403,
-            detail="Access denied: Only an authenticated patient session can access patient charity assistance status.",
-        )
+    uid_norm = authenticated_patient_id.strip()
 
     found_patient = None
     for item in REGISTERED_PATIENTS_REGISTRY:
@@ -1511,6 +1503,10 @@ class PatientUpdateRequest(BaseModel):
 def update_patient_record(patient_id: str, payload: PatientUpdateRequest):
     for item in REGISTERED_PATIENTS_REGISTRY:
         if item.get("patient_id") == patient_id or item.get("id") == patient_id:
+            protected_non_empty = {
+                "first_name", "last_name", "birthdate", "sex", "civil_status",
+                "contact", "email", "perm_province", "perm_city"
+            }
             for field_key in [
                 "first_name", "middle_name", "last_name", "suffix", "birthdate",
                 "age", "sex", "civil_status", "num_dependents",
@@ -1523,6 +1519,8 @@ def update_patient_record(patient_id: str, payload: PatientUpdateRequest):
             ]:
                 val = getattr(payload, field_key, None)
                 if val is not None:
+                    if field_key in protected_non_empty and isinstance(val, str) and val.strip() == "" and item.get(field_key):
+                        continue
                     item[field_key] = val
             if payload.age is not None:
                 item["age"] = payload.age
@@ -1586,6 +1584,8 @@ def update_patient_record(patient_id: str, payload: PatientUpdateRequest):
             except Exception:
                 pass
 
+            _save_patients_registry()
+
             return {
                 "status": "success",
                 "message": f"Patient record {patient_id} updated successfully.",
@@ -1608,8 +1608,20 @@ def list_patient_records(
 
     records = []
     for item in REGISTERED_PATIENTS_REGISTRY:
+        reg_type = str(item.get("registration_type") or item.get("category") or "REGULAR").strip().upper()
+        charity_st = str(item.get("charity_status") or "").strip().upper()
+        is_charity = (
+            charity_st == "APPROVED"
+            or bool(item.get("is_charity_beneficiary"))
+            or str(item.get("category") or "").strip().upper() == "CHARITY"
+        )
         if category and category.upper() != "ALL":
-            if item.get("category") != category.upper():
+            cat_req = category.upper()
+            if cat_req == "REGULAR" and reg_type != "REGULAR":
+                continue
+            elif cat_req == "CHARITY" and not is_charity:
+                continue
+            elif cat_req not in {"REGULAR", "CHARITY"} and item.get("category") != cat_req:
                 continue
         if search and search.strip():
             q = search.strip().lower()
@@ -1625,6 +1637,9 @@ def list_patient_records(
         history = referral_service.get_patient_assistance_history(patient_id=pid_clean)
         enriched = {
             **item,
+            "registration_type": reg_type,
+            "charity_status": charity_st or ("APPROVED" if is_charity else "NONE"),
+            "is_charity_beneficiary": is_charity,
             "assistance_history": history,
             "disapproved_badge": history.get("disapproved_badge"),
             "promissory_badge": history.get("promissory_badge"),
@@ -2057,6 +2072,20 @@ async def approve_financial_referral(
     return {"status": "ok", "referral": approved}
 
 
+@router.post("/patient-portal/charity-assistance-status/{referral_id}/acknowledge")
+async def acknowledge_patient_referral(
+    referral_id: str,
+    authenticated_patient_id: str = Depends(get_current_authenticated_patient),
+):
+    from app.services.referral_service import referral_service
+    updated = referral_service.acknowledge_referral(
+        referral_id=referral_id,
+        actor_id=authenticated_patient_id,
+        role="patient",
+    )
+    return {"status": "ok", "referral": updated}
+
+
 @router.post("/referrals/{referral_id}/reject")
 async def reject_financial_referral(
     referral_id: str,
@@ -2350,10 +2379,10 @@ async def get_msw_dashboard_stats():
             pass
 
     return {
-        "total_assigned": max(total_assigned, 1),
+        "total_assigned": total_assigned,
         "pending_assessments": pending_assessments,
         "completed_assessments": max(completed_assessments, sb_enc_count),
-        "charity_patients": max(charity_count, 1),
+        "charity_patients": charity_count,
         "approval_rate": "100%" if (completed_assessments + pending_assessments) > 0 and pending_assessments == 0 else f"{round((completed_assessments / max(total_assigned, 1)) * 100, 1)}%",
         "active_msw": "Maria Santos, RSW"
     }

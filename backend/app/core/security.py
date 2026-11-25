@@ -8,10 +8,11 @@ Security utilities and cryptographic services for OFPHIL Classification V2:
 import base64
 import os
 import secrets
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Dict, Any
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
 # Initialize Argon2id password hasher with secure memory & time cost parameters
 _ph = PasswordHasher(
@@ -97,3 +98,29 @@ def decrypt_data(encrypted_payload: bytes, key: bytes, associated_data: Optional
     iv = encrypted_payload[:12]
     ciphertext = encrypted_payload[12:]
     return aesgcm.decrypt(iv, ciphertext, associated_data)
+
+
+# -----------------------------------------------------------------------------
+# Signed Session / Access Token Utilities (itsdangerous URLSafeTimedSerializer)
+# -----------------------------------------------------------------------------
+_RUNTIME_FALLBACK_SECRET = secrets.token_urlsafe(32)
+
+
+def _get_token_serializer() -> URLSafeTimedSerializer:
+    secret = os.environ.get("AUTH_SECRET_KEY") or os.environ.get("SECRET_KEY") or _RUNTIME_FALLBACK_SECRET
+    return URLSafeTimedSerializer(secret_key=secret, salt="ofphil-auth-token-v1")
+
+
+def create_access_token(sub: str, role: str) -> str:
+    """Create a cryptographically signed access token with subject and role."""
+    serializer = _get_token_serializer()
+    return serializer.dumps({"sub": sub, "role": role.strip().lower()})
+
+
+def verify_access_token(token: str, max_age: int = 86400) -> Dict[str, Any]:
+    """
+    Verify a signed access token's signature and expiration.
+    Raises SignatureExpired or BadSignature on failure.
+    """
+    serializer = _get_token_serializer()
+    return serializer.loads(token, max_age=max_age)

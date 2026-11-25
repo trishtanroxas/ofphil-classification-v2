@@ -82,7 +82,7 @@ class ReferralService:
             # Ensure newer columns exist for older sqlite databases BEFORE creating index on them
             try:
                 col_names = [col[1] for col in conn.execute("PRAGMA table_info(financial_referrals)").fetchall()]
-                for new_col in ["charity_case_no", "approved_by", "approved_at", "rejected_by", "rejected_at", "rejection_reason"]:
+                for new_col in ["charity_case_no", "approved_by", "approved_at", "rejected_by", "rejected_at", "rejection_reason", "acknowledged_by", "acknowledged_at"]:
                     if new_col not in col_names:
                         conn.execute(f"ALTER TABLE financial_referrals ADD COLUMN {new_col} TEXT;")
                 conn.commit()
@@ -227,10 +227,11 @@ class ReferralService:
             ).fetchall()
             all_refs = [self._row_to_dict(r) for r in rows]
 
-        # Filter out current referral if specified
+        # Filter out current referral if specified, and always exclude CANCELLED/DELETED referrals
         qualifying_refs = [
             r for r in all_refs
-            if not (exclude_referral_id and (r["id"] == exclude_referral_id or r["referral_no"] == exclude_referral_id))
+            if str(r.get("status", "")).upper() not in {"CANCELLED", "DELETED"}
+            and not (exclude_referral_id and (r["id"] == exclude_referral_id or r["referral_no"] == exclude_referral_id))
         ]
 
         # Count Disapproved and Promissory in referrals
@@ -253,14 +254,14 @@ class ReferralService:
             1 for e in reg_encounters if str(e.get("status", "")).upper() in {"APPROVED", "FINAL_APPROVED"} and e.get("classification") == "CHARITY"
         )
 
-        # 1. Total previous assistance requests (qualifying referrals + qualifying charity encounters not in referrals)
+        # 1. Total previous assistance requests:
+        # When viewing a patient dossier without exclude_referral_id, the most recent referral (index 0)
+        # is the current referral, so only referrals after it (index 1+) are genuinely previous requests.
         if not exclude_referral_id and qualifying_refs:
-            pending_refs = [r for r in qualifying_refs if r.get("status") in {"Awaiting MSW Review", "Endorsed for Financial Assistance"}]
-            if pending_refs:
-                qualifying_refs = [r for r in qualifying_refs if r["id"] != pending_refs[0]["id"]]
+            qualifying_refs = qualifying_refs[1:]
 
-        # Total previous requests: sum of distinct historical financial referrals plus non-referral charity applications
-        total_prev_requests = max(len(qualifying_refs), len([e for e in reg_encounters if e.get("classification") == "CHARITY"]))
+        # Total previous requests: count distinct historical qualifying referrals
+        total_prev_requests = len(qualifying_refs)
 
         # 2. Previously MSW-Approved Cases
         prev_msw_approved = sum(
@@ -369,42 +370,61 @@ class ReferralService:
         ref_no = payload.get("referral_no") or f"REF-{uuid.uuid4().hex[:6].upper()}"
         patient_id = payload.get("patient_id", "").strip()
 
-        # Enforce: one active unapproved referral per patient at a time
-        if patient_id:
-            with self._connect() as conn:
-                existing_pending = conn.execute(
-                    """
-                    SELECT id, referral_no, status FROM financial_referrals
-                    WHERE UPPER(patient_id) = UPPER(?)
-                      AND UPPER(status) IN ('AWAITING MSW REVIEW', 'ENDORSED FOR FINANCIAL ASSISTANCE', 'NEW', 'PENDING')
-                    LIMIT 1
-                    """,
-                    (patient_id,),
-                ).fetchone()
-                if existing_pending:
-                    raise ValueError(
-                        "An existing financial assistance referral is awaiting MSW review. "
-                        "You can create another referral once the current referral has been approved."
-                    )
         patient_name = payload.get("patient_name", "").strip()
         diagnosis = payload.get("diagnosis", "").strip()
         eye_laterality = payload.get("eye_laterality", "Bilateral").strip()
         procedure = payload.get("procedure", "").strip()
         clinical_findings = payload.get("clinical_findings", "").strip()
         particulars = payload.get("particulars", [])
-        total = float(payload.get("total") or 0.0)
+        if isinstance(particulars, list) and particulars:
+            total = sum(float(item.get("amount") or 0.0) for item in particulars if isinstance(item, dict))
+        else:
+            total = float(payload.get("total") or payload.get("total_quotation") or 0.0)
         requested_amount = float(payload.get("requested_amount") or total)
-        attending_doctor = payload.get("attending_doctor", "Dr. J. E. Garcia, MD").strip()
-        doctor_signature_title = payload.get("doctor_signature_title", "Attending Eye Surgeon").strip()
-        referring_individual = payload.get("referring_individual", "Dr. Roberto Reyes, MD, DPBO").strip()
-        referring_signature_title = payload.get("referring_signature_title", "Clinic Medical Administrator").strip()
-        status_val = payload.get("status", "Awaiting MSW Review")
+        attending_doctor = (payload.get("attending_doctor") or "Dr. J. E. Garcia, MD").strip()
+        doctor_signature_title = (
+            payload.get("doctor_signature_title")
+            or payload.get("attending_signature")
+            or "Attending Eye Surgeon"
+        ).strip()
+        referring_individual = (payload.get("referring_individual") or "Dr. Roberto Reyes, MD, DPBO").strip()
+        referring_signature_title = (
+            payload.get("referring_signature_title")
+            or payload.get("referring_signature")
+            or "Clinic Medical Administrator"
+        ).strip()
+        status_val = payload.get("status") or "PENDING"
         notes = payload.get("notes", "").strip()
         now = _utc_now()
 
         particulars_str = json.dumps(particulars) if not isinstance(particulars, str) else particulars
 
         with self._connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            # Enforce: one active unapproved referral per patient at a time (atomic transaction)
+            if patient_id:
+                existing_pending = conn.execute(
+                    """
+                    SELECT id, referral_no, status FROM financial_referrals
+                    WHERE UPPER(patient_id) = UPPER(?)
+                      AND UPPER(status) IN (
+                        'AWAITING MSW REVIEW',
+                        'ENDORSED FOR FINANCIAL ASSISTANCE',
+                        'NEW',
+                        'PENDING',
+                        'UNDER_REVIEW',
+                        'ASSESSMENT IN PROGRESS',
+                        'RETURNED_FOR_CORRECTION'
+                      )
+                    LIMIT 1
+                    """,
+                    (patient_id,),
+                ).fetchone()
+                if existing_pending:
+                    raise ValueError(
+                        "This patient already has a financial assistance referral awaiting MSW review. "
+                        "Another referral can only be created after the current referral has been resolved."
+                    )
             conn.execute(
                 """
                 INSERT OR REPLACE INTO financial_referrals (
@@ -494,6 +514,46 @@ class ReferralService:
             conn.commit()
 
         return self.get_referral(canonical_id) or {}
+
+    def acknowledge_referral(self, referral_id: str, actor_id: str, role: str) -> Dict[str, Any]:
+        """
+        Patient acknowledgment of a submitted referral form.
+        Does NOT change the official referral status or grant MSW approval.
+        """
+        role_norm = (role or "").strip().lower()
+        if role_norm != "patient" or not actor_id:
+            raise HTTPException(status_code=403, detail="Only the authenticated patient can acknowledge their referral.")
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT * FROM financial_referrals WHERE id = ? OR referral_no = ?",
+                (referral_id.strip(), referral_id.strip()),
+            ).fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Referral record not found.")
+            if str(row["patient_id"]).strip().upper() != actor_id.strip().upper():
+                raise HTTPException(status_code=403, detail="Access denied: You can only acknowledge your own referral.")
+            now = _utc_now()
+            conn.execute(
+                "UPDATE financial_referrals SET acknowledged_by = ?, acknowledged_at = ?, updated_at = ? WHERE id = ?",
+                (actor_id.strip(), now, now, row["id"]),
+            )
+            conn.execute(
+                """
+                INSERT OR IGNORE INTO msw_notifications (id, recipient_user_id, notification_type, title, message, target_destination, related_patient_id, related_encounter_id, is_read, created_at)
+                VALUES (?, ?, 'REFERRAL_ACKNOWLEDGED', 'Referral Acknowledged', ?, ?, ?, ?, 0, ?)
+                """,
+                (
+                    f"notif-{uuid.uuid4().hex[:8]}",
+                    row["patient_id"],
+                    f"You acknowledged viewing Financial Assistance Referral {row['referral_no']}.",
+                    "/portal/charity-status",
+                    row["patient_id"],
+                    row["id"],
+                    now,
+                ),
+            )
+            conn.commit()
+        return self.get_referral(row["id"]) or {}
 
     def approve_referral(
         self,
@@ -607,12 +667,17 @@ class ReferralService:
             )
             conn.commit()
 
-        # Update Registered Patients Registry in memory if patient is present
+        # Update Registered Patients Registry in memory and persist to disk
         try:
-            from app.api.v1.endpoints.endpoints import REGISTERED_PATIENTS_REGISTRY
+            from app.api.v1.endpoints.endpoints import REGISTERED_PATIENTS_REGISTRY, _save_patients_registry
+            updated_registry = False
             for p in REGISTERED_PATIENTS_REGISTRY:
                 if str(p.get("patient_id") or "").strip().upper() == patient_id.strip().upper():
-                    p["category"] = "CHARITY"
+                    # Preserve original REGULAR registration classification; grant hybrid charity beneficiary status
+                    if not p.get("registration_type"):
+                        p["registration_type"] = "REGULAR"
+                    p["charity_status"] = "APPROVED"
+                    p["is_charity_beneficiary"] = True
                     p["charity_case_no"] = target_case_no
                     # Add encounter or note if needed
                     encs = p.setdefault("encounters", [])
@@ -633,7 +698,10 @@ class ReferralService:
                             "assigned_msw": actor_id,
                             "notes": f"Approved from Referral {canonical_id}",
                         })
+                    updated_registry = True
                     break
+            if updated_registry:
+                _save_patients_registry()
         except Exception:
             pass
 
@@ -649,10 +717,67 @@ class ReferralService:
                 related_patient_id=patient_id,
                 related_encounter_id=target_case_no,
             )
+            with self._connect() as nconn:
+                nconn.execute(
+                    """
+                    INSERT OR IGNORE INTO msw_notifications (id, recipient_user_id, notification_type, title, message, target_destination, related_patient_id, related_encounter_id, is_read, created_at)
+                    VALUES (?, ?, 'CHARITY_APPROVED', 'Charity Referral Approved', ?, ?, ?, ?, 0, ?)
+                    """,
+                    (
+                        f"notif-{uuid.uuid4().hex[:8]}",
+                        patient_id,
+                        f"Your Financial Assistance Referral ({row['referral_no']}) has been APPROVED. Your official Charity Case Number is {target_case_no}.",
+                        "/portal/charity-status",
+                        patient_id,
+                        canonical_id,
+                        now,
+                    ),
+                )
+                nconn.commit()
         except Exception:
             pass
 
         return self.get_referral(canonical_id) or {}
+
+    def acknowledge_referral(self, referral_id: str, actor_id: str, role: str) -> Dict[str, Any]:
+        """
+        Patient acknowledgment of a submitted referral form.
+        Does NOT change the official referral status or grant MSW approval.
+        """
+        role_norm = (role or "").strip().lower()
+        if role_norm != "patient" or not actor_id:
+            raise HTTPException(status_code=403, detail="Only the authenticated patient can acknowledge their referral.")
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT * FROM financial_referrals WHERE id = ? OR referral_no = ?",
+                (referral_id.strip(), referral_id.strip()),
+            ).fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Referral record not found.")
+            if str(row["patient_id"]).strip().upper() != actor_id.strip().upper():
+                raise HTTPException(status_code=403, detail="Access denied: You can only acknowledge your own referral.")
+            now = _utc_now()
+            conn.execute(
+                "UPDATE financial_referrals SET acknowledged_by = ?, acknowledged_at = ?, updated_at = ? WHERE id = ?",
+                (actor_id.strip(), now, now, row["id"]),
+            )
+            conn.execute(
+                """
+                INSERT OR IGNORE INTO msw_notifications (id, recipient_user_id, notification_type, title, message, target_destination, related_patient_id, related_encounter_id, is_read, created_at)
+                VALUES (?, ?, 'REFERRAL_ACKNOWLEDGED', 'Referral Acknowledged', ?, ?, ?, ?, 0, ?)
+                """,
+                (
+                    f"notif-{uuid.uuid4().hex[:8]}",
+                    row["patient_id"],
+                    f"You acknowledged viewing Financial Assistance Referral {row['referral_no']}.",
+                    "/portal/charity-status",
+                    row["patient_id"],
+                    row["id"],
+                    now,
+                ),
+            )
+            conn.commit()
+        return self.get_referral(row["id"]) or {}
 
     def reject_referral(
         self,
@@ -707,6 +832,46 @@ class ReferralService:
             conn.commit()
 
         return self.get_referral(canonical_id) or {}
+
+    def acknowledge_referral(self, referral_id: str, actor_id: str, role: str) -> Dict[str, Any]:
+        """
+        Patient acknowledgment of a submitted referral form.
+        Does NOT change the official referral status or grant MSW approval.
+        """
+        role_norm = (role or "").strip().lower()
+        if role_norm != "patient" or not actor_id:
+            raise HTTPException(status_code=403, detail="Only the authenticated patient can acknowledge their referral.")
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT * FROM financial_referrals WHERE id = ? OR referral_no = ?",
+                (referral_id.strip(), referral_id.strip()),
+            ).fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Referral record not found.")
+            if str(row["patient_id"]).strip().upper() != actor_id.strip().upper():
+                raise HTTPException(status_code=403, detail="Access denied: You can only acknowledge your own referral.")
+            now = _utc_now()
+            conn.execute(
+                "UPDATE financial_referrals SET acknowledged_by = ?, acknowledged_at = ?, updated_at = ? WHERE id = ?",
+                (actor_id.strip(), now, now, row["id"]),
+            )
+            conn.execute(
+                """
+                INSERT OR IGNORE INTO msw_notifications (id, recipient_user_id, notification_type, title, message, target_destination, related_patient_id, related_encounter_id, is_read, created_at)
+                VALUES (?, ?, 'REFERRAL_ACKNOWLEDGED', 'Referral Acknowledged', ?, ?, ?, ?, 0, ?)
+                """,
+                (
+                    f"notif-{uuid.uuid4().hex[:8]}",
+                    row["patient_id"],
+                    f"You acknowledged viewing Financial Assistance Referral {row['referral_no']}.",
+                    "/portal/charity-status",
+                    row["patient_id"],
+                    row["id"],
+                    now,
+                ),
+            )
+            conn.commit()
+        return self.get_referral(row["id"]) or {}
 
     def link_assessment(
         self, referral_id: str, assessment_id: str, actor_id: str, role: str
