@@ -3,8 +3,46 @@ import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/DashboardLayout';
+import PsgcCascadingFields from '@/components/PsgcCascadingFields';
 import { toast } from 'sonner';
 import { fetchApi } from '@/lib/api';
+
+const EDUCATION_LEVELS = [
+  'No Formal Education',
+  'Elementary',
+  'High School',
+  'Vocational / Tech-Voc',
+  'College',
+  'Post-graduate',
+] as const;
+
+function normalizeEducationLevel(raw?: string | null): string {
+  const s = String(raw || '').trim().toLowerCase();
+  if (!s) return 'High School';
+  if (s.includes('no formal') || s === 'none') return 'No Formal Education';
+  if (s.includes('post') || s.includes('master') || s.includes('doctor')) return 'Post-graduate';
+  if (s.includes('voc') || s.includes('tech') || s.includes('tesda')) return 'Vocational / Tech-Voc';
+  if (s.includes('college') || s.includes('bachelor') || s.includes('undergrad') || s.includes('university')) return 'College';
+  if (s.includes('elem') || s.includes('primary') || s.includes('grade school')) return 'Elementary';
+  if (s.includes('high school') || s.includes('secondary') || s.includes('senior high')) return 'High School';
+  const exact = EDUCATION_LEVELS.find((l) => l.toLowerCase() === s);
+  return exact || 'High School';
+}
+
+function normalizeSuffix(raw?: string | null): string {
+  const s = String(raw || '').trim();
+  if (!s || s.toLowerCase() === 'none' || s.toLowerCase() === 'n/a') return 'None';
+  if (/^jr\.?$/i.test(s)) return 'Jr.';
+  if (/^sr\.?$/i.test(s)) return 'Sr.';
+  return s;
+}
+
+function extractIsoDate(val: any): string | null {
+  if (!val) return null;
+  const str = String(val).trim();
+  const match = str.match(/^(\d{4}-\d{2}-\d{2})/);
+  return match ? match[1] : null;
+}
 
 function MSWAssessmentContent() {
   const router = useRouter();
@@ -55,9 +93,45 @@ function MSWAssessmentContent() {
       setApprovalNotes('');
       setFamilyMembers([]);
       setInfFirstName('');
+      setInfMiddleName('');
       setInfLastName('');
+      setInfSuffix('None');
+      setInfAge('');
+      setInfDob('');
+      setInfSex('');
+      setInfReligion('');
+      setInfCivilStatus('');
+      setInfAddress('');
+      setInfBarangay('');
+      setInfCity('');
+      setInfProvince('');
+      setInfRegion('');
+      setInfContact('');
+      setInfRelation('');
+      setInfOccupation('');
       setInfIncome('0.0');
+      setInfEducation('High School');
+      setIsInformantPatient(false);
       setPatIncome('0.0');
+      setPatSourceOfFundsDetail('');
+      setPatSourceOfFundsRate('');
+      setPatSourceOfFundsPeriod('per day');
+      setSpouseSourceNotApplicable(false);
+      setSpouseSourceOfFundsDetail('');
+      setSpouseSourceOfFundsRate('');
+      setSpouseSourceOfFundsPeriod('per day');
+      setGovAssistanceEnrolled('No');
+      setGovAssistancePrograms('');
+      setRentExpenseAmount('0');
+      setRentHousingNote('');
+      setWaterBillAmount('0');
+      setElectricityBillAmount('0');
+      setTransportExpenseAmount('0');
+      setTransportExpenseNotes('');
+      setOtherMedicalExpenses([]);
+      setEyeMaintenanceExpense('0');
+      setFirstConsultationDate('');
+      setFirstConsultationSource('');
       setApplicationEncounterNo(patientIdParam);
 
       try {
@@ -92,7 +166,7 @@ function MSWAssessmentContent() {
         setPatFirstName(p.first_name || '');
         setPatMiddleName(p.middle_name || '');
         setPatLastName(p.last_name || '');
-        setPatSuffix(p.suffix || 'None');
+        setPatSuffix(normalizeSuffix(p.suffix));
         
         // Age calculation from DOB if age not explicitly provided
         let calcAge = p.age ? String(p.age) : '';
@@ -114,39 +188,176 @@ function MSWAssessmentContent() {
         setPatContact(p.contact || '');
         setPatEmail(p.email || '');
 
-        // Pre-fill permanent & alternative address
-        const fullPermAddr = [p.perm_street, p.perm_barangay, p.perm_city, p.perm_province].filter(Boolean).join(', ');
-        setPatAddress(fullPermAddr || p.address || p.residence_city || '');
-        setPatBarangay(p.perm_barangay || '');
-        setPatCity(p.perm_city || p.residence_city || '');
-        setPatProvince(p.perm_province || p.residence_region || '');
-        setPatRegion(p.residence_region || p.perm_province || '');
+        // Pre-fill structured permanent & alternative addresses cleanly without duplicating segments
+        const pStreet = p.perm_street || '';
+        const pBgy = p.perm_barangay || '';
+        const pCity = p.perm_city || p.residence_city || '';
+        const pProv = p.perm_province || '';
+        const pReg =
+          p.perm_region ||
+          p.residence_region ||
+          (pProv.toLowerCase().includes('ncr') || pProv.toLowerCase().includes('metro manila')
+            ? 'National Capital Region (NCR)'
+            : '');
 
-        const fullAltAddr = [p.alt_street, p.alt_barangay, p.alt_city, p.alt_province].filter(Boolean).join(', ');
-        setPatAltAddress(fullAltAddr || '');
+        setPatStreet(pStreet);
+        setPatBarangay(pBgy);
+        setPatCity(pCity);
+        setPatProvince(pProv);
+        setPatRegion(pReg);
+
+        const fullPermAddr =
+          [pStreet, pBgy, pCity, pProv].filter(Boolean).join(', ') || p.address || p.residence_city || '';
+        setPatAddress(fullPermAddr);
+
+        const isSameAddr =
+          p.same_address !== undefined
+            ? Boolean(p.same_address)
+            : !Boolean(p.alt_street || p.alt_barangay || p.alt_city || p.alt_province);
+        setSameAsPermAddress(isSameAddr);
+
+        const aStreet = isSameAddr ? pStreet : p.alt_street || '';
+        const aBgy = isSameAddr ? pBgy : p.alt_barangay || '';
+        const aCity = isSameAddr ? pCity : p.alt_city || '';
+        const aProv = isSameAddr ? pProv : p.alt_province || '';
+        const aReg = isSameAddr
+          ? pReg
+          : p.alt_region ||
+            (aProv.toLowerCase().includes('ncr') || aProv.toLowerCase().includes('metro manila')
+              ? 'National Capital Region (NCR)'
+              : '');
+
+        setPatAltStreet(aStreet);
+        setPatAltBarangay(aBgy);
+        setPatAltCity(aCity);
+        setPatAltProvince(aProv);
+        setPatAltRegion(aReg);
+
+        const fullAltAddr =
+          [aStreet, aBgy, aCity, aProv].filter(Boolean).join(', ') || p.alt_address || fullPermAddr;
+        setPatAltAddress(fullAltAddr);
 
         setPatOccupation(p.occupation || '');
         setPatEmploymentStatus(p.employment_status || '');
         const rawInc = p.monthly_income !== undefined ? p.monthly_income : (p.monthly_household_income !== undefined ? p.monthly_household_income : p.income);
         setPatIncome(rawInc !== undefined && rawInc !== null ? String(rawInc) : '0.0');
-        setPatEducation(p.educational_attainment || 'High School');
+        setPatEducation(normalizeEducationLevel(p.educational_attainment));
         setPatNumDependents(p.num_dependents !== undefined ? String(p.num_dependents) : '0');
 
-        // Sectoral Membership Pre-fill
-        const secStr = String(p.sectoral_membership || '').toLowerCase();
-        const isSenior = (Number(calcAge) >= 60) || secStr.includes('senior');
+        // Auto-default Spouse N/A if Single or Widowed (can be toggled freely by MSW)
+        const civNorm = String(p.civil_status || '').toLowerCase();
+        if (civNorm === 'single' || civNorm === 'widowed') {
+          setSpouseSourceNotApplicable(true);
+        }
+
+        // Pre-fill Patient Source of Funds detail from existing occupation if available
+        if (p.occupation) {
+          setPatSourceOfFundsDetail(p.occupation);
+        }
+
+        // Pre-populate First Consultation in OFPHIL from earliest clinical encounter / appointment date
+        const candidateDates: Array<{ date: string; source: string }> = [];
+        const allInitialEncs = [
+          ...(Array.isArray(res.encounters) ? res.encounters : []),
+          ...(Array.isArray(p.encounters) ? p.encounters : []),
+        ];
+        allInitialEncs.forEach((enc: any) => {
+          const d = extractIsoDate(enc?.encounter_date || enc?.application_date || enc?.date || enc?.created_at);
+          if (d) candidateDates.push({ date: d, source: `Clinical Encounter (${enc?.id || enc?.encounter_no || d})` });
+        });
+
+        try {
+          const localAppts = JSON.parse(localStorage.getItem(`ofphil_appointments_${pid}`) || '[]');
+          if (Array.isArray(localAppts)) {
+            localAppts.forEach((ap: any) => {
+              const d = extractIsoDate(ap?.appointment_date || ap?.created_at);
+              if (d) candidateDates.push({ date: d, source: `Scheduled Appointment (${ap?.id || d})` });
+            });
+          }
+          const localEncs = JSON.parse(localStorage.getItem(`ofphil_encounters_${pid}`) || '[]');
+          if (Array.isArray(localEncs)) {
+            localEncs.forEach((enc: any) => {
+              const d = extractIsoDate(enc?.encounter_date || enc?.date || enc?.created_at);
+              if (d) candidateDates.push({ date: d, source: `Clinical Encounter (${enc?.id || d})` });
+            });
+          }
+        } catch {}
+
+        // Also query Supabase / backend encounter & appointment endpoints non-blockingly
+        Promise.allSettled([
+          fetchApi(`/patients/${encodeURIComponent(pid)}/encounters`, { headers: { 'x-user-role': 'msw', 'x-user-id': 'msw_lead' } }),
+          fetchApi(`/patients/${encodeURIComponent(pid)}/appointments`, { headers: { 'x-user-role': 'msw', 'x-user-id': 'msw_lead' } }),
+        ]).then((results) => {
+          if (cancelled) return;
+          const extraDates = [...candidateDates];
+          if (results[0].status === 'fulfilled' && Array.isArray(results[0].value?.encounters)) {
+            results[0].value.encounters.forEach((enc: any) => {
+              const d = extractIsoDate(enc?.encounter_date || enc?.created_at);
+              if (d) extraDates.push({ date: d, source: `Clinical Encounter (${enc?.id || d})` });
+            });
+          }
+          if (results[1].status === 'fulfilled' && Array.isArray(results[1].value?.appointments)) {
+            results[1].value.appointments.forEach((ap: any) => {
+              const d = extractIsoDate(ap?.appointment_date || ap?.created_at);
+              if (d) extraDates.push({ date: d, source: `Appointment (${ap?.id || d})` });
+            });
+          }
+          if (extraDates.length > 0) {
+            extraDates.sort((a, b) => a.date.localeCompare(b.date));
+            setFirstConsultationDate((prev) => prev || extraDates[0].date);
+            setFirstConsultationSource((prev) => prev || extraDates[0].source);
+          }
+        });
+
+        if (candidateDates.length > 0) {
+          candidateDates.sort((a, b) => a.date.localeCompare(b.date));
+          setFirstConsultationDate(candidateDates[0].date);
+          setFirstConsultationSource(candidateDates[0].source);
+        } else {
+          const regDate = extractIsoDate(p.registration_date);
+          if (regDate) {
+            setFirstConsultationDate(regDate);
+            setFirstConsultationSource('Patient Registration Record');
+          }
+        }
+
+        // Sectoral Membership Pre-fill (supports string, array, or object representations)
+        const secRaw = p.sectoral_membership;
+        const secStr = Array.isArray(secRaw)
+          ? secRaw.join(' ').toLowerCase()
+          : typeof secRaw === 'object' && secRaw !== null
+          ? Object.entries(secRaw)
+              .filter(([, v]) => Boolean(v))
+              .map(([k]) => k)
+              .join(' ')
+              .toLowerCase()
+          : String(secRaw || '').toLowerCase();
+        const occEmpStr = `${p.occupation || ''} ${p.employment_status || ''}`.toLowerCase();
+        const isSenior = Number(calcAge) >= 60 || secStr.includes('senior');
         const isPwd = secStr.includes('pwd') || String(p.disability_status || '').toLowerCase().includes('pwd');
         setSectoral({
-          artisanalFisherfolk: secStr.includes('fisherfolk'),
-          seniorCitizens: isSenior,
-          urbanPoor: secStr.includes('urban poor') || secStr.includes('indigent'),
-          victimsOfDisasters: secStr.includes('disaster') || secStr.includes('calamity'),
-          farmersLandless: secStr.includes('farmer'),
-          informalSector: secStr.includes('informal') || secStr.includes('driver') || secStr.includes('vendor'),
-          pwd: isPwd,
-          indigenousPeoples: secStr.includes('indigenous'),
-          formalLaborMigrant: secStr.includes('migrant') || secStr.includes('ofw'),
+          artisanalFisherfolk: Boolean(secRaw?.artisanalFisherfolk) || secStr.includes('fisherfolk'),
+          seniorCitizens: Boolean(secRaw?.seniorCitizens) || isSenior,
+          urbanPoor:
+            Boolean(secRaw?.urbanPoor) ||
+            secStr.includes('urban poor') ||
+            secStr.includes('indigent') ||
+            String(p.philhealth_category || '').toLowerCase().includes('indigent'),
+          victimsOfDisasters: Boolean(secRaw?.victimsOfDisasters) || secStr.includes('disaster') || secStr.includes('calamity'),
+          farmersLandless: Boolean(secRaw?.farmersLandless) || secStr.includes('farmer'),
+          informalSector:
+            Boolean(secRaw?.informalSector) ||
+            secStr.includes('informal') ||
+            occEmpStr.includes('informal') ||
+            occEmpStr.includes('vendor') ||
+            occEmpStr.includes('driver'),
+          pwd: Boolean(secRaw?.pwd) || isPwd,
+          indigenousPeoples: Boolean(secRaw?.indigenousPeoples) || secStr.includes('indigenous'),
+          formalLaborMigrant: Boolean(secRaw?.formalLaborMigrant) || secStr.includes('migrant') || secStr.includes('ofw'),
         });
+        if (p.sectoral_others) {
+          setSectoralOthers(String(p.sectoral_others));
+        }
         if (isPwd) {
           setDisabilityStatus('PWD Verified');
         } else if (p.disability_status) {
@@ -173,7 +384,8 @@ function MSWAssessmentContent() {
     };
   }, [patientIdParam]);
 
-  // STAGE 1: Informant / Representative State
+  // STAGE 1: Informant / Representative State & Patient Sync Lock
+  const [isInformantPatient, setIsInformantPatient] = useState(false);
   const [infLastName, setInfLastName] = useState('');
   const [infFirstName, setInfFirstName] = useState('');
   const [infMiddleName, setInfMiddleName] = useState('');
@@ -192,7 +404,7 @@ function MSWAssessmentContent() {
   const [infRelation, setInfRelation] = useState('');
   const [infOccupation, setInfOccupation] = useState('');
   const [infIncome, setInfIncome] = useState('0.0');
-  const [infEducation, setInfEducation] = useState('Elementary');
+  const [infEducation, setInfEducation] = useState('High School');
 
   // STAGE 1: Patient Information State
   const [patLastName, setPatLastName] = useState('');
@@ -206,18 +418,117 @@ function MSWAssessmentContent() {
   const [patCivilStatus, setPatCivilStatus] = useState('');
   const [patContact, setPatContact] = useState('');
   const [patEmail, setPatEmail] = useState('');
+  const [patStreet, setPatStreet] = useState('');
   const [patAddress, setPatAddress] = useState('');
   const [patBarangay, setPatBarangay] = useState('');
   const [patCity, setPatCity] = useState('');
   const [patProvince, setPatProvince] = useState('');
   const [patRegion, setPatRegion] = useState('');
+  const [sameAsPermAddress, setSameAsPermAddress] = useState(true);
+  const [patAltStreet, setPatAltStreet] = useState('');
+  const [patAltBarangay, setPatAltBarangay] = useState('');
+  const [patAltCity, setPatAltCity] = useState('');
+  const [patAltProvince, setPatAltProvince] = useState('');
+  const [patAltRegion, setPatAltRegion] = useState('');
   const [patAltAddress, setPatAltAddress] = useState('');
   const [patNationality, setPatNationality] = useState('Filipino');
   const [patOccupation, setPatOccupation] = useState('');
   const [patEmploymentStatus, setPatEmploymentStatus] = useState('');
   const [patIncome, setPatIncome] = useState('0.0');
-  const [patEducation, setPatEducation] = useState('Elementary');
+  const [patEducation, setPatEducation] = useState('High School');
   const [patNumDependents, setPatNumDependents] = useState('0');
+
+  // Copy Patient profile data into Informant fields and activate lock
+  const copyPatientToInformant = (relationLabel: 'Self' | 'Patient' = 'Self') => {
+    setIsInformantPatient(true);
+    setInfRelation(relationLabel);
+    setInfLastName(patLastName);
+    setInfFirstName(patFirstName);
+    setInfMiddleName(patMiddleName);
+    setInfSuffix(patSuffix || 'None');
+    setInfAge(patAge);
+    setInfDob(patDob);
+    setInfSex(patSex);
+    setInfReligion(patReligion);
+    setInfCivilStatus(patCivilStatus);
+    setInfAddress(patStreet || patAddress);
+    setInfBarangay(patBarangay);
+    setInfCity(patCity);
+    setInfProvince(patProvince);
+    setInfRegion(patRegion);
+    setInfContact(patContact);
+    setInfOccupation(patOccupation);
+    setInfIncome(patIncome);
+    setInfEducation(patEducation);
+    setInterviewedPerson('PATIENT');
+    setRepresentativeRelationship('Self');
+  };
+
+  const handleToggleInformantIsPatient = (checked: boolean) => {
+    if (checked) {
+      copyPatientToInformant('Self');
+    } else {
+      setIsInformantPatient(false);
+      if (infRelation === 'Self' || infRelation === 'Patient') {
+        setInfRelation('');
+      }
+    }
+  };
+
+  const handleInformantRelationChange = (newRel: string) => {
+    setInfRelation(newRel);
+    const norm = newRel.trim().toLowerCase();
+    if (norm === 'self' || norm === 'patient') {
+      copyPatientToInformant(newRel === 'Patient' ? 'Patient' : 'Self');
+    } else {
+      setIsInformantPatient(false);
+      if (newRel) {
+        setInterviewedPerson('REPRESENTATIVE');
+        setRepresentativeRelationship(newRel);
+      }
+    }
+  };
+
+  // STAGE 1 SECTION II: Socio-Economic & Monthly Expenses State (Clinical Intake Sheet)
+  const [patSourceOfFundsDetail, setPatSourceOfFundsDetail] = useState('');
+  const [patSourceOfFundsRate, setPatSourceOfFundsRate] = useState('');
+  const [patSourceOfFundsPeriod, setPatSourceOfFundsPeriod] = useState<'per day' | 'per week' | 'per month' | 'irregular'>('per day');
+
+  const [spouseSourceNotApplicable, setSpouseSourceNotApplicable] = useState(false);
+  const [spouseSourceOfFundsDetail, setSpouseSourceOfFundsDetail] = useState('');
+  const [spouseSourceOfFundsRate, setSpouseSourceOfFundsRate] = useState('');
+  const [spouseSourceOfFundsPeriod, setSpouseSourceOfFundsPeriod] = useState<'per day' | 'per week' | 'per month' | 'irregular'>('per day');
+
+  const [govAssistanceEnrolled, setGovAssistanceEnrolled] = useState<'No' | 'Yes'>('No');
+  const [govAssistancePrograms, setGovAssistancePrograms] = useState('');
+
+  const [rentExpenseAmount, setRentExpenseAmount] = useState('0');
+  const [rentHousingNote, setRentHousingNote] = useState('');
+
+  const [waterBillAmount, setWaterBillAmount] = useState('0');
+  const [electricityBillAmount, setElectricityBillAmount] = useState('0');
+
+  const [transportExpenseAmount, setTransportExpenseAmount] = useState('0');
+  const [transportExpenseNotes, setTransportExpenseNotes] = useState('');
+
+  const [otherMedicalExpenses, setOtherMedicalExpenses] = useState<
+    Array<{ id: string; condition: string; monthlyCost: string }>
+  >([]);
+
+  const [eyeMaintenanceExpense, setEyeMaintenanceExpense] = useState('0');
+  const [firstConsultationDate, setFirstConsultationDate] = useState('');
+  const [firstConsultationSource, setFirstConsultationSource] = useState('');
+
+  const handleAddOtherMedicalExpense = () => {
+    setOtherMedicalExpenses((prev) => [
+      ...prev,
+      { id: `med-${Date.now()}-${prev.length}`, condition: '', monthlyCost: '0' },
+    ]);
+  };
+
+  const handleRemoveOtherMedicalExpense = (id: string) => {
+    setOtherMedicalExpenses((prev) => prev.filter((item) => item.id !== id));
+  };
 
   // Sectoral Membership (Checkboxes)
   const [sectoral, setSectoral] = useState({
@@ -412,9 +723,24 @@ function MSWAssessmentContent() {
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [evalError, setEvalError] = useState<string | null>(null);
 
-  // Total Household Income (Derived from Stage 1 Informant + Patient + Family Members)
-  const totalHouseholdIncome = Number(infIncome || 0) + Number(patIncome || 0) +
+  // Total Household Income (Derived from Stage 1 Informant + Patient + Family Members; prevents double-count when Informant is Patient)
+  const totalHouseholdIncome =
+    (isInformantPatient ? 0 : Number(infIncome || 0)) +
+    Number(patIncome || 0) +
     familyMembers.reduce((acc, f) => acc + (Number(f.income) || 0), 0);
+
+  // Total Monthly Expenses (Derived from Stage 1 Socio-Economic & Monthly Expenses)
+  const otherMedicalExpensesSubtotal = otherMedicalExpenses.reduce(
+    (sum, item) => sum + Math.max(0, Number(item.monthlyCost || 0)),
+    0
+  );
+  const totalMonthlyExpenses =
+    Math.max(0, Number(rentExpenseAmount || 0)) +
+    Math.max(0, Number(waterBillAmount || 0)) +
+    Math.max(0, Number(electricityBillAmount || 0)) +
+    Math.max(0, Number(transportExpenseAmount || 0)) +
+    otherMedicalExpensesSubtotal +
+    Math.max(0, Number(eyeMaintenanceExpense || 0));
 
   // Dynamic badge and classification values derived strictly from backend API evaluation result
   const currentMswClass = backendEval?.msw_classification?.classification || (backendEval?.is_complete ? 'FINANCIALLY_CAPACITATED' : 'INCOMPLETE');
@@ -483,10 +809,10 @@ function MSWAssessmentContent() {
     }
   };
 
-  // Restore latest draft & load ML inventory + documents + referral details
+  // Restore latest draft & load ML inventory + documents + referral details (runs after patient record loads)
   useEffect(() => {
     async function initWorkflow() {
-      if (!patientIdParam) return;
+      if (!patientIdParam || patientLoadStatus !== 'ready') return;
       loadPatientDocuments(patientIdParam);
 
       // Load Referral information if referral_id parameter is present or if patient has referrals
@@ -566,11 +892,77 @@ function MSWAssessmentContent() {
           if (a.interview_date) setInterviewDate(a.interview_date);
           if (a.source_of_referral) setSourceOfReferral(a.source_of_referral);
           const s1 = a.stage1_data || {};
-          if (s1.patient_first_name) setPatFirstName(s1.patient_first_name);
-          if (s1.patient_last_name) setPatLastName(s1.patient_last_name);
-          if (s1.patient_income !== undefined) setPatIncome(String(s1.patient_income));
+          if (s1.informant_is_patient !== undefined) setIsInformantPatient(Boolean(s1.informant_is_patient));
+          if (s1.informant_relation) setInfRelation(s1.informant_relation);
+          if (s1.informant_first_name) setInfFirstName(s1.informant_first_name);
+          if (s1.informant_middle_name) setInfMiddleName(s1.informant_middle_name);
+          if (s1.informant_last_name) setInfLastName(s1.informant_last_name);
+          if (s1.informant_suffix) setInfSuffix(normalizeSuffix(s1.informant_suffix));
+          if (s1.informant_age !== undefined && s1.informant_age !== '') setInfAge(String(s1.informant_age));
+          if (s1.informant_dob) setInfDob(s1.informant_dob);
+          if (s1.informant_sex) setInfSex(s1.informant_sex);
+          if (s1.informant_religion) setInfReligion(s1.informant_religion);
+          if (s1.informant_civil_status) setInfCivilStatus(s1.informant_civil_status);
+          if (s1.informant_street !== undefined) setInfAddress(s1.informant_street);
+          if (s1.informant_barangay) setInfBarangay(s1.informant_barangay);
+          if (s1.informant_city) setInfCity(s1.informant_city);
+          if (s1.informant_province) setInfProvince(s1.informant_province);
+          if (s1.informant_region) setInfRegion(s1.informant_region);
+          if (s1.informant_contact) setInfContact(s1.informant_contact);
+          if (s1.informant_occupation) setInfOccupation(s1.informant_occupation);
+          if (s1.informant_education) setInfEducation(normalizeEducationLevel(s1.informant_education));
           if (s1.informant_income !== undefined) setInfIncome(String(s1.informant_income));
+
+          if (s1.patient_first_name) setPatFirstName(s1.patient_first_name);
+          if (s1.patient_middle_name) setPatMiddleName(s1.patient_middle_name);
+          if (s1.patient_last_name) setPatLastName(s1.patient_last_name);
+          if (s1.patient_suffix) setPatSuffix(normalizeSuffix(s1.patient_suffix));
+          if (s1.patient_age !== undefined && s1.patient_age !== '') setPatAge(String(s1.patient_age));
+          if (s1.patient_dob) setPatDob(s1.patient_dob);
+          if (s1.patient_sex) setPatSex(s1.patient_sex);
+          if (s1.patient_religion) setPatReligion(s1.patient_religion);
+          if (s1.patient_civil_status) setPatCivilStatus(s1.patient_civil_status);
+          if (s1.patient_contact) setPatContact(s1.patient_contact);
+          if (s1.patient_email) setPatEmail(s1.patient_email);
+          if (s1.patient_occupation) setPatOccupation(s1.patient_occupation);
+          if (s1.patient_income !== undefined) setPatIncome(String(s1.patient_income));
+          if (s1.patient_street !== undefined) setPatStreet(s1.patient_street);
+          if (s1.patient_barangay) setPatBarangay(s1.patient_barangay);
+          if (s1.patient_city) setPatCity(s1.patient_city);
+          if (s1.patient_province) setPatProvince(s1.patient_province);
+          if (s1.patient_region) setPatRegion(s1.patient_region);
+          if (s1.patient_permanent_address) setPatAddress(s1.patient_permanent_address);
+          if (s1.same_as_permanent_address !== undefined) setSameAsPermAddress(Boolean(s1.same_as_permanent_address));
+          if (s1.patient_alt_street !== undefined) setPatAltStreet(s1.patient_alt_street);
+          if (s1.patient_alt_barangay) setPatAltBarangay(s1.patient_alt_barangay);
+          if (s1.patient_alt_city) setPatAltCity(s1.patient_alt_city);
+          if (s1.patient_alt_province) setPatAltProvince(s1.patient_alt_province);
+          if (s1.patient_alt_region) setPatAltRegion(s1.patient_alt_region);
+          if (s1.patient_alt_address) setPatAltAddress(s1.patient_alt_address);
+          if (s1.patient_education) setPatEducation(normalizeEducationLevel(s1.patient_education));
+          if (s1.sectoral && typeof s1.sectoral === 'object') setSectoral((prev) => ({ ...prev, ...s1.sectoral }));
+          if (s1.sectoral_others !== undefined) setSectoralOthers(s1.sectoral_others);
           if (Array.isArray(s1.family_members)) setFamilyMembers(s1.family_members);
+
+          const se = s1.socio_economic_expenses || {};
+          if (se.patient_source_detail !== undefined) setPatSourceOfFundsDetail(se.patient_source_detail);
+          if (se.patient_source_rate !== undefined) setPatSourceOfFundsRate(String(se.patient_source_rate));
+          if (se.patient_source_period) setPatSourceOfFundsPeriod(se.patient_source_period);
+          if (se.spouse_not_applicable !== undefined) setSpouseSourceNotApplicable(Boolean(se.spouse_not_applicable));
+          if (se.spouse_source_detail !== undefined) setSpouseSourceOfFundsDetail(se.spouse_source_detail);
+          if (se.spouse_source_rate !== undefined) setSpouseSourceOfFundsRate(String(se.spouse_source_rate));
+          if (se.spouse_source_period) setSpouseSourceOfFundsPeriod(se.spouse_source_period);
+          if (se.gov_assistance_enrolled) setGovAssistanceEnrolled(se.gov_assistance_enrolled);
+          if (se.gov_assistance_programs !== undefined) setGovAssistancePrograms(se.gov_assistance_programs);
+          if (se.rent_amount !== undefined) setRentExpenseAmount(String(se.rent_amount));
+          if (se.rent_note !== undefined) setRentHousingNote(se.rent_note);
+          if (se.water_bill !== undefined) setWaterBillAmount(String(se.water_bill));
+          if (se.electricity_bill !== undefined) setElectricityBillAmount(String(se.electricity_bill));
+          if (se.transportation_amount !== undefined) setTransportExpenseAmount(String(se.transportation_amount));
+          if (se.transportation_notes !== undefined) setTransportExpenseNotes(se.transportation_notes);
+          if (Array.isArray(se.other_medical_expenses)) setOtherMedicalExpenses(se.other_medical_expenses);
+          if (se.eye_maintenance_amount !== undefined) setEyeMaintenanceExpense(String(se.eye_maintenance_amount));
+          if (se.first_consultation_date) setFirstConsultationDate(se.first_consultation_date);
           const s2 = a.stage2_data || {};
           if (s2.interview_info) {
             if (s2.interview_info.interview_date) setInterviewDate(s2.interview_info.interview_date);
@@ -641,6 +1033,14 @@ function MSWAssessmentContent() {
           if (s2.roles_severity_level) setRoleSeverityLevel(s2.roles_severity_level);
           if (s2.roles_coping_level) setRoleCopingLevel(s2.roles_coping_level);
           if (s2.environment_severity_level) setEnvSeverityLevel(s2.environment_severity_level);
+          if (s2.discrimination_patient_reported !== undefined) setDiscrimPatientReported(s2.discrimination_patient_reported);
+          if (s2.discrimination_msw_observation !== undefined) setDiscrimMswObs(s2.discrimination_msw_observation);
+          if (s2.safety_patient_reported !== undefined) setSafetyPatientReported(s2.safety_patient_reported);
+          if (s2.safety_msw_observation !== undefined) setSafetyMswObs(s2.safety_msw_observation);
+          if (s2.roles_patient_reported !== undefined) setRolePatientReported(s2.roles_patient_reported);
+          if (s2.roles_msw_observation !== undefined) setRoleMswObs(s2.roles_msw_observation);
+          if (s2.environment_patient_reported !== undefined) setEnvPatientReported(s2.environment_patient_reported);
+          if (s2.environment_msw_observation !== undefined) setEnvMswObs(s2.environment_msw_observation);
           if (a.classification_result) setBackendEval(a.classification_result);
           if (Array.isArray(a.history)) setAssessmentHistory(a.history);
           if (a.msw_recommendation?.case_notes) setMswCaseNotes(a.msw_recommendation.case_notes);
@@ -651,7 +1051,7 @@ function MSWAssessmentContent() {
       }
     }
     initWorkflow();
-  }, [patientIdParam, assessmentIdParam]);
+  }, [patientIdParam, assessmentIdParam, patientLoadStatus]);
 
   // Lock body scroll and dismiss modals on Escape key
   useEffect(() => {
@@ -893,19 +1293,82 @@ function MSWAssessmentContent() {
     interview_date: interviewDate,
     source_of_referral: sourceOfReferral,
     stage1_data: {
+      informant_is_patient: isInformantPatient,
+      informant_relation: infRelation,
       informant_first_name: infFirstName,
+      informant_middle_name: infMiddleName,
       informant_last_name: infLastName,
+      informant_suffix: infSuffix,
+      informant_age: infAge,
+      informant_dob: infDob,
+      informant_sex: infSex,
+      informant_religion: infReligion,
+      informant_civil_status: infCivilStatus,
+      informant_street: infAddress,
+      informant_barangay: infBarangay,
+      informant_city: infCity,
+      informant_province: infProvince,
+      informant_region: infRegion,
+      informant_contact: infContact,
+      informant_occupation: infOccupation,
+      informant_education: infEducation,
       informant_income: Number(infIncome || 0),
       patient_first_name: patFirstName,
+      patient_middle_name: patMiddleName,
       patient_last_name: patLastName,
+      patient_suffix: patSuffix,
       patient_age: patAge,
+      patient_dob: patDob,
       patient_sex: patSex,
+      patient_religion: patReligion,
+      patient_civil_status: patCivilStatus,
       patient_contact: patContact,
+      patient_email: patEmail,
       patient_occupation: patOccupation,
       patient_income: Number(patIncome || 0),
+      patient_street: patStreet,
+      patient_barangay: patBarangay,
+      patient_city: patCity,
+      patient_province: patProvince,
+      patient_region: patRegion,
+      patient_permanent_address:
+        [patStreet, patBarangay, patCity, patProvince, patRegion].filter(Boolean).join(', ') || patAddress,
+      same_as_permanent_address: sameAsPermAddress,
+      patient_alt_street: sameAsPermAddress ? patStreet : patAltStreet,
+      patient_alt_barangay: sameAsPermAddress ? patBarangay : patAltBarangay,
+      patient_alt_city: sameAsPermAddress ? patCity : patAltCity,
+      patient_alt_province: sameAsPermAddress ? patProvince : patAltProvince,
+      patient_alt_region: sameAsPermAddress ? patRegion : patAltRegion,
+      patient_alt_address: sameAsPermAddress
+        ? [patStreet, patBarangay, patCity, patProvince, patRegion].filter(Boolean).join(', ') || patAddress
+        : [patAltStreet, patAltBarangay, patAltCity, patAltProvince, patAltRegion].filter(Boolean).join(', ') || patAltAddress,
+      patient_education: patEducation,
+      sectoral,
+      sectoral_others: sectoralOthers,
       household_size: Math.max(1, familyMembers.length + 1),
       total_household_income: Math.max(0, totalHouseholdIncome),
       family_members: familyMembers,
+      socio_economic_expenses: {
+        patient_source_detail: patSourceOfFundsDetail,
+        patient_source_rate: patSourceOfFundsRate,
+        patient_source_period: patSourceOfFundsPeriod,
+        spouse_not_applicable: spouseSourceNotApplicable,
+        spouse_source_detail: spouseSourceNotApplicable ? 'Not Applicable' : spouseSourceOfFundsDetail,
+        spouse_source_rate: spouseSourceNotApplicable ? '' : spouseSourceOfFundsRate,
+        spouse_source_period: spouseSourceOfFundsPeriod,
+        gov_assistance_enrolled: govAssistanceEnrolled,
+        gov_assistance_programs: govAssistanceEnrolled === 'Yes' ? govAssistancePrograms : '',
+        rent_amount: Number(rentExpenseAmount || 0),
+        rent_note: rentHousingNote,
+        water_bill: Number(waterBillAmount || 0),
+        electricity_bill: Number(electricityBillAmount || 0),
+        transportation_amount: Number(transportExpenseAmount || 0),
+        transportation_notes: transportExpenseNotes,
+        other_medical_expenses: otherMedicalExpenses,
+        eye_maintenance_amount: Number(eyeMaintenanceExpense || 0),
+        total_monthly_expenses: totalMonthlyExpenses,
+        first_consultation_date: firstConsultationDate,
+      },
       admitting_diagnosis: admittingDiagnosis,
       final_diagnosis: finalDiagnosis,
       treatment_plan: presentTreatmentPlan,
@@ -1457,13 +1920,29 @@ function MSWAssessmentContent() {
                     <i className="fa-solid fa-id-card text-[11px]" />
                     <span>I. IDENTIFYING INFORMATION</span>
                   </span>
-                  <span className="text-[11px] text-[#94A3B8]">Image 1 Standard Intake</span>
+                  <span className="text-[11px] text-[#0B6B3A] bg-[#E8F5EC] px-2.5 py-0.5 rounded-full font-semibold">
+                    Auto-Populated from Patient Record
+                  </span>
                 </div>
 
                 {/* 1. INFORMANT / REPRESENTATIVE */}
                 <div className="space-y-3.5 p-4 rounded-xl border border-[#E2E8F0] bg-[#FAFBF8]/50">
-                  <div className="text-[11px] font-bold uppercase tracking-wider text-[#0B6B3A]">
-                    1. INFORMANT / REPRESENTATIVE
+                  <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-[#E2E8F0]">
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-[#0B6B3A]">
+                      1. INFORMANT / REPRESENTATIVE
+                    </div>
+
+                    {/* Informant-is-Patient Toggle */}
+                    <label className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#86EFAC] bg-[#F0FDF4] text-[#14532D] text-xs font-bold cursor-pointer select-none shadow-2xs hover:bg-[#DCFCE7] transition">
+                      <input
+                        type="checkbox"
+                        checked={isInformantPatient}
+                        onChange={(e) => handleToggleInformantIsPatient(e.target.checked)}
+                        className="accent-[#0B6B3A] w-4 h-4 rounded cursor-pointer"
+                      />
+                      <i className="fa-solid fa-user-check text-[#0B6B3A] text-[11px]" />
+                      <span>Informant is the Patient (Self)</span>
+                    </label>
                   </div>
 
                   {/* Name Fields */}
@@ -1474,7 +1953,10 @@ function MSWAssessmentContent() {
                         type="text"
                         placeholder="Enter last name"
                         value={infLastName}
-                        onChange={(e) => setInfLastName(e.target.value)}
+                        onChange={(e) => {
+                          setInfLastName(e.target.value);
+                          if (isInformantPatient) setPatLastName(e.target.value);
+                        }}
                         className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
                       />
                     </div>
@@ -1484,7 +1966,10 @@ function MSWAssessmentContent() {
                         type="text"
                         placeholder="Enter first name"
                         value={infFirstName}
-                        onChange={(e) => setInfFirstName(e.target.value)}
+                        onChange={(e) => {
+                          setInfFirstName(e.target.value);
+                          if (isInformantPatient) setPatFirstName(e.target.value);
+                        }}
                         className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
                       />
                     </div>
@@ -1494,7 +1979,10 @@ function MSWAssessmentContent() {
                         type="text"
                         placeholder="Enter middle name"
                         value={infMiddleName}
-                        onChange={(e) => setInfMiddleName(e.target.value)}
+                        onChange={(e) => {
+                          setInfMiddleName(e.target.value);
+                          if (isInformantPatient) setPatMiddleName(e.target.value);
+                        }}
                         className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
                       />
                     </div>
@@ -1502,13 +1990,21 @@ function MSWAssessmentContent() {
                       <label className="block text-[11px] font-semibold text-[#475569] mb-1">EXT. / SUFFIX</label>
                       <select
                         value={infSuffix}
-                        onChange={(e) => setInfSuffix(e.target.value)}
+                        onChange={(e) => {
+                          setInfSuffix(e.target.value);
+                          if (isInformantPatient) setPatSuffix(e.target.value);
+                        }}
                         className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
                       >
                         <option value="None">None</option>
                         <option value="Jr.">Jr.</option>
                         <option value="Sr.">Sr.</option>
+                        <option value="II">II</option>
                         <option value="III">III</option>
+                        <option value="IV">IV</option>
+                        {!['None', 'Jr.', 'Sr.', 'II', 'III', 'IV'].includes(infSuffix) && infSuffix && (
+                          <option value={infSuffix}>{infSuffix}</option>
+                        )}
                       </select>
                     </div>
                   </div>
@@ -1520,7 +2016,10 @@ function MSWAssessmentContent() {
                       <input
                         type="number"
                         value={infAge}
-                        onChange={(e) => setInfAge(e.target.value)}
+                        onChange={(e) => {
+                          setInfAge(e.target.value);
+                          if (isInformantPatient) setPatAge(e.target.value);
+                        }}
                         className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
                       />
                     </div>
@@ -1529,7 +2028,10 @@ function MSWAssessmentContent() {
                       <input
                         type="date"
                         value={infDob}
-                        onChange={(e) => setInfDob(e.target.value)}
+                        onChange={(e) => {
+                          setInfDob(e.target.value);
+                          if (isInformantPatient) setPatDob(e.target.value);
+                        }}
                         className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
                       />
                     </div>
@@ -1537,7 +2039,10 @@ function MSWAssessmentContent() {
                       <label className="block text-[11px] font-semibold text-[#475569] mb-1">SEX</label>
                       <select
                         value={infSex}
-                        onChange={(e) => setInfSex(e.target.value)}
+                        onChange={(e) => {
+                          setInfSex(e.target.value);
+                          if (isInformantPatient) setPatSex(e.target.value);
+                        }}
                         className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
                       >
                         <option value="">-- Select Sex --</option>
@@ -1549,7 +2054,10 @@ function MSWAssessmentContent() {
                       <label className="block text-[11px] font-semibold text-[#475569] mb-1">RELIGION</label>
                       <select
                         value={infReligion}
-                        onChange={(e) => setInfReligion(e.target.value)}
+                        onChange={(e) => {
+                          setInfReligion(e.target.value);
+                          if (isInformantPatient) setPatReligion(e.target.value);
+                        }}
                         className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
                       >
                         <option value="">-- Select Religion --</option>
@@ -1558,13 +2066,19 @@ function MSWAssessmentContent() {
                         <option value="Iglesia Ni Cristo">Iglesia Ni Cristo</option>
                         <option value="Islam">Islam</option>
                         <option value="Others">Others</option>
+                        {!['', 'Roman Catholic', 'Christian', 'Iglesia Ni Cristo', 'Islam', 'Others'].includes(infReligion) && (
+                          <option value={infReligion}>{infReligion}</option>
+                        )}
                       </select>
                     </div>
                     <div>
                       <label className="block text-[11px] font-semibold text-[#475569] mb-1">CIVIL STATUS</label>
                       <select
                         value={infCivilStatus}
-                        onChange={(e) => setInfCivilStatus(e.target.value)}
+                        onChange={(e) => {
+                          setInfCivilStatus(e.target.value);
+                          if (isInformantPatient) setPatCivilStatus(e.target.value);
+                        }}
                         className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
                       >
                         <option value="">-- Select Civil Status --</option>
@@ -1572,63 +2086,48 @@ function MSWAssessmentContent() {
                         <option value="Married">Married</option>
                         <option value="Widowed">Widowed</option>
                         <option value="Separated">Separated</option>
+                        {!['', 'Single', 'Married', 'Widowed', 'Separated'].includes(infCivilStatus) && (
+                          <option value={infCivilStatus}>{infCivilStatus}</option>
+                        )}
                       </select>
                     </div>
                   </div>
 
-                  {/* Address Grid: House, Barangay, City, Province, Region */}
-                  <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
-                    <div>
-                      <label className="block text-[11px] font-semibold text-[#475569] mb-1">HOUSE / STREET / PUROK</label>
-                      <input
-                        type="text"
-                        placeholder="Enter complete address"
-                        value={infAddress}
-                        onChange={(e) => setInfAddress(e.target.value)}
-                        className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-[#475569] mb-1">BARANGAY</label>
-                      <input
-                        type="text"
-                        placeholder="Enter barangay"
-                        value={infBarangay}
-                        onChange={(e) => setInfBarangay(e.target.value)}
-                        className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-[#475569] mb-1">CITY / MUNICIPALITY</label>
-                      <input
-                        type="text"
-                        placeholder="Select City / Municipality"
-                        value={infCity}
-                        onChange={(e) => setInfCity(e.target.value)}
-                        className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-[#475569] mb-1">PROVINCE / DISTRICT</label>
-                      <input
-                        type="text"
-                        placeholder="Select Province / District"
-                        value={infProvince}
-                        onChange={(e) => setInfProvince(e.target.value)}
-                        className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-[#475569] mb-1">REGION</label>
-                      <input
-                        type="text"
-                        placeholder="Select Region"
-                        value={infRegion}
-                        onChange={(e) => setInfRegion(e.target.value)}
-                        className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
-                      />
-                    </div>
-                  </div>
+                  {/* Cascading PSGC Philippine Location Selectors: Region -> Province/District -> City/Municipality -> Barangay + Street */}
+                  <PsgcCascadingFields
+                    region={infRegion}
+                    province={infProvince}
+                    city={infCity}
+                    barangay={infBarangay}
+                    street={infAddress}
+                    showStreet={true}
+                    streetLabel="HOUSE / STREET / PUROK"
+                    streetPlaceholder="House No., Street, Purok / Subd."
+                    onChange={(next) => {
+                      setInfRegion(next.region);
+                      setInfProvince(next.province);
+                      setInfCity(next.city);
+                      setInfBarangay(next.barangay);
+                      setInfAddress(next.street || '');
+                      if (isInformantPatient) {
+                        setPatRegion(next.region);
+                        setPatProvince(next.province);
+                        setPatCity(next.city);
+                        setPatBarangay(next.barangay);
+                        setPatStreet(next.street || '');
+                        const composed = [next.street, next.barangay, next.city, next.province].filter(Boolean).join(', ');
+                        setPatAddress(composed);
+                        if (sameAsPermAddress) {
+                          setPatAltRegion(next.region);
+                          setPatAltProvince(next.province);
+                          setPatAltCity(next.city);
+                          setPatAltBarangay(next.barangay);
+                          setPatAltStreet(next.street || '');
+                          setPatAltAddress(composed);
+                        }
+                      }
+                    }}
+                  />
 
                   {/* Contact Number, Relation, Occupation, Monthly Income */}
                   <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
@@ -1638,7 +2137,10 @@ function MSWAssessmentContent() {
                         type="text"
                         placeholder="Enter contact number"
                         value={infContact}
-                        onChange={(e) => setInfContact(e.target.value)}
+                        onChange={(e) => {
+                          setInfContact(e.target.value);
+                          if (isInformantPatient) setPatContact(e.target.value);
+                        }}
                         className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
                       />
                     </div>
@@ -1646,15 +2148,18 @@ function MSWAssessmentContent() {
                       <label className="block text-[11px] font-semibold text-[#475569] mb-1">RELATION TO PATIENT</label>
                       <select
                         value={infRelation}
-                        onChange={(e) => setInfRelation(e.target.value)}
-                        className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
+                        onChange={(e) => handleInformantRelationChange(e.target.value)}
+                        className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white font-semibold text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
                       >
                         <option value="">-- Select Relation to Patient --</option>
-                        <option value="Self">Self</option>
+                        <option value="Self">Self (Informant is Patient)</option>
+                        <option value="Patient">Patient</option>
                         <option value="Spouse">Spouse</option>
                         <option value="Child">Child</option>
+                        <option value="Parent">Parent</option>
                         <option value="Sibling">Sibling</option>
                         <option value="Relative">Relative</option>
+                        <option value="Guardian / Companion">Guardian / Companion</option>
                       </select>
                     </div>
                     <div>
@@ -1663,16 +2168,25 @@ function MSWAssessmentContent() {
                         type="text"
                         placeholder="Enter occupation"
                         value={infOccupation}
-                        onChange={(e) => setInfOccupation(e.target.value)}
+                        onChange={(e) => {
+                          setInfOccupation(e.target.value);
+                          if (isInformantPatient) setPatOccupation(e.target.value);
+                        }}
                         className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-semibold text-[#475569] mb-1">MONTHLY INCOME (₱)</label>
+                      <label className="block text-[11px] font-semibold text-[#475569] mb-1">
+                        MONTHLY INCOME (₱) {isInformantPatient && <span className="text-[#0B6B3A] text-[10px]">(Synced)</span>}
+                      </label>
                       <input
                         type="number"
+                        min="0"
                         value={infIncome}
-                        onChange={(e) => setInfIncome(e.target.value)}
+                        onChange={(e) => {
+                          setInfIncome(e.target.value);
+                          if (isInformantPatient) setPatIncome(e.target.value);
+                        }}
                         className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
                       />
                     </div>
@@ -1684,229 +2198,813 @@ function MSWAssessmentContent() {
                       HIGHEST EDUCATIONAL ATTAINMENT
                     </label>
                     <div className="flex flex-wrap items-center gap-3 text-xs">
-                      {['No Formal Education', 'Elementary', 'High School', 'Vocational / Tech-Voc', 'College', 'Post-graduate'].map(
-                        (lvl) => (
-                          <label key={lvl} className="flex items-center gap-1.5 cursor-pointer">
-                            <input
-                              type="radio"
-                              name="inf_education"
-                              checked={infEducation === lvl}
-                              onChange={() => setInfEducation(lvl)}
-                              className="accent-[#0B6B3A]"
-                            />
-                            <span>{lvl}</span>
-                          </label>
-                        )
-                      )}
+                      {EDUCATION_LEVELS.map((lvl) => (
+                        <label key={lvl} className="flex items-center gap-1.5 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="inf_education"
+                            checked={infEducation === lvl}
+                            onChange={() => {
+                              setInfEducation(lvl);
+                              if (isInformantPatient) setPatEducation(lvl);
+                            }}
+                            className="accent-[#0B6B3A]"
+                          />
+                          <span>{lvl}</span>
+                        </label>
+                      ))}
                     </div>
                   </div>
                 </div>
 
                 {/* 2. PATIENT INFORMATION */}
-                <div className="space-y-3.5 p-4 rounded-xl border border-[#E2E8F0] bg-[#FAFBF8]/50">
-                  <div className="text-[11px] font-bold uppercase tracking-wider text-[#0B6B3A]">
-                    2. PATIENT INFORMATION
-                  </div>
+                <div
+                  className={`space-y-3.5 p-4 rounded-xl border transition ${
+                    isInformantPatient
+                      ? 'border-amber-300 bg-slate-50/90'
+                      : 'border-[#E2E8F0] bg-[#FAFBF8]/50'
+                  }`}
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-[#E2E8F0]">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-[#0B6B3A]">
+                        2. PATIENT INFORMATION
+                      </span>
+                      {isInformantPatient ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                          <i className="fa-solid fa-lock text-[9px]" />
+                          <span>Locked — Synced with Informant (Self)</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-[#E8F5EC] text-[#0B6B3A]">
+                          <i className="fa-solid fa-database text-[9px]" />
+                          <span>Pre-filled from Master Record</span>
+                        </span>
+                      )}
+                    </div>
 
-                  {/* Name Fields */}
-                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-                    <div>
-                      <label className="block text-[11px] font-semibold text-[#475569] mb-1">LAST NAME *</label>
-                      <input
-                        type="text"
-                        placeholder="Enter last name"
-                        value={patLastName}
-                        onChange={(e) => setPatLastName(e.target.value)}
-                        className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-[#475569] mb-1">FIRST NAME *</label>
-                      <input
-                        type="text"
-                        placeholder="Enter first name"
-                        value={patFirstName}
-                        onChange={(e) => setPatFirstName(e.target.value)}
-                        className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-[#475569] mb-1">MIDDLE NAME</label>
-                      <input
-                        type="text"
-                        placeholder="Enter middle name"
-                        value={patMiddleName}
-                        onChange={(e) => setPatMiddleName(e.target.value)}
-                        className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-[#475569] mb-1">EXT. / SUFFIX</label>
-                      <select
-                        value={patSuffix}
-                        onChange={(e) => setPatSuffix(e.target.value)}
-                        className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
+                    {isInformantPatient && (
+                      <button
+                        type="button"
+                        onClick={() => handleToggleInformantIsPatient(false)}
+                        className="text-[11px] font-semibold text-amber-800 hover:text-amber-950 underline cursor-pointer bg-transparent border-0"
                       >
-                        <option value="None">None</option>
-                        <option value="Jr.">Jr.</option>
-                        <option value="Sr.">Sr.</option>
-                        <option value="III">III</option>
-                      </select>
-                    </div>
+                        Change Informant Relation to Unlock
+                      </button>
+                    )}
                   </div>
 
-                  {/* Age, DOB, Sex, Religion, Civil Status */}
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                    <div>
-                      <label className="block text-[11px] font-semibold text-[#475569] mb-1">AGE *</label>
-                      <input
-                        type="number"
-                        value={patAge}
-                        onChange={(e) => setPatAge(e.target.value)}
-                        className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
-                      />
+                  {/* Lock Banner Explanation when Informant is the Patient */}
+                  {isInformantPatient && (
+                    <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2">
+                      <i className="fa-solid fa-shield-halved text-amber-600 mt-0.5 shrink-0" />
+                      <div>
+                        <strong>Patient Fields Locked (Read-Only):</strong> Because the informant is the patient (
+                        <code>{infRelation || 'Self'}</code>), these fields are synced with Section 1 to prevent duplicate or conflicting edits and avoid double-counting monthly income. Change <strong>Relation to Patient</strong> (e.g., Spouse, Child, Relative) to unlock independent editing.
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-[#475569] mb-1">DATE OF BIRTH</label>
-                      <input
-                        type="date"
-                        value={patDob}
-                        onChange={(e) => setPatDob(e.target.value)}
-                        className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-[#475569] mb-1">SEX *</label>
-                      <select
-                        value={patSex}
-                        onChange={(e) => setPatSex(e.target.value)}
-                        className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
-                      >
-                        <option value="">-- Select Sex --</option>
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-[#475569] mb-1">RELIGION</label>
-                      <select
-                        value={patReligion}
-                        onChange={(e) => setPatReligion(e.target.value)}
-                        className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
-                      >
-                        <option value="">-- Select Religion --</option>
-                        <option value="Roman Catholic">Roman Catholic</option>
-                        <option value="Christian">Christian</option>
-                        <option value="Iglesia Ni Cristo">Iglesia Ni Cristo</option>
-                        <option value="Islam">Islam</option>
-                        <option value="Others">Others</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-[#475569] mb-1">CIVIL STATUS</label>
-                      <select
-                        value={patCivilStatus}
-                        onChange={(e) => setPatCivilStatus(e.target.value)}
-                        className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
-                      >
-                        <option value="">-- Select Civil Status --</option>
-                        <option value="Single">Single</option>
-                        <option value="Married">Married</option>
-                        <option value="Widowed">Widowed</option>
-                        <option value="Separated">Separated</option>
-                      </select>
-                    </div>
-                  </div>
+                  )}
 
-                  {/* Contact Number, Email, Occupation, Monthly Income */}
-                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-                    <div>
-                      <label className="block text-[11px] font-semibold text-[#475569] mb-1">CONTACT NUMBER</label>
-                      <input
-                        type="text"
-                        placeholder="Contact number"
-                        value={patContact}
-                        onChange={(e) => setPatContact(e.target.value)}
-                        className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
-                      />
+                  <fieldset disabled={isInformantPatient} className="space-y-3.5 border-0 p-0 m-0 min-w-0">
+                    {/* Name Fields */}
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-[#475569] mb-1">LAST NAME *</label>
+                        <input
+                          type="text"
+                          placeholder="Enter last name"
+                          value={patLastName}
+                          onChange={(e) => setPatLastName(e.target.value)}
+                          className={`w-full h-9 px-3 border rounded-lg text-xs focus:outline-none ${
+                            isInformantPatient
+                              ? 'bg-slate-100 text-slate-600 border-slate-200 cursor-not-allowed'
+                              : 'bg-white text-[#10241A] border-[#CBD5E1] focus:border-[#0B6B3A]'
+                          }`}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-[#475569] mb-1">FIRST NAME *</label>
+                        <input
+                          type="text"
+                          placeholder="Enter first name"
+                          value={patFirstName}
+                          onChange={(e) => setPatFirstName(e.target.value)}
+                          className={`w-full h-9 px-3 border rounded-lg text-xs focus:outline-none ${
+                            isInformantPatient
+                              ? 'bg-slate-100 text-slate-600 border-slate-200 cursor-not-allowed'
+                              : 'bg-white text-[#10241A] border-[#CBD5E1] focus:border-[#0B6B3A]'
+                          }`}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-[#475569] mb-1">MIDDLE NAME</label>
+                        <input
+                          type="text"
+                          placeholder="Enter middle name"
+                          value={patMiddleName}
+                          onChange={(e) => setPatMiddleName(e.target.value)}
+                          className={`w-full h-9 px-3 border rounded-lg text-xs focus:outline-none ${
+                            isInformantPatient
+                              ? 'bg-slate-100 text-slate-600 border-slate-200 cursor-not-allowed'
+                              : 'bg-white text-[#10241A] border-[#CBD5E1] focus:border-[#0B6B3A]'
+                          }`}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-[#475569] mb-1">EXT. / SUFFIX</label>
+                        <select
+                          value={patSuffix}
+                          onChange={(e) => setPatSuffix(e.target.value)}
+                          className={`w-full h-9 px-3 border rounded-lg text-xs focus:outline-none ${
+                            isInformantPatient
+                              ? 'bg-slate-100 text-slate-600 border-slate-200 cursor-not-allowed'
+                              : 'bg-white text-[#10241A] border-[#CBD5E1] focus:border-[#0B6B3A]'
+                          }`}
+                        >
+                          <option value="None">None</option>
+                          <option value="Jr.">Jr.</option>
+                          <option value="Sr.">Sr.</option>
+                          <option value="II">II</option>
+                          <option value="III">III</option>
+                          <option value="IV">IV</option>
+                          {!['None', 'Jr.', 'Sr.', 'II', 'III', 'IV'].includes(patSuffix) && patSuffix && (
+                            <option value={patSuffix}>{patSuffix}</option>
+                          )}
+                        </select>
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-[#475569] mb-1">EMAIL ADDRESS</label>
-                      <input
-                        type="email"
-                        placeholder="Email address"
-                        value={patEmail}
-                        onChange={(e) => setPatEmail(e.target.value)}
-                        className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-[#475569] mb-1">OCCUPATION</label>
-                      <input
-                        type="text"
-                        placeholder="Enter occupation"
-                        value={patOccupation}
-                        onChange={(e) => setPatOccupation(e.target.value)}
-                        className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-[#475569] mb-1">MONTHLY INCOME (₱)</label>
-                      <input
-                        type="number"
-                        value={patIncome}
-                        onChange={(e) => setPatIncome(e.target.value)}
-                        className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
-                      />
-                    </div>
-                  </div>
 
-                  {/* Permanent Address & Alternative Address */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-[11px] font-semibold text-[#475569] mb-1">PERMANENT ADDRESS</label>
-                      <input
-                        type="text"
-                        placeholder="Permanent house / street / barangay / city"
-                        value={patAddress ? `${patAddress}, ${patBarangay}, ${patCity}, ${patProvince}`.replace(/^,\s*|,\s*$/g, '') : ''}
-                        onChange={(e) => setPatAddress(e.target.value)}
-                        className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
-                      />
+                    {/* Age, DOB, Sex, Religion, Civil Status */}
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-[#475569] mb-1">AGE *</label>
+                        <input
+                          type="number"
+                          value={patAge}
+                          onChange={(e) => setPatAge(e.target.value)}
+                          className={`w-full h-9 px-3 border rounded-lg text-xs focus:outline-none ${
+                            isInformantPatient
+                              ? 'bg-slate-100 text-slate-600 border-slate-200 cursor-not-allowed'
+                              : 'bg-white border-[#CBD5E1] focus:border-[#0B6B3A]'
+                          }`}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-[#475569] mb-1">DATE OF BIRTH</label>
+                        <input
+                          type="date"
+                          value={patDob}
+                          onChange={(e) => setPatDob(e.target.value)}
+                          className={`w-full h-9 px-3 border rounded-lg text-xs focus:outline-none ${
+                            isInformantPatient
+                              ? 'bg-slate-100 text-slate-600 border-slate-200 cursor-not-allowed'
+                              : 'bg-white border-[#CBD5E1] focus:border-[#0B6B3A]'
+                          }`}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-[#475569] mb-1">SEX *</label>
+                        <select
+                          value={patSex}
+                          onChange={(e) => setPatSex(e.target.value)}
+                          className={`w-full h-9 px-3 border rounded-lg text-xs focus:outline-none ${
+                            isInformantPatient
+                              ? 'bg-slate-100 text-slate-600 border-slate-200 cursor-not-allowed'
+                              : 'bg-white border-[#CBD5E1] focus:border-[#0B6B3A]'
+                          }`}
+                        >
+                          <option value="">-- Select Sex --</option>
+                          <option value="Male">Male</option>
+                          <option value="Female">Female</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-[#475569] mb-1">RELIGION</label>
+                        <select
+                          value={patReligion}
+                          onChange={(e) => setPatReligion(e.target.value)}
+                          className={`w-full h-9 px-3 border rounded-lg text-xs focus:outline-none ${
+                            isInformantPatient
+                              ? 'bg-slate-100 text-slate-600 border-slate-200 cursor-not-allowed'
+                              : 'bg-white border-[#CBD5E1] focus:border-[#0B6B3A]'
+                          }`}
+                        >
+                          <option value="">-- Select Religion --</option>
+                          <option value="Roman Catholic">Roman Catholic</option>
+                          <option value="Christian">Christian</option>
+                          <option value="Iglesia Ni Cristo">Iglesia Ni Cristo</option>
+                          <option value="Islam">Islam</option>
+                          <option value="Others">Others</option>
+                          {!['', 'Roman Catholic', 'Christian', 'Iglesia Ni Cristo', 'Islam', 'Others'].includes(patReligion) && (
+                            <option value={patReligion}>{patReligion}</option>
+                          )}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-[#475569] mb-1">CIVIL STATUS</label>
+                        <select
+                          value={patCivilStatus}
+                          onChange={(e) => setPatCivilStatus(e.target.value)}
+                          className={`w-full h-9 px-3 border rounded-lg text-xs focus:outline-none ${
+                            isInformantPatient
+                              ? 'bg-slate-100 text-slate-600 border-slate-200 cursor-not-allowed'
+                              : 'bg-white border-[#CBD5E1] focus:border-[#0B6B3A]'
+                          }`}
+                        >
+                          <option value="">-- Select Civil Status --</option>
+                          <option value="Single">Single</option>
+                          <option value="Married">Married</option>
+                          <option value="Widowed">Widowed</option>
+                          <option value="Separated">Separated</option>
+                          {!['', 'Single', 'Married', 'Widowed', 'Separated'].includes(patCivilStatus) && (
+                            <option value={patCivilStatus}>{patCivilStatus}</option>
+                          )}
+                        </select>
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-[#475569] mb-1">CURRENT / ALTERNATIVE ADDRESS</label>
-                      <input
-                        type="text"
-                        placeholder="Current or alternative residence"
-                        value={patAltAddress || (patAddress ? `${patAddress}, ${patBarangay}, ${patCity}` : '')}
-                        onChange={(e) => setPatAltAddress(e.target.value)}
-                        className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
-                      />
-                    </div>
-                  </div>
 
-                  {/* Radio: Highest Educational Attainment */}
-                  <div>
-                    <label className="block text-[11px] font-semibold text-[#475569] mb-1.5">
-                      HIGHEST EDUCATIONAL ATTAINMENT
-                    </label>
-                    <div className="flex flex-wrap items-center gap-3 text-xs">
-                      {['No Formal Education', 'Elementary', 'High School', 'Vocational / Tech-Voc', 'College', 'Post-graduate'].map(
-                        (lvl) => (
-                          <label key={lvl} className="flex items-center gap-1.5 cursor-pointer">
+                    {/* Contact Number, Email, Occupation, Monthly Income */}
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-[#475569] mb-1">CONTACT NUMBER</label>
+                        <input
+                          type="text"
+                          placeholder="Contact number"
+                          value={patContact}
+                          onChange={(e) => setPatContact(e.target.value)}
+                          className={`w-full h-9 px-3 border rounded-lg text-xs focus:outline-none ${
+                            isInformantPatient
+                              ? 'bg-slate-100 text-slate-600 border-slate-200 cursor-not-allowed'
+                              : 'bg-white border-[#CBD5E1] focus:border-[#0B6B3A]'
+                          }`}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-[#475569] mb-1">EMAIL ADDRESS</label>
+                        <input
+                          type="email"
+                          placeholder="Email address"
+                          value={patEmail}
+                          onChange={(e) => setPatEmail(e.target.value)}
+                          className={`w-full h-9 px-3 border rounded-lg text-xs focus:outline-none ${
+                            isInformantPatient
+                              ? 'bg-slate-100 text-slate-600 border-slate-200 cursor-not-allowed'
+                              : 'bg-white border-[#CBD5E1] focus:border-[#0B6B3A]'
+                          }`}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-[#475569] mb-1">OCCUPATION</label>
+                        <input
+                          type="text"
+                          placeholder="Enter occupation"
+                          value={patOccupation}
+                          onChange={(e) => setPatOccupation(e.target.value)}
+                          className={`w-full h-9 px-3 border rounded-lg text-xs focus:outline-none ${
+                            isInformantPatient
+                              ? 'bg-slate-100 text-slate-600 border-slate-200 cursor-not-allowed'
+                              : 'bg-white border-[#CBD5E1] focus:border-[#0B6B3A]'
+                          }`}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-[#475569] mb-1">MONTHLY INCOME (₱)</label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={patIncome}
+                          onChange={(e) => setPatIncome(e.target.value)}
+                          className={`w-full h-9 px-3 border rounded-lg text-xs focus:outline-none ${
+                            isInformantPatient
+                              ? 'bg-slate-100 text-slate-600 border-slate-200 cursor-not-allowed'
+                              : 'bg-white border-[#CBD5E1] focus:border-[#0B6B3A]'
+                          }`}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Structured Permanent Address (PSGC Cascading Dropdowns) */}
+                    <div className="p-3 rounded-xl border border-[#E2E8F0] bg-white/80 space-y-2.5">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-[10.5px] font-bold uppercase text-[#0B6B3A]">
+                          Permanent Address (PSGC Verified)
+                        </span>
+                        <span className="text-[11px] text-[#64748B] truncate max-w-md">
+                          {[patStreet, patBarangay, patCity, patProvince, patRegion].filter(Boolean).join(', ') || patAddress || '—'}
+                        </span>
+                      </div>
+                      <PsgcCascadingFields
+                        region={patRegion}
+                        province={patProvince}
+                        city={patCity}
+                        barangay={patBarangay}
+                        street={patStreet}
+                        disabled={isInformantPatient}
+                        streetLabel="HOUSE / STREET / PUROK"
+                        onChange={(next) => {
+                          setPatRegion(next.region);
+                          setPatProvince(next.province);
+                          setPatCity(next.city);
+                          setPatBarangay(next.barangay);
+                          setPatStreet(next.street || '');
+                          const composed = [next.street, next.barangay, next.city, next.province].filter(Boolean).join(', ');
+                          setPatAddress(composed);
+                          if (sameAsPermAddress) {
+                            setPatAltRegion(next.region);
+                            setPatAltProvince(next.province);
+                            setPatAltCity(next.city);
+                            setPatAltBarangay(next.barangay);
+                            setPatAltStreet(next.street || '');
+                            setPatAltAddress(composed);
+                          }
+                        }}
+                      />
+                    </div>
+
+                    {/* Structured Current / Alternative Address */}
+                    <div className="p-3 rounded-xl border border-[#E2E8F0] bg-white/80 space-y-2.5">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-[10.5px] font-bold uppercase text-[#0B6B3A]">
+                          Current / Alternative Address
+                        </span>
+                        <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#334155] cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={sameAsPermAddress}
+                            disabled={isInformantPatient}
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              setSameAsPermAddress(checked);
+                              if (checked) {
+                                setPatAltRegion(patRegion);
+                                setPatAltProvince(patProvince);
+                                setPatAltCity(patCity);
+                                setPatAltBarangay(patBarangay);
+                                setPatAltStreet(patStreet);
+                                setPatAltAddress(patAddress);
+                              }
+                            }}
+                            className="accent-[#0B6B3A] rounded"
+                          />
+                          <span>Same as Permanent Address</span>
+                        </label>
+                      </div>
+
+                      {sameAsPermAddress ? (
+                        <input
+                          type="text"
+                          readOnly
+                          value={
+                            [patStreet, patBarangay, patCity, patProvince, patRegion].filter(Boolean).join(', ') ||
+                            patAltAddress ||
+                            patAddress ||
+                            ''
+                          }
+                          placeholder="Same as permanent residence"
+                          className="w-full h-9 px-3 border border-slate-200 rounded-lg text-xs bg-slate-100 text-slate-600"
+                        />
+                      ) : (
+                        <PsgcCascadingFields
+                          region={patAltRegion}
+                          province={patAltProvince}
+                          city={patAltCity}
+                          barangay={patAltBarangay}
+                          street={patAltStreet}
+                          disabled={isInformantPatient}
+                          streetLabel="CURRENT HOUSE / STREET"
+                          onChange={(next) => {
+                            setPatAltRegion(next.region);
+                            setPatAltProvince(next.province);
+                            setPatAltCity(next.city);
+                            setPatAltBarangay(next.barangay);
+                            setPatAltStreet(next.street || '');
+                            setPatAltAddress(
+                              [next.street, next.barangay, next.city, next.province].filter(Boolean).join(', ')
+                            );
+                          }}
+                        />
+                      )}
+                    </div>
+
+                    {/* Radio: Highest Educational Attainment */}
+                    <div>
+                      <label className="block text-[11px] font-semibold text-[#475569] mb-1.5">
+                        HIGHEST EDUCATIONAL ATTAINMENT
+                      </label>
+                      <div className="flex flex-wrap items-center gap-3 text-xs">
+                        {EDUCATION_LEVELS.map((lvl) => (
+                          <label
+                            key={lvl}
+                            className={`flex items-center gap-1.5 ${
+                              isInformantPatient ? 'cursor-not-allowed opacity-75' : 'cursor-pointer'
+                            }`}
+                          >
                             <input
                               type="radio"
                               name="pat_education"
-                              checked={patEducation === lvl || (lvl === 'High School' && patEducation.includes('High School')) || (lvl === 'Elementary' && patEducation.includes('Elementary'))}
+                              disabled={isInformantPatient}
+                              checked={patEducation === lvl}
                               onChange={() => setPatEducation(lvl)}
                               className="accent-[#0B6B3A]"
                             />
                             <span>{lvl}</span>
                           </label>
-                        )
-                      )}
+                        ))}
+                      </div>
+                    </div>
+                  </fieldset>
+                </div>
+              </div>
+
+              {/* SECTION II: SOCIO-ECONOMIC & MONTHLY EXPENSES (Clinical Intake Sheet) */}
+              <div className="p-4 sm:p-5 rounded-xl border border-[#E2E8F0] bg-white space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-[#EEF2EF]">
+                  <span className="font-bold text-xs text-[#0B6B3A] flex items-center gap-1.5 uppercase tracking-wide">
+                    <i className="fa-solid fa-wallet text-sm" />
+                    <span>II. SOCIO-ECONOMIC &amp; MONTHLY EXPENSES</span>
+                  </span>
+                  <span className="text-[11px] font-semibold text-[#475569] bg-[#F8FAFC] border border-[#E2E8F0] px-2.5 py-0.5 rounded-full">
+                    Estimated Monthly Expenses:{' '}
+                    <strong className="text-[#0B6B3A] font-mono">
+                      ₱{totalMonthlyExpenses.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </strong>
+                  </span>
+                </div>
+
+                {/* Row 1: Patient Source of Funds & Spouse Source of Funds */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {/* 1. Patient Source of Funds */}
+                  <div className="p-3.5 rounded-xl border border-[#E2E8F0] bg-[#FAFBF8]/70 space-y-2.5">
+                    <label className="block text-[11px] font-bold text-[#10241A] uppercase">
+                      1. Patient Source of Funds
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g., Vendor (Pantalon; cigarettes)"
+                      value={patSourceOfFundsDetail}
+                      onChange={(e) => setPatSourceOfFundsDetail(e.target.value)}
+                      className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
+                    />
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[10px] font-semibold text-[#64748B] mb-1">RATE / EARNINGS (₱)</label>
+                        <input
+                          type="number"
+                          min="0"
+                          placeholder="e.g., 300"
+                          value={patSourceOfFundsRate}
+                          onChange={(e) => setPatSourceOfFundsRate(e.target.value)}
+                          className="w-full h-8 px-2.5 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-semibold text-[#64748B] mb-1">FREQUENCY</label>
+                        <select
+                          value={patSourceOfFundsPeriod}
+                          onChange={(e) => setPatSourceOfFundsPeriod(e.target.value as any)}
+                          className="w-full h-8 px-2 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
+                        >
+                          <option value="per day">per day</option>
+                          <option value="per week">per week</option>
+                          <option value="per month">per month</option>
+                          <option value="irregular">irregular / seasonal</option>
+                        </select>
+                      </div>
+                    </div>
+                    {(patSourceOfFundsDetail || patSourceOfFundsRate) && (
+                      <div className="text-[10.5px] text-[#0B6B3A] font-medium">
+                        Summary: {patSourceOfFundsDetail || 'Unspecified'}
+                        {patSourceOfFundsRate ? ` – Php ${Number(patSourceOfFundsRate).toLocaleString()} ${patSourceOfFundsPeriod}` : ''}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 2. Spouse Source of Funds */}
+                  <div className="p-3.5 rounded-xl border border-[#E2E8F0] bg-[#FAFBF8]/70 space-y-2.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <label className="text-[11px] font-bold text-[#10241A] uppercase">
+                        2. Spouse Source of Funds
+                      </label>
+                      <label className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#475569] cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={spouseSourceNotApplicable}
+                          onChange={(e) => setSpouseSourceNotApplicable(e.target.checked)}
+                          className="accent-[#0B6B3A] rounded"
+                        />
+                        <span>Not Applicable (N/A)</span>
+                      </label>
+                    </div>
+                    <input
+                      type="text"
+                      disabled={spouseSourceNotApplicable}
+                      placeholder={spouseSourceNotApplicable ? 'Not Applicable' : 'e.g., Home laundry / Sari-sari helper'}
+                      value={spouseSourceNotApplicable ? 'Not Applicable' : spouseSourceOfFundsDetail}
+                      onChange={(e) => setSpouseSourceOfFundsDetail(e.target.value)}
+                      className={`w-full h-9 px-3 border rounded-lg text-xs focus:outline-none ${
+                        spouseSourceNotApplicable
+                          ? 'bg-slate-100 text-slate-500 border-slate-200 cursor-not-allowed'
+                          : 'bg-white border-[#CBD5E1] focus:border-[#0B6B3A]'
+                      }`}
+                    />
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[10px] font-semibold text-[#64748B] mb-1">RATE / EARNINGS (₱)</label>
+                        <input
+                          type="number"
+                          min="0"
+                          disabled={spouseSourceNotApplicable}
+                          placeholder={spouseSourceNotApplicable ? 'N/A' : 'e.g., 250'}
+                          value={spouseSourceNotApplicable ? '' : spouseSourceOfFundsRate}
+                          onChange={(e) => setSpouseSourceOfFundsRate(e.target.value)}
+                          className={`w-full h-8 px-2.5 border rounded-lg text-xs focus:outline-none ${
+                            spouseSourceNotApplicable
+                              ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
+                              : 'bg-white border-[#CBD5E1] focus:border-[#0B6B3A]'
+                          }`}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-semibold text-[#64748B] mb-1">FREQUENCY</label>
+                        <select
+                          disabled={spouseSourceNotApplicable}
+                          value={spouseSourceOfFundsPeriod}
+                          onChange={(e) => setSpouseSourceOfFundsPeriod(e.target.value as any)}
+                          className={`w-full h-8 px-2 border rounded-lg text-xs focus:outline-none ${
+                            spouseSourceNotApplicable
+                              ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
+                              : 'bg-white border-[#CBD5E1] focus:border-[#0B6B3A]'
+                          }`}
+                        >
+                          <option value="per day">per day</option>
+                          <option value="per week">per week</option>
+                          <option value="per month">per month</option>
+                          <option value="irregular">irregular / seasonal</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
+                </div>
+
+                {/* Row 2: Enrolled Government Assistance Programs & First Consultation in OFPHIL */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  <div className="lg:col-span-2 p-3.5 rounded-xl border border-[#E2E8F0] bg-[#FAFBF8]/70 space-y-2.5">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <label className="text-[11px] font-bold text-[#10241A] uppercase">
+                        3. Enrolled Government Assistance Programs
+                      </label>
+                      <div className="inline-flex rounded-lg border border-[#CBD5E1] bg-white p-0.5">
+                        {(['Yes', 'No'] as const).map((opt) => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => setGovAssistanceEnrolled(opt)}
+                            className={`px-3 py-1 rounded-md text-xs font-bold transition cursor-pointer ${
+                              govAssistanceEnrolled === opt
+                                ? 'bg-[#0B6B3A] text-white'
+                                : 'text-[#475569] hover:bg-slate-50'
+                            }`}
+                          >
+                            {opt}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {govAssistanceEnrolled === 'Yes' ? (
+                      <div className="space-y-2">
+                        <input
+                          type="text"
+                          placeholder="Specify program(s): e.g., 4Ps, Senior Citizen Social Pension, DSWD AICS..."
+                          value={govAssistancePrograms}
+                          onChange={(e) => setGovAssistancePrograms(e.target.value)}
+                          className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
+                        />
+                        <div className="flex flex-wrap gap-1.5">
+                          {['4Ps', 'Senior Citizen Pension', 'PhilHealth Indigent', 'DSWD AICS', 'PCSO / Malasakit'].map(
+                            (tag) => {
+                              const active = govAssistancePrograms.toLowerCase().includes(tag.toLowerCase());
+                              return (
+                                <button
+                                  key={tag}
+                                  type="button"
+                                  onClick={() => {
+                                    if (active) return;
+                                    setGovAssistancePrograms((prev) => (prev.trim() ? `${prev.trim()}, ${tag}` : tag));
+                                  }}
+                                  className={`px-2 py-0.5 rounded-full text-[10.5px] font-semibold border cursor-pointer transition ${
+                                    active
+                                      ? 'bg-[#E8F5EC] text-[#0B6B3A] border-[#86EFAC]'
+                                      : 'bg-white text-[#475569] border-[#CBD5E1] hover:bg-slate-50'
+                                  }`}
+                                >
+                                  + {tag}
+                                </button>
+                              );
+                            }
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-[11px] text-[#64748B]">
+                        No active government cash/subsidy program declared. Toggle <strong>Yes</strong> to specify 4Ps, Senior Citizen Pension, etc.
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 9. First Consultation in OFPHIL */}
+                  <div className="p-3.5 rounded-xl border border-[#E2E8F0] bg-[#FAFBF8]/70 space-y-2">
+                    <div className="flex items-center justify-between gap-1">
+                      <label className="text-[11px] font-bold text-[#10241A] uppercase">
+                        9. First Consultation in OFPHIL
+                      </label>
+                      {firstConsultationSource && (
+                        <span className="px-2 py-0.5 rounded text-[9.5px] font-bold bg-[#E8F5EC] text-[#0B6B3A]">
+                          Auto-Filled
+                        </span>
+                      )}
+                    </div>
+                    <input
+                      type="date"
+                      value={firstConsultationDate}
+                      onChange={(e) => setFirstConsultationDate(e.target.value)}
+                      className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white text-[#10241A] font-semibold focus:outline-none focus:border-[#0B6B3A]"
+                    />
+                    <div className="text-[10.5px] text-[#64748B]">
+                      {firstConsultationSource
+                        ? `Pre-populated from ${firstConsultationSource}`
+                        : 'Select earliest OFPHIL clinic consultation date'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Row 3: Rent, Utilities (Water + Electricity), Transportation, Eye Maintenance */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {/* 4. Rent Expenses */}
+                  <div className="p-3 rounded-xl border border-[#E2E8F0] bg-[#FAFBF8]/70 space-y-2">
+                    <label className="block text-[11px] font-bold text-[#10241A] uppercase">4. Rent Expenses (₱/mo)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={rentExpenseAmount}
+                      onChange={(e) => setRentExpenseAmount(e.target.value)}
+                      placeholder="0.00"
+                      className="w-full h-8 px-2.5 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
+                    />
+                    <input
+                      type="text"
+                      value={rentHousingNote}
+                      onChange={(e) => setRentHousingNote(e.target.value)}
+                      placeholder="e.g., NONE (Owned by relative)"
+                      className="w-full h-8 px-2.5 border border-[#CBD5E1] rounded-lg text-[11px] bg-white focus:outline-none focus:border-[#0B6B3A]"
+                    />
+                  </div>
+
+                  {/* 5. Utility Expenses (Water & Electricity) */}
+                  <div className="p-3 rounded-xl border border-[#E2E8F0] bg-[#FAFBF8]/70 space-y-2">
+                    <label className="block text-[11px] font-bold text-[#10241A] uppercase">5. Utility Expenses (₱/mo)</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <span className="block text-[9.5px] font-semibold text-[#64748B] mb-0.5">WATER BILL (₱)</span>
+                        <input
+                          type="number"
+                          min="0"
+                          value={waterBillAmount}
+                          onChange={(e) => setWaterBillAmount(e.target.value)}
+                          placeholder="0.00"
+                          className="w-full h-8 px-2 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
+                        />
+                      </div>
+                      <div>
+                        <span className="block text-[9.5px] font-semibold text-[#64748B] mb-0.5">ELECTRICITY (₱)</span>
+                        <input
+                          type="number"
+                          min="0"
+                          value={electricityBillAmount}
+                          onChange={(e) => setElectricityBillAmount(e.target.value)}
+                          placeholder="0.00"
+                          className="w-full h-8 px-2 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 6. Transportation Expenses */}
+                  <div className="p-3 rounded-xl border border-[#E2E8F0] bg-[#FAFBF8]/70 space-y-2">
+                    <label className="block text-[11px] font-bold text-[#10241A] uppercase">6. Transportation (₱/mo)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={transportExpenseAmount}
+                      onChange={(e) => setTransportExpenseAmount(e.target.value)}
+                      placeholder="0.00"
+                      className="w-full h-8 px-2.5 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
+                    />
+                    <input
+                      type="text"
+                      value={transportExpenseNotes}
+                      onChange={(e) => setTransportExpenseNotes(e.target.value)}
+                      placeholder="Notes (e.g., Jeepney + escort fare)"
+                      className="w-full h-8 px-2.5 border border-[#CBD5E1] rounded-lg text-[11px] bg-white focus:outline-none focus:border-[#0B6B3A]"
+                    />
+                  </div>
+
+                  {/* 8. Eye Maintenance Expenses */}
+                  <div className="p-3 rounded-xl border border-[#E2E8F0] bg-[#FAFBF8]/70 space-y-2">
+                    <label className="block text-[11px] font-bold text-[#10241A] uppercase">8. Eye Maintenance (₱/mo)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={eyeMaintenanceExpense}
+                      onChange={(e) => setEyeMaintenanceExpense(e.target.value)}
+                      placeholder="0.00"
+                      className="w-full h-8 px-2.5 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
+                    />
+                    <div className="text-[10.5px] text-[#64748B] pt-1">
+                      Ophthalmic drops / glaucoma or lubricant maintenance
+                    </div>
+                  </div>
+                </div>
+
+                {/* Row 4: 7. Medical Expenses from Other Illness(es) (Dynamic Itemized List) */}
+                <div className="p-3.5 rounded-xl border border-[#E2E8F0] bg-[#FAFBF8]/70 space-y-2.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <span className="text-[11px] font-bold text-[#10241A] uppercase">
+                        7. Medical Expenses from Other Illness(es)
+                      </span>
+                      <span className="text-[11px] text-[#64748B] ml-2">
+                        (e.g., Hypertension maintenance – Php 660/mo, Cholesterol maintenance – Php 510/mo)
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleAddOtherMedicalExpense}
+                      className="inline-flex items-center gap-1 px-3 py-1 rounded-lg border border-[#0B6B3A] bg-[#E8F5EC] text-[#0B6B3A] font-bold text-[11px] hover:bg-[#D5E2D9] transition cursor-pointer"
+                    >
+                      <i className="fa-solid fa-plus text-[10px]" />
+                      <span>Add Illness Entry</span>
+                    </button>
+                  </div>
+
+                  {otherMedicalExpenses.length === 0 ? (
+                    <div className="text-[11px] text-[#94A3B8] py-1">
+                      No maintenance expenses from other illnesses added yet. Click <strong>Add Illness Entry</strong> if applicable.
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {otherMedicalExpenses.map((item, idx) => (
+                        <div key={item.id} className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
+                          <div className="sm:col-span-8">
+                            <input
+                              type="text"
+                              placeholder="Condition & maintenance medication (e.g., Hypertension maintenance)"
+                              value={item.condition}
+                              onChange={(e) => {
+                                const updated = [...otherMedicalExpenses];
+                                updated[idx].condition = e.target.value;
+                                setOtherMedicalExpenses(updated);
+                              }}
+                              className="w-full h-8 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
+                            />
+                          </div>
+                          <div className="sm:col-span-3">
+                            <div className="relative">
+                              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-[#64748B]">₱</span>
+                              <input
+                                type="number"
+                                min="0"
+                                placeholder="Monthly cost"
+                                value={item.monthlyCost}
+                                onChange={(e) => {
+                                  const updated = [...otherMedicalExpenses];
+                                  updated[idx].monthlyCost = e.target.value;
+                                  setOtherMedicalExpenses(updated);
+                                }}
+                                className="w-full h-8 pl-6 pr-2.5 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
+                              />
+                            </div>
+                          </div>
+                          <div className="sm:col-span-1 text-right">
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveOtherMedicalExpense(item.id)}
+                              className="h-8 px-2.5 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs cursor-pointer"
+                              title="Remove entry"
+                            >
+                              <i className="fa-solid fa-trash-can" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                      <div className="text-right text-[11px] font-semibold text-[#334155]">
+                        Other Medical Maintenance Subtotal:{' '}
+                        <strong className="text-[#0B6B3A] font-mono">
+                          ₱{otherMedicalExpensesSubtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mo
+                        </strong>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -2199,147 +3297,414 @@ function MSWAssessmentContent() {
              ======================================================== */}
           {activeStage === 2 && (
             <div className="space-y-6">
-              {/* STAGE 2 ACTION & STATUS TOOLBAR */}
-              <div className="p-4 rounded-xl border border-[#0B6B3A]/30 bg-[#F0FDF4] flex flex-wrap items-center justify-between gap-3 shadow-xs">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-['Outfit'] font-bold text-sm text-[#14532D]">
-                      Stage 2: Structured MSW Clinical Intake Interview &amp; Assessment
-                    </span>
-                    <span
-                      className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
-                        interviewStatus === 'COMPLETED'
-                          ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                          : interviewStatus === 'IN_PROGRESS'
-                          ? 'bg-blue-100 text-blue-800 border-blue-300'
-                          : 'bg-amber-100 text-amber-800 border-amber-300'
-                      }`}
-                    >
-                      {interviewStatus === 'COMPLETED'
-                        ? 'Interview Completed'
-                        : interviewStatus === 'IN_PROGRESS'
-                        ? 'Interview In Progress'
-                        : 'Interview Not Started'}
-                    </span>
-                  </div>
-                  <p className="text-[11.5px] text-[#166534] mt-0.5 mb-0">
-                    Interview-driven clinical casework. Document patient disclosures and MSW professional observations; backend API computes deterministic classification without manual scoring.
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsReviewMode(!isReviewMode)}
-                    className="px-3 py-1.5 rounded-lg border border-[#CBD5E1] bg-white hover:bg-[#F8FAFC] text-xs font-semibold text-[#334155] transition flex items-center gap-1.5 shadow-2xs"
-                  >
-                    <i className={`fa-solid ${isReviewMode ? 'fa-pen-to-square' : 'fa-clipboard-check'} text-[11px] text-[#0B6B3A]`} />
-                    <span>{isReviewMode ? 'Switch to Edit Form' : 'Review Interview Summary'}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleSaveInterviewDraft(false)}
-                    disabled={isSavingInterview}
-                    className="px-3 py-1.5 rounded-lg border border-[#86EFAC] bg-white hover:bg-emerald-50 text-xs font-semibold text-[#0B6B3A] transition flex items-center gap-1.5 shadow-2xs"
-                  >
-                    {isSavingInterview ? (
-                      <i className="fa-solid fa-circle-notch fa-spin text-[11px]" />
-                    ) : (
-                      <i className="fa-solid fa-floppy-disk text-[11px]" />
-                    )}
-                    <span>Save Draft</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleSaveInterviewDraft(true)}
-                    disabled={isSavingInterview}
-                    className="px-3.5 py-1.5 rounded-lg bg-[#0B6B3A] hover:bg-[#064826] text-white text-xs font-bold transition flex items-center gap-1.5 shadow-xs"
-                  >
-                    <i className="fa-solid fa-check text-[11px]" />
-                    <span>Mark Completed</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* REVIEW MODE AUDIT SUMMARY VIEW */}
-              {isReviewMode ? (
-                <div className="space-y-4 p-5 bg-white border border-[#CBD5E1] rounded-2xl shadow-xs">
-                  <div className="flex items-center justify-between pb-3 border-b border-[#E2E8F0]">
+              {/* STAGE 2 ACTION, PROMINENT DUAL-MODE SWITCHER & STATUS TOOLBAR */}
+              <div className="p-4 rounded-xl border border-[#0B6B3A]/30 bg-[#F0FDF4] space-y-3 shadow-xs">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
                     <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-lg bg-[#0B6B3A] text-white flex items-center justify-center text-sm font-bold">
-                        <i className="fa-solid fa-file-invoice" />
-                      </div>
-                      <div>
-                        <h4 className="font-['Outfit'] font-bold text-sm text-[#10241A] m-0">
-                          MSW Clinical Intake &amp; Assessment Dossier Review
-                        </h4>
-                        <p className="text-[11px] text-[#5A7466] m-0">
-                          Official Casework Audit &amp; Evidentiary Separation Review
-                        </p>
-                      </div>
+                      <span className="font-['Outfit'] font-bold text-sm text-[#14532D]">
+                        Stage 2: Structured MSW Clinical Intake Interview &amp; Assessment
+                      </span>
+                      <span
+                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                          interviewStatus === 'COMPLETED'
+                            ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                            : interviewStatus === 'IN_PROGRESS'
+                            ? 'bg-blue-100 text-blue-800 border-blue-300'
+                            : 'bg-amber-100 text-amber-800 border-amber-300'
+                        }`}
+                      >
+                        {interviewStatus === 'COMPLETED'
+                          ? 'Interview Completed'
+                          : interviewStatus === 'IN_PROGRESS'
+                          ? 'Interview In Progress'
+                          : 'Interview Not Started'}
+                      </span>
                     </div>
-                    <span className="text-xs font-mono text-[#64748B]">
-                      Assigned MSW: <strong>{assignedMsw}</strong> | Date: <strong>{interviewDate}</strong>
-                    </span>
+                    <p className="text-[11.5px] text-[#166534] mt-0.5 mb-0">
+                      Toggle between active <strong>Edit Form</strong> entry and the locked <strong>Review Summary Interview</strong> dossier view.
+                    </p>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Patient Disclosures Column */}
-                    <div className="p-4 bg-[#F8FAFC] border border-blue-200 rounded-xl space-y-3">
-                      <div className="flex items-center gap-2 text-blue-900 font-bold text-xs pb-2 border-b border-blue-200">
-                        <i className="fa-solid fa-user-tag text-blue-600" />
-                        <span>Patient / Representative Disclosed Responses</span>
-                      </div>
-                      <div className="text-xs space-y-2 text-[#334155]">
-                        <div><strong className="text-slate-700">Interviewed:</strong> {interviewedPerson} {representativeRelationship ? `(${representativeRelationship})` : ''}</div>
-                        <div><strong className="text-slate-700">Living Situation:</strong> {livingSituation}</div>
-                        <div><strong className="text-slate-700">Household Composition:</strong> {householdComposition}</div>
-                        <div><strong className="text-slate-700">Employment &amp; Income:</strong> {employmentSituation} — {incomeSources}</div>
-                        <div><strong className="text-slate-700">Medical Condition:</strong> {medicalConditionSummary}</div>
-                        <div><strong className="text-slate-700">Financial Barriers:</strong> {financialBarriers}</div>
-                        <div><strong className="text-slate-700">Psychosocial &amp; Coping:</strong> {copingCapacityNarrative}</div>
-                      </div>
-                    </div>
+                  {/* Save & Complete Actions (Active in Edit Form Mode) */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleSaveInterviewDraft(false)}
+                      disabled={isSavingInterview}
+                      className="px-3 py-1.5 rounded-lg border border-[#86EFAC] bg-white hover:bg-emerald-50 text-xs font-semibold text-[#0B6B3A] transition flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                    >
+                      {isSavingInterview ? (
+                        <i className="fa-solid fa-circle-notch fa-spin text-[11px]" />
+                      ) : (
+                        <i className="fa-solid fa-floppy-disk text-[11px]" />
+                      )}
+                      <span>Save Draft</span>
+                    </button>
 
-                    {/* MSW Observations Column */}
-                    <div className="p-4 bg-[#F0FDF4] border border-emerald-200 rounded-xl space-y-3">
-                      <div className="flex items-center gap-2 text-emerald-900 font-bold text-xs pb-2 border-b border-emerald-200">
-                        <i className="fa-solid fa-user-doctor text-emerald-600" />
-                        <span>MSW Professional Clinical Observations</span>
-                      </div>
-                      <div className="text-xs space-y-2 text-[#14532D]">
-                        <div><strong className="text-[#166534]">Interview Method:</strong> {interviewMethod.replace(/_/g, ' ')} ({interviewStartTime} - {interviewEndTime})</div>
-                        <div><strong className="text-[#166534]">Living Quarters Finding:</strong> {livingSituationObs}</div>
-                        <div><strong className="text-[#166534]">Dependents Vulnerability:</strong> {householdCompositionObs}</div>
-                        <div><strong className="text-[#166534]">Livelihood Assessment:</strong> {employmentObs}</div>
-                        <div><strong className="text-[#166534]">Clinical Need &amp; Risk:</strong> {medicalConditionObs}</div>
-                        <div><strong className="text-[#166534]">Economic Out-of-Pocket Burden:</strong> {financialBarriersObs}</div>
-                        <div><strong className="text-[#166534]">Psychological Resilience:</strong> {copingCapacityObs}</div>
-                      </div>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleSaveInterviewDraft(true)}
+                      disabled={isSavingInterview}
+                      className="px-3.5 py-1.5 rounded-lg bg-[#0B6B3A] hover:bg-[#064826] text-white text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+                    >
+                      <i className="fa-solid fa-check text-[11px]" />
+                      <span>Mark Completed</span>
+                    </button>
                   </div>
+                </div>
 
-                  <div className="pt-3 border-t border-[#E2E8F0] flex justify-end gap-2">
+                {/* Prominent Segmented Dual-Mode Switcher: Edit Form vs. Review Summary Interview */}
+                <div className="pt-2.5 border-t border-[#BBF7D0] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="inline-flex rounded-xl border border-[#CBD5E1] bg-white p-1 shadow-2xs">
                     <button
                       type="button"
                       onClick={() => setIsReviewMode(false)}
-                      className="px-4 py-2 rounded-xl bg-white border border-[#CBD5E1] text-xs font-semibold text-[#334155] hover:bg-slate-50"
+                      className={`px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition cursor-pointer ${
+                        !isReviewMode
+                          ? 'bg-[#0B6B3A] text-white shadow-xs'
+                          : 'text-[#475569] hover:bg-slate-50'
+                      }`}
                     >
-                      Return to Edit Form
+                      <i className="fa-solid fa-pen-to-square text-[11px]" />
+                      <span>Edit Form</span>
+                      <span
+                        className={`text-[9.5px] px-1.5 py-0.5 rounded uppercase ${
+                          !isReviewMode ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+                        }`}
+                      >
+                        Editable
+                      </span>
                     </button>
+
                     <button
                       type="button"
-                      onClick={() => setActiveStage(3)}
-                      className="px-4 py-2 rounded-xl bg-[#0B6B3A] text-white text-xs font-bold hover:bg-[#064826]"
+                      onClick={() => {
+                        runBackendClassification();
+                        if (assessmentId) {
+                          saveDraftToBackend(true);
+                        }
+                        setIsReviewMode(true);
+                      }}
+                      className={`px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition cursor-pointer ${
+                        isReviewMode
+                          ? 'bg-[#0B6B3A] text-white shadow-xs'
+                          : 'text-[#475569] hover:bg-slate-50'
+                      }`}
                     >
-                      Proceed to Supporting Documents (Stage 3) &rarr;
+                      <i className="fa-solid fa-lock text-[11px]" />
+                      <span>Review Summary Interview</span>
+                      <span
+                        className={`text-[9.5px] px-1.5 py-0.5 rounded uppercase ${
+                          isReviewMode ? 'bg-white/20 text-white' : 'bg-amber-50 text-amber-800'
+                        }`}
+                      >
+                        Read-Only
+                      </span>
                     </button>
                   </div>
+
+                  <div className="text-[11px] text-[#166534] flex items-center gap-1.5">
+                    <i className={`fa-solid ${isReviewMode ? 'fa-lock text-amber-700' : 'fa-unlock text-[#0B6B3A]'}`} />
+                    <span>
+                      {isReviewMode
+                        ? 'Strict Read-Only Mode: All inputs and rubric selections are locked.'
+                        : 'Edit Mode Active: Interview fields and qualitative rubric tiers are unlocked.'}
+                    </span>
+                  </div>
                 </div>
+              </div>
+
+              {/* REVIEW SUMMARY INTERVIEW MODE (STRICT READ-ONLY CONSOLIDATED VIEW) */}
+              {isReviewMode ? (
+                <fieldset disabled className="space-y-5 border-0 p-0 m-0 min-w-0">
+                  {/* Strict Read-Only Lock Banner */}
+                  <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 text-xs flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <i className="fa-solid fa-lock text-amber-700 text-sm" />
+                      <span>
+                        <strong>Review Summary Interview (Read-Only):</strong> All interview responses, checkboxes, radio buttons, and rubric selections are locked. Switch back to <strong>Edit Form</strong> to modify any entry.
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 1. Consolidated Socioeconomic Rubric Scoring & Computed Eligibility Tier */}
+                  <div className={`p-5 rounded-2xl border ${bannerColor} space-y-4 shadow-xs`}>
+                    <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-[#CBD5E1]/70">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 rounded-xl bg-[#0B6B3A] text-white flex items-center justify-center text-sm font-bold">
+                          <i className="fa-solid fa-scale-balanced" />
+                        </div>
+                        <div>
+                          <h4 className="font-['Outfit'] font-bold text-sm text-[#10241A] m-0">
+                            Socioeconomic Rubric Scoring Breakdown &amp; Computed Eligibility Tier
+                          </h4>
+                          <p className="text-[11px] text-[#475569] m-0">
+                            Deterministic OFPHIL Dual-Rubric Calculation (Rubric v{backendEval?.rubric_version || '1.0'})
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold border ${badgeColor}`}>
+                          MSW Tier: {mswClassification}
+                        </span>
+                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-[#0B6B3A] text-white">
+                          {subsidyLevel}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Score Summary Cards */}
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
+                      <div className="p-3 bg-white border border-[#CBD5E1] rounded-xl">
+                        <div className="text-[10px] font-bold text-[#64748B] uppercase">Avg Severity</div>
+                        <div className="text-lg font-extrabold text-[#0B6B3A] mt-0.5">
+                          {backendEval?.is_complete ? averageSeverity.toFixed(2) : '—'}
+                        </div>
+                      </div>
+                      <div className="p-3 bg-white border border-[#CBD5E1] rounded-xl">
+                        <div className="text-[10px] font-bold text-[#64748B] uppercase">Avg Coping</div>
+                        <div className="text-lg font-extrabold text-[#0284C7] mt-0.5">
+                          {backendEval?.is_complete ? averageCoping.toFixed(2) : '—'}
+                        </div>
+                      </div>
+                      <div className="p-3 bg-white border border-[#CBD5E1] rounded-xl">
+                        <div className="text-[10px] font-bold text-[#64748B] uppercase">Total Risk</div>
+                        <div className="text-lg font-extrabold text-[#0F766E] mt-0.5">
+                          {backendEval?.is_complete ? `${totalRisk.toFixed(1)}%` : '—'}
+                        </div>
+                      </div>
+                      <div className="p-3 bg-white border border-[#CBD5E1] rounded-xl">
+                        <div className="text-[10px] font-bold text-[#64748B] uppercase">Monthly Income</div>
+                        <div className="text-lg font-extrabold text-[#10241A] mt-0.5">
+                          ₱{totalHouseholdIncome.toLocaleString()}
+                        </div>
+                      </div>
+                      <div className="p-3 bg-white border border-[#CBD5E1] rounded-xl">
+                        <div className="text-[10px] font-bold text-[#64748B] uppercase">Monthly Expenses</div>
+                        <div className="text-lg font-extrabold text-rose-700 mt-0.5">
+                          ₱{totalMonthlyExpenses.toLocaleString()}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Financial vs MSW Classification Side-by-Side */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                      <div className="p-3.5 rounded-xl bg-white border border-[#CBD5E1] space-y-1">
+                        <div className="text-[10px] font-bold uppercase text-[#64748B]">
+                          A. Financial Per Capita Rubric
+                        </div>
+                        <div className="font-bold text-sm text-[#10241A]">
+                          {backendEval?.financial_classification?.classification_label || mswClassification}
+                        </div>
+                        <div className="text-[#475569]">
+                          {backendEval?.financial_classification?.explanation ||
+                            `Household Size: ${Math.max(1, familyMembers.length + 1)} member(s)`}
+                        </div>
+                      </div>
+                      <div className="p-3.5 rounded-xl bg-white border border-[#CBD5E1] space-y-1">
+                        <div className="text-[10px] font-bold uppercase text-[#64748B]">
+                          B. MSW Psychosocial &amp; Risk Rubric
+                        </div>
+                        <div className="font-bold text-sm text-[#0B6B3A]">
+                          {mswClassification} ({subsidyLevel})
+                        </div>
+                        <div className="text-[#475569]">
+                          {backendEval?.msw_classification?.explanation || 'Computed from DOH-PIE qualitative domains.'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Read-Only DOH-PIE Domain-by-Domain Rubric Breakdown Table */}
+                    <div className="bg-white border border-[#CBD5E1] rounded-xl overflow-x-auto">
+                      <table className="w-full text-left border-collapse text-xs">
+                        <thead>
+                          <tr className="bg-[#F8FAFC] border-b border-[#E2E8F0] text-[10.5px] uppercase text-[#475569]">
+                            <th className="py-2.5 px-3">DOH-PIE Clinical Domain</th>
+                            <th className="py-2.5 px-3">Severity Level</th>
+                            <th className="py-2.5 px-3">Coping Level</th>
+                            <th className="py-2.5 px-3">Patient Response</th>
+                            <th className="py-2.5 px-3">MSW Observation</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#EEF2EF]">
+                          {healthFactors.map((hf, idx) => (
+                            <tr key={`rev-hf-${idx}`}>
+                              <td className="py-2 px-3 font-semibold text-[#10241A]">
+                                V-{idx + 1}. {hf.factor}
+                              </td>
+                              <td className="py-2 px-3 font-mono text-[11px] text-[#0B6B3A] font-bold">
+                                {SEVERITY_LEVEL_OPTIONS.find((o) => o.value === hf.severityLevel)?.label || hf.severityLevel}
+                              </td>
+                              <td className="py-2 px-3 font-mono text-[11px] text-[#0284C7] font-bold">
+                                {COPING_LEVEL_OPTIONS.find((o) => o.value === hf.copingLevel)?.label || hf.copingLevel}
+                              </td>
+                              <td className="py-2 px-3 text-[#334155]">{hf.patientReported || '—'}</td>
+                              <td className="py-2 px-3 text-[#14532D]">{hf.mswObservation || '—'}</td>
+                            </tr>
+                          ))}
+                          <tr>
+                            <td className="py-2 px-3 font-semibold text-[#10241A]">VI. Discrimination Burden</td>
+                            <td className="py-2 px-3 font-mono text-[11px] text-[#0B6B3A] font-bold">
+                              {SEVERITY_LEVEL_OPTIONS.find((o) => o.value === discrimSeverityLevel)?.label || discrimSeverityLevel}
+                            </td>
+                            <td className="py-2 px-3 font-mono text-[11px] text-[#0284C7] font-bold">
+                              {COPING_LEVEL_OPTIONS.find((o) => o.value === discrimCopingLevel)?.label || discrimCopingLevel}
+                            </td>
+                            <td className="py-2 px-3 text-[#334155]">{discrimPatientReported || '—'}</td>
+                            <td className="py-2 px-3 text-[#14532D]">{discrimMswObs || '—'}</td>
+                          </tr>
+                          <tr>
+                            <td className="py-2 px-3 font-semibold text-[#10241A]">VII. Safety / Hazards</td>
+                            <td className="py-2 px-3 font-mono text-[11px] text-[#0B6B3A] font-bold">
+                              {SEVERITY_LEVEL_OPTIONS.find((o) => o.value === safetySeverityLevel)?.label || safetySeverityLevel}
+                            </td>
+                            <td className="py-2 px-3 font-mono text-[11px] text-[#0284C7] font-bold">
+                              {COPING_LEVEL_OPTIONS.find((o) => o.value === safetyCopingLevel)?.label || safetyCopingLevel}
+                            </td>
+                            <td className="py-2 px-3 text-[#334155]">{safetyPatientReported || '—'}</td>
+                            <td className="py-2 px-3 text-[#14532D]">{safetyMswObs || '—'}</td>
+                          </tr>
+                          <tr>
+                            <td className="py-2 px-3 font-semibold text-[#10241A]">VIII. Social Roles</td>
+                            <td className="py-2 px-3 font-mono text-[11px] text-[#0B6B3A] font-bold">
+                              {SEVERITY_LEVEL_OPTIONS.find((o) => o.value === roleSeverityLevel)?.label || roleSeverityLevel}
+                            </td>
+                            <td className="py-2 px-3 font-mono text-[11px] text-[#0284C7] font-bold">
+                              {COPING_LEVEL_OPTIONS.find((o) => o.value === roleCopingLevel)?.label || roleCopingLevel}
+                            </td>
+                            <td className="py-2 px-3 text-[#334155]">{rolePatientReported || '—'}</td>
+                            <td className="py-2 px-3 text-[#14532D]">{roleMswObs || '—'}</td>
+                          </tr>
+                          <tr>
+                            <td className="py-2 px-3 font-semibold text-[#10241A]">IX. Environment &amp; Basic Needs</td>
+                            <td className="py-2 px-3 font-mono text-[11px] text-[#0B6B3A] font-bold">
+                              {SEVERITY_LEVEL_OPTIONS.find((o) => o.value === envSeverityLevel)?.label || envSeverityLevel}
+                            </td>
+                            <td className="py-2 px-3 text-[11px] text-[#94A3B8]">N/A (Severity Only)</td>
+                            <td className="py-2 px-3 text-[#334155]">{envPatientReported || '—'}</td>
+                            <td className="py-2 px-3 text-[#14532D]">{envMswObs || '—'}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* 2. Consolidated Administrative, Clinical & Narrative Interview Summary */}
+                  <div className="space-y-4 p-5 bg-white border border-[#CBD5E1] rounded-2xl shadow-xs">
+                    <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-[#E2E8F0]">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-[#0B6B3A] text-white flex items-center justify-center text-sm font-bold">
+                          <i className="fa-solid fa-file-invoice" />
+                        </div>
+                        <div>
+                          <h4 className="font-['Outfit'] font-bold text-sm text-[#10241A] m-0">
+                            Consolidated Interview Responses &amp; Clinical Casework Summary
+                          </h4>
+                          <p className="text-[11px] text-[#5A7466] m-0">
+                            MSW No: <strong>{mswNumber}</strong> &bull; Assigned MSW: <strong>{assignedMsw}</strong> &bull; Date: <strong>{interviewDate}</strong> ({interviewStartTime} – {interviewEndTime})
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs">
+                        <input type="checkbox" checked={consentObtained} disabled readOnly className="accent-[#0B6B3A]" />
+                        <span className="font-semibold text-[#334155]">
+                          Consent: {consentObtained ? 'Confirmed' : 'Pending'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Diagnostic & Clinical Profile Summary Strip */}
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 p-3 rounded-xl bg-[#FAFBF8] border border-[#E2E8F0] text-xs">
+                      <div>
+                        <span className="block text-[10px] font-bold uppercase text-[#64748B]">Admitting / Final Diagnosis</span>
+                        <strong className="text-[#10241A]">{finalDiagnosis || admittingDiagnosis || '—'}</strong>
+                      </div>
+                      <div>
+                        <span className="block text-[10px] font-bold uppercase text-[#64748B]">Treatment Plan</span>
+                        <strong className="text-[#10241A]">{presentTreatmentPlan || '—'}</strong>
+                      </div>
+                      <div>
+                        <span className="block text-[10px] font-bold uppercase text-[#64748B]">Duration &amp; Prior Care</span>
+                        <span className="text-[#334155]">{durationProblems || '—'} ({previousTreatment || 'None'})</span>
+                      </div>
+                      <div>
+                        <span className="block text-[10px] font-bold uppercase text-[#64748B]">Estimated Surgical Cost</span>
+                        <strong className="text-[#0B6B3A] font-mono">₱{Number(estimatedExpenses || 0).toLocaleString()}</strong>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Patient Disclosures Column */}
+                      <div className="p-4 bg-[#F8FAFC] border border-blue-200 rounded-xl space-y-2.5">
+                        <div className="flex items-center gap-2 text-blue-900 font-bold text-xs pb-2 border-b border-blue-200">
+                          <i className="fa-solid fa-user-tag text-blue-600" />
+                          <span>Patient / Representative Disclosed Responses</span>
+                        </div>
+                        <div className="text-xs space-y-2 text-[#334155]">
+                          <div><strong className="text-slate-700">Interviewed Person:</strong> {interviewedPerson} {representativeRelationship ? `(${representativeRelationship})` : ''}</div>
+                          <div><strong className="text-slate-700">Living Situation:</strong> {livingSituation || '—'}</div>
+                          <div><strong className="text-slate-700">Household Composition:</strong> {householdComposition || '—'}</div>
+                          <div><strong className="text-slate-700">Family Support:</strong> {familySupport || '—'}</div>
+                          <div><strong className="text-slate-700">Employment &amp; Livelihood:</strong> {employmentSituation || '—'}</div>
+                          <div><strong className="text-slate-700">Income Sources:</strong> {incomeSources || '—'}</div>
+                          <div><strong className="text-slate-700">Medical Condition:</strong> {medicalConditionSummary || '—'}</div>
+                          <div><strong className="text-slate-700">Financial Barriers:</strong> {financialBarriers || '—'}</div>
+                          <div><strong className="text-slate-700">Stigma / Discrimination:</strong> {discriminationExperienced || '—'}</div>
+                          <div><strong className="text-slate-700">Safety &amp; Fall Hazards:</strong> {safetyHazards || '—'}</div>
+                          <div><strong className="text-slate-700">Coping Narrative:</strong> {copingCapacityNarrative || '—'}</div>
+                        </div>
+                      </div>
+
+                      {/* MSW Observations Column */}
+                      <div className="p-4 bg-[#F0FDF4] border border-emerald-200 rounded-xl space-y-2.5">
+                        <div className="flex items-center gap-2 text-emerald-900 font-bold text-xs pb-2 border-b border-emerald-200">
+                          <i className="fa-solid fa-user-doctor text-emerald-600" />
+                          <span>MSW Professional Clinical Observations</span>
+                        </div>
+                        <div className="text-xs space-y-2 text-[#14532D]">
+                          <div><strong className="text-[#166534]">Interview Method:</strong> {interviewMethod.replace(/_/g, ' ')}</div>
+                          <div><strong className="text-[#166534]">Living Quarters Finding:</strong> {livingSituationObs || '—'}</div>
+                          <div><strong className="text-[#166534]">Dependents Vulnerability:</strong> {householdCompositionObs || '—'}</div>
+                          <div><strong className="text-[#166534]">Caregiver Burden:</strong> {familySupportObs || '—'}</div>
+                          <div><strong className="text-[#166534]">Productivity Loss:</strong> {employmentObs || '—'}</div>
+                          <div><strong className="text-[#166534]">Financial Stability:</strong> {financialResponsibilitiesObs || '—'}</div>
+                          <div><strong className="text-[#166534]">Clinical Urgency:</strong> {medicalConditionObs || '—'}</div>
+                          <div><strong className="text-[#166534]">Subsidy Gap Analysis:</strong> {financialBarriersObs || '—'}</div>
+                          <div><strong className="text-[#166534]">Discrimination Burden:</strong> {discriminationObs || '—'}</div>
+                          <div><strong className="text-[#166534]">Domestic Trauma Risk:</strong> {safetyHazardsObs || '—'}</div>
+                          <div><strong className="text-[#166534]">Resilience Index:</strong> {copingCapacityObs || '—'}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </fieldset>
               ) : null}
 
+              {isReviewMode && (
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsReviewMode(false)}
+                    className="px-4 py-2 rounded-xl bg-white border border-[#CBD5E1] text-xs font-bold text-[#334155] hover:bg-slate-50 cursor-pointer flex items-center gap-1.5"
+                  >
+                    <i className="fa-solid fa-pen-to-square text-[#0B6B3A]" />
+                    <span>Switch to Edit Form</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveStage(3)}
+                    className="px-4 py-2 rounded-xl bg-[#0B6B3A] text-white text-xs font-bold hover:bg-[#064826] cursor-pointer"
+                  >
+                    Proceed to Supporting Documents (Stage 3) &rarr;
+                  </button>
+                </div>
+              )}
+
+              {/* EDIT FORM MODE (UNLOCKED FOR ACTIVE ENTRY; HIDDEN & LOCKED WHEN IN REVIEW SUMMARY MODE) */}
+              {!isReviewMode && (
+                <fieldset disabled={isReviewMode} className="space-y-6 border-0 p-0 m-0 min-w-0">
               {/* SECTION II-A: ADMINISTRATIVE INTERVIEW DETAILS */}
               <div className="p-4 rounded-xl border border-[#E2E8F0] bg-white space-y-4">
                 <div className="flex items-center justify-between pb-2 border-b border-[#EEF2EF]">
@@ -3372,6 +4737,8 @@ function MSWAssessmentContent() {
                   </div>
                 </div>
               </div>
+                </fieldset>
+              )}
             </div>
           )}
 

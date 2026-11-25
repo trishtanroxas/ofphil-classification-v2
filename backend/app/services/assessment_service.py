@@ -271,8 +271,12 @@ class AssessmentService:
         self._validate_stage1_numbers(stage1)
 
         # Compute total household income and household size from Stage 1
+        # Guard against double-counting when the Informant is the Patient ("Self" / "Patient")
         family_members = stage1.get("family_members") or []
-        inf_inc = Decimal(str(stage1.get("informant_income") or 0))
+        is_self_informant = bool(stage1.get("informant_is_patient")) or (
+            str(stage1.get("informant_relation") or "").strip().lower() in {"self", "patient"}
+        )
+        inf_inc = Decimal("0") if is_self_informant else Decimal(str(stage1.get("informant_income") or 0))
         pat_inc = Decimal(str(stage1.get("patient_income") or 0))
         fam_inc = sum(Decimal(str(m.get("income") or 0)) for m in family_members)
         if "total_household_income" in stage1 and stage1["total_household_income"] is not None:
@@ -485,7 +489,10 @@ class AssessmentService:
                 payload.total_household_income = Decimal(str(stage1["total_household_income"]))
             else:
                 family_members = stage1.get("family_members") or []
-                inf_inc = Decimal(str(stage1.get("informant_income") or 0))
+                is_self_informant = bool(stage1.get("informant_is_patient")) or (
+                    str(stage1.get("informant_relation") or "").strip().lower() in {"self", "patient"}
+                )
+                inf_inc = Decimal("0") if is_self_informant else Decimal(str(stage1.get("informant_income") or 0))
                 pat_inc = Decimal(str(stage1.get("patient_income") or 0))
                 fam_inc = sum(Decimal(str(m.get("income") or 0)) for m in family_members)
                 payload.total_household_income = inf_inc + pat_inc + fam_inc
