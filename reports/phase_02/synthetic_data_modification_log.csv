@@ -1,0 +1,241 @@
+﻿row_index,field_modified,original_value,revised_value,rationale
+402,disability_status,Yes,No,Reduce deterministic 100% ELIGIBLE association
+39,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+358,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+491,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+342,disability_status,Yes,No,Reduce deterministic 100% ELIGIBLE association
+160,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+357,disability_status,Yes,No,Reduce deterministic 100% ELIGIBLE association
+442,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+62,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+328,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+486,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+30,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+473,disability_status,Yes,No,Reduce deterministic 100% ELIGIBLE association
+20,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+360,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+493,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+485,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+231,disability_status,Yes,No,Reduce deterministic 100% ELIGIBLE association
+79,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+225,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+494,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+223,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+311,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+181,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+219,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+461,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+382,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+395,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+124,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+280,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+155,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+453,disability_status,Yes,No,Reduce deterministic 100% ELIGIBLE association
+291,disability_status,Yes,No,Reduce deterministic 100% ELIGIBLE association
+317,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+89,disability_status,Yes,No,Reduce deterministic 100% ELIGIBLE association
+28,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+351,disability_status,Yes,No,Reduce deterministic 100% ELIGIBLE association
+221,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+347,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+348,disability_status,Yes,No,Reduce deterministic 100% ELIGIBLE association
+54,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+304,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+318,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+203,disability_status,Yes,No,Reduce deterministic 100% ELIGIBLE association
+322,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+474,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+492,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+478,disability_status,Yes,No,Reduce deterministic 100% ELIGIBLE association
+437,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+239,disability_status,Yes,No,Reduce deterministic 100% ELIGIBLE association
+40,disability_status,Yes,No,Reduce deterministic 100% ELIGIBLE association
+195,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+74,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+179,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+100,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+409,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+497,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+177,disability_status,Yes,No,Reduce deterministic 100% ELIGIBLE association
+416,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+175,disability_status,Yes,No,Reduce deterministic 100% ELIGIBLE association
+35,disability_status,Yes,No,Reduce deterministic 100% ELIGIBLE association
+276,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+84,disability_status,Yes,No,Reduce deterministic 100% ELIGIBLE association
+270,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+383,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+498,disability_status,Yes,No,Reduce deterministic 100% ELIGIBLE association
+198,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+370,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+216,disability_status,Yes,No,Reduce deterministic 100% ELIGIBLE association
+193,disability_status,Yes,No,Reduce deterministic 100% ELIGIBLE association
+350,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+48,disability_status,Yes,No,Reduce deterministic 100% ELIGIBLE association
+458,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+72,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+321,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+434,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+36,disability_status,Yes,No,Reduce deterministic 100% ELIGIBLE association
+173,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+334,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+431,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+411,disability_status,Yes,No,Reduce deterministic 100% ELIGIBLE association
+168,disability_status,Yes,No,Reduce deterministic 100% ELIGIBLE association
+255,disability_status,Yes,No,Reduce deterministic 100% ELIGIBLE association
+215,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+339,disability_status,Yes,No,Reduce deterministic 100% ELIGIBLE association
+110,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+246,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+332,disability_status,Yes,No,Reduce deterministic 100% ELIGIBLE association
+91,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+284,disability_status,nan,No,Reduce deterministic 100% ELIGIBLE association
+941,disability_status,No,Yes,Reduce deterministic 100% INELIGIBLE association
+802,disability_status,No,nan,Reduce deterministic 100% INELIGIBLE association
+545,disability_status,No,Yes,Reduce deterministic 100% INELIGIBLE association
+925,disability_status,No,nan,Reduce deterministic 100% INELIGIBLE association
+850,disability_status,No,Yes,Reduce deterministic 100% INELIGIBLE association
+833,disability_status,No,nan,Reduce deterministic 100% INELIGIBLE association
+859,disability_status,No,Yes,Reduce deterministic 100% INELIGIBLE association
+964,disability_status,No,nan,Reduce deterministic 100% INELIGIBLE association
+787,disability_status,No,Yes,Reduce deterministic 100% INELIGIBLE association
+627,disability_status,No,nan,Reduce deterministic 100% INELIGIBLE association
+944,disability_status,No,Yes,Reduce deterministic 100% INELIGIBLE association
+877,disability_status,No,nan,Reduce deterministic 100% INELIGIBLE association
+710,disability_status,No,Yes,Reduce deterministic 100% INELIGIBLE association
+886,disability_status,No,nan,Reduce deterministic 100% INELIGIBLE association
+621,disability_status,No,Yes,Reduce deterministic 100% INELIGIBLE association
+651,disability_status,No,nan,Reduce deterministic 100% INELIGIBLE association
+911,disability_status,No,Yes,Reduce deterministic 100% INELIGIBLE association
+762,disability_status,No,nan,Reduce deterministic 100% INELIGIBLE association
+568,disability_status,No,Yes,Reduce deterministic 100% INELIGIBLE association
+715,disability_status,No,nan,Reduce deterministic 100% INELIGIBLE association
+560,disability_status,No,Yes,Reduce deterministic 100% INELIGIBLE association
+823,disability_status,No,nan,Reduce deterministic 100% INELIGIBLE association
+652,disability_status,No,Yes,Reduce deterministic 100% INELIGIBLE association
+541,disability_status,No,nan,Reduce deterministic 100% INELIGIBLE association
+769,disability_status,No,Yes,Reduce deterministic 100% INELIGIBLE association
+667,disability_status,No,nan,Reduce deterministic 100% INELIGIBLE association
+708,disability_status,No,Yes,Reduce deterministic 100% INELIGIBLE association
+711,disability_status,No,nan,Reduce deterministic 100% INELIGIBLE association
+913,disability_status,No,Yes,Reduce deterministic 100% INELIGIBLE association
+777,disability_status,No,nan,Reduce deterministic 100% INELIGIBLE association
+539,disability_status,No,Yes,Reduce deterministic 100% INELIGIBLE association
+537,disability_status,No,nan,Reduce deterministic 100% INELIGIBLE association
+716,disability_status,No,Yes,Reduce deterministic 100% INELIGIBLE association
+585,disability_status,No,nan,Reduce deterministic 100% INELIGIBLE association
+928,disability_status,No,Yes,Reduce deterministic 100% INELIGIBLE association
+986,disability_status,No,nan,Reduce deterministic 100% INELIGIBLE association
+818,disability_status,No,Yes,Reduce deterministic 100% INELIGIBLE association
+975,disability_status,No,nan,Reduce deterministic 100% INELIGIBLE association
+808,disability_status,No,Yes,Reduce deterministic 100% INELIGIBLE association
+933,disability_status,No,nan,Reduce deterministic 100% INELIGIBLE association
+893,disability_status,No,Yes,Reduce deterministic 100% INELIGIBLE association
+831,disability_status,No,nan,Reduce deterministic 100% INELIGIBLE association
+950,disability_status,No,Yes,Reduce deterministic 100% INELIGIBLE association
+811,disability_status,No,nan,Reduce deterministic 100% INELIGIBLE association
+739,disability_status,No,Yes,Reduce deterministic 100% INELIGIBLE association
+596,disability_status,No,nan,Reduce deterministic 100% INELIGIBLE association
+572,disability_status,No,Yes,Reduce deterministic 100% INELIGIBLE association
+905,disability_status,No,nan,Reduce deterministic 100% INELIGIBLE association
+661,disability_status,No,Yes,Reduce deterministic 100% INELIGIBLE association
+959,disability_status,No,nan,Reduce deterministic 100% INELIGIBLE association
+509,disability_status,No,Yes,Reduce deterministic 100% INELIGIBLE association
+552,disability_status,No,nan,Reduce deterministic 100% INELIGIBLE association
+724,disability_status,No,Yes,Reduce deterministic 100% INELIGIBLE association
+620,disability_status,No,nan,Reduce deterministic 100% INELIGIBLE association
+867,disability_status,No,Yes,Reduce deterministic 100% INELIGIBLE association
+723,disability_status,No,nan,Reduce deterministic 100% INELIGIBLE association
+653,disability_status,No,Yes,Reduce deterministic 100% INELIGIBLE association
+546,disability_status,No,nan,Reduce deterministic 100% INELIGIBLE association
+645,disability_status,No,Yes,Reduce deterministic 100% INELIGIBLE association
+843,disability_status,No,nan,Reduce deterministic 100% INELIGIBLE association
+632,disability_status,No,Yes,Reduce deterministic 100% INELIGIBLE association
+694,disability_status,No,nan,Reduce deterministic 100% INELIGIBLE association
+821,disability_status,No,Yes,Reduce deterministic 100% INELIGIBLE association
+605,disability_status,No,nan,Reduce deterministic 100% INELIGIBLE association
+972,disability_status,No,Yes,Reduce deterministic 100% INELIGIBLE association
+665,disability_status,No,nan,Reduce deterministic 100% INELIGIBLE association
+707,disability_status,No,Yes,Reduce deterministic 100% INELIGIBLE association
+866,disability_status,No,nan,Reduce deterministic 100% INELIGIBLE association
+779,disability_status,No,Yes,Reduce deterministic 100% INELIGIBLE association
+565,disability_status,No,nan,Reduce deterministic 100% INELIGIBLE association
+520,sectoral_membership,Senior Citizen,Senior Citizen,Introduce realistic sectoral overlap across INELIGIBLE records
+516,sectoral_membership,nan,PWD,Introduce realistic sectoral overlap across INELIGIBLE records
+741,sectoral_membership,Senior Citizen,PWD / Senior,Introduce realistic sectoral overlap across INELIGIBLE records
+720,sectoral_membership,nan,Senior Citizen,Introduce realistic sectoral overlap across INELIGIBLE records
+694,sectoral_membership,Senior Citizen,Indigent,Introduce realistic sectoral overlap across INELIGIBLE records
+913,sectoral_membership,Senior Citizen,Senior Citizen / PWD,Introduce realistic sectoral overlap across INELIGIBLE records
+626,sectoral_membership,Senior Citizen,PWD,Introduce realistic sectoral overlap across INELIGIBLE records
+677,sectoral_membership,Senior Citizen,Senior Citizen / PWD,Introduce realistic sectoral overlap across INELIGIBLE records
+945,sectoral_membership,nan,Indigent,Introduce realistic sectoral overlap across INELIGIBLE records
+581,sectoral_membership,nan,Senior Citizen,Introduce realistic sectoral overlap across INELIGIBLE records
+510,sectoral_membership,Senior Citizen,Indigent,Introduce realistic sectoral overlap across INELIGIBLE records
+648,sectoral_membership,nan,Senior Citizen / PWD,Introduce realistic sectoral overlap across INELIGIBLE records
+977,sectoral_membership,nan,PWD,Introduce realistic sectoral overlap across INELIGIBLE records
+614,sectoral_membership,Senior Citizen,Indigent,Introduce realistic sectoral overlap across INELIGIBLE records
+916,sectoral_membership,nan,Senior Citizen,Introduce realistic sectoral overlap across INELIGIBLE records
+965,sectoral_membership,nan,Senior Citizen,Introduce realistic sectoral overlap across INELIGIBLE records
+907,sectoral_membership,nan,PWD / Senior,Introduce realistic sectoral overlap across INELIGIBLE records
+589,sectoral_membership,nan,PWD,Introduce realistic sectoral overlap across INELIGIBLE records
+635,sectoral_membership,nan,Senior Citizen,Introduce realistic sectoral overlap across INELIGIBLE records
+701,sectoral_membership,Senior Citizen,Senior Citizen,Introduce realistic sectoral overlap across INELIGIBLE records
+660,sectoral_membership,nan,Senior Citizen / PWD,Introduce realistic sectoral overlap across INELIGIBLE records
+976,sectoral_membership,Senior Citizen,Senior Citizen,Introduce realistic sectoral overlap across INELIGIBLE records
+729,sectoral_membership,nan,PWD,Introduce realistic sectoral overlap across INELIGIBLE records
+634,sectoral_membership,nan,Senior Citizen,Introduce realistic sectoral overlap across INELIGIBLE records
+533,sectoral_membership,nan,Senior Citizen,Introduce realistic sectoral overlap across INELIGIBLE records
+736,sectoral_membership,nan,4Ps Beneficiary,Introduce realistic sectoral overlap across INELIGIBLE records
+797,sectoral_membership,nan,Senior Citizen,Introduce realistic sectoral overlap across INELIGIBLE records
+904,sectoral_membership,nan,Senior Citizen,Introduce realistic sectoral overlap across INELIGIBLE records
+959,sectoral_membership,nan,Senior Citizen,Introduce realistic sectoral overlap across INELIGIBLE records
+541,sectoral_membership,nan,Senior Citizen,Introduce realistic sectoral overlap across INELIGIBLE records
+852,sectoral_membership,nan,Senior Citizen,Introduce realistic sectoral overlap across INELIGIBLE records
+658,sectoral_membership,nan,Senior Citizen,Introduce realistic sectoral overlap across INELIGIBLE records
+921,sectoral_membership,nan,Senior Citizen,Introduce realistic sectoral overlap across INELIGIBLE records
+554,sectoral_membership,nan,Senior Citizen,Introduce realistic sectoral overlap across INELIGIBLE records
+857,sectoral_membership,nan,Senior Citizen / PWD,Introduce realistic sectoral overlap across INELIGIBLE records
+742,sectoral_membership,nan,Senior Citizen / PWD,Introduce realistic sectoral overlap across INELIGIBLE records
+559,sectoral_membership,nan,Indigent,Introduce realistic sectoral overlap across INELIGIBLE records
+681,sectoral_membership,nan,Senior Citizen,Introduce realistic sectoral overlap across INELIGIBLE records
+515,sectoral_membership,nan,Indigent,Introduce realistic sectoral overlap across INELIGIBLE records
+545,sectoral_membership,nan,PWD,Introduce realistic sectoral overlap across INELIGIBLE records
+569,sectoral_membership,Senior Citizen,PWD,Introduce realistic sectoral overlap across INELIGIBLE records
+629,sectoral_membership,nan,Senior Citizen,Introduce realistic sectoral overlap across INELIGIBLE records
+864,sectoral_membership,nan,Senior Citizen,Introduce realistic sectoral overlap across INELIGIBLE records
+639,sectoral_membership,nan,Senior Citizen,Introduce realistic sectoral overlap across INELIGIBLE records
+890,sectoral_membership,nan,Senior Citizen,Introduce realistic sectoral overlap across INELIGIBLE records
+957,sectoral_membership,nan,Senior Citizen / PWD,Introduce realistic sectoral overlap across INELIGIBLE records
+954,sectoral_membership,nan,Indigent,Introduce realistic sectoral overlap across INELIGIBLE records
+761,sectoral_membership,nan,Senior Citizen,Introduce realistic sectoral overlap across INELIGIBLE records
+698,sectoral_membership,nan,Senior Citizen,Introduce realistic sectoral overlap across INELIGIBLE records
+953,sectoral_membership,nan,Indigent,Introduce realistic sectoral overlap across INELIGIBLE records
+845,sectoral_membership,nan,Senior Citizen,Introduce realistic sectoral overlap across INELIGIBLE records
+603,sectoral_membership,nan,PWD,Introduce realistic sectoral overlap across INELIGIBLE records
+937,sectoral_membership,Senior Citizen,Senior Citizen,Introduce realistic sectoral overlap across INELIGIBLE records
+999,sectoral_membership,Senior Citizen,4Ps Beneficiary,Introduce realistic sectoral overlap across INELIGIBLE records
+575,sectoral_membership,Senior Citizen,Senior Citizen,Introduce realistic sectoral overlap across INELIGIBLE records
+502,sectoral_membership,nan,PWD,Introduce realistic sectoral overlap across INELIGIBLE records
+910,sectoral_membership,nan,PWD,Introduce realistic sectoral overlap across INELIGIBLE records
+813,sectoral_membership,Senior Citizen,4Ps Beneficiary,Introduce realistic sectoral overlap across INELIGIBLE records
+949,sectoral_membership,Senior Citizen,PWD,Introduce realistic sectoral overlap across INELIGIBLE records
+854,sectoral_membership,nan,PWD / Senior,Introduce realistic sectoral overlap across INELIGIBLE records
+598,sectoral_membership,Senior Citizen,Senior Citizen / PWD,Introduce realistic sectoral overlap across INELIGIBLE records
+682,sectoral_membership,Senior Citizen,PWD / Senior,Introduce realistic sectoral overlap across INELIGIBLE records
+891,sectoral_membership,nan,Senior Citizen,Introduce realistic sectoral overlap across INELIGIBLE records
+824,sectoral_membership,Senior Citizen,Indigent,Introduce realistic sectoral overlap across INELIGIBLE records
+601,sectoral_membership,nan,Indigent,Introduce realistic sectoral overlap across INELIGIBLE records
+922,sectoral_membership,nan,PWD,Introduce realistic sectoral overlap across INELIGIBLE records
+861,sectoral_membership,nan,Indigent,Introduce realistic sectoral overlap across INELIGIBLE records
+739,sectoral_membership,Senior Citizen,Senior Citizen,Introduce realistic sectoral overlap across INELIGIBLE records
+895,sectoral_membership,Senior Citizen,Senior Citizen / PWD,Introduce realistic sectoral overlap across INELIGIBLE records
+617,sectoral_membership,nan,Senior Citizen,Introduce realistic sectoral overlap across INELIGIBLE records
+560,sectoral_membership,nan,Senior Citizen,Introduce realistic sectoral overlap across INELIGIBLE records
+574,sectoral_membership,nan,Indigent,Introduce realistic sectoral overlap across INELIGIBLE records
+588,sectoral_membership,nan,Indigent,Introduce realistic sectoral overlap across INELIGIBLE records
+943,sectoral_membership,nan,Senior Citizen,Introduce realistic sectoral overlap across INELIGIBLE records
+868,sectoral_membership,Senior Citizen,Senior Citizen,Introduce realistic sectoral overlap across INELIGIBLE records
+522,sectoral_membership,Senior Citizen,Senior Citizen,Introduce realistic sectoral overlap across INELIGIBLE records
+858,sectoral_membership,nan,Senior Citizen,Introduce realistic sectoral overlap across INELIGIBLE records
+935,sectoral_membership,nan,Senior Citizen,Introduce realistic sectoral overlap across INELIGIBLE records
+776,sectoral_membership,Senior Citizen,Senior Citizen / PWD,Introduce realistic sectoral overlap across INELIGIBLE records
+781,sectoral_membership,Senior Citizen,Senior Citizen,Introduce realistic sectoral overlap across INELIGIBLE records

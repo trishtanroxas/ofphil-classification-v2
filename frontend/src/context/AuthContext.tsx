@@ -53,6 +53,7 @@ const DEFAULT_USERS: Record<UserRole, AuthUser> = {
 
 const PUBLIC_PATHS = [
   '/',
+  '/annotator',
   '/login',
   '/login-admin',
   '/login-msw',
@@ -66,6 +67,7 @@ function isPublicRoute(pathname: string | null): boolean {
   if (PUBLIC_PATHS.includes(pathname)) return true;
   if (pathname.startsWith('/forgot-password')) return true;
   if (pathname.startsWith('/login')) return true;
+  if (pathname.startsWith('/annotator')) return true;
   return false;
 }
 
