@@ -1,0 +1,6 @@
+entity_annotation_id,file_name,document_category,patient_name_extracted,total_amount_billed,indigency_certified,clinical_diagnosis,issuing_agency_or_hospital,tabular_feature_mapping,validation_status
+STRUCT_0001,elec_p_001.jpg,electricity_bill,,,NO,,,"total_amount, certificate_of_indigency, diagnosis",UNVERIFIED
+STRUCT_0002,elec_p_006.jpg,electricity_bill,,,NO,,,"total_amount, certificate_of_indigency, diagnosis",UNVERIFIED
+STRUCT_0003,id_p_005.jpg,government_id,,,NO,,,"total_amount, certificate_of_indigency, diagnosis",UNVERIFIED
+STRUCT_0004,id_p_041.jpg,government_id,,,NO,,,"total_amount, certificate_of_indigency, diagnosis",UNVERIFIED
+STRUCT_0005,ind_p_034.jpg,certificate_of_indigency,,,YES,,,"total_amount, certificate_of_indigency, diagnosis",UNVERIFIED

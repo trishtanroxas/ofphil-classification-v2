@@ -50,7 +50,13 @@ scratch/*
 !scratch/.gitkeep
 
 # Data Architecture Exclusions
-data/
+data/*
+!data/interim/
+data/interim/*
+!data/interim/document_processing/
+data/interim/document_processing/*
+!data/interim/document_processing/ground_truth_annotations/
+data/interim/document_processing/ground_truth_annotations/backups/
 !data/**/.gitkeep
 
 # Model Weight Artifacts Exclusions

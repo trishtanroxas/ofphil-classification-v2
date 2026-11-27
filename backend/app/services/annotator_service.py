@@ -177,14 +177,19 @@ def get_annotated_file_stats(target_csv: Optional[Path] = None) -> Dict[str, int
 
 
 def list_images(category: Optional[str] = None) -> Dict[str, Any]:
-    scan_root = CAPTURE_DIR if CAPTURE_DIR.exists() else DOC_DIR
+    scan_root = DOC_DIR
     stats = get_annotated_file_stats()
     images: List[Dict[str, Any]] = []
     if scan_root.exists():
         for p in sorted(scan_root.rglob("*")):
             if p.is_file() and p.suffix.lower() in ALLOWED_IMAGE_EXTS:
                 rel = p.relative_to(DOC_DIR) if DOC_DIR in p.parents else p.relative_to(scan_root)
-                cat = rel.parts[1] if len(rel.parts) > 2 else (rel.parts[0] if len(rel.parts) > 1 else "general")
+                if len(rel.parts) > 2:
+                    cat = f"{rel.parts[0]}/{rel.parts[1]}"
+                elif len(rel.parts) > 1:
+                    cat = rel.parts[0]
+                else:
+                    cat = "general"
                 if category and category.lower() != "all" and cat.lower() != category.lower():
                     continue
                 fname = p.name
@@ -193,7 +198,7 @@ def list_images(category: Optional[str] = None) -> Dict[str, Any]:
                     "file_name": fname,
                     "relative_path": str(p.relative_to(PROJECT_ROOT)).replace("\\", "/"),
                     "category": cat,
-                    "mode": rel.parts[0] if len(rel.parts) > 1 else "capture",
+                    "mode": rel.parts[0] if len(rel.parts) > 1 else "authentic",
                     "is_annotated": box_count > 0,
                     "box_count": box_count,
                 })
