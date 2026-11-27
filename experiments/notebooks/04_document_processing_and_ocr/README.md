@@ -1,41 +1,37 @@
 # Phase 04 — Document Processing and OCR
 
 ## Overview
-Phase 04 establishes the active computer vision, optical character recognition, and image-forensics screening pipelines for the OFPHIL Charity Patient Classification system (Track A).
+Phase 04 implements the complete document processing, OCR recognition fine-tuning, visual feature extraction, and forensic screening workflow for the OFPHIL Charity Patient Classification system (Track A).
 
-- **Object Detection:** **YOLO11s** (`yolo11s.pt`)
-- **OCR Engine:** **PaddleOCR PP-OCRv6 ONLY** (EasyOCR, TrOCR, and OCR fine-tuning are excluded)
-- **Image Forensics:** OpenCV, ORB/SIFT, and Copy-Move Forgery Detection (CMFD) — *No Siamese Network*
+- **OCR Engine:** **PaddleOCR PP-OCRv6** (`PP-OCRv6_medium_rec` SVTR fine-tuning + `PP-OCRv6_medium_det` DBNet inference-only)
+- **Visual Feature Extraction:** **ResNet-50** (`ResNet50_Weights.DEFAULT`, 2048-d visual embeddings)
+- **Image Forensics:** Error Level Analysis (ELA) + ORB/SIFT Copy-Move Forgery Detection (CMFD) — *No Siamese Network*
+- **Signature & Stamp Screening:** Presence screening only (YOLO weights when available + OpenCV HSV/contour fallback) — *Manual institutional verification required*
 
-## Active Notebook Structure
+## Active Notebook Structure & Execution Order
 
 ```text
 04_document_processing_and_ocr/
-│
 ├── 01_document_inventory_and_validation.ipynb
 ├── 02_document_preprocessing.ipynb
-│
-├── 03_yolo_document_detection/
-│   ├── 01_yolo_document_dataset_preparation.ipynb
-│   ├── 02_yolo_annotation_and_label_validation.ipynb
-│   ├── 03_yolo_model_training.ipynb
-│   ├── 04_yolo_model_evaluation.ipynb
-│   └── 05_yolo_inference_and_region_extraction.ipynb
-│
 ├── 04_paddleocr_text_extraction.ipynb
 ├── 05_document_classification_and_linkage.ipynb
 ├── 06_document_extraction_validation.ipynb
 ├── 07_image_forgery_screening.ipynb
 ├── 08_signature_and_stamp_screening.ipynb
+├── resnet50/
+│   ├── 01_resnet50_dataset_preparation.ipynb
+│   ├── 02_resnet50_image_preprocessing_and_augmentation.ipynb
+│   ├── 03_resnet50_feature_extraction.ipynb
+│   ├── 04_resnet50_evaluation.ipynb
+│   └── 05_resnet50_inference_and_feature_export.ipynb
 └── README.md
 ```
 
-## Module Responsibilities
-1. **01_document_inventory_and_validation.ipynb**: Audit of uploaded synthetic and authorized patient documents.
-2. **02_document_preprocessing.ipynb**: OpenCV image enhancement, contrast adjustment (CLAHE), deskewing, and alignment.
-3. **03_yolo_document_detection**: **YOLO11s** (`yolo11s.pt`) layout and element detection (Header, Patient Info, Findings, Tables, Dates, Signature, Stamp).
-4. **04_paddleocr_text_extraction.ipynb**: Authoritative PaddleOCR PP-OCRv6 text transcription, bounding coordinates, confidence metrics, and CER/WER benchmarking.
-5. **05_document_classification_and_linkage.ipynb**: Functional taxonomy assignment and foreign-key linkage to patient records.
-6. **06_document_extraction_validation.ipynb**: Structural and semantic validation of OCR metadata prior to MSW review.
-7. **07_image_forgery_screening.ipynb**: ORB/SIFT feature matching and modular CMFD screening for duplicated regions.
-8. **08_signature_and_stamp_screening.ipynb**: YOLO11s signature/stamp localization and visual consistency screening (manual institutional verification required).
+## Centralized Model & Artifact Locations
+- `models/phase_04/paddleocr_recognition/`: Best/last SVTR checkpoints, config, and training history.
+- `models/phase_04/resnet50/`: Best/last ResNet-50 checkpoints, label mapping, preprocessing config, and evaluation metrics.
+- `models/phase_04/document_classification/`: Canonical taxonomy schema.
+- `data/interim/document_processing/`: Inventory manifest, preprocessed images, extracted OCR entities, classification/linkage JSON, and forensic/signature screening reports.
+- `data/processed/features/`: `document_derived_features.csv` and `resnet50_document_embeddings.parquet`.
+- `data/processed/validation/`: `document_extraction_validation_report.json` and `document_pipeline_validation_report.csv`.

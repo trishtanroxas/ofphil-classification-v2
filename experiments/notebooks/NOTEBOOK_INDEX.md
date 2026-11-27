@@ -14,9 +14,19 @@
 ## 03 — Feature Engineering
 - `03_feature_engineering/`
 
-## 04 — Document Processing & OCR (ResNet-50 + PaddleOCR)
-- `04_document_processing_and_ocr/resnet50/` (5-notebook supervised ResNet-50 workflow)
-- PaddleOCR notebooks under `04_document_processing_and_ocr/`
+## 04 — Document Processing & OCR (PaddleOCR PP-OCRv6 + ResNet-50 + Forensics)
+- `04_document_processing_and_ocr/01_document_inventory_and_validation.ipynb`
+- `04_document_processing_and_ocr/02_document_preprocessing.ipynb`
+- `04_document_processing_and_ocr/04_paddleocr_text_extraction.ipynb`
+- `04_document_processing_and_ocr/05_document_classification_and_linkage.ipynb`
+- `04_document_processing_and_ocr/06_document_extraction_validation.ipynb`
+- `04_document_processing_and_ocr/07_image_forgery_screening.ipynb`
+- `04_document_processing_and_ocr/08_signature_and_stamp_screening.ipynb`
+- `04_document_processing_and_ocr/resnet50/01_resnet50_dataset_preparation.ipynb`
+- `04_document_processing_and_ocr/resnet50/02_resnet50_image_preprocessing_and_augmentation.ipynb`
+- `04_document_processing_and_ocr/resnet50/03_resnet50_feature_extraction.ipynb`
+- `04_document_processing_and_ocr/resnet50/04_resnet50_evaluation.ipynb`
+- `04_document_processing_and_ocr/resnet50/05_resnet50_inference_and_feature_export.ipynb`
 
 ## 05 — Model Selection & Training
 - `05_model_selection_and_training/01_training_data_setup.ipynb`

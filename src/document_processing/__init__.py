@@ -81,10 +81,24 @@ class DocumentProcessingPaths:
         self.validation_dir = self.processed_dir / 'validation'
         
         self.models_dir = self.root / 'models'
+        self.phase04_models_dir = self.models_dir / 'phase_04'
+        self.paddleocr_rec_model_dir = self.phase04_models_dir / 'paddleocr_recognition'
+        self.resnet50_model_dir = self.phase04_models_dir / 'resnet50'
+        self.doc_clf_model_dir = self.phase04_models_dir / 'document_classification'
+        self.forgery_model_dir = self.phase04_models_dir / 'image_forgery_screening'
+        self.sig_stamp_model_dir = self.phase04_models_dir / 'signature_stamp_screening'
         self.yolo_models_dir = self.models_dir / 'trained' / 'yolo'
         self.ocr_models_dir = self.models_dir / 'trained' / 'ocr_finetuned'
         self.ocr_benchmarks_dir = self.models_dir / 'trained' / 'ocr_benchmarks'
         self.tampering_models_dir = self.models_dir / 'trained' / 'tampering_detection'
+        self.sibling_raw_documents_dir = (
+            self.root.parent
+            / 'dss-charity-eligibity-classification'
+            / 'data'
+            / 'raw'
+            / 'supporting document'
+            / 'supporting_docu'
+        )
 
     def resolve_sample_path(self, relative_path: str) -> Path:
         """
@@ -106,5 +120,18 @@ class DocumentProcessingPaths:
         p = self.raw_documents_dir / clean_rel
         if p.exists():
             return p
-            
+
+        # Map legacy physical_capture / scan_capture paths to V2 unified capture/ folder
+        for legacy_seg in ('/physical_capture/', '/scan_capture/'):
+            if legacy_seg in rel:
+                p_cap = self.root / rel.replace(legacy_seg, '/capture/')
+                if p_cap.exists():
+                    return p_cap
+
+        # Read-only fallback to sibling thesis workspace raw documents if present
+        if self.sibling_raw_documents_dir.exists():
+            p_sib = self.sibling_raw_documents_dir / clean_rel
+            if p_sib.exists():
+                return p_sib
+
         return self.root / rel

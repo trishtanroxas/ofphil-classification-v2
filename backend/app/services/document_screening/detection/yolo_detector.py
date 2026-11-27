@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import List, Optional
 import numpy as np
 from app.shared.schemas.pipeline_schemas import DocumentDetectionBox
