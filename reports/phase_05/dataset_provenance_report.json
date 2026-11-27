@@ -1,0 +1,19 @@
+{
+  "raw_rows": 1000,
+  "quarantined_pending_rows": 10,
+  "authentic_adjudicated_rows": 150,
+  "authentic_unique_patients": 119,
+  "authentic_train_dev_patients": 95,
+  "authentic_train_dev_class_counts": {
+    "ELIGIBLE": 60,
+    "INELIGIBLE": 35
+  },
+  "authentic_test_patients": 24,
+  "authentic_test_class_counts": {
+    "ELIGIBLE": 15,
+    "INELIGIBLE": 9
+  },
+  "synthetic_total_rows": 840,
+  "synthetic_train_augmentation_rows": 688,
+  "synthetic_excluded_test_clones": 152
+}

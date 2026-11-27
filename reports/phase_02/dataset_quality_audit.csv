@@ -1,0 +1,7 @@
+metric,value
+total_records,1000
+total_columns,47
+eligible_count,500
+ineligible_count,500
+exact_duplicate_rows,112
+unique_rows_after_dedup,888
