@@ -42,12 +42,16 @@
       "tamper_risk_level": "Low",
       "indicators": {},
       "unavailable_checks": [],
-      "engine_version": "seed-v1"
+      "engine_version": "seed-v1",
+      "authenticity_classification": "Authentic",
+      "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
     },
     "manual_review": null,
-    "storage_path": "/home/kristoper/Projects/Thesis/ofphil-classification-v2/storage/uploads/originals/doc-001_Government_Valid_ID_DelaCruz.jpg",
+    "storage_path": "C:\\Users\\ASUS TUF\\Desktop\\Project in Program\\Thesis Project\\ofphil-classification-v2\\storage\\uploads\\originals\\doc-001_Government_Valid_ID_DelaCruz.jpg",
     "sha256_hash": "8aa441b1bc3f6febe135f5ade21bb7ce4d74adc313266ffb3ad797d6017c5880",
-    "mime_type": "image/jpeg"
+    "mime_type": "image/jpeg",
+    "authenticity_classification": "Authentic",
+    "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
   },
   "doc-002": {
     "id": "doc-002",
@@ -92,12 +96,16 @@
       "tamper_risk_level": "Low",
       "indicators": {},
       "unavailable_checks": [],
-      "engine_version": "seed-v1"
+      "engine_version": "seed-v1",
+      "authenticity_classification": "Authentic",
+      "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
     },
     "manual_review": null,
-    "storage_path": "/home/kristoper/Projects/Thesis/ofphil-classification-v2/storage/uploads/originals/doc-002_Initial_Eye_Examination_Record.pdf",
+    "storage_path": "C:\\Users\\ASUS TUF\\Desktop\\Project in Program\\Thesis Project\\ofphil-classification-v2\\storage\\uploads\\originals\\doc-002_Initial_Eye_Examination_Record.pdf",
     "sha256_hash": "0ff72e07c73a70ebf47283965e62ff2230c1c5c742db0f1f52b7811a1bf9b241",
-    "mime_type": "application/pdf"
+    "mime_type": "application/pdf",
+    "authenticity_classification": "Authentic",
+    "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
   },
   "doc-003": {
     "id": "doc-003",
@@ -142,12 +150,16 @@
       "tamper_risk_level": "Low",
       "indicators": {},
       "unavailable_checks": [],
-      "engine_version": "seed-v1"
+      "engine_version": "seed-v1",
+      "authenticity_classification": "Authentic",
+      "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
     },
     "manual_review": null,
-    "storage_path": "/home/kristoper/Projects/Thesis/ofphil-classification-v2/storage/uploads/originals/doc-003_Barangay_Indigency_Ramos.pdf",
+    "storage_path": "C:\\Users\\ASUS TUF\\Desktop\\Project in Program\\Thesis Project\\ofphil-classification-v2\\storage\\uploads\\originals\\doc-003_Barangay_Indigency_Ramos.pdf",
     "sha256_hash": "912c69408919757d6acd9c1c0099422f2a6aae2dddd66c74ff0ab5d679a74ddf",
-    "mime_type": "application/pdf"
+    "mime_type": "application/pdf",
+    "authenticity_classification": "Authentic",
+    "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
   },
   "doc-004": {
     "id": "doc-004",
@@ -192,12 +204,16 @@
       "tamper_risk_level": "Low",
       "indicators": {},
       "unavailable_checks": [],
-      "engine_version": "seed-v1"
+      "engine_version": "seed-v1",
+      "authenticity_classification": "Authentic",
+      "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
     },
     "manual_review": null,
-    "storage_path": "/home/kristoper/Projects/Thesis/ofphil-classification-v2/storage/uploads/originals/doc-004_Surgical_Quotation_Ramos.png",
+    "storage_path": "C:\\Users\\ASUS TUF\\Desktop\\Project in Program\\Thesis Project\\ofphil-classification-v2\\storage\\uploads\\originals\\doc-004_Surgical_Quotation_Ramos.png",
     "sha256_hash": "5c6fa1eee2f57efcd74547a75e9fe35f539ea4a145e052ac09d044e904eaac68",
-    "mime_type": "image/jpeg"
+    "mime_type": "image/jpeg",
+    "authenticity_classification": "Authentic",
+    "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
   },
   "doc-005": {
     "id": "doc-005",
@@ -242,12 +258,16 @@
       "tamper_risk_level": "Low",
       "indicators": {},
       "unavailable_checks": [],
-      "engine_version": "seed-v1"
+      "engine_version": "seed-v1",
+      "authenticity_classification": "Authentic",
+      "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
     },
     "manual_review": null,
-    "storage_path": "/home/kristoper/Projects/Thesis/ofphil-classification-v2/storage/uploads/originals/doc-005_Senior_Citizen_ID_Bautista.jpg",
+    "storage_path": "C:\\Users\\ASUS TUF\\Desktop\\Project in Program\\Thesis Project\\ofphil-classification-v2\\storage\\uploads\\originals\\doc-005_Senior_Citizen_ID_Bautista.jpg",
     "sha256_hash": "aa6fb457f6914969239b7d1a948c8d7824b5af95e7be299b0230ec22285090f5",
-    "mime_type": "image/jpeg"
+    "mime_type": "image/jpeg",
+    "authenticity_classification": "Authentic",
+    "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
   },
   "doc-006": {
     "id": "doc-006",
@@ -292,12 +312,16 @@
       "tamper_risk_level": "Low",
       "indicators": {},
       "unavailable_checks": [],
-      "engine_version": "seed-v1"
+      "engine_version": "seed-v1",
+      "authenticity_classification": "Authentic",
+      "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
     },
     "manual_review": null,
-    "storage_path": "/home/kristoper/Projects/Thesis/ofphil-classification-v2/storage/uploads/originals/doc-006_Clinical_Eye_Exam_Santos.pdf",
+    "storage_path": "C:\\Users\\ASUS TUF\\Desktop\\Project in Program\\Thesis Project\\ofphil-classification-v2\\storage\\uploads\\originals\\doc-006_Clinical_Eye_Exam_Santos.pdf",
     "sha256_hash": "4adbe5c8b252827f3e9e8f0d8ea219048f106824454640e35e530c1e7be8bdbe",
-    "mime_type": "application/pdf"
+    "mime_type": "application/pdf",
+    "authenticity_classification": "Authentic",
+    "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
   },
   "doc-19da3072e1": {
     "id": "doc-19da3072e1",
@@ -306,10 +330,10 @@
     "assessment_id": "asmt-4167899534",
     "filename": "ind_p_002.jpeg",
     "document_type": "SIGNED CERTIFICATE OF INDIGENCY",
-    "file_size_bytes": 6138459,
+    "file_size_bytes": 17195,
     "mime_type": "image/jpeg",
-    "sha256_hash": "da8422d7c36102ace0953b2ffec84d3b06d34fdfee977b695313b262bf82d50c",
-    "storage_path": "/home/kristoper/Projects/Thesis/ofphil-classification-v2/storage/uploads/originals/doc-19da3072e1_ind_p_002.jpeg",
+    "sha256_hash": "6d976f2a43c86219eb90e1d9aa1fdbf05427ef0e02320dd7ff732a542ba45006",
+    "storage_path": "C:\\Users\\ASUS TUF\\Desktop\\Project in Program\\Thesis Project\\ofphil-classification-v2\\storage\\uploads\\originals\\doc-19da3072e1_ind_p_002.jpeg",
     "uploaded_at": "2026-11-25T13:51:25.255920+00:00",
     "uploaded_by": "msw_lead",
     "status": "processed",
@@ -415,8 +439,12 @@
       "unavailable_checks": [
         "custom_cnn_splice_detector"
       ],
-      "engine_version": "PIL-ELA-OpenCV-v1"
+      "engine_version": "PIL-ELA-OpenCV-v1",
+      "authenticity_classification": "Authentic",
+      "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
     },
-    "manual_review": null
+    "manual_review": null,
+    "authenticity_classification": "Authentic",
+    "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
   }
 }
