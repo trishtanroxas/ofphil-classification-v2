@@ -1890,7 +1890,7 @@ function MSWAssessmentContent() {
                   MEDICAL SOCIAL WORK ASSESSMENT TOOL
                 </h1>
                 <div className="text-[11.5px] text-[#5A7466] mt-0.5">
-                  Clinical Intake, Socioeconomic Rubric Scoring &amp; Subsidy Eligibility Determination
+                  Clinical Intake &amp; Structured Medical Social Work Interview
                 </div>
               </div>
             </div>
@@ -3473,7 +3473,7 @@ function MSWAssessmentContent() {
                     <span>
                       {isReviewMode
                         ? 'Strict Read-Only Mode: All inputs and rubric selections are locked.'
-                        : 'Edit Mode Active: Interview fields and qualitative rubric tiers are unlocked.'}
+                        : 'Edit Mode Active: Structured interview fields are unlocked.'}
                     </span>
                   </div>
                 </div>
@@ -4742,7 +4742,6 @@ function MSWAssessmentContent() {
                 ].map((doc) => (
                   <div key={doc.id} className="p-3.5 rounded-xl border border-[#CBD5E1] bg-white space-y-2">
                     <div className="font-bold text-[11px] text-[#1E293B] leading-snug">{doc.id}</div>
-                    <div className="text-[10.5px] text-[#64748B] line-clamp-2 leading-relaxed">{doc.sub}</div>
 
                     <div className="flex items-center justify-between pt-2 border-t border-[#EEF2EF]">
                       <select
