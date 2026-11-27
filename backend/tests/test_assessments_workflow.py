@@ -38,23 +38,29 @@ def test_assessment_full_workflow_and_rbac():
     )
     assert r_neg.status_code == 422
 
-    # 3. Save Stage 2 draft
+    # 3. Save Stage 2 qualitative interview draft (no score fields required)
     r_patch = client.patch(
         f"/api/v1/assessments/{asmt_id}",
         json={
             "active_stage": 2,
             "stage2_data": {
                 "health_factors": [
-                    {"factor": "Absence of adequate health services", "severity": 4, "coping": 4},
-                    {"factor": "Inaccessibility", "severity": 4, "coping": 4},
+                    {
+                        "factor": "Absence of adequate health services",
+                        "patient_reported": "No local surgical facility",
+                        "msw_observation": "Verified referral from provincial clinic",
+                    },
                 ],
-                "discrimination_severity": 3,
-                "discrimination_coping": 3,
-                "safety_severity": 3,
-                "safety_coping": 3,
-                "roles_severity": 4,
-                "roles_coping": 4,
-                "environment_severity": 4,
+                "discrimination_patient_reported": "Unable to drive public utility vehicle due to cataract",
+                "discrimination_msw_observation": "Confirmed livelihood interruption",
+                "interview_answers": [
+                    {
+                        "question_key": "living_situation",
+                        "question_text": "Living Situation & Housing Tenancy",
+                        "patient_answer": "Renting single room",
+                        "msw_observation": "Low-income household verified",
+                    }
+                ],
             },
         },
         headers=MSW_HEADERS,
@@ -68,7 +74,7 @@ def test_assessment_full_workflow_and_rbac():
     assert r_draft.json()["found"] is True
     assert r_draft.json()["assessment"]["id"] == asmt_id
 
-    # 5. Submit & classify
+    # 5. Submit & classify (Stage 1 per-capita classification runs; MSW Stage 2 score is None, routes to PENDING_MSW_REVIEW)
     r_sub = client.post(
         f"/api/v1/assessments/{asmt_id}/submit",
         json={"is_initial_load": False, "assessment_context": "live_recalculation"},
@@ -77,29 +83,29 @@ def test_assessment_full_workflow_and_rbac():
     assert r_sub.status_code == 200
     sub_data = r_sub.json()
     assert sub_data["classification_result"]["financial_classification"]["classification"] == "INDIGENT"
-    assert sub_data["classification_result"]["msw_classification"]["classification"] in {
-        "FINANCIALLY_INCAPACITATED_B1",
-        "INDIGENT",
-    }
+    assert sub_data["classification_result"]["msw_classification"] is None
+    assert sub_data["workflow_status"] == "PENDING_MSW_REVIEW"
 
     # 6. Get classification & history
     r_cls = client.get(f"/api/v1/assessments/{asmt_id}/classification", headers=MSW_HEADERS)
     assert r_cls.status_code == 200
     assert len(r_cls.json()["classification_history"]) == 1
 
-    # 7. MSW recommendation
+    # 7. Manual MSW decision & recommendation (Approve procedure quotation subsidy)
     r_rec = client.post(
         f"/api/v1/assessments/{asmt_id}/recommendation",
         json={
+            "decision": "APPROVED",
             "recommended_tier": "Indigent",
             "recommended_subsidy_pct": 100.0,
-            "case_notes": "Household per capita income is ₱1,250.00; qualifies for 100% full charity subsidy.",
+            "case_notes": "Household per capita income is ₱1,250.00; qualifies for 100% procedure quotation subsidy.",
             "msw_assessor_name": "Maria Santos, RSW",
         },
         headers=MSW_HEADERS,
     )
     assert r_rec.status_code == 200
     assert r_rec.json()["workflow_status"] == "PENDING_APPROVAL"
+    assert r_rec.json()["msw_recommendation"]["decision"] == "APPROVED"
 
     # 8. Unauthorized institutional approval by MSW or Patient must fail (403)
     r_msw_app = client.post(
@@ -140,7 +146,57 @@ def test_assessment_full_workflow_and_rbac():
     assert "INSTITUTIONAL_APPROVED" in events
 
 
-def test_patient_record_association_and_no_duplicate_drafts():
+def test_patient_record_association_and_no_duplicate_drafts(monkeypatch):
+    from app.api.v1.endpoints import endpoints as ep
+    seed_patients = [
+        {
+            "id": "rec-2",
+            "patient_id": "MSW_FA_1126-01",
+            "charity_case_no": "MSW_FA_1126-01",
+            "first_name": "Maria Clara",
+            "last_name": "Ramos",
+            "category": "CHARITY",
+            "status": "APPROVED",
+            "encounters": [],
+            "inquiries": [],
+        },
+        {
+            "id": "rec-3",
+            "patient_id": "MSW_FA_1126-02",
+            "charity_case_no": "MSW_FA_1126-02",
+            "first_name": "Pedro",
+            "last_name": "Bautista",
+            "category": "CHARITY",
+            "status": "APPROVED",
+            "encounters": [],
+            "inquiries": [],
+        },
+        {
+            "id": "rec-4",
+            "patient_id": "MSW_FA_1126-03",
+            "charity_case_no": "MSW_FA_1126-03",
+            "first_name": "Elena",
+            "last_name": "Santos",
+            "category": "CHARITY",
+            "status": "PENDING",
+            "encounters": [],
+            "inquiries": [],
+        },
+        {
+            "id": "rec-5",
+            "patient_id": "MSW_FA_1126-04",
+            "charity_case_no": "MSW_FA_1126-04",
+            "first_name": "Ricardo",
+            "last_name": "Dalisay",
+            "category": "CHARITY",
+            "status": "DISAPPROVED/PROMISSORY",
+            "encounters": [],
+            "inquiries": [],
+        },
+    ]
+    monkeypatch.setattr(ep, "REGISTERED_PATIENTS_REGISTRY", seed_patients)
+    monkeypatch.setattr(ep, "_save_patients_registry", lambda: None)
+
     # 1. Verify Patient A and Patient B return their distinct records
     r_a = client.get("/api/v1/patients/MSW_FA_1126-01", headers=MSW_HEADERS)
     r_b = client.get("/api/v1/patients/MSW_FA_1126-02", headers=MSW_HEADERS)

@@ -313,6 +313,15 @@ export function MSWPatientsContent({
     currentPage * pageSize
   );
 
+  const formatReferralStatusLabel = (status?: string) => {
+    const raw = String(status || '').trim();
+    if (!raw) return 'Awaiting MSW Review';
+    if (raw.toUpperCase() === 'ENDORSED FOR FINANCIAL ASSISTANCE') {
+      return raw === raw.toUpperCase() ? 'ENDORSED FOR MEDICAL ASSISTANCE' : 'Endorsed for Medical Assistance';
+    }
+    return raw;
+  };
+
   // -------------------------------------------------------------
   // IN-PAGE REFERRAL DETAILS VIEW (NOT MODAL)
   // -------------------------------------------------------------
@@ -320,7 +329,7 @@ export function MSWPatientsContent({
     return (
       <DashboardLayout
         title={`Referral ${selectedReferral.id} · Clinical Dossier`}
-        subtitle="Ophthalmological Foundation of the Philippines — Official Clinical Referral for Financial Assistance"
+        subtitle="Ophthalmological Foundation of the Philippines — Official Clinical Referral for Medical Assistance (Procedure Quotation Subsidy)"
       >
         <div className="space-y-6 animate-in fade-in duration-150">
           {/* Top Bar with Back Navigation & Direct Assess Action */}
@@ -369,11 +378,11 @@ export function MSWPatientsContent({
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-6 border-b border-[#EEF2EF]">
               <div className="flex items-start gap-4">
                 <div className="w-12 h-12 rounded-xl bg-[#E8F5EC] text-[#0B6B3A] flex items-center justify-center text-xl shrink-0">
-                  <i className="fa-solid fa-file-invoice-dollar" />
+                  <i className="fa-solid fa-hand-holding-medical" />
                 </div>
                 <div>
                   <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-md bg-[#E8F5EC] text-[#0B6B3A] text-[11px] font-bold uppercase tracking-wider mb-1">
-                    <span>Clinical Financial Assistance Referral</span>
+                    <span>Clinical Medical Assistance Referral</span>
                     <span>&bull;</span>
                     <span className="font-mono">{selectedReferral.id}</span>
                   </div>
@@ -381,13 +390,13 @@ export function MSWPatientsContent({
                     Official Clinical Referral Slip &amp; Endorsement
                   </h2>
                   <p className="text-xs text-[#5A7466] mt-0.5">
-                    Endorsed by attending ophthalmic surgeon to Medical Social Work for hospital fee assistance &amp; subsidy evaluation.
+                    Endorsed by attending ophthalmic surgeon to Medical Social Work for clinic procedure quotation subsidy evaluation.
                   </p>
                 </div>
               </div>
               <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-amber-50 text-amber-900 border border-amber-300 uppercase tracking-wider inline-flex items-center gap-1.5 self-start">
                 <i className="fa-solid fa-handshake-angle text-[10px]" />
-                <span>{selectedReferral.status}</span>
+                <span>{formatReferralStatusLabel(selectedReferral.status)}</span>
               </span>
             </div>
 
@@ -557,7 +566,7 @@ export function MSWPatientsContent({
   // -------------------------------------------------------------
   return (
     <DashboardLayout
-      title={activeTab === 'referrals' ? 'Referrals for Financial Assistance' : 'Charity Patient Records'}
+      title={activeTab === 'referrals' ? 'Referrals for Medical Assistance' : 'Charity Patient Records'}
       subtitle="Ophthalmological Foundation of the Philippines — Clinical Social Services & Charity Directory"
     >
       <div className="space-y-6">
@@ -568,21 +577,21 @@ export function MSWPatientsContent({
               <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#E8F5EC] text-[#0B6B3A]">
                 Clinical Social Services Directory
               </span>
-              <span className="text-xs text-[#64748B]">&bull; Charity Grantees &amp; Financial Assistance Referrals</span>
+              <span className="text-xs text-[#64748B]">&bull; Charity Grantees &amp; Medical Assistance Referrals</span>
             </div>
             <h2 className="font-['Outfit'] text-2xl font-bold text-[#10241A]">
               {activeTab === 'referrals'
-                ? 'Referrals for Financial Assistance'
+                ? 'Referrals for Medical Assistance'
                 : activeTab === 'approved_cases'
                 ? 'MSW-Approved Charity Cases'
                 : 'Charity Patient Master Records'}
             </h2>
             <p className="text-xs sm:text-sm text-[#5A7466] mt-0.5">
               {activeTab === 'referrals'
-                ? 'Review clinic patients officially endorsed by attending eye surgeons for charity classification and hospital fee assistance.'
+                ? 'Review clinic patients officially endorsed by attending eye surgeons for procedure quotation subsidy and medical assistance.'
                 : activeTab === 'approved_cases'
                 ? 'Physician referrals approved by MSW with generated Charity Case Numbers. Open dossier to start/continue assessment.'
-                : 'Review registered indigent beneficiaries, launch clinical assessments, and manage social welfare subsidies.'}
+                : 'Review registered indigent beneficiaries, launch clinical assessments, and manage procedure quotation subsidies.'}
             </p>
           </div>
 
@@ -609,8 +618,8 @@ export function MSWPatientsContent({
             },
             {
               id: 'referrals',
-              label: 'Financial Assistance Referrals',
-              icon: 'fa-file-invoice-dollar',
+              label: 'Medical Assistance Referrals',
+              icon: 'fa-hand-holding-medical',
               count: pendingReferrals.length,
               badgeColor: 'bg-amber-100 text-amber-800 border border-amber-300 font-extrabold',
             },
@@ -749,7 +758,7 @@ export function MSWPatientsContent({
                 </div>
                 <h4 className="text-base font-bold text-[#10241A] mb-1">No Pending Clinical Referrals</h4>
                 <p className="text-xs text-[#64748B] max-w-sm mx-auto mb-4">
-                  There are currently no physician-endorsed financial referrals awaiting MSW review.
+                  There are currently no physician-endorsed medical assistance referrals awaiting MSW review.
                 </p>
                 <button
                   type="button"
@@ -1138,7 +1147,7 @@ export function MSWPatientsContent({
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-[#10241A]">
-                    Approve Financial Assistance Referral?
+                    Approve Medical Assistance Referral?
                   </h3>
                   <div className="text-[11px] text-[#5A7466]">
                     Permanent ID: <span className="font-mono font-bold text-[#0B6B3A]">{approvalModalReferral.patient_id}</span>

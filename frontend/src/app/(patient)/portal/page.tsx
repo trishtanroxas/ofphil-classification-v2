@@ -2919,7 +2919,7 @@ function PatientPortalContent() {
                     </h3>
                     <div className="space-y-2.5 max-w-lg">
                       <label className="p-3.5 rounded-xl border border-[#EEF2EF] bg-[#FAFBF8] flex items-center justify-between cursor-pointer">
-                        <span>Email alert when my surgery financial subsidy is approved</span>
+                        <span>Email alert when my procedure quotation medical assistance is approved</span>
                         <input type="checkbox" defaultChecked className="w-4 h-4 accent-[#0B6B3A]" />
                       </label>
                       <label className="p-3.5 rounded-xl border border-[#EEF2EF] bg-[#FAFBF8] flex items-center justify-between cursor-pointer">

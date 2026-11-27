@@ -7,10 +7,12 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from app.core.paths import PRETRAINED_MODELS_DIR, STORAGE_DIR
+from app.core.paths import PRETRAINED_MODELS_DIR, PROJECT_ROOT, STORAGE_DIR
 from app.schemas.ml_schemas import FeatureContribution, MLPredictRequest, MLPredictResponse
 
-MULTIMODAL_DIR = PRETRAINED_MODELS_DIR / "multimodal"
+_PRIMARY_MULTIMODAL_DIR = PRETRAINED_MODELS_DIR / "multimodal"
+_FALLBACK_MULTIMODAL_DIR = PROJECT_ROOT / "backend" / "models" / "pretrained" / "multimodal"
+MULTIMODAL_DIR = _PRIMARY_MULTIMODAL_DIR if _PRIMARY_MULTIMODAL_DIR.exists() else _FALLBACK_MULTIMODAL_DIR
 EBM_MODEL_PATH = MULTIMODAL_DIR / "ebm_multimodal.joblib"
 CATBOOST_MODEL_PATH = MULTIMODAL_DIR / "catboost_multimodal.cbm"
 ML_HISTORY_FILE = STORAGE_DIR / "ml_predictions_history.json"

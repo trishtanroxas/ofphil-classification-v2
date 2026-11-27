@@ -60,10 +60,17 @@ class PsychosocialCircumstances(BaseModel):
     coping_capacity_obs: str = Field(default="")
 
 
+class Stage2InterviewAnswerItem(BaseModel):
+    question_key: str
+    question_text: Optional[str] = ""
+    patient_answer: Optional[str] = ""
+    msw_observation: Optional[str] = ""
+
+
 class Stage2StructuredDomainFactor(BaseModel):
     factor: str
-    severity_level: Optional[str] = None  # LEVEL_1_MINIMAL .. LEVEL_6_CATASTROPHIC
-    coping_level: Optional[str] = None    # LEVEL_1_SUPERIOR .. LEVEL_6_CRISIS
+    severity_level: Optional[str] = Field(default=None, description="Deprecated legacy field; optional")
+    coping_level: Optional[str] = Field(default=None, description="Deprecated legacy field; optional")
     patient_reported: Optional[str] = ""
     msw_observation: Optional[str] = ""
 
@@ -76,14 +83,15 @@ class Stage2EvaluationRequest(BaseModel):
     sectoral_flags: Optional[Dict[str, bool]] = None
     gov_assistance_enrolled: Optional[bool] = None
     other_medical_expenses_count: Optional[int] = None
-    auto_compute_scores: bool = False
+    auto_compute_scores: Optional[bool] = Field(default=False, description="Deprecated legacy flag; ignored unless legacy scoring requested")
     is_initial_load: bool = False
     assessment_context: str = "live_recalculation"
     interview_info: Optional[MSWInterviewInfo] = None
     background: Optional[PatientFamilyBackground] = None
     medical_difficulties: Optional[MedicalFinancialDifficulties] = None
     psychosocial: Optional[PsychosocialCircumstances] = None
-    # Domain V: Health factors
+    interview_answers: Optional[List[Stage2InterviewAnswerItem]] = None
+    # Domain V: Health factors (open-ended Q&A; severity/coping optional legacy)
     health_factors: Optional[List[Stage2StructuredDomainFactor]] = None
     # Domain VI: Discrimination
     discrimination_severity_level: Optional[str] = None
@@ -107,23 +115,24 @@ class Stage2EvaluationRequest(BaseModel):
 
 
 class Stage2EvaluationResponse(BaseModel):
-    is_complete: bool
-    status: str  # "EVALUATED" | "INCOMPLETE"
-    message: str
+    is_complete: bool = True
+    status: str = "INTERVIEW_RECORDED"
+    message: str = "Stage 2 qualitative interview recorded."
+    interview_answers: List[Stage2InterviewAnswerItem] = Field(default_factory=list)
     missing_factors: List[str] = Field(default_factory=list)
     missing_mappings: List[str] = Field(default_factory=list)
     institutional_confirmation_required: bool = False
     average_severity: Optional[Decimal] = None
     average_coping: Optional[Decimal] = None
     total_risk: Optional[Decimal] = None
-    total_risk_formula: str = "(Average Severity * 8.5) + (Average Coping * 5.0)"
+    total_risk_formula: Optional[str] = None
     total_household_income: Optional[Decimal] = None
     computed_domain_scores: Optional[Dict[str, Any]] = None
     financial_classification: Optional[Dict[str, Any]] = None
     msw_classification: Optional[Dict[str, Any]] = None
     triggered_conditions: List[Dict[str, Any]] = Field(default_factory=list)
-    calculation_basis: str = "OFPHIL_MSW_RUBRIC"
-    rubric_version: str = "1.0"
+    calculation_basis: Optional[str] = "STAGE2_TEXT_INTERVIEW_ONLY"
+    rubric_version: Optional[str] = None
 
 
 class InterviewSaveRequest(BaseModel):
@@ -132,6 +141,15 @@ class InterviewSaveRequest(BaseModel):
     medical_difficulties: Optional[MedicalFinancialDifficulties] = None
     psychosocial: Optional[PsychosocialCircumstances] = None
     health_factors: Optional[List[Stage2StructuredDomainFactor]] = None
+    interview_answers: Optional[List[Stage2InterviewAnswerItem]] = None
+    discrimination_patient_reported: Optional[str] = None
+    discrimination_msw_observation: Optional[str] = None
+    safety_patient_reported: Optional[str] = None
+    safety_msw_observation: Optional[str] = None
+    roles_patient_reported: Optional[str] = None
+    roles_msw_observation: Optional[str] = None
+    environment_patient_reported: Optional[str] = None
+    environment_msw_observation: Optional[str] = None
     notes: Optional[str] = None
     mark_completed: bool = False
 
@@ -166,6 +184,7 @@ class AssessmentSubmitRequest(BaseModel):
 
 
 class MSWRecommendationRequest(BaseModel):
+    decision: Optional[str] = Field(default=None, description="APPROVED | DECLINED (manual MSW procedure subsidy decision)")
     recommended_tier: str = Field(..., min_length=1)
     recommended_subsidy_pct: float = Field(..., ge=0, le=100)
     case_notes: str = Field(..., min_length=3, max_length=4000)

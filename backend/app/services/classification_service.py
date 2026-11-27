@@ -15,6 +15,7 @@ from fastapi import HTTPException, status
 from app.schemas.assessment_schemas import (
     Stage2EvaluationRequest,
     Stage2EvaluationResponse,
+    Stage2InterviewAnswerItem,
 )
 from app.schemas.classification_schemas import (
     CombinedClassificationRequest,
@@ -634,193 +635,87 @@ def compute_automated_stage2_scores(
     }
 
 
+def _compile_stage2_interview_answers(req: Stage2EvaluationRequest) -> List[Stage2InterviewAnswerItem]:
+    if req.interview_answers:
+        return list(req.interview_answers)
+
+    items: List[Stage2InterviewAnswerItem] = []
+    bg = req.background
+    if bg:
+        bg_pairs = [
+            ("living_situation", "Current Living Situation & Tenancy", bg.living_situation, bg.living_situation_obs),
+            ("household_composition", "Household Composition & Dependents", bg.household_composition, bg.household_composition_obs),
+            ("family_support", "Family Caregiving & Support", bg.family_support, bg.family_support_obs),
+            ("employment_situation", "Employment & Livelihood Situation", bg.employment_situation, bg.employment_obs),
+            ("income_sources", "Household Income Sources", bg.income_sources, bg.income_sources_obs),
+            ("financial_responsibilities", "Monthly Household Financial Responsibilities", bg.financial_responsibilities, bg.financial_responsibilities_obs),
+        ]
+        for key, q_txt, ans, obs in bg_pairs:
+            if ans or obs:
+                items.append(Stage2InterviewAnswerItem(question_key=key, question_text=q_txt, patient_answer=ans or "", msw_observation=obs or ""))
+
+    md = req.medical_difficulties
+    if md:
+        if md.medical_condition_summary or md.medical_condition_obs:
+            items.append(Stage2InterviewAnswerItem(
+                question_key="medical_condition_summary",
+                question_text="Medical Condition & Visual Functional Impact",
+                patient_answer=md.medical_condition_summary or "",
+                msw_observation=md.medical_condition_obs or "",
+            ))
+        if md.financial_barriers or md.financial_barriers_obs:
+            items.append(Stage2InterviewAnswerItem(
+                question_key="financial_barriers",
+                question_text="Procedure Quotation & Medical Expense Barriers",
+                patient_answer=md.financial_barriers or "",
+                msw_observation=md.financial_barriers_obs or "",
+            ))
+
+    psy = req.psychosocial
+    if psy:
+        psy_pairs = [
+            ("accessibility_concerns", "Healthcare Travel & Companion Accessibility", psy.accessibility_concerns, ""),
+            ("discrimination_experienced", "Experienced Stigma or Employment Discrimination", psy.discrimination_experienced, psy.discrimination_obs),
+            ("safety_hazards", "Home & Mobility Safety Hazards", psy.safety_hazards, psy.safety_hazards_obs),
+            ("social_responsibilities", "Family & Social Role Responsibilities", psy.social_responsibilities, psy.social_responsibilities_obs),
+            ("support_systems", "Community & Extended Family Support Systems", psy.support_systems, psy.support_systems_obs),
+            ("basic_needs_living_conditions", "Basic Needs & Dwelling Conditions", psy.basic_needs_living_conditions, psy.basic_needs_obs),
+            ("coping_capacity_narrative", "Patient & Family Coping Narrative", psy.coping_capacity_narrative, psy.coping_capacity_obs),
+        ]
+        for key, q_txt, ans, obs in psy_pairs:
+            if ans or obs:
+                items.append(Stage2InterviewAnswerItem(question_key=key, question_text=q_txt, patient_answer=ans or "", msw_observation=obs or ""))
+
+    for idx, hf in enumerate(req.health_factors or []):
+        items.append(Stage2InterviewAnswerItem(
+            question_key=f"health_factor_{idx + 1}",
+            question_text=hf.factor,
+            patient_answer=hf.patient_reported or "",
+            msw_observation=hf.msw_observation or "",
+        ))
+
+    domain_pairs = [
+        ("domain_discrimination", "VI. Discrimination Burden", req.discrimination_patient_reported, req.discrimination_msw_observation),
+        ("domain_safety", "VII. Safety / Hazards", req.safety_patient_reported, req.safety_msw_observation),
+        ("domain_roles", "VIII. Social Roles", req.roles_patient_reported, req.roles_msw_observation),
+        ("domain_environment", "IX. Environment & Basic Needs", req.environment_patient_reported, req.environment_msw_observation),
+    ]
+    for key, q_txt, ans, obs in domain_pairs:
+        if ans or obs:
+            items.append(Stage2InterviewAnswerItem(question_key=key, question_text=q_txt, patient_answer=ans or "", msw_observation=obs or ""))
+
+    return items
+
+
 def evaluate_stage2_interview(req: Stage2EvaluationRequest) -> Stage2EvaluationResponse:
-    # Determine whether manual qualitative levels were explicitly supplied or automated scoring applies
-    has_manual_levels = bool(
-        not req.auto_compute_scores
-        and req.discrimination_severity_level
-        and req.discrimination_coping_level
-        and req.safety_severity_level
-        and req.safety_coping_level
-        and req.roles_severity_level
-        and req.roles_coping_level
-        and req.environment_severity_level
-        and req.health_factors
-        and all(hf.severity_level and hf.coping_level for hf in req.health_factors)
-    )
+    """
+    Stage 2 is a qualitative text-based interview; it does NOT require or compute Stage 2
+    severity/coping scores. Stage 1 financial per-capita classification is returned if
+    household income and household size are provided. Legacy scores are only evaluated
+    read-only if a caller explicitly supplies complete legacy severity/coping levels.
+    """
+    interview_answers = _compile_stage2_interview_answers(req)
 
-    computed_domains: Optional[Dict[str, Any]] = None
-
-    if req.auto_compute_scores or (
-        not req.discrimination_severity_level
-        and not req.safety_severity_level
-        and not req.roles_severity_level
-        and not req.environment_severity_level
-        and (not req.health_factors or all(not hf.severity_level and not hf.coping_level for hf in req.health_factors))
-    ):
-        health_concat = " ".join(
-            f"{hf.patient_reported or ''} {hf.msw_observation or ''}" for hf in (req.health_factors or [])
-        )
-        surg_est = (
-            Decimal(str(req.medical_difficulties.estimated_treatment_expenses))
-            if (req.medical_difficulties and req.medical_difficulties.estimated_treatment_expenses is not None)
-            else None
-        )
-        scores = compute_automated_stage2_scores(
-            total_household_income=req.total_household_income,
-            household_size=req.household_size,
-            total_monthly_expenses=req.total_monthly_expenses,
-            estimated_treatment_expenses=surg_est,
-            sectoral_flags=req.sectoral_flags,
-            gov_assistance_enrolled=req.gov_assistance_enrolled,
-            other_medical_expenses_count=req.other_medical_expenses_count,
-            narrative_texts={
-                "health": health_concat,
-                "discrimination": f"{req.discrimination_patient_reported or ''} {req.discrimination_msw_observation or ''} {(req.psychosocial.discrimination_experienced if req.psychosocial else '') or ''}",
-                "safety": f"{req.safety_patient_reported or ''} {req.safety_msw_observation or ''} {(req.psychosocial.safety_hazards if req.psychosocial else '') or ''}",
-                "roles": f"{req.roles_patient_reported or ''} {req.roles_msw_observation or ''} {(req.background.employment_situation if req.background else '') or ''}",
-                "environment": f"{req.environment_patient_reported or ''} {req.environment_msw_observation or ''} {(req.background.living_situation if req.background else '') or ''}",
-            },
-        )
-        health_sev_avg = scores["health_severity_avg"]
-        health_cop_avg = scores["health_coping_avg"]
-        discrim_sev = scores["discrimination_severity"]
-        discrim_cop = scores["discrimination_coping"]
-        safety_sev = scores["safety_severity"]
-        safety_cop = scores["safety_coping"]
-        roles_sev = scores["roles_severity"]
-        roles_cop = scores["roles_coping"]
-        env_sev = scores["environment_severity"]
-        computed_domains = {k: float(v) for k, v in scores.items()}
-    else:
-        missing_factors: List[str] = []
-        missing_mappings: List[str] = []
-
-        # 1. Check interview administrative details
-        if not req.interview_info or not req.interview_info.interview_date:
-            missing_factors.append("Interview Administrative Details: Date of interview is required.")
-
-        # 2. Domain V: Health Factors
-        h_sev_components: List[Decimal] = []
-        h_cop_components: List[Decimal] = []
-        if not req.health_factors or len(req.health_factors) == 0:
-            missing_factors.append("Domain V: Health (Physical & Mental Health Services / Access factors are required)")
-        else:
-            for idx, hf in enumerate(req.health_factors):
-                label = hf.factor or f"Health factor #{idx + 1}"
-                sev_val, err_sev = resolve_qualitative_severity(hf.severity_level)
-                if err_sev:
-                    missing_mappings.append(err_sev)
-                elif sev_val is None:
-                    missing_factors.append(f"Domain V: {label} (Severity level selection missing)")
-                else:
-                    h_sev_components.append(sev_val)
-
-                cop_val, err_cop = resolve_qualitative_coping(hf.coping_level)
-                if err_cop:
-                    missing_mappings.append(err_cop)
-                elif cop_val is None:
-                    missing_factors.append(f"Domain V: {label} (Coping level selection missing)")
-                else:
-                    h_cop_components.append(cop_val)
-
-        # 3. Domain VI: Discrimination
-        discrim_sev_opt, err_d_sev = resolve_qualitative_severity(req.discrimination_severity_level)
-        if err_d_sev:
-            missing_mappings.append(err_d_sev)
-        elif discrim_sev_opt is None:
-            missing_factors.append("Domain VI: Discrimination Burden (Severity level selection missing)")
-
-        discrim_cop_opt, err_d_cop = resolve_qualitative_coping(req.discrimination_coping_level)
-        if err_d_cop:
-            missing_mappings.append(err_d_cop)
-        elif discrim_cop_opt is None:
-            missing_factors.append("Domain VI: Discrimination Burden (Coping level selection missing)")
-
-        # 4. Domain VII: Safety
-        safety_sev_opt, err_s_sev = resolve_qualitative_severity(req.safety_severity_level)
-        if err_s_sev:
-            missing_mappings.append(err_s_sev)
-        elif safety_sev_opt is None:
-            missing_factors.append("Domain VII: Safety / Hazards (Severity level selection missing)")
-
-        safety_cop_opt, err_s_cop = resolve_qualitative_coping(req.safety_coping_level)
-        if err_s_cop:
-            missing_mappings.append(err_s_cop)
-        elif safety_cop_opt is None:
-            missing_factors.append("Domain VII: Safety / Hazards (Coping level selection missing)")
-
-        # 5. Domain VIII: Social Roles
-        roles_sev_opt, err_r_sev = resolve_qualitative_severity(req.roles_severity_level)
-        if err_r_sev:
-            missing_mappings.append(err_r_sev)
-        elif roles_sev_opt is None:
-            missing_factors.append("Domain VIII: Social Roles (Severity level selection missing)")
-
-        roles_cop_opt, err_r_cop = resolve_qualitative_coping(req.roles_coping_level)
-        if err_r_cop:
-            missing_mappings.append(err_r_cop)
-        elif roles_cop_opt is None:
-            missing_factors.append("Domain VIII: Social Roles (Coping level selection missing)")
-
-        # 6. Domain IX: Environment
-        env_sev_opt, err_e_sev = resolve_qualitative_severity(req.environment_severity_level)
-        if err_e_sev:
-            missing_mappings.append(err_e_sev)
-        elif env_sev_opt is None:
-            missing_factors.append("Domain IX: Environment / Basic Needs (Severity level selection missing)")
-
-        if missing_factors or missing_mappings:
-            return Stage2EvaluationResponse(
-                is_complete=False,
-                status="INCOMPLETE",
-                message="ASSESSMENT INCOMPLETE — CLASSIFICATION PENDING",
-                missing_factors=missing_factors,
-                missing_mappings=missing_mappings,
-                institutional_confirmation_required=bool(missing_mappings),
-                total_household_income=req.total_household_income,
-            )
-
-        health_sev_avg = _quantize_2(sum(h_sev_components) / Decimal(len(h_sev_components)))
-        health_cop_avg = _quantize_2(sum(h_cop_components) / Decimal(len(h_cop_components)))
-        discrim_sev = discrim_sev_opt  # type: ignore[assignment]
-        discrim_cop = discrim_cop_opt  # type: ignore[assignment]
-        safety_sev = safety_sev_opt    # type: ignore[assignment]
-        safety_cop = safety_cop_opt    # type: ignore[assignment]
-        roles_sev = roles_sev_opt      # type: ignore[assignment]
-        roles_cop = roles_cop_opt      # type: ignore[assignment]
-        env_sev = env_sev_opt          # type: ignore[assignment]
-        computed_domains = {
-            "health_severity_avg": float(health_sev_avg),
-            "health_coping_avg": float(health_cop_avg),
-            "discrimination_severity": float(discrim_sev),
-            "discrimination_coping": float(discrim_cop),
-            "safety_severity": float(safety_sev),
-            "safety_coping": float(safety_cop),
-            "roles_severity": float(roles_sev),
-            "roles_coping": float(roles_cop),
-            "environment_severity": float(env_sev),
-        }
-
-    avg_sev = _quantize_2(
-        (health_sev_avg + discrim_sev + safety_sev + roles_sev + env_sev) / Decimal("5.0")
-    )
-    avg_cop = _quantize_2(
-        (health_cop_avg + discrim_cop + safety_cop + roles_cop) / Decimal("4.0")
-    )
-    total_risk = _quantize_1((avg_sev * Decimal("8.5")) + (avg_cop * Decimal("5.0")))
-
-    # Evaluate MSW Classification using exact rubric
-    msw_req = MSWClassificationRequest(
-        average_severity=avg_sev,
-        average_coping=avg_cop,
-        total_household_income=req.total_household_income,
-        is_initial_load=req.is_initial_load,
-        assessment_context=req.assessment_context,
-    )
-    msw_res = classify_msw(msw_req)
-
-    # Optional financial classification if income and household size are available
     fin_res_dict = None
     if req.total_household_income is not None and req.household_size and req.household_size >= 1:
         try:
@@ -834,21 +729,86 @@ def evaluate_stage2_interview(req: Stage2EvaluationRequest) -> Stage2EvaluationR
         except Exception:
             pass
 
+    # Backward compatibility: only if legacy score fields were explicitly sent on old payloads,
+    # preserve read-only legacy calculation without requiring scores for text-only interviews.
+    has_legacy_levels = bool(
+        req.discrimination_severity_level
+        and req.discrimination_coping_level
+        and req.safety_severity_level
+        and req.safety_coping_level
+        and req.roles_severity_level
+        and req.roles_coping_level
+        and req.environment_severity_level
+        and req.health_factors
+        and all(hf.severity_level and hf.coping_level for hf in req.health_factors)
+    )
+    if has_legacy_levels:
+        h_sev_vals: List[Decimal] = []
+        h_cop_vals: List[Decimal] = []
+        valid_legacy = True
+        for hf in (req.health_factors or []):
+            sv, err_s = resolve_qualitative_severity(hf.severity_level)
+            cv, err_c = resolve_qualitative_coping(hf.coping_level)
+            if err_s or err_c or sv is None or cv is None:
+                valid_legacy = False
+                break
+            h_sev_vals.append(sv)
+            h_cop_vals.append(cv)
+        d_s, e1 = resolve_qualitative_severity(req.discrimination_severity_level)
+        d_c, e2 = resolve_qualitative_coping(req.discrimination_coping_level)
+        s_s, e3 = resolve_qualitative_severity(req.safety_severity_level)
+        s_c, e4 = resolve_qualitative_coping(req.safety_coping_level)
+        r_s, e5 = resolve_qualitative_severity(req.roles_severity_level)
+        r_c, e6 = resolve_qualitative_coping(req.roles_coping_level)
+        ev_s, e7 = resolve_qualitative_severity(req.environment_severity_level)
+        if valid_legacy and not any((e1, e2, e3, e4, e5, e6, e7)) and all(v is not None for v in (d_s, d_c, s_s, s_c, r_s, r_c, ev_s)):
+            h_s_avg = _quantize_2(sum(h_sev_vals) / Decimal(len(h_sev_vals)))
+            h_c_avg = _quantize_2(sum(h_cop_vals) / Decimal(len(h_cop_vals)))
+            avg_sev = _quantize_2((h_s_avg + d_s + s_s + r_s + ev_s) / Decimal("5.0"))  # type: ignore[operator]
+            avg_cop = _quantize_2((h_c_avg + d_c + s_c + r_c) / Decimal("4.0"))  # type: ignore[operator]
+            total_risk = _quantize_1((avg_sev * Decimal("8.5")) + (avg_cop * Decimal("5.0")))
+            msw_res = classify_msw(
+                MSWClassificationRequest(
+                    average_severity=avg_sev,
+                    average_coping=avg_cop,
+                    total_household_income=req.total_household_income,
+                    is_initial_load=req.is_initial_load,
+                    assessment_context=req.assessment_context,
+                )
+            )
+            return Stage2EvaluationResponse(
+                is_complete=True,
+                status="INTERVIEW_RECORDED",
+                message="Stage 2 qualitative interview recorded (legacy scores preserved read-only).",
+                interview_answers=interview_answers,
+                average_severity=avg_sev,
+                average_coping=avg_cop,
+                total_risk=total_risk,
+                total_household_income=req.total_household_income,
+                financial_classification=fin_res_dict,
+                msw_classification=json.loads(msw_res.model_dump_json()),
+                triggered_conditions=[json.loads(t.model_dump_json()) for t in msw_res.triggered_conditions],
+                calculation_basis="LEGACY_READ_ONLY",
+                rubric_version="1.0",
+            )
+
     return Stage2EvaluationResponse(
         is_complete=True,
-        status="EVALUATED",
-        message="Official OFPHIL Automated Rubric Classification Complete" if not has_manual_levels else "Official OFPHIL Rubric Classification Complete",
+        status="INTERVIEW_RECORDED",
+        message="Stage 2 qualitative interview recorded (scoring removed; eligibility decided via Stage 1 financial classification and manual MSW decision).",
+        interview_answers=interview_answers,
         missing_factors=[],
         missing_mappings=[],
         institutional_confirmation_required=False,
-        average_severity=avg_sev,
-        average_coping=avg_cop,
-        total_risk=total_risk,
+        average_severity=None,
+        average_coping=None,
+        total_risk=None,
+        total_risk_formula=None,
         total_household_income=req.total_household_income,
-        computed_domain_scores=computed_domains,
+        computed_domain_scores=None,
         financial_classification=fin_res_dict,
-        msw_classification=json.loads(msw_res.model_dump_json()),
-        triggered_conditions=[json.loads(t.model_dump_json()) for t in msw_res.triggered_conditions],
-        calculation_basis="OFPHIL_AUTOMATED_SOCIOECONOMIC_RUBRIC" if not has_manual_levels else "OFPHIL_MSW_RUBRIC",
-        rubric_version="1.0",
+        msw_classification=None,
+        triggered_conditions=[],
+        calculation_basis="STAGE2_TEXT_INTERVIEW_ONLY",
+        rubric_version=None,
     )

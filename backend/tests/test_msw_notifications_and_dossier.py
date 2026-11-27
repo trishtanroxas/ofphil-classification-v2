@@ -103,16 +103,29 @@ def test_msw_notification_recipient_isolation_and_read_persistence():
     assert res_final.json()["unread_count"] == 0
 
 
-def test_msw_dossier_endpoints_do_not_create_duplicate_assessments_or_encounters():
+def test_msw_dossier_endpoints_do_not_create_duplicate_assessments_or_encounters(monkeypatch):
     """
     Verifies that opening a patient dossier (fetching patient dossier, assessments,
     documents, referrals, and inquiries) across all 4 MSW categories:
     - Charity Approved (MSW_FA_1126-01)
-    - Financial Assistance Referral (M26-11-00001)
+    - Medical Assistance Referral (M26-11-00001)
     - Pending (MSW_FA_1126-03)
     - Disapproved / Promissory (MSW_FA_1126-04)
     returns accurate database records and creates zero unintended assessments or encounters.
     """
+    from app.api.v1.endpoints import endpoints as ep
+    monkeypatch.setattr(
+        ep,
+        "REGISTERED_PATIENTS_REGISTRY",
+        [
+            {"id": "rec-1", "patient_id": "M26-11-00001", "first_name": "Juan", "last_name": "Dela Cruz", "category": "REGULAR", "status": "AWAITING MSW REVIEW", "encounters": []},
+            {"id": "rec-2", "patient_id": "MSW_FA_1126-01", "charity_case_no": "MSW_FA_1126-01", "first_name": "Maria Clara", "last_name": "Ramos", "category": "CHARITY", "status": "APPROVED", "encounters": []},
+            {"id": "rec-4", "patient_id": "MSW_FA_1126-03", "charity_case_no": "MSW_FA_1126-03", "first_name": "Elena", "last_name": "Santos", "category": "CHARITY", "status": "PENDING", "encounters": []},
+            {"id": "rec-5", "patient_id": "MSW_FA_1126-04", "charity_case_no": "MSW_FA_1126-04", "first_name": "Ricardo", "last_name": "Dalisay", "category": "CHARITY", "status": "DISAPPROVED/PROMISSORY", "encounters": []},
+        ],
+    )
+    monkeypatch.setattr(ep, "_save_patients_registry", lambda: None)
+
     headers = {"x-user-role": "msw", "x-user-id": "msw_lead"}
     for pid in ["MSW_FA_1126-01", "M26-11-00001", "MSW_FA_1126-03", "MSW_FA_1126-04"]:
         asmt_before = client.get(f"/api/v1/assessments?patient_id={pid}", headers=headers).json()

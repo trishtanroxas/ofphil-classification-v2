@@ -19,9 +19,13 @@ from app.schemas.assessment_schemas import (
     MSWRecommendationRequest,
     Stage2EvaluationRequest,
 )
-from app.schemas.classification_schemas import CombinedClassificationRequest, MSWScoreFactors
+from app.schemas.classification_schemas import (
+    CombinedClassificationRequest,
+    FinancialClassificationRequest,
+    MSWScoreFactors,
+)
 from app.services.classification_service import (
-    compute_automated_stage2_scores,
+    classify_financial,
     evaluate_combined,
     evaluate_stage2_interview,
     resolve_qualitative_coping,
@@ -119,6 +123,16 @@ class AssessmentService:
             if existing.get("workflow_status") in {"DRAFT", "ASSESSMENT_IN_PROGRESS", "RETURNED_FOR_REVISION"}:
                 if target_ref_id:
                     if existing.get("referral_id") == target_ref_id:
+                        try:
+                            from app.services.referral_service import referral_service
+                            referral_service.link_assessment(
+                                referral_id=target_ref_id,
+                                assessment_id=existing["id"],
+                                actor_id=actor_id,
+                                role=role,
+                            )
+                        except Exception:
+                            pass
                         return existing
                 else:
                     return existing
@@ -287,16 +301,14 @@ class AssessmentService:
 
         household_size = int(stage1.get("household_size") or (len(family_members) + 1))
 
-        # Resolve Stage 2 scores (supports automated socioeconomic computation, qualitative levels, and legacy numeric scores)
-        factors_payload = None
+        # Stage 2 scoring has been removed for new assessments (Stage 2 is a qualitative text-based interview).
+        # Stage 1 financial/income-based per-capita classification remains active; legacy scores on historical
+        # records are preserved read-only if explicitly present.
         avg_sev = stage2.get("average_severity")
         avg_cop = stage2.get("average_coping")
-        auto_mode = bool(stage2.get("auto_compute_scores"))
-
         hf_list = stage2.get("health_factors") or []
-        has_manual_hf_levels = bool(
-            not auto_mode
-            and hf_list
+        has_legacy_hf_levels = bool(
+            hf_list
             and any(
                 x.get("severity_level") is not None
                 or x.get("severity") is not None
@@ -305,82 +317,85 @@ class AssessmentService:
                 for x in hf_list
             )
         )
+        has_legacy_scores = (avg_sev is not None and avg_cop is not None) or has_legacy_hf_levels
 
-        if has_manual_hf_levels:
-            sev_vals = []
-            cop_vals = []
-            for x in hf_list:
-                s, _ = resolve_qualitative_severity(x.get("severity_level", x.get("severity", 0)))
-                c, _ = resolve_qualitative_coping(x.get("coping_level", x.get("coping", 0)))
-                sev_vals.append(float(s) if s is not None else float(x.get("severity", 0)))
-                cop_vals.append(float(c) if c is not None else float(x.get("coping", 0)))
+        if has_legacy_scores:
+            factors_payload = None
+            if has_legacy_hf_levels:
+                sev_vals = []
+                cop_vals = []
+                for x in hf_list:
+                    s, _ = resolve_qualitative_severity(x.get("severity_level", x.get("severity", 0)))
+                    c, _ = resolve_qualitative_coping(x.get("coping_level", x.get("coping", 0)))
+                    sev_vals.append(float(s) if s is not None else float(x.get("severity", 0)))
+                    cop_vals.append(float(c) if c is not None else float(x.get("coping", 0)))
 
-            h_sev_avg = Decimal(str(sum(sev_vals) / len(sev_vals)))
-            h_cop_avg = Decimal(str(sum(cop_vals) / len(cop_vals)))
+                h_sev_avg = Decimal(str(sum(sev_vals) / len(sev_vals)))
+                h_cop_avg = Decimal(str(sum(cop_vals) / len(cop_vals)))
 
-            discrim_sev, _ = resolve_qualitative_severity(stage2.get("discrimination_severity_level", stage2.get("discrimination_severity")))
-            safety_sev, _ = resolve_qualitative_severity(stage2.get("safety_severity_level", stage2.get("safety_severity")))
-            roles_sev, _ = resolve_qualitative_severity(stage2.get("roles_severity_level", stage2.get("roles_severity")))
-            env_sev, _ = resolve_qualitative_severity(stage2.get("environment_severity_level", stage2.get("environment_severity")))
+                discrim_sev, _ = resolve_qualitative_severity(stage2.get("discrimination_severity_level", stage2.get("discrimination_severity")))
+                safety_sev, _ = resolve_qualitative_severity(stage2.get("safety_severity_level", stage2.get("safety_severity")))
+                roles_sev, _ = resolve_qualitative_severity(stage2.get("roles_severity_level", stage2.get("roles_severity")))
+                env_sev, _ = resolve_qualitative_severity(stage2.get("environment_severity_level", stage2.get("environment_severity")))
 
-            discrim_cop, _ = resolve_qualitative_coping(stage2.get("discrimination_coping_level", stage2.get("discrimination_coping")))
-            safety_cop, _ = resolve_qualitative_coping(stage2.get("safety_coping_level", stage2.get("safety_coping")))
-            roles_cop, _ = resolve_qualitative_coping(stage2.get("roles_coping_level", stage2.get("roles_coping")))
+                discrim_cop, _ = resolve_qualitative_coping(stage2.get("discrimination_coping_level", stage2.get("discrimination_coping")))
+                safety_cop, _ = resolve_qualitative_coping(stage2.get("safety_coping_level", stage2.get("safety_coping")))
+                roles_cop, _ = resolve_qualitative_coping(stage2.get("roles_coping_level", stage2.get("roles_coping")))
 
-            factors_payload = MSWScoreFactors(
-                health_severity_avg=h_sev_avg,
-                discrimination_severity=discrim_sev if discrim_sev is not None else Decimal(str(stage2.get("discrimination_severity", 0))),
-                safety_severity=safety_sev if safety_sev is not None else Decimal(str(stage2.get("safety_severity", 0))),
-                roles_severity=roles_sev if roles_sev is not None else Decimal(str(stage2.get("roles_severity", 0))),
-                environment_severity=env_sev if env_sev is not None else Decimal(str(stage2.get("environment_severity", 0))),
-                health_coping_avg=h_cop_avg,
-                discrimination_coping=discrim_cop if discrim_cop is not None else Decimal(str(stage2.get("discrimination_coping", 0))),
-                safety_coping=safety_cop if safety_cop is not None else Decimal(str(stage2.get("safety_coping", 0))),
-                roles_coping=roles_cop if roles_cop is not None else Decimal(str(stage2.get("roles_coping", 0))),
-            )
-        elif auto_mode or (avg_sev is None or avg_cop is None):
-            se_exp = stage1.get("socio_economic_expenses") or {}
-            med_diff = stage2.get("medical_difficulties") or {}
-            bg = stage2.get("background") or {}
-            psy = stage2.get("psychosocial") or {}
-            health_concat = " ".join(
-                f"{x.get('patient_reported') or ''} {x.get('msw_observation') or ''}" for x in hf_list
-            )
-            auto_scores = compute_automated_stage2_scores(
-                total_household_income=total_income,
+                factors_payload = MSWScoreFactors(
+                    health_severity_avg=h_sev_avg,
+                    discrimination_severity=discrim_sev if discrim_sev is not None else Decimal(str(stage2.get("discrimination_severity", 0))),
+                    safety_severity=safety_sev if safety_sev is not None else Decimal(str(stage2.get("safety_severity", 0))),
+                    roles_severity=roles_sev if roles_sev is not None else Decimal(str(stage2.get("roles_severity", 0))),
+                    environment_severity=env_sev if env_sev is not None else Decimal(str(stage2.get("environment_severity", 0))),
+                    health_coping_avg=h_cop_avg,
+                    discrimination_coping=discrim_cop if discrim_cop is not None else Decimal(str(stage2.get("discrimination_coping", 0))),
+                    safety_coping=safety_cop if safety_cop is not None else Decimal(str(stage2.get("safety_coping", 0))),
+                    roles_coping=roles_cop if roles_cop is not None else Decimal(str(stage2.get("roles_coping", 0))),
+                )
+
+            combined_req = CombinedClassificationRequest(
+                total_monthly_household_income=total_income,
                 household_size=household_size,
-                total_monthly_expenses=Decimal(str(se_exp.get("total_monthly_expenses") or 0)),
-                estimated_treatment_expenses=(
-                    Decimal(str(med_diff.get("estimated_treatment_expenses")))
-                    if med_diff.get("estimated_treatment_expenses") is not None
-                    else None
-                ),
-                sectoral_flags=stage1.get("sectoral") if isinstance(stage1.get("sectoral"), dict) else None,
-                gov_assistance_enrolled=(str(se_exp.get("gov_assistance_enrolled") or "").lower() == "yes"),
-                other_medical_expenses_count=len(se_exp.get("other_medical_expenses") or []),
-                narrative_texts={
-                    "health": health_concat,
-                    "discrimination": f"{stage2.get('discrimination_patient_reported') or ''} {stage2.get('discrimination_msw_observation') or ''} {psy.get('discrimination_experienced') or ''}",
-                    "safety": f"{stage2.get('safety_patient_reported') or ''} {stage2.get('safety_msw_observation') or ''} {psy.get('safety_hazards') or ''}",
-                    "roles": f"{stage2.get('roles_patient_reported') or ''} {stage2.get('roles_msw_observation') or ''} {bg.get('employment_situation') or ''}",
-                    "environment": f"{stage2.get('environment_patient_reported') or ''} {stage2.get('environment_msw_observation') or ''} {bg.get('living_situation') or ''}",
-                },
+                average_severity=Decimal(str(avg_sev)) if (avg_sev is not None and not has_legacy_hf_levels) else None,
+                average_coping=Decimal(str(avg_cop)) if (avg_cop is not None and not has_legacy_hf_levels) else None,
+                factors=factors_payload,
+                is_initial_load=payload.is_initial_load,
+                assessment_context=payload.assessment_context,
             )
-            factors_payload = MSWScoreFactors(**auto_scores)
-            avg_sev = None
-            avg_cop = None
-
-        combined_req = CombinedClassificationRequest(
-            total_monthly_household_income=total_income,
-            household_size=household_size,
-            average_severity=Decimal(str(avg_sev)) if avg_sev is not None else None,
-            average_coping=Decimal(str(avg_cop)) if avg_cop is not None else None,
-            factors=factors_payload,
-            is_initial_load=payload.is_initial_load,
-            assessment_context=payload.assessment_context,
-        )
-        classification_res = evaluate_combined(combined_req)
-        classification_dict = json.loads(classification_res.model_dump_json())
+            classification_res = evaluate_combined(combined_req)
+            classification_dict = json.loads(classification_res.model_dump_json())
+            fin_code = classification_res.financial_classification.classification
+            msw_code = classification_res.msw_classification.classification
+            disc_flag = classification_res.discrepancy_detected
+        else:
+            fin_res = classify_financial(
+                FinancialClassificationRequest(
+                    total_monthly_household_income=total_income,
+                    household_size=household_size,
+                )
+            )
+            fin_dict = json.loads(fin_res.model_dump_json())
+            classification_dict = {
+                "financial_classification": fin_dict,
+                "msw_classification": None,
+                "monthly_per_capita_income": str(fin_res.monthly_per_capita_income),
+                "average_severity": None,
+                "average_coping": None,
+                "total_risk": None,
+                "triggered_conditions": [],
+                "subsidy_recommendation": "Manual MSW Decision Required (Procedure Quotation Subsidy)",
+                "discrepancy_detected": False,
+                "discrepancy_details": None,
+                "requires_msw_review": True,
+                "explanations": {
+                    "financial": fin_res.explanation,
+                    "msw": "Stage 2 is a qualitative text-based interview; final procedure quotation subsidy is decided manually by the MSW.",
+                },
+            }
+            fin_code = fin_res.classification
+            msw_code = "MANUAL_MSW_DECISION_REQUIRED"
+            disc_flag = False
 
         # Preserve historical classification results
         record["classification_result"] = classification_dict
@@ -391,7 +406,7 @@ class AssessmentService:
         })
 
         record["workflow_status"] = (
-            "PENDING_MSW_REVIEW" if classification_res.discrepancy_detected else "PENDING_DOCUMENT_REVIEW"
+            "PENDING_MSW_REVIEW" if (not has_legacy_scores or disc_flag) else "PENDING_DOCUMENT_REVIEW"
         )
         record["updated_at"] = _utc_now()
         self._append_history(
@@ -400,9 +415,9 @@ class AssessmentService:
             actor_id,
             role,
             {
-                "financial_classification": classification_res.financial_classification.classification,
-                "msw_classification": classification_res.msw_classification.classification,
-                "discrepancy_detected": classification_res.discrepancy_detected,
+                "financial_classification": fin_code,
+                "msw_classification": msw_code,
+                "discrepancy_detected": disc_flag,
             },
         )
         self._save()
@@ -419,12 +434,21 @@ class AssessmentService:
         if not record:
             raise HTTPException(status_code=404, detail="Assessment not found")
         if not record.get("classification_result"):
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="Cannot submit MSW recommendation before classification is computed.",
+            # Auto-compute Stage 1 financial classification if not yet submitted
+            self.submit_and_classify(
+                assessment_id=assessment_id,
+                payload=AssessmentSubmitRequest(is_initial_load=False, assessment_context="live_recalculation"),
+                actor_id=actor_id,
+                role=role,
             )
 
+        resolved_decision = (
+            payload.decision.strip().upper()
+            if payload.decision
+            else ("APPROVED" if payload.recommended_subsidy_pct > 0 else "DECLINED")
+        )
         rec = {
+            "decision": resolved_decision,
             "recommended_tier": payload.recommended_tier,
             "recommended_subsidy_pct": payload.recommended_subsidy_pct,
             "case_notes": payload.case_notes,
@@ -546,12 +570,25 @@ class AssessmentService:
         res = evaluate_stage2_interview(payload)
         res_dict = json.loads(res.model_dump_json())
 
-        # If evaluated successfully, cache the classification results on the assessment record
-        if res.is_complete and res.msw_classification:
+        # Persist Stage 2 interview answers onto the assessment without requiring or inventing scores
+        s2_store = record.setdefault("stage2_data", {})
+        if res_dict.get("interview_answers"):
+            s2_store["interview_answers"] = res_dict["interview_answers"]
+        if payload.interview_info is not None:
+            s2_store["interview_info"] = json.loads(payload.interview_info.model_dump_json())
+        if payload.background is not None:
+            s2_store["background"] = json.loads(payload.background.model_dump_json())
+        if payload.medical_difficulties is not None:
+            s2_store["medical_difficulties"] = json.loads(payload.medical_difficulties.model_dump_json())
+        if payload.psychosocial is not None:
+            s2_store["psychosocial"] = json.loads(payload.psychosocial.model_dump_json())
+
+        if res_dict.get("financial_classification") or res_dict.get("msw_classification"):
             record["classification_result"] = {
+                **(record.get("classification_result") or {}),
                 "financial_classification": res_dict.get("financial_classification"),
                 "msw_classification": res_dict.get("msw_classification"),
-                "total_risk": float(res.total_risk) if res.total_risk is not None else 0.0,
+                "total_risk": float(res.total_risk) if res.total_risk is not None else None,
             }
 
         self._append_history(
@@ -559,7 +596,7 @@ class AssessmentService:
             "STAGE2_INTERVIEW_EVALUATED",
             actor_id,
             role,
-            {"status": res.status, "is_complete": res.is_complete, "missing_factors": res.missing_factors},
+            {"status": res.status, "is_complete": res.is_complete, "interview_answers_count": len(res.interview_answers)},
         )
         self._save()
         return res_dict

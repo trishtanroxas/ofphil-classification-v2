@@ -1,6 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 from app.main import app
+from app.api.v1.endpoints import endpoints as ep
 from app.services.assessment_service import assessment_service
 from app.services.document_authenticity_service import document_authenticity_service
 
@@ -8,6 +9,85 @@ client = TestClient(app)
 
 MSW_HDRS = {"x-user-role": "msw", "x-user-id": "msw_lead"}
 PATIENT_HDRS = {"x-user-role": "patient", "x-user-id": "M26-11-00001"}
+
+
+@pytest.fixture(autouse=True)
+def _seed_dossier_patients(monkeypatch):
+    seed_patients = [
+        {
+            "id": "rec-1",
+            "patient_id": "M26-11-00001",
+            "first_name": "Juan",
+            "middle_name": "Santos",
+            "last_name": "Dela Cruz",
+            "category": "REGULAR",
+            "status": "AWAITING MSW REVIEW",
+            "occupation": "Public Utility Driver",
+            "diagnosis": "Bilateral Cataract, Senile Mature (OD > OS)",
+            "assigned_msw": "Maria Santos, RSW (msw_lead)",
+            "encounters": [{"id": "ENC-M26-11-00001-01", "encounter_date": "2026-11-22", "diagnosis": "Bilateral Cataract, Senile Mature (OD > OS)", "procedure": "Phacoemulsification with Foldable IOL Implant (OD)", "status": "AWAITING MSW REVIEW"}],
+            "inquiries": [],
+        },
+        {
+            "id": "rec-2",
+            "patient_id": "M26-11-00002",
+            "charity_case_no": "MSW_FA_1126-01",
+            "first_name": "Maria Clara",
+            "middle_name": "Flores",
+            "last_name": "Ramos",
+            "category": "CHARITY",
+            "status": "APPROVED",
+            "occupation": "Market Vendor",
+            "diagnosis": "Senile Cataract, Immature (OS)",
+            "assigned_msw": "Maria Santos, RSW (msw_lead)",
+            "encounters": [{"id": "ENC-2026-1120-01", "charity_case_no": "MSW_FA_1126-01", "encounter_date": "2026-11-20", "diagnosis": "Senile Cataract, Immature (OS)", "procedure": "Phacoemulsification with Foldable IOL Implant (OS)", "status": "APPROVED"}],
+            "inquiries": [],
+        },
+        {
+            "id": "rec-3",
+            "patient_id": "M26-11-00003",
+            "charity_case_no": "MSW_FA_1126-02",
+            "first_name": "Pedro",
+            "middle_name": "Alvarez",
+            "last_name": "Bautista",
+            "suffix": "Sr.",
+            "category": "CHARITY",
+            "status": "APPROVED",
+            "occupation": "Retired Barangay Aide",
+            "diagnosis": "Primary Open-Angle Glaucoma (OU)",
+            "assigned_msw": "Maria Santos, RSW (msw_lead)",
+            "encounters": [{"id": "ENC-2026-1118-02", "charity_case_no": "MSW_FA_1126-02", "encounter_date": "2026-11-18", "diagnosis": "Primary Open-Angle Glaucoma (OU)", "procedure": "Trabeculectomy / Glaucoma Filtering Surgery (OU)", "status": "APPROVED"}],
+            "inquiries": [],
+        },
+        {
+            "id": "rec-4",
+            "patient_id": "M26-11-00004",
+            "charity_case_no": "MSW_FA_1126-03",
+            "first_name": "Elena",
+            "middle_name": "Velasco",
+            "last_name": "Santos",
+            "category": "CHARITY",
+            "status": "PENDING",
+            "occupation": "Laundry Worker",
+            "diagnosis": "Diabetic Retinopathy (OU)",
+            "assigned_msw": "Maria Santos, RSW (msw_lead)",
+            "encounters": [{"id": "ENC-2026-1121-03", "charity_case_no": "MSW_FA_1126-03", "encounter_date": "2026-11-21", "diagnosis": "Diabetic Retinopathy (OU)", "procedure": "Panretinal Photocoagulation Laser Therapy (OU)", "status": "PENDING MSW ASSESSMENT"}],
+            "inquiries": [],
+        },
+    ]
+    monkeypatch.setattr(ep, "REGISTERED_PATIENTS_REGISTRY", seed_patients)
+    monkeypatch.setattr(ep, "_save_patients_registry", lambda: None)
+
+    # Ensure M26-11-00002 has a seeded document matching its canonical patient_id for dossier tests
+    doc3 = document_authenticity_service._records.get("doc-003")
+    orig_doc3_pid = doc3.get("patient_id") if doc3 else None
+    if doc3:
+        doc3["patient_id"] = "M26-11-00002"
+    try:
+        yield
+    finally:
+        if doc3 and orig_doc3_pid is not None:
+            doc3["patient_id"] = orig_doc3_pid
 
 
 def test_msw_dossier_read_only_and_multi_patient_isolation():
@@ -178,9 +258,10 @@ def test_msw_notification_system_end_to_end():
     assert created is not None
     notif_id = created["id"]
 
-    # Ensure it starts unread for this test
+    # Ensure it starts unread and newest for this test so it appears on page 1
+    now_iso = "2099-12-31T23:59:59Z"
     with inquiry_service._connect() as conn:
-        conn.execute("UPDATE msw_notifications SET is_read = 0, read_at = NULL WHERE id = ?", (notif_id,))
+        conn.execute("UPDATE msw_notifications SET is_read = 0, read_at = NULL, created_at = ? WHERE id = ?", (now_iso, notif_id))
         conn.commit()
 
     # 1. Fetch MSW notifications for msw_lead
@@ -455,7 +536,8 @@ def test_financial_referral_integration_with_assessment_workflow():
     assert r_draft.json()["found"] is True
     assert r_draft.json()["assessment"]["id"] == asmt_id
 
-    # 6. Multi-referral isolation: Create a second distinct referral for the same patient
+    # 6. Multi-referral isolation: Once the first referral is resolved (MSW APPROVED), a second distinct referral can be created for the same patient
+    referral_service.approve_referral(referral_id=ref_id, actor_id="msw_lead", role="msw", expected_patient_id="M26-11-00002")
     ref2_payload = {
         "id": "OFPHIL-FA-2026-TEST-MULTI",
         "referral_no": "REF-2026-MULTI",
