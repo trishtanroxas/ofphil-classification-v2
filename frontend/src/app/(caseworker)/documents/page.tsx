@@ -25,6 +25,7 @@ import {
   UserCheck
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { resolveEssentialOcrFields } from '@/lib/ocrFields';
 
 interface ClinicalDocument {
   id: string;
@@ -40,6 +41,7 @@ interface ClinicalDocument {
   stamp_status?: string;
   sha256_hash?: string;
   extracted_text?: string;
+  ocr_result?: any;
   classification_result?: any;
   forensics_result?: any;
   signature_result?: any;
@@ -132,6 +134,7 @@ export default function DocumentManagementPage() {
             stamp_status: d.stamp_status || 'NOT_EVALUATED',
             sha256_hash: d.sha256_hash,
             extracted_text: d.extracted_text,
+            ocr_result: d.ocr_result,
             classification_result: d.classification_result,
             forensics_result: d.forensics_result,
             signature_result: d.signature_result,
@@ -782,12 +785,48 @@ export default function DocumentManagementPage() {
                     </p>
                   </div>
 
-                  <div className="p-3 bg-white border border-[#CBD5E1] rounded-xl space-y-2">
-                    <span className="text-[11px] font-bold text-[#5A7466] block">Extracted Machine-Readable Corpus:</span>
-                    <pre className="p-3 bg-[#FAFBF8] border border-[#E2E8F0] rounded-lg text-[10.5px] font-mono whitespace-pre-wrap max-h-48 overflow-y-auto text-[#1E293B]">
-                      {selectedDoc.extracted_text || 'No machine-readable text extracted.'}
-                    </pre>
-                  </div>
+                  {(() => {
+                    const extracted = resolveEssentialOcrFields({
+                      fields_detected: selectedDoc.ocr_result?.fields_detected,
+                      extracted_text: selectedDoc.extracted_text || selectedDoc.ocr_result?.extracted_text,
+                    });
+                    const hasAnyText = Boolean((selectedDoc.extracted_text || selectedDoc.ocr_result?.extracted_text || '').trim());
+                    return (
+                      <div className="p-3 bg-white border border-[#CBD5E1] rounded-xl space-y-2">
+                        <span className="text-[11px] font-bold text-[#5A7466] block">Extracted Essential Details:</span>
+                        {!hasAnyText && !extracted.name && !extracted.address && !extracted.purpose ? (
+                          <div className="text-[11px] text-[#64748B]">No machine-readable text extracted.</div>
+                        ) : (
+                          <div className="grid grid-cols-1 gap-2">
+                            <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-3 px-3 py-2 rounded-lg bg-[#FAFBF8] border border-[#E2E8F0]">
+                              <span className="text-[10.5px] font-bold uppercase tracking-wide text-[#64748B] sm:w-20 shrink-0">
+                                Name
+                              </span>
+                              <span className={`text-xs font-semibold ${extracted.name ? 'text-[#10241A]' : 'text-[#94A3B8] italic'}`}>
+                                {extracted.name || 'Not detected'}
+                              </span>
+                            </div>
+                            <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-3 px-3 py-2 rounded-lg bg-[#FAFBF8] border border-[#E2E8F0]">
+                              <span className="text-[10.5px] font-bold uppercase tracking-wide text-[#64748B] sm:w-20 shrink-0">
+                                Address
+                              </span>
+                              <span className={`text-xs font-medium ${extracted.address ? 'text-[#10241A]' : 'text-[#94A3B8] italic'}`}>
+                                {extracted.address || 'Not detected'}
+                              </span>
+                            </div>
+                            <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-3 px-3 py-2 rounded-lg bg-[#FAFBF8] border border-[#E2E8F0]">
+                              <span className="text-[10.5px] font-bold uppercase tracking-wide text-[#64748B] sm:w-20 shrink-0">
+                                Purpose
+                              </span>
+                              <span className={`text-xs font-medium ${extracted.purpose ? 'text-[#10241A]' : 'text-[#94A3B8] italic'}`}>
+                                {extracted.purpose || 'Not detected'}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
 

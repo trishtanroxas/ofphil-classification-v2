@@ -44,6 +44,10 @@ from app.services.document_screening.validation.evidence_aggregation import (
     ScreeningAssessment,
 )
 from app.services.document_screening.classification.resnet_classifier import resnet50_classifier
+from app.services.document_screening.ocr.field_extractor import (
+    extract_essential_fields,
+    reconstruct_reading_order,
+)
 from app.services.document_screening.signature_screening.signature_verification_service import signature_screening_service
 from app.services.document_screening.stamp_seal_screening.stamp_verification_service import stamp_seal_screening_service
 
@@ -415,9 +419,43 @@ class DocumentAuthenticityService:
         job_id = (doc.get("processing_state") or {}).get("job_id") or f"job-{uuid.uuid4().hex[:8]}"
         doc["processing_state"]["processing_status"] = "PROCESSING"
         doc["processing_state"]["job_id"] = job_id
+        doc["processing_state"]["error_message"] = None
         doc["status"] = "PROCESSING"
         doc["processing_status"] = "PROCESSING"
         self._save_registry()
+
+        try:
+            return self._execute_processing_pipeline(
+                doc=doc,
+                job_id=job_id,
+                t0=t0,
+                ocr_engine=ocr_engine,
+                run_forensics=run_forensics,
+                run_signature_detection=run_signature_detection,
+            )
+        except Exception as exc:
+            elapsed_ms = round((time.perf_counter() - t0) * 1000.0, 2)
+            doc["processing_state"]["processing_status"] = "FAILED"
+            doc["processing_state"]["completed_at"] = _utc_now_iso()
+            doc["processing_state"]["processing_time_ms"] = elapsed_ms
+            doc["processing_state"]["error_message"] = f"Pipeline error ({type(exc).__name__}): {exc}"
+            doc["status"] = "FAILED"
+            doc["processing_status"] = "FAILED"
+            doc["screening_status"] = "NEEDS_VERIFICATION"
+            doc["verification_status"] = "NEEDS_VERIFICATION"
+            doc["authenticity_summary"] = f"Automated screening failed ({type(exc).__name__}). Retry or perform manual MSW review."
+            self._save_registry()
+            return doc
+
+    def _execute_processing_pipeline(
+        self,
+        doc: Dict[str, Any],
+        job_id: str,
+        t0: float,
+        ocr_engine: str = "auto",
+        run_forensics: bool = True,
+        run_signature_detection: bool = True,
+    ) -> Dict[str, Any]:
 
         storage_path = Path(doc.get("storage_path", ""))
         if not storage_path.exists():
@@ -483,7 +521,9 @@ class DocumentAuthenticityService:
                 unavailable_checks.append("pdf_text_extraction")
         else:
             if img_bgr is not None:
-                extracted_text, ocr_confidence, ocr_status, ocr_unavailable_reason = self._run_paddle_ocr(img_bgr)
+                extracted_text, ocr_confidence, ocr_status, ocr_unavailable_reason, detected_engine = self._run_paddle_ocr(img_bgr)
+                if detected_engine:
+                    engine_used = detected_engine
             else:
                 ocr_status = "INSUFFICIENT_EVIDENCE"
                 ocr_unavailable_reason = "Failed to decode image bytes."
@@ -498,7 +538,7 @@ class DocumentAuthenticityService:
             doc["classification_result"] = classification_result
             doc_category = classification_result.get("predicted_category") or doc_category
 
-        fields_detected = self._extract_structured_fields(extracted_text or "")
+        fields_detected = self._extract_structured_fields(extracted_text or "", doc.get("document_type", ""))
         doc["ocr_processed"] = extracted_text is not None and len(extracted_text.strip()) > 0
         doc["extracted_text"] = extracted_text
         doc["ocr_result"] = {
@@ -607,22 +647,23 @@ class DocumentAuthenticityService:
         self._save_registry()
         return doc
 
-    def _run_paddle_ocr(self, img_bgr: np.ndarray) -> Tuple[Optional[str], Optional[float], str, Optional[str]]:
+    def _run_paddle_ocr(self, img_bgr: np.ndarray) -> Tuple[Optional[str], Optional[float], str, Optional[str], Optional[str]]:
         try:
             self._init_paddle_ocr()
             if self._paddle_ocr is not None:
                 res = self._paddle_ocr.ocr(img_bgr, cls=True)
-                lines = []
+                detections = []
                 confs = []
                 if res and res[0]:
                     for line in res[0]:
-                        txt, conf = line[1]
-                        lines.append(txt)
-                        confs.append(float(conf))
+                        poly, (txt, conf) = line
+                        if txt and txt.strip():
+                            detections.append((poly, txt, float(conf)))
+                            confs.append(float(conf))
                 avg_conf = round(sum(confs) / len(confs), 4) if confs else 0.0
-                full_text = "\n".join(lines)
+                full_text = reconstruct_reading_order(detections)
                 status = "COMPLETED" if full_text else "INSUFFICIENT_EVIDENCE"
-                return full_text, avg_conf, status, None
+                return full_text, avg_conf, status, None, "PaddleOCR PP-OCRv6"
         except Exception:
             pass
 
@@ -631,14 +672,15 @@ class DocumentAuthenticityService:
             reader = easyocr.Reader(["en"], gpu=False, verbose=False, download_enabled=False)
             results = reader.readtext(img_bgr)
             if results:
-                texts = [r[1] for r in results if r[1].strip()]
-                confs = [float(r[2]) for r in results]
+                detections = [(r[0], r[1], float(r[2])) for r in results if r[1] and r[1].strip()]
+                confs = [d[2] for d in detections]
                 avg_conf = round(sum(confs) / len(confs), 4) if confs else 0.0
-                return "\n".join(texts), avg_conf, "COMPLETED", None
+                full_text = reconstruct_reading_order(detections)
+                return full_text, avg_conf, "COMPLETED", None, "EasyOCR"
         except Exception:
             pass
 
-        return None, None, "INSUFFICIENT_EVIDENCE", "PaddleOCR text extraction engine unavailable or failed."
+        return None, None, "INSUFFICIENT_EVIDENCE", "PaddleOCR text extraction engine unavailable or failed.", None
 
     def _screen_signatures_and_stamps(
         self, img_bgr: Optional[np.ndarray], is_pdf: bool
@@ -759,18 +801,8 @@ class DocumentAuthenticityService:
             "copy_move_analysis": {"status": "NOT_EVALUATED", "details": "Raster CMFD not applicable to direct PDF stream."},
         }
 
-    def _extract_structured_fields(self, text: str) -> Dict[str, Any]:
-        fields: Dict[str, Any] = {}
-        lower = text.lower()
-        if "indigency" in lower or "indigent" in lower:
-            fields["indigency_keyword"] = True
-        if "barangay" in lower:
-            fields["barangay_reference"] = True
-        if "philhealth" in lower:
-            fields["philhealth_reference"] = True
-        if "cataract" in lower or "glaucoma" in lower or "eye" in lower or "vision" in lower:
-            fields["clinical_eye_reference"] = True
-        return fields
+    def _extract_structured_fields(self, text: str, document_type: str = "") -> Dict[str, Any]:
+        return extract_essential_fields(text, document_type=document_type)
 
     def record_manual_review(
         self,

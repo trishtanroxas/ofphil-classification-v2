@@ -6,6 +6,7 @@ import { DashboardLayout } from '@/components/DashboardLayout';
 import PsgcCascadingFields from '@/components/PsgcCascadingFields';
 import { toast } from 'sonner';
 import { fetchApi } from '@/lib/api';
+import { resolveEssentialOcrFields } from '@/lib/ocrFields';
 
 const EDUCATION_LEVELS = [
   'No Formal Education',
@@ -44,7 +45,13 @@ function extractIsoDate(val: any): string | null {
   return match ? match[1] : null;
 }
 
-export type DocAuthenticityLabel = 'Authentic' | 'Suspicious' | 'Counterfeit';
+export type DocAuthenticityLabel =
+  | 'Processing'
+  | 'No Suspicious Indicators'
+  | 'Needs Verification'
+  | 'Flagged for Manual Review'
+  | 'Insufficient Image Quality'
+  | 'Processing Failed';
 
 function resolveDocAuthenticity(docOrAuth: any): {
   label: DocAuthenticityLabel;
@@ -52,22 +59,56 @@ function resolveDocAuthenticity(docOrAuth: any): {
   badgeCls: string;
   bannerCls: string;
   iconCls: string;
+  isPending: boolean;
+  isFailed: boolean;
 } {
-  const rawLabel = String(
-    docOrAuth?.authenticity_classification ||
-      docOrAuth?.authenticity_result?.authenticity_classification ||
+  const procStatus = String(
+    docOrAuth?.processing_state?.processing_status ||
+      docOrAuth?.processing_status ||
       ''
   )
     .trim()
-    .toLowerCase();
+    .toUpperCase();
+
+  if (procStatus === 'UPLOADED' || procStatus === 'QUEUED' || procStatus === 'PROCESSING') {
+    return {
+      label: 'Processing',
+      summary: 'Automated classification, OCR, signature, stamp, and forensic screening in progress...',
+      badgeCls: 'bg-blue-50 text-blue-800 border border-blue-300',
+      bannerCls: 'bg-blue-50/80 border-blue-300 text-blue-950',
+      iconCls: 'fa-circle-notch fa-spin text-blue-600',
+      isPending: true,
+      isFailed: false,
+    };
+  }
+
+  if (procStatus === 'FAILED') {
+    return {
+      label: 'Processing Failed',
+      summary:
+        docOrAuth?.processing_state?.error_message ||
+        docOrAuth?.authenticity_summary ||
+        'Automated screening encountered an error. Retry processing or perform manual MSW review.',
+      badgeCls: 'bg-rose-50 text-rose-800 border border-rose-300',
+      bannerCls: 'bg-rose-50/80 border-rose-300 text-rose-950',
+      iconCls: 'fa-triangle-exclamation text-rose-600',
+      isPending: false,
+      isFailed: true,
+    };
+  }
+
   const rawStatus = String(
-    docOrAuth?.overall_status ||
-      docOrAuth?.authenticity_result?.overall_status ||
+    docOrAuth?.screening_status ||
+      docOrAuth?.authenticity_result?.screening_status ||
+      docOrAuth?.authenticity_classification ||
+      docOrAuth?.authenticity_result?.authenticity_classification ||
+      docOrAuth?.status ||
       docOrAuth?.verification_status ||
       ''
   )
     .trim()
     .toUpperCase();
+
   const rawRisk = String(
     docOrAuth?.tamper_risk_level ||
       docOrAuth?.authenticity_result?.tamper_risk_level ||
@@ -75,51 +116,68 @@ function resolveDocAuthenticity(docOrAuth: any): {
       ''
   )
     .trim()
-    .toLowerCase();
-
-  let label: DocAuthenticityLabel = 'Authentic';
-  if (rawLabel === 'counterfeit' || rawStatus === 'VERIFICATION_FAILED' || rawRisk === 'high') {
-    label = 'Counterfeit';
-  } else if (
-    rawLabel === 'suspicious' ||
-    rawStatus === 'REQUIRES_REVIEW' ||
-    rawStatus === 'UNVERIFIABLE' ||
-    rawRisk === 'medium' ||
-    rawRisk === 'review required' ||
-    rawRisk === 'unverifiable'
-  ) {
-    label = 'Suspicious';
-  } else {
-    label = 'Authentic';
-  }
+    .toUpperCase();
 
   const customSummary =
     docOrAuth?.authenticity_summary || docOrAuth?.authenticity_result?.authenticity_summary || '';
 
-  if (label === 'Authentic') {
+  if (
+    rawStatus === 'FLAGGED_FOR_MANUAL_REVIEW' ||
+    rawStatus === 'VERIFICATION_FAILED' ||
+    rawStatus === 'COUNTERFEIT' ||
+    rawRisk === 'HIGH'
+  ) {
     return {
-      label: 'Authentic',
-      summary: customSummary || 'Passes signature, metadata, and forensic integrity checks.',
-      badgeCls: 'bg-emerald-50 text-emerald-800 border border-emerald-300',
-      bannerCls: 'bg-emerald-50/80 border-emerald-300 text-emerald-950',
-      iconCls: 'fa-circle-check text-emerald-600',
-    };
-  }
-  if (label === 'Counterfeit') {
-    return {
-      label: 'Counterfeit',
-      summary: customSummary || 'Detected tampering, forged layout, or failed forensic verification.',
+      label: 'Flagged for Manual Review',
+      summary:
+        customSummary ||
+        'Forensic anomalies or structural discrepancies detected. Authorized MSW manual review required.',
       badgeCls: 'bg-rose-50 text-rose-800 border border-rose-300',
       bannerCls: 'bg-rose-50/80 border-rose-300 text-rose-950',
-      iconCls: 'fa-circle-xmark text-rose-600',
+      iconCls: 'fa-triangle-exclamation text-rose-600',
+      isPending: false,
+      isFailed: false,
     };
   }
+
+  if (rawStatus === 'INSUFFICIENT_IMAGE_QUALITY') {
+    return {
+      label: 'Insufficient Image Quality',
+      summary:
+        customSummary ||
+        'Document resolution or clarity is insufficient for reliable automated forensic screening.',
+      badgeCls: 'bg-amber-50 text-amber-800 border border-amber-300',
+      bannerCls: 'bg-amber-50/80 border-amber-300 text-amber-950',
+      iconCls: 'fa-image text-amber-600',
+      isPending: false,
+      isFailed: false,
+    };
+  }
+
+  if (rawStatus === 'NO_SUSPICIOUS_INDICATORS') {
+    return {
+      label: 'No Suspicious Indicators',
+      summary:
+        customSummary ||
+        'No suspicious forensic indicators detected across evaluated screening modules. MSW review remains authoritative.',
+      badgeCls: 'bg-emerald-50 text-emerald-800 border border-emerald-300',
+      bannerCls: 'bg-emerald-50/80 border-emerald-300 text-emerald-950',
+      iconCls: 'fa-shield-halved text-emerald-600',
+      isPending: false,
+      isFailed: false,
+    };
+  }
+
   return {
-    label: 'Suspicious',
-    summary: customSummary || 'Flagged anomalies, low resolution, or partial discrepancies requiring closer inspection.',
+    label: 'Needs Verification',
+    summary:
+      customSummary ||
+      'Partial forensic evidence, missing metadata, or pending checks requiring MSW verification.',
     badgeCls: 'bg-amber-50 text-amber-800 border border-amber-300',
     bannerCls: 'bg-amber-50/80 border-amber-300 text-amber-950',
-    iconCls: 'fa-triangle-exclamation text-amber-600',
+    iconCls: 'fa-circle-exclamation text-amber-600',
+    isPending: false,
+    isFailed: false,
   };
 }
 
@@ -854,7 +912,20 @@ function MSWAssessmentContent() {
   const [isUploadingDoc, setIsUploadingDoc] = useState(false);
   const [selectedUploadCategory, setSelectedUploadCategory] = useState('SIGNED CERTIFICATE OF INDIGENCY');
   const [inspectDoc, setInspectDoc] = useState<any>(null);
-  const [inspectDetails, setInspectDetails] = useState<{ ocr?: any; sig?: any; auth?: any } | null>(null);
+  const [inspectDetails, setInspectDetails] = useState<{
+    meta?: any;
+    ocr?: any;
+    sig?: any;
+    stamp?: any;
+    auth?: any;
+  } | null>(null);
+  const [inspectTab, setInspectTab] = useState<'overview' | 'forensics' | 'sig_stamp' | 'review'>('overview');
+  const [docReviewDecision, setDocReviewDecision] = useState<'ACCEPTED' | 'RESUBMISSION_REQUIRED' | 'REJECTED'>('ACCEPTED');
+  const [docReviewNotes, setDocReviewNotes] = useState('');
+  const [isSubmittingDocReview, setIsSubmittingDocReview] = useState(false);
+  const [isRetryingDoc, setIsRetryingDoc] = useState(false);
+  const [deleteTargetDoc, setDeleteTargetDoc] = useState<any>(null);
+  const [isDeletingDoc, setIsDeletingDoc] = useState(false);
 
   // Stage 4 MSW Recommendation, Institutional Approval & ML state
   const [mswCaseNotes, setMswCaseNotes] = useState('');
@@ -872,6 +943,57 @@ function MSWAssessmentContent() {
       // ignore initial empty state
     }
   };
+
+  const fetchInspectDetails = async (docId: string) => {
+    const [meta, ocr, sig, stamp, auth] = await Promise.all([
+      fetchApi(`/documents/${encodeURIComponent(docId)}`, { headers: MSW_HDRS }).catch(() => null),
+      fetchApi(`/documents/${encodeURIComponent(docId)}/ocr-results`, { headers: MSW_HDRS }),
+      fetchApi(`/documents/${encodeURIComponent(docId)}/signature-results`, { headers: MSW_HDRS }),
+      fetchApi(`/documents/${encodeURIComponent(docId)}/stamp-results`, { headers: MSW_HDRS }).catch(() => null),
+      fetchApi(`/documents/${encodeURIComponent(docId)}/authenticity-results`, { headers: MSW_HDRS }),
+    ]);
+    setInspectDetails({ meta, ocr, sig, stamp, auth });
+    if (meta) {
+      setInspectDoc(meta);
+    }
+  };
+
+  // Live polling whenever any patient document is still UPLOADED / QUEUED / PROCESSING
+  useEffect(() => {
+    if (!patientIdParam) return;
+    const hasPending = patientDocs.some((d) => {
+      const st = String(d?.processing_state?.processing_status || d?.processing_status || '').toUpperCase();
+      return st === 'UPLOADED' || st === 'QUEUED' || st === 'PROCESSING';
+    });
+    if (!hasPending) return;
+
+    const timer = setInterval(async () => {
+      try {
+        const docs = await fetchApi(`/documents?patient_id=${encodeURIComponent(patientIdParam)}`, {
+          headers: MSW_HDRS,
+        });
+        if (Array.isArray(docs)) {
+          setPatientDocs(docs);
+          if (inspectDoc?.id) {
+            const refreshed = docs.find((item: any) => item.id === inspectDoc.id);
+            if (refreshed) {
+              setInspectDoc(refreshed);
+              const newSt = String(
+                refreshed?.processing_state?.processing_status || refreshed?.processing_status || ''
+              ).toUpperCase();
+              if (newSt === 'COMPLETED' || newSt === 'FAILED') {
+                fetchInspectDetails(refreshed.id).catch(() => {});
+              }
+            }
+          }
+        }
+      } catch {
+        // retry on next tick
+      }
+    }, 2000);
+
+    return () => clearInterval(timer);
+  }, [patientDocs, patientIdParam, inspectDoc?.id]);
 
   // Restore latest draft & load ML inventory + documents + referral details (runs after patient record loads)
   useEffect(() => {
@@ -1531,22 +1653,7 @@ function MSWAssessmentContent() {
         [selectedUploadCategory]: 'Submitted',
       }));
 
-      setTimeout(async () => {
-        try {
-          const docs = await fetchApi(`/documents?patient_id=${encodeURIComponent(patientIdParam)}`, { headers: MSW_HDRS });
-          if (Array.isArray(docs)) {
-            setPatientDocs(docs);
-            const uploadedItem = docs.find((item: any) => item.id === doc.id);
-            if (uploadedItem) {
-              const authInfo = resolveDocAuthenticity(uploadedItem);
-              if (authInfo.label === 'Authentic') {
-                setDocStatuses((prev) => ({ ...prev, [selectedUploadCategory]: 'Verified' }));
-              }
-            }
-          }
-        } catch {}
-      }, 900);
-      loadPatientDocuments(patientIdParam);
+      await loadPatientDocuments(patientIdParam);
     } catch (err: any) {
       toast.error(err?.message || 'Document upload failed.');
     } finally {
@@ -1556,16 +1663,112 @@ function MSWAssessmentContent() {
 
   const handleInspectDocument = async (doc: any) => {
     setInspectDoc(doc);
+    setInspectTab('overview');
     setInspectDetails(null);
+    setDocReviewNotes(doc?.manual_review?.review_notes || '');
+    if (doc?.manual_review?.review_decision) {
+      setDocReviewDecision(doc.manual_review.review_decision);
+    } else {
+      setDocReviewDecision('ACCEPTED');
+    }
     try {
-      const [ocr, sig, auth] = await Promise.all([
-        fetchApi(`/documents/${doc.id}/ocr-results`, { headers: MSW_HDRS }),
-        fetchApi(`/documents/${doc.id}/signature-results`, { headers: MSW_HDRS }),
-        fetchApi(`/documents/${doc.id}/authenticity-results`, { headers: MSW_HDRS }),
-      ]);
-      setInspectDetails({ ocr, sig, auth });
+      await fetchInspectDetails(doc.id);
     } catch (err: any) {
       toast.error(err?.message || 'Failed to load authenticity details.');
+    }
+  };
+
+  const handleRetryDocumentProcessing = async (doc: any) => {
+    if (!doc?.id) return;
+    setIsRetryingDoc(true);
+    try {
+      await fetchApi(`/documents/${encodeURIComponent(doc.id)}/process`, {
+        method: 'POST',
+        headers: MSW_HDRS,
+        body: JSON.stringify({
+          assessment_id: assessmentId,
+          ocr_engine: 'auto',
+          run_forensics: true,
+          run_signature_detection: true,
+        }),
+      });
+      toast.info(`Re-queued "${doc.filename}" for automated screening...`);
+      await loadPatientDocuments(patientIdParam);
+      await fetchInspectDetails(doc.id);
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to retry document processing.');
+    } finally {
+      setIsRetryingDoc(false);
+    }
+  };
+
+  const handleSubmitDocReview = async () => {
+    if (!inspectDoc?.id) return;
+    setIsSubmittingDocReview(true);
+    try {
+      await fetchApi(`/documents/${encodeURIComponent(inspectDoc.id)}/review`, {
+        method: 'POST',
+        headers: MSW_HDRS,
+        body: JSON.stringify({
+          decision: docReviewDecision,
+          review_notes:
+            docReviewNotes.trim() || 'MSW manual visual verification recorded during Stage 3 assessment.',
+          reviewer_name: 'Maria Santos, RSW (Lead MSW)',
+        }),
+      });
+      toast.success(`MSW review recorded: ${docReviewDecision}`);
+      if (docReviewDecision === 'ACCEPTED' && inspectDoc.document_type) {
+        setDocStatuses((prev) => ({ ...prev, [inspectDoc.document_type]: 'Verified' }));
+      }
+      await loadPatientDocuments(patientIdParam);
+      await fetchInspectDetails(inspectDoc.id);
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to record MSW review.');
+    } finally {
+      setIsSubmittingDocReview(false);
+    }
+  };
+
+  const handleDeleteSupportingDoc = async (doc: any) => {
+    if (!doc?.id) return;
+    setIsDeletingDoc(true);
+    try {
+      await fetchApi(`/documents/${encodeURIComponent(doc.id)}`, {
+        method: 'DELETE',
+        headers: MSW_HDRS,
+      });
+      const remainingDocs = patientDocs.filter((item) => item.id !== doc.id);
+      setPatientDocs(remainingDocs);
+
+      const targetType = String(doc.document_type || '').trim().toUpperCase();
+      if (targetType) {
+        const stillHasCategory = remainingDocs.some(
+          (item) => String(item.document_type || '').trim().toUpperCase() === targetType
+        );
+        if (!stillHasCategory) {
+          setDocStatuses((prev) => {
+            const next = { ...prev };
+            Object.keys(next).forEach((k) => {
+              const kUpper = k.trim().toUpperCase();
+              if (kUpper === targetType || kUpper.endsWith(targetType)) {
+                next[k] = 'Pending';
+              }
+            });
+            return next;
+          });
+        }
+      }
+
+      if (inspectDoc?.id === doc.id) {
+        setInspectDoc(null);
+        setInspectDetails(null);
+      }
+      setDeleteTargetDoc(null);
+      toast.success(`Document "${doc.filename}" deleted.`);
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to delete document.');
+    } finally {
+      setIsDeletingDoc(false);
     }
   };
 
@@ -4546,14 +4749,25 @@ function MSWAssessmentContent() {
                               <td className="py-2.5 px-3 text-[11px] text-[#475569] max-w-xs">
                                 <div className="line-clamp-1">{authBadge.summary}</div>
                               </td>
-                              <td className="py-2.5 px-3 text-right space-x-1.5">
-                                <button
-                                  type="button"
-                                  onClick={() => handleInspectDocument(d)}
-                                  className="px-2.5 py-1 rounded-lg border border-[#0B6B3A] text-[#0B6B3A] hover:bg-[#E8F5EC] text-[11px] font-semibold cursor-pointer"
-                                >
-                                  Inspect &amp; Review
-                                </button>
+                              <td className="py-2.5 px-3 text-right">
+                                <div className="inline-flex items-center justify-end gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleInspectDocument(d)}
+                                    className="px-2.5 py-1 rounded-lg border border-[#0B6B3A] text-[#0B6B3A] hover:bg-[#E8F5EC] text-[11px] font-semibold cursor-pointer transition"
+                                  >
+                                    Inspect &amp; Review
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setDeleteTargetDoc(d)}
+                                    className="inline-flex items-center justify-center w-7 h-7 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-700 text-[11px] cursor-pointer transition"
+                                    title={`Delete ${d.filename}`}
+                                    aria-label={`Delete ${d.filename}`}
+                                  >
+                                    <i className="fa-solid fa-trash-can" />
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           );
@@ -4656,15 +4870,15 @@ function MSWAssessmentContent() {
                     <div>
                       <strong>Uploaded Credentials:</strong> {patientDocs.length} file(s) &bull;{' '}
                       <strong className="text-emerald-700">
-                        Authentic: {patientDocs.filter((d) => resolveDocAuthenticity(d).label === 'Authentic').length}
+                        No Suspicious Indicators: {patientDocs.filter((d) => resolveDocAuthenticity(d).label === 'No Suspicious Indicators').length}
                       </strong>{' '}
                       &bull;{' '}
                       <strong className="text-amber-700">
-                        Suspicious: {patientDocs.filter((d) => resolveDocAuthenticity(d).label === 'Suspicious').length}
+                        Needs Verification: {patientDocs.filter((d) => ['Needs Verification', 'Insufficient Image Quality', 'Processing'].includes(resolveDocAuthenticity(d).label)).length}
                       </strong>{' '}
                       &bull;{' '}
                       <strong className="text-rose-700">
-                        Counterfeit: {patientDocs.filter((d) => resolveDocAuthenticity(d).label === 'Counterfeit').length}
+                        Flagged: {patientDocs.filter((d) => ['Flagged for Manual Review', 'Processing Failed'].includes(resolveDocAuthenticity(d).label)).length}
                       </strong>
                     </div>
                     <div>
@@ -4989,93 +5203,445 @@ function MSWAssessmentContent() {
         </div>
       </div>
 
-      {/* Document Authenticity & Verification Modal (Automated Classification Only) */}
+      {/* Document Authenticity & Verification Modal (Full Evidence-Based Screening & MSW Review) */}
       {inspectDoc && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-[#CBD5E1] max-w-2xl w-full max-h-[85vh] overflow-y-auto p-6 space-y-4 shadow-xl text-xs">
-            <div className="flex items-center justify-between border-b border-[#EEF2EF] pb-3">
+          <div className="bg-white rounded-2xl border border-[#CBD5E1] max-w-3xl w-full max-h-[88vh] overflow-y-auto p-6 space-y-4 shadow-xl text-xs">
+            <div className="flex items-center justify-between border-b border-[#EEF2EF] pb-3 gap-3">
               <div>
                 <h4 className="font-bold text-sm text-[#10241A] m-0">Document Authenticity &amp; Verification</h4>
                 <div className="text-[11px] text-[#64748B]">
-                  {inspectDoc.filename} &bull; SHA-256: <span className="font-mono">{inspectDoc.sha256_hash?.slice(0, 16) || 'N/A'}...</span>
+                  {inspectDoc.filename} &bull; {inspectDoc.document_type} &bull; SHA-256:{' '}
+                  <span className="font-mono">{inspectDoc.sha256_hash?.slice(0, 16) || 'N/A'}...</span>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => setInspectDoc(null)}
-                className="px-3 py-1 rounded-lg border border-[#CBD5E1] hover:bg-slate-50 text-xs font-semibold cursor-pointer"
-              >
-                Close
-              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                {(['FAILED', 'UPLOADED'].includes(
+                  String(inspectDoc?.processing_state?.processing_status || inspectDoc?.processing_status || '').toUpperCase()
+                )) && (
+                  <button
+                    type="button"
+                    disabled={isRetryingDoc}
+                    onClick={() => handleRetryDocumentProcessing(inspectDoc)}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-semibold cursor-pointer transition disabled:opacity-50"
+                  >
+                    <i className={`fa-solid ${isRetryingDoc ? 'fa-spinner fa-spin' : 'fa-rotate-right'}`} />
+                    <span>{isRetryingDoc ? 'Retrying...' : 'Retry'}</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setDeleteTargetDoc(inspectDoc)}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-700 text-xs font-semibold cursor-pointer transition"
+                  title={`Delete ${inspectDoc.filename}`}
+                  aria-label={`Delete ${inspectDoc.filename}`}
+                >
+                  <i className="fa-solid fa-trash-can" />
+                  <span>Delete</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setInspectDoc(null)}
+                  className="px-3 py-1 rounded-lg border border-[#CBD5E1] hover:bg-slate-50 text-xs font-semibold cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
             </div>
 
             {!inspectDetails ? (
-              <div className="py-8 text-center text-[#64748B]">Loading OCR, signature, and forensic verification results...</div>
+              <div className="py-8 text-center text-[#64748B]">
+                <i className="fa-solid fa-circle-notch fa-spin text-[#0B6B3A] mr-2" />
+                Loading classification, OCR, signature, stamp, and forensic screening results...
+              </div>
             ) : (
               (() => {
-                const modalAuth = resolveDocAuthenticity(inspectDetails.auth || inspectDoc);
-                const ind = inspectDetails.auth?.indicators || {};
+                const mergedDoc = inspectDetails.meta || inspectDoc;
+                const procStatus = String(
+                  mergedDoc?.processing_state?.processing_status ||
+                    inspectDetails.auth?.processing_status ||
+                    mergedDoc?.processing_status ||
+                    'UPLOADED'
+                ).toUpperCase();
+                const modalAuth = resolveDocAuthenticity({
+                  ...mergedDoc,
+                  ...(inspectDetails.auth || {}),
+                  processing_status: procStatus,
+                });
+                const classification = mergedDoc?.classification_result || null;
+                const forensics = mergedDoc?.forensics_result || inspectDetails.auth?.checks || {};
+                const stampData = inspectDetails.stamp || mergedDoc?.stamp_result || {};
+                const sigData = inspectDetails.sig || mergedDoc?.signature_result || {};
+                const manualReview = mergedDoc?.manual_review || null;
+                const extracted = resolveEssentialOcrFields(inspectDetails.ocr);
+                const hasAnyText = Boolean(inspectDetails.ocr?.extracted_text?.trim());
+                const evidenceList: string[] = inspectDetails.auth?.supporting_evidence || [];
+                const unavailableChecks: string[] = inspectDetails.auth?.unavailable_checks || [];
+
+                const forensicModules = [
+                  { key: 'ela_analysis', label: 'Error Level Analysis (ELA)' },
+                  { key: 'noise_analysis', label: 'Noise Inconsistency Analysis' },
+                  { key: 'chromatic_analysis', label: 'Chromatic Artifact Analysis' },
+                  { key: 'copy_move_analysis', label: 'ORB Copy-Move Detection' },
+                  { key: 'edge_analysis', label: 'Edge & Gradient Analysis' },
+                  { key: 'resolution_analysis', label: 'Resolution & Compression' },
+                  { key: 'metadata_analysis', label: 'Metadata & Software Tags' },
+                ];
+
                 return (
                   <div className="space-y-3.5">
-                    {/* Automated Authenticity Classification Banner */}
+                    {/* Automated Screening Status Banner (Never prematurely claims Authentic) */}
                     <div className={`p-4 rounded-xl border ${modalAuth.bannerCls} flex flex-wrap items-center justify-between gap-3`}>
                       <div className="space-y-1">
                         <div className="text-[10px] font-bold uppercase opacity-75">
-                          Automated Document Authenticity Classification
+                          Automated Document Screening Outcome (Non-Authoritative Indicator)
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${modalAuth.badgeCls}`}>
                             <i className={`fa-solid ${modalAuth.iconCls}`} />
                             <span>{modalAuth.label}</span>
                           </span>
                           <span className="text-[11px] font-semibold opacity-90">
-                            Tamper Risk: {inspectDetails.auth?.tamper_risk_level || inspectDoc.tamper_risk || 'Low'}
+                            Processing: <span className="font-mono">{procStatus}</span>
                           </span>
+                          {!modalAuth.isPending && (
+                            <span className="text-[11px] font-semibold opacity-90">
+                              &bull; Tamper Risk: {inspectDetails.auth?.tamper_risk_level || mergedDoc?.tamper_risk || 'UNDETERMINED'}
+                            </span>
+                          )}
                         </div>
                         <div className="text-xs pt-0.5">{modalAuth.summary}</div>
                       </div>
                     </div>
 
-                    {/* OCR Extraction */}
-                    <div className="p-3 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
-                      <div className="font-bold text-[#10241A] mb-1">OCR Extraction ({inspectDetails.ocr?.engine_used})</div>
-                      <pre className="whitespace-pre-wrap text-[11px] text-[#334155] font-mono max-h-32 overflow-y-auto m-0">
-                        {inspectDetails.ocr?.extracted_text || inspectDetails.ocr?.unavailable_reason || 'No text extracted.'}
-                      </pre>
+                    {/* Modal Navigation Tabs */}
+                    <div className="flex items-center gap-1.5 border-b border-[#EEF2EF] pb-2 overflow-x-auto">
+                      {[
+                        { id: 'overview' as const, label: 'Overview & OCR', icon: 'fa-file-lines' },
+                        { id: 'forensics' as const, label: 'Forensics (5+2)', icon: 'fa-microscope' },
+                        { id: 'sig_stamp' as const, label: 'Signature & Stamp', icon: 'fa-signature' },
+                        { id: 'review' as const, label: 'MSW Review', icon: 'fa-user-check' },
+                      ].map((t) => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => setInspectTab(t.id)}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition cursor-pointer whitespace-nowrap ${
+                            inspectTab === t.id
+                              ? 'bg-[#0B6B3A] text-white shadow-xs'
+                              : 'bg-[#F8FAFC] text-[#475569] border border-[#E2E8F0] hover:bg-[#E8F5EC] hover:text-[#0B6B3A]'
+                          }`}
+                        >
+                          <i className={`fa-solid ${t.icon} text-[10px]`} />
+                          <span>{t.label}</span>
+                        </button>
+                      ))}
                     </div>
 
-                    {/* Signature & Forensic Integrity Cards */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="p-3 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-1">
-                        <div className="font-bold text-[#10241A]">Signature Presence</div>
-                        <div className="font-mono text-[#0B6B3A] font-bold">
-                          {inspectDetails.sig?.signature_status || 'NOT_CHECKED'}
-                        </div>
-                        <div className="text-[10px] text-[#64748B]">{inspectDetails.sig?.disclaimer}</div>
-                      </div>
+                    {/* TAB 1: OVERVIEW, CLASSIFICATION & OCR */}
+                    {inspectTab === 'overview' && (
+                      <div className="space-y-3">
+                        {/* A & B: Document Info + ResNet-50 Classification */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div className="p-3 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-1">
+                            <div className="font-bold text-[#10241A]">Document Information</div>
+                            <div className="text-[11px] text-[#334155]"><strong>Claimed Category:</strong> {mergedDoc?.document_type}</div>
+                            <div className="text-[11px] text-[#334155]">
+                              <strong>Uploaded:</strong> {mergedDoc?.uploaded_at ? String(mergedDoc.uploaded_at).slice(0, 19).replace('T', ' ') : 'N/A'}
+                            </div>
+                            <div className="text-[11px] text-[#334155]">
+                              <strong>Processing Time:</strong>{' '}
+                              {mergedDoc?.processing_state?.processing_time_ms
+                                ? `${(mergedDoc.processing_state.processing_time_ms / 1000).toFixed(2)}s`
+                                : modalAuth.isPending
+                                ? 'In progress...'
+                                : 'N/A'}
+                            </div>
+                          </div>
 
-                      <div className="p-3 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-[#10241A]">Forensic Integrity Check</span>
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${modalAuth.badgeCls}`}>
-                            <i className={`fa-solid ${modalAuth.iconCls} text-[9px]`} />
-                            <span>{modalAuth.label}</span>
-                          </span>
+                          <div className="p-3 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-1">
+                            <div className="font-bold text-[#10241A]">Document Classification (ResNet-50)</div>
+                            <div className="text-[11px] text-[#334155]">
+                              <strong>Predicted Type:</strong>{' '}
+                              <span className="font-semibold text-[#0B6B3A]">
+                                {classification?.category_name || (modalAuth.isPending ? 'Classifying...' : 'Not evaluated')}
+                              </span>
+                            </div>
+                            <div className="text-[11px] text-[#334155]">
+                              <strong>Confidence:</strong>{' '}
+                              {classification?.confidence !== undefined
+                                ? `${(Number(classification.confidence) * 100).toFixed(1)}%`
+                                : 'N/A'}
+                              {classification?.classification_status ? ` (${classification.classification_status})` : ''}
+                            </div>
+                            <div className="text-[10px] text-[#64748B]">
+                              Category classifier only; does not determine document authenticity.
+                            </div>
+                          </div>
                         </div>
-                        {Object.keys(ind).length > 0 && (
-                          <div className="text-[10.5px] text-[#334155] font-mono space-y-0.5">
-                            {ind.resolution && <div>Resolution: {ind.resolution}</div>}
-                            {ind.ela_std_diff !== undefined && <div>ELA Std Variance: {ind.ela_std_diff}</div>}
-                            {ind.splicing_indicator && <div>Profile: {ind.splicing_indicator}</div>}
+
+                        {/* C: OCR Extraction (Structured Essential Fields) */}
+                        <div className="p-3.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-2.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="font-bold text-[#10241A]">
+                              OCR Extraction ({inspectDetails.ocr?.engine_used || 'OCR'})
+                              {inspectDetails.ocr?.confidence_score !== null && inspectDetails.ocr?.confidence_score !== undefined && (
+                                <span className="ml-2 font-mono text-[10px] font-semibold text-[#64748B]">
+                                  Conf: {(Number(inspectDetails.ocr.confidence_score) * 100).toFixed(1)}%
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[10px] font-semibold text-[#0B6B3A] bg-[#E8F5EC] border border-[#BBF7D0] px-2 py-0.5 rounded-full">
+                              Essential Fields
+                            </span>
+                          </div>
+                          {modalAuth.isPending ? (
+                            <div className="text-[11px] text-blue-700 flex items-center gap-1.5">
+                              <i className="fa-solid fa-circle-notch fa-spin" />
+                              <span>Extracting text and essential fields...</span>
+                            </div>
+                          ) : !hasAnyText && !extracted.name && !extracted.address && !extracted.purpose ? (
+                            <div className="text-[11px] text-[#64748B]">
+                              {inspectDetails.ocr?.unavailable_reason || 'No text extracted.'}
+                            </div>
+                          ) : (
+                            <div className="grid grid-cols-1 gap-2">
+                              <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-3 px-3 py-2 rounded-lg bg-white border border-[#E2E8F0]">
+                                <span className="text-[10.5px] font-bold uppercase tracking-wide text-[#64748B] sm:w-20 shrink-0">
+                                  Name
+                                </span>
+                                <span className={`text-xs font-semibold ${extracted.name ? 'text-[#10241A]' : 'text-[#94A3B8] italic'}`}>
+                                  {extracted.name || 'Not detected'}
+                                </span>
+                              </div>
+                              <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-3 px-3 py-2 rounded-lg bg-white border border-[#E2E8F0]">
+                                <span className="text-[10.5px] font-bold uppercase tracking-wide text-[#64748B] sm:w-20 shrink-0">
+                                  Address
+                                </span>
+                                <span className={`text-xs font-medium ${extracted.address ? 'text-[#10241A]' : 'text-[#94A3B8] italic'}`}>
+                                  {extracted.address || 'Not detected'}
+                                </span>
+                              </div>
+                              <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-3 px-3 py-2 rounded-lg bg-white border border-[#E2E8F0]">
+                                <span className="text-[10.5px] font-bold uppercase tracking-wide text-[#64748B] sm:w-20 shrink-0">
+                                  Purpose
+                                </span>
+                                <span className={`text-xs font-medium ${extracted.purpose ? 'text-[#10241A]' : 'text-[#94A3B8] italic'}`}>
+                                  {extracted.purpose || 'Not detected'}
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* G: Evidence Aggregation Summary */}
+                        {evidenceList.length > 0 && (
+                          <div className="p-3 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-1.5">
+                            <div className="font-bold text-[#10241A]">Evidence Aggregation Findings</div>
+                            <ul className="list-disc pl-4 space-y-0.5 text-[11px] text-[#334155] m-0">
+                              {evidenceList.map((ev, idx) => (
+                                <li key={idx}>{ev}</li>
+                              ))}
+                            </ul>
+                            {unavailableChecks.length > 0 && (
+                              <div className="text-[10.5px] text-amber-700 pt-1">
+                                <strong>Unavailable checks:</strong> {unavailableChecks.join(', ')}
+                              </div>
+                            )}
                           </div>
                         )}
-                        <div className="text-[10px] text-[#64748B]">{inspectDetails.auth?.disclaimer}</div>
                       </div>
-                    </div>
+                    )}
+
+                    {/* TAB 2: DIGITAL IMAGE FORENSICS */}
+                    {inspectTab === 'forensics' && (
+                      <div className="space-y-2.5">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                          {forensicModules.map((mod) => {
+                            const data = forensics?.[mod.key] || { status: 'NOT_EVALUATED', details: 'Not evaluated yet.' };
+                            const st = String(data.status || 'NOT_EVALUATED').toUpperCase();
+                            const badgeCls =
+                              st === 'PASSED'
+                                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                : st === 'SUSPICIOUS'
+                                ? 'bg-rose-50 text-rose-800 border-rose-200'
+                                : 'bg-slate-100 text-slate-600 border-slate-200';
+                            const metrics = data.metrics && typeof data.metrics === 'object' ? Object.entries(data.metrics) : [];
+                            return (
+                              <div key={mod.key} className="p-3 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-1">
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="font-bold text-[#10241A] text-[11px]">{mod.label}</span>
+                                  <span className={`px-2 py-0.5 rounded-full text-[9.5px] font-bold border ${badgeCls}`}>
+                                    {st}
+                                  </span>
+                                </div>
+                                <div className="text-[11px] text-[#475569]">{data.details || 'No findings recorded.'}</div>
+                                {metrics.length > 0 && (
+                                  <div className="text-[10px] font-mono text-[#64748B] pt-0.5 flex flex-wrap gap-x-3 gap-y-0.5">
+                                    {metrics.slice(0, 4).map(([mk, mv]) => (
+                                      <span key={mk}>
+                                        {mk}: {String(mv)}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <div className="text-[10.5px] text-[#64748B]">
+                          {inspectDetails.auth?.disclaimer ||
+                            'Automated forensic screening provides evidence of integrity or anomalies and does not prove authenticity.'}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* TAB 3: SIGNATURE & STAMP/SEAL SCREENING */}
+                    {inspectTab === 'sig_stamp' && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="p-3.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-1.5">
+                          <div className="font-bold text-[#10241A]">Signature Screening</div>
+                          <div className="text-[11px] text-[#334155]">
+                            <strong>Presence Status:</strong>{' '}
+                            <span className="font-mono font-bold text-[#0B6B3A]">
+                              {sigData.signature_status || 'NOT_EVALUATED'}
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-[#334155]">
+                            <strong>Detected Regions:</strong> {sigData.signatures_detected_count ?? 0}
+                          </div>
+                          <div className="text-[11px] text-[#334155]">
+                            <strong>Reference Matching:</strong>{' '}
+                            <span className="font-mono text-amber-700 font-semibold">
+                              {sigData.reference_matching?.status || 'NOT_EVALUATED'}
+                            </span>
+                          </div>
+                          {sigData.details && <div className="text-[11px] text-[#475569]">{sigData.details}</div>}
+                          <div className="text-[10px] text-[#64748B] pt-1">
+                            {sigData.disclaimer ||
+                              'Signature presence detection only; does not establish signer identity or signature authenticity.'}
+                          </div>
+                        </div>
+
+                        <div className="p-3.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-1.5">
+                          <div className="font-bold text-[#10241A]">Stamp &amp; Seal Screening</div>
+                          <div className="text-[11px] text-[#334155]">
+                            <strong>Presence Status:</strong>{' '}
+                            <span className="font-mono font-bold text-[#0B6B3A]">
+                              {stampData.stamp_status || 'NOT_EVALUATED'}
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-[#334155]">
+                            <strong>Detected Seals/Stamps:</strong> {stampData.stamps_detected_count ?? 0}
+                          </div>
+                          <div className="text-[11px] text-[#334155]">
+                            <strong>Reference Matching:</strong>{' '}
+                            <span className="font-mono text-amber-700 font-semibold">
+                              {stampData.reference_matching?.status || 'NOT_EVALUATED'}
+                            </span>
+                          </div>
+                          {stampData.details && <div className="text-[11px] text-[#475569]">{stampData.details}</div>}
+                          <div className="text-[10px] text-[#64748B] pt-1">
+                            {stampData.disclaimer ||
+                              'Stamp/seal screening only; does not establish official issuing authority legitimacy.'}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* TAB 4: HUMAN MSW MANUAL VERIFICATION */}
+                    {inspectTab === 'review' && (
+                      <div className="space-y-3">
+                        {manualReview && (
+                          <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-950 space-y-1">
+                            <div className="font-bold text-xs">
+                              Recorded MSW Decision: {manualReview.review_decision}
+                            </div>
+                            <div className="text-[11px]">
+                              Reviewed by {manualReview.reviewer_name} on{' '}
+                              {String(manualReview.reviewed_at || '').slice(0, 19).replace('T', ' ')}
+                            </div>
+                            <div className="text-[11px] italic">&ldquo;{manualReview.review_notes}&rdquo;</div>
+                          </div>
+                        )}
+                        <div className="p-3.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-3">
+                          <div className="font-bold text-[#10241A]">
+                            Authorized Medical Social Worker (MSW) Verification Decision
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-semibold text-[#334155] mb-1">Decision</label>
+                            <select
+                              value={docReviewDecision}
+                              onChange={(e) => setDocReviewDecision(e.target.value as any)}
+                              className="w-full p-2 border border-[#CBD5E1] rounded-lg text-xs bg-white font-semibold"
+                            >
+                              <option value="ACCEPTED">ACCEPTED — Verified for Medical Assistance</option>
+                              <option value="RESUBMISSION_REQUIRED">RESUBMISSION_REQUIRED — Blurry or incomplete</option>
+                              <option value="REJECTED">REJECTED — Does not meet evidentiary requirements</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-semibold text-[#334155] mb-1">MSW Remarks</label>
+                            <textarea
+                              rows={3}
+                              value={docReviewNotes}
+                              onChange={(e) => setDocReviewNotes(e.target.value)}
+                              placeholder="Enter physical/visual verification observations..."
+                              className="w-full p-2 border border-[#CBD5E1] rounded-lg text-xs bg-white"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            disabled={isSubmittingDocReview}
+                            onClick={handleSubmitDocReview}
+                            className="w-full py-2 bg-[#0B6B3A] hover:bg-[#064826] text-white rounded-xl text-xs font-bold cursor-pointer transition disabled:opacity-50"
+                          >
+                            {isSubmittingDocReview ? 'Saving MSW Decision...' : 'Record Official MSW Verification'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })()
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Delete Supporting Document Confirmation Modal */}
+      {deleteTargetDoc && (
+        <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-rose-200 max-w-sm w-full p-6 shadow-2xl space-y-4">
+            <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto text-xl">
+              <i className="fa-solid fa-trash-can" />
+            </div>
+            <div className="text-center">
+              <h4 className="font-bold text-base text-[#10241A] m-0">Delete Document?</h4>
+              <p className="text-xs text-[#64748B] mt-1.5 m-0 leading-relaxed">
+                Are you sure you want to permanently remove{' '}
+                <strong className="text-[#10241A]">&ldquo;{deleteTargetDoc.filename}&rdquo;</strong> from this assessment?
+              </p>
+            </div>
+            <div className="flex items-center justify-center gap-2 pt-2">
+              <button
+                type="button"
+                disabled={isDeletingDoc}
+                onClick={() => setDeleteTargetDoc(null)}
+                className="px-4 py-2 border border-[#CBD5E1] text-[#334155] rounded-xl text-xs font-semibold hover:bg-[#F8FAFC] cursor-pointer disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isDeletingDoc}
+                onClick={() => handleDeleteSupportingDoc(deleteTargetDoc)}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer disabled:opacity-50"
+              >
+                <i className={`fa-solid ${isDeletingDoc ? 'fa-spinner fa-spin' : 'fa-trash-can'}`} />
+                <span>{isDeletingDoc ? 'Deleting...' : 'Confirm Delete'}</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

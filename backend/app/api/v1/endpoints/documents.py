@@ -18,6 +18,7 @@ from app.schemas.document_schemas import (
 )
 from app.schemas.schemas import DocumentItem
 from app.services.document_authenticity_service import document_authenticity_service
+from app.services.document_screening.ocr.field_extractor import extract_essential_fields
 from app.services.inquiry_service import inquiry_service
 from app.services.mock_store import db_store
 
@@ -231,6 +232,13 @@ def get_ocr_results(
         raise HTTPException(status_code=404, detail="Document not found")
     state = doc.get("processing_state") or {}
     ocr = doc.get("ocr_result") or {}
+    raw_text = ocr.get("extracted_text") or doc.get("extracted_text")
+    stored_fields = dict(ocr.get("fields_detected") or {})
+    if raw_text and not all(k in stored_fields for k in ("name", "address", "purpose")):
+        parsed = extract_essential_fields(raw_text, document_type=doc.get("document_type", ""))
+        for k, v in parsed.items():
+            if k not in stored_fields or not stored_fields[k]:
+                stored_fields[k] = v
     return DocumentOCRResultResponse(
         document_id=document_id,
         job_id=state.get("job_id"),
@@ -238,9 +246,9 @@ def get_ocr_results(
         status=ocr.get("status", "NOT_EVALUATED"),
         engine_used=ocr.get("engine_used", "PaddleOCR PP-OCRv6"),
         engine_version=ocr.get("engine_version", "ppocr-v6"),
-        extracted_text=ocr.get("extracted_text"),
+        extracted_text=raw_text,
         confidence_score=ocr.get("confidence_score"),
-        fields_detected=ocr.get("fields_detected", {}),
+        fields_detected=stored_fields,
         missing_information=ocr.get("missing_information", []),
         unavailable_reason=ocr.get("unavailable_reason"),
     )
