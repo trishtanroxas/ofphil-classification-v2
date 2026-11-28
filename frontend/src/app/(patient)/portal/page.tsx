@@ -13,6 +13,7 @@ import ProfilePasswordChangeCard from '@/components/ProfilePasswordChangeCard';
 import SecureContactChangeModal, { ContactChangeType } from '@/components/SecureContactChangeModal';
 import { ReferralSummaryCard } from '@/components/patient/ReferralSummaryCard';
 import { CharityHistorySection } from '@/components/patient/CharityHistorySection';
+import { NumericInput } from '@/components/ui/NumericInput';
 
 interface PatientState {
   name: string;
@@ -2463,10 +2464,11 @@ function PatientPortalContent() {
                           <label className="block font-semibold text-[#10241A] mb-1">
                             Age
                           </label>
-                          <input
-                            type="number"
+                          <NumericInput
+                            mode="integer"
+                            maxDigits={3}
                             value={profileAge}
-                            onChange={(e) => setProfileAge(e.target.value)}
+                            onValueChange={(v) => setProfileAge(v)}
                             className="w-full h-10 px-3 border border-[#D5E2D9] rounded-lg text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
                           />
                         </div>
@@ -2551,11 +2553,11 @@ function PatientPortalContent() {
                           <label className="block font-semibold text-[#10241A] mb-1">
                             No. of Dependents
                           </label>
-                          <input
-                            type="number"
-                            min="0"
+                          <NumericInput
+                            mode="integer"
+                            maxDigits={2}
                             value={profileDependents}
-                            onChange={(e) => setProfileDependents(e.target.value)}
+                            onValueChange={(v) => setProfileDependents(v)}
                             className="w-full h-10 px-3.5 border border-[#D5E2D9] rounded-lg text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
                           />
                         </div>

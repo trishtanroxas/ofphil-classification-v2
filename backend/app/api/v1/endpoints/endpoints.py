@@ -1813,23 +1813,53 @@ def _sb_headers():
     }
 
 
+def _encounter_referral_links(patient_id: str) -> Dict[str, Dict[str, Any]]:
+    """Map encounter_id -> live linked referral summary (the referral row is the source of truth)."""
+    from app.services.referral_service import referral_service
+    released = set(referral_service.RELEASED_LINK_STATUSES)
+    links: Dict[str, Dict[str, Any]] = {}
+    for ref in referral_service.list_referrals(patient_id=patient_id):  # newest first
+        eid = ref.get("encounter_id")
+        if not eid or eid in links or str(ref.get("status") or "").upper() in released:
+            continue
+        links[eid] = {
+            "linked_referral_id": ref.get("id"),
+            "linked_referral_status": ref.get("status"),
+        }
+    return links
+
+
 @router.get("/patients/{patient_id}/encounters")
 async def get_patient_encounters_sb(patient_id: str):
     import httpx
+    encounters: List[Dict[str, Any]] = []
     url, headers = _sb_headers()
-    if not url:
-        return {"encounters": []}
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            r = await client.get(
-                f"{url}/rest/v1/encounters?patient_id=eq.{patient_id}&order=created_at.desc",
-                headers=headers,
-            )
-            if r.status_code == 200:
-                return {"encounters": r.json()}
-    except Exception:
-        pass
-    return {"encounters": []}
+    if url:
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                r = await client.get(
+                    f"{url}/rest/v1/encounters?patient_id=eq.{patient_id}&order=created_at.desc",
+                    headers=headers,
+                )
+                if r.status_code == 200:
+                    encounters = r.json()
+        except Exception:
+            pass
+    links = _encounter_referral_links(patient_id)
+    for enc in encounters:
+        link = links.get(enc.get("id") or enc.get("assessment_id"))
+        if link:
+            enc.update(link)
+    return {"encounters": encounters, "referral_links": links}
+
+
+@router.get("/patients/{patient_id}/encounters/{encounter_id}/referral")
+async def get_encounter_linked_referral(patient_id: str, encounter_id: str):
+    from app.services.referral_service import referral_service
+    ref = referral_service.get_referral_for_encounter(encounter_id)
+    if ref and str(ref.get("patient_id") or "").upper() != patient_id.strip().upper():
+        ref = None
+    return {"encounter_id": encounter_id, "referral": ref}
 
 
 @router.post("/patients/{patient_id}/encounters")
@@ -1944,13 +1974,24 @@ async def get_patient_referral_sb(patient_id: str):
 
 
 @router.post("/patients/{patient_id}/referral")
-async def upsert_patient_referral_sb(patient_id: str, payload: dict):
+async def upsert_patient_referral_sb(
+    patient_id: str,
+    payload: dict,
+    x_user_role: Optional[str] = Header(default=None),
+    x_user_id: Optional[str] = Header(default=None),
+):
     from app.services.referral_service import referral_service
+    actor_role = (x_user_role or "admin").strip().lower()
+    if actor_role not in ("admin", "nurse"):
+        raise HTTPException(
+            status_code=403,
+            detail="Only Admin and Clinic Nurse accounts can create medical assistance referrals.",
+        )
     try:
         created = referral_service.create_referral(
             {**payload, "patient_id": patient_id},
-            actor_id="admin_sys",
-            role="admin",
+            actor_id=(x_user_id or ("nurse_desk" if actor_role == "nurse" else "admin_sys")).strip(),
+            role=actor_role,
         )
     except ValueError as ex:
         raise HTTPException(status_code=400, detail=str(ex))

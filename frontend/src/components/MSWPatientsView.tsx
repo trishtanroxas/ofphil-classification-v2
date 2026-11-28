@@ -38,6 +38,8 @@ export interface ReferralRecordItem {
   referral_no?: string;
   patient_id: string;
   patient_name: string;
+  encounter_id?: string | null;
+  encounter_date?: string | null;
   diagnosis: string;
   procedure: string;
   particulars?: { id?: number | string; name?: string; description?: string; amount: number }[];
@@ -434,6 +436,17 @@ export function MSWPatientsContent({
                 <span className="text-[11px] text-[#64748B] block mt-0.5">
                   Attending Surgeon: {selectedReferral.attending_doctor || 'Attending Ophthalmologist'}
                 </span>
+              {selectedReferral.encounter_id && (
+                <Link
+                  href={`/patients/${encodeURIComponent(selectedReferral.patient_id)}?tab=appointments&encounter=${encodeURIComponent(selectedReferral.encounter_id)}`}
+                  className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-[#BAE6FD] bg-[#F0F9FF] hover:bg-[#E0F2FE] text-[11px] font-semibold text-[#0369A1] no-underline"
+                >
+                  <i className="fa-solid fa-link text-[9px]" />
+                  <span>Originating Procedure &amp; Checkup:</span>
+                  <span className="font-mono font-bold">{selectedReferral.encounter_id}</span>
+                  {selectedReferral.encounter_date && <span className="text-[#334155]">({selectedReferral.encounter_date})</span>}
+                </Link>
+              )}
               </div>
             </div>
 

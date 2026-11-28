@@ -6,6 +6,7 @@ import { DashboardLayout } from '@/components/DashboardLayout';
 import PsgcCascadingFields from '@/components/PsgcCascadingFields';
 import { toast } from 'sonner';
 import { fetchApi } from '@/lib/api';
+import { NumericInput } from '@/components/ui/NumericInput';
 
 const EDUCATION_LEVELS = [
   'No Formal Education',
@@ -1888,6 +1889,17 @@ function MSWAssessmentContent() {
                       </div>
                     </div>
                   </div>
+                  {activeReferral.encounter_id && (
+                <Link
+                  href={`/patients/${encodeURIComponent(activeReferral.patient_id)}?tab=appointments&encounter=${encodeURIComponent(activeReferral.encounter_id)}`}
+                  className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-[#BAE6FD] bg-[#F0F9FF] hover:bg-[#E0F2FE] text-[11px] font-semibold text-[#0369A1] no-underline"
+                >
+                  <i className="fa-solid fa-link text-[9px]" />
+                  <span>Originating Procedure &amp; Checkup:</span>
+                  <span className="font-mono font-bold">{activeReferral.encounter_id}</span>
+                  {activeReferral.encounter_date && <span className="text-[#334155]">({activeReferral.encounter_date})</span>}
+                </Link>
+              )}
                 </div>
               )}
 
@@ -2002,12 +2014,13 @@ function MSWAssessmentContent() {
                   <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                     <div>
                       <label className="block text-[11px] font-semibold text-[#475569] mb-1">AGE</label>
-                      <input
-                        type="number"
+                      <NumericInput
+                        mode="integer"
+                        maxDigits={3}
                         value={infAge}
-                        onChange={(e) => {
-                          setInfAge(e.target.value);
-                          if (isInformantPatient) setPatAge(e.target.value);
+                        onValueChange={(v) => {
+                          setInfAge(v);
+                          if (isInformantPatient) setPatAge(v);
                         }}
                         className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
                       />
@@ -2122,13 +2135,14 @@ function MSWAssessmentContent() {
                   <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                     <div>
                       <label className="block text-[11px] font-semibold text-[#475569] mb-1">CONTACT NUMBER</label>
-                      <input
-                        type="text"
+                      <NumericInput
+                        mode="integer"
+                        maxDigits={11}
                         placeholder="Enter contact number"
                         value={infContact}
-                        onChange={(e) => {
-                          setInfContact(e.target.value);
-                          if (isInformantPatient) setPatContact(e.target.value);
+                        onValueChange={(v) => {
+                          setInfContact(v);
+                          if (isInformantPatient) setPatContact(v);
                         }}
                         className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
                       />
@@ -2168,13 +2182,12 @@ function MSWAssessmentContent() {
                       <label className="block text-[11px] font-semibold text-[#475569] mb-1">
                         MONTHLY INCOME (₱) {isInformantPatient && <span className="text-[#0B6B3A] text-[10px]">(Synced)</span>}
                       </label>
-                      <input
-                        type="number"
-                        min="0"
+                      <NumericInput
+                        mode="currency"
                         value={infIncome}
-                        onChange={(e) => {
-                          setInfIncome(e.target.value);
-                          if (isInformantPatient) setPatIncome(e.target.value);
+                        onValueChange={(v) => {
+                          setInfIncome(v);
+                          if (isInformantPatient) setPatIncome(v);
                         }}
                         className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
                       />
@@ -2327,10 +2340,11 @@ function MSWAssessmentContent() {
                     <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                       <div>
                         <label className="block text-[11px] font-semibold text-[#475569] mb-1">AGE *</label>
-                        <input
-                          type="number"
+                        <NumericInput
+                          mode="integer"
+                          maxDigits={3}
                           value={patAge}
-                          onChange={(e) => setPatAge(e.target.value)}
+                          onValueChange={(v) => setPatAge(v)}
                           className={`w-full h-9 px-3 border rounded-lg text-xs focus:outline-none ${
                             isInformantPatient
                               ? 'bg-slate-100 text-slate-600 border-slate-200 cursor-not-allowed'
@@ -2416,11 +2430,12 @@ function MSWAssessmentContent() {
                     <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                       <div>
                         <label className="block text-[11px] font-semibold text-[#475569] mb-1">CONTACT NUMBER</label>
-                        <input
-                          type="text"
+                        <NumericInput
+                          mode="integer"
+                          maxDigits={11}
                           placeholder="Contact number"
                           value={patContact}
-                          onChange={(e) => setPatContact(e.target.value)}
+                          onValueChange={(v) => setPatContact(v)}
                           className={`w-full h-9 px-3 border rounded-lg text-xs focus:outline-none ${
                             isInformantPatient
                               ? 'bg-slate-100 text-slate-600 border-slate-200 cursor-not-allowed'
@@ -2458,11 +2473,10 @@ function MSWAssessmentContent() {
                       </div>
                       <div>
                         <label className="block text-[11px] font-semibold text-[#475569] mb-1">MONTHLY INCOME (₱)</label>
-                        <input
-                          type="number"
-                          min="0"
+                        <NumericInput
+                          mode="currency"
                           value={patIncome}
-                          onChange={(e) => setPatIncome(e.target.value)}
+                          onValueChange={(v) => setPatIncome(v)}
                           className={`w-full h-9 px-3 border rounded-lg text-xs focus:outline-none ${
                             isInformantPatient
                               ? 'bg-slate-100 text-slate-600 border-slate-200 cursor-not-allowed'
@@ -2637,12 +2651,11 @@ function MSWAssessmentContent() {
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <label className="block text-[10px] font-semibold text-[#64748B] mb-1">RATE / EARNINGS (₱)</label>
-                        <input
-                          type="number"
-                          min="0"
+                        <NumericInput
+                          mode="currency"
                           placeholder="e.g., 300"
                           value={patSourceOfFundsRate}
-                          onChange={(e) => setPatSourceOfFundsRate(e.target.value)}
+                          onValueChange={(v) => setPatSourceOfFundsRate(v)}
                           className="w-full h-8 px-2.5 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
                         />
                       </div>
@@ -2699,13 +2712,12 @@ function MSWAssessmentContent() {
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <label className="block text-[10px] font-semibold text-[#64748B] mb-1">RATE / EARNINGS (₱)</label>
-                        <input
-                          type="number"
-                          min="0"
+                        <NumericInput
+                          mode="currency"
                           disabled={spouseSourceNotApplicable}
                           placeholder={spouseSourceNotApplicable ? 'N/A' : 'e.g., 250'}
                           value={spouseSourceNotApplicable ? '' : spouseSourceOfFundsRate}
-                          onChange={(e) => setSpouseSourceOfFundsRate(e.target.value)}
+                          onValueChange={(v) => setSpouseSourceOfFundsRate(v)}
                           className={`w-full h-8 px-2.5 border rounded-lg text-xs focus:outline-none ${
                             spouseSourceNotApplicable
                               ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
@@ -2832,11 +2844,10 @@ function MSWAssessmentContent() {
                   {/* 4. Rent Expenses */}
                   <div className="p-3 rounded-xl border border-[#E2E8F0] bg-[#FAFBF8]/70 space-y-2">
                     <label className="block text-[11px] font-bold text-[#10241A] uppercase">4. Rent Expenses (₱/mo)</label>
-                    <input
-                      type="number"
-                      min="0"
+                    <NumericInput
+                      mode="currency"
                       value={rentExpenseAmount}
-                      onChange={(e) => setRentExpenseAmount(e.target.value)}
+                      onValueChange={(v) => setRentExpenseAmount(v)}
                       placeholder="0.00"
                       className="w-full h-8 px-2.5 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
                     />
@@ -2855,22 +2866,20 @@ function MSWAssessmentContent() {
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <span className="block text-[9.5px] font-semibold text-[#64748B] mb-0.5">WATER BILL (₱)</span>
-                        <input
-                          type="number"
-                          min="0"
+                        <NumericInput
+                          mode="currency"
                           value={waterBillAmount}
-                          onChange={(e) => setWaterBillAmount(e.target.value)}
+                          onValueChange={(v) => setWaterBillAmount(v)}
                           placeholder="0.00"
                           className="w-full h-8 px-2 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
                         />
                       </div>
                       <div>
                         <span className="block text-[9.5px] font-semibold text-[#64748B] mb-0.5">ELECTRICITY (₱)</span>
-                        <input
-                          type="number"
-                          min="0"
+                        <NumericInput
+                          mode="currency"
                           value={electricityBillAmount}
-                          onChange={(e) => setElectricityBillAmount(e.target.value)}
+                          onValueChange={(v) => setElectricityBillAmount(v)}
                           placeholder="0.00"
                           className="w-full h-8 px-2 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
                         />
@@ -2881,11 +2890,10 @@ function MSWAssessmentContent() {
                   {/* 6. Transportation Expenses */}
                   <div className="p-3 rounded-xl border border-[#E2E8F0] bg-[#FAFBF8]/70 space-y-2">
                     <label className="block text-[11px] font-bold text-[#10241A] uppercase">6. Transportation (₱/mo)</label>
-                    <input
-                      type="number"
-                      min="0"
+                    <NumericInput
+                      mode="currency"
                       value={transportExpenseAmount}
-                      onChange={(e) => setTransportExpenseAmount(e.target.value)}
+                      onValueChange={(v) => setTransportExpenseAmount(v)}
                       placeholder="0.00"
                       className="w-full h-8 px-2.5 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
                     />
@@ -2901,11 +2909,10 @@ function MSWAssessmentContent() {
                   {/* 8. Eye Maintenance Expenses */}
                   <div className="p-3 rounded-xl border border-[#E2E8F0] bg-[#FAFBF8]/70 space-y-2">
                     <label className="block text-[11px] font-bold text-[#10241A] uppercase">8. Eye Maintenance (₱/mo)</label>
-                    <input
-                      type="number"
-                      min="0"
+                    <NumericInput
+                      mode="currency"
                       value={eyeMaintenanceExpense}
-                      onChange={(e) => setEyeMaintenanceExpense(e.target.value)}
+                      onValueChange={(v) => setEyeMaintenanceExpense(v)}
                       placeholder="0.00"
                       className="w-full h-8 px-2.5 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
                     />
@@ -2960,14 +2967,13 @@ function MSWAssessmentContent() {
                           <div className="sm:col-span-3">
                             <div className="relative">
                               <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-[#64748B]">₱</span>
-                              <input
-                                type="number"
-                                min="0"
+                              <NumericInput
+                                mode="currency"
                                 placeholder="Monthly cost"
                                 value={item.monthlyCost}
-                                onChange={(e) => {
+                                onValueChange={(v) => {
                                   const updated = [...otherMedicalExpenses];
-                                  updated[idx].monthlyCost = e.target.value;
+                                  updated[idx].monthlyCost = v;
                                   setOtherMedicalExpenses(updated);
                                 }}
                                 className="w-full h-8 pl-6 pr-2.5 border border-[#CBD5E1] rounded-lg text-xs bg-white focus:outline-none focus:border-[#0B6B3A]"
@@ -3201,12 +3207,13 @@ function MSWAssessmentContent() {
                               />
                             </td>
                             <td className="py-2 px-3">
-                              <input
-                                type="number"
+                              <NumericInput
+                                mode="integer"
+                                maxDigits={3}
                                 value={fam.age}
-                                onChange={(e) => {
+                                onValueChange={(v) => {
                                   const updated = [...familyMembers];
-                                  updated[idx].age = e.target.value;
+                                  updated[idx].age = v;
                                   setFamilyMembers(updated);
                                 }}
                                 className="w-16 h-8 px-2 border border-[#CBD5E1] rounded text-xs"
@@ -3251,12 +3258,12 @@ function MSWAssessmentContent() {
                               />
                             </td>
                             <td className="py-2 px-3">
-                              <input
-                                type="number"
+                              <NumericInput
+                                mode="currency"
                                 value={fam.income}
-                                onChange={(e) => {
+                                onValueChange={(v) => {
                                   const updated = [...familyMembers];
-                                  updated[idx].income = e.target.value;
+                                  updated[idx].income = v;
                                   setFamilyMembers(updated);
                                 }}
                                 className="w-24 h-8 px-2 border border-[#CBD5E1] rounded text-xs"
@@ -3942,10 +3949,10 @@ function MSWAssessmentContent() {
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-[#64748B] uppercase mb-1">ESTIMATED EXPENSES (PHP)</label>
-                    <input
-                      type="text"
+                    <NumericInput
+                      mode="currency"
                       value={estimatedExpenses}
-                      onChange={(e) => setEstimatedExpenses(e.target.value)}
+                      onValueChange={(v) => setEstimatedExpenses(v)}
                       placeholder="e.g. 11600"
                       className="w-full h-8 px-2.5 bg-white border border-[#CBD5E1] rounded font-bold text-[#0B6B3A]"
                     />

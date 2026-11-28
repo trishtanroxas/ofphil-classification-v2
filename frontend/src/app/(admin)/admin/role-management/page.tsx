@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { toast } from 'sonner';
 import PasswordStrengthMeter from '@/components/PasswordStrengthMeter';
+import { NumericInput } from '@/components/ui/NumericInput';
 
 export interface StaffUser {
   id: string;
@@ -666,11 +667,12 @@ export default function AdminRoleManagementPage() {
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
                     <i className="fa-solid fa-phone text-xs" />
                   </div>
-                  <input
-                    type="tel"
-                    placeholder="0917 888 1678"
+                  <NumericInput
+                    mode="integer"
+                    maxDigits={11}
+                    placeholder="09178881678"
                     value={newContactNumber}
-                    onChange={(e) => setNewContactNumber(e.target.value)}
+                    onValueChange={(v) => setNewContactNumber(v)}
                     className="w-full pl-9 pr-3 h-9 border border-[#D5E2D9] rounded-lg text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
                     required
                   />

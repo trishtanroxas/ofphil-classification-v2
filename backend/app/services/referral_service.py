@@ -82,7 +82,12 @@ class ReferralService:
             # Ensure newer columns exist for older sqlite databases BEFORE creating index on them
             try:
                 col_names = [col[1] for col in conn.execute("PRAGMA table_info(financial_referrals)").fetchall()]
-                for new_col in ["charity_case_no", "approved_by", "approved_at", "rejected_by", "rejected_at", "rejection_reason", "acknowledged_by", "acknowledged_at"]:
+                for new_col in [
+                    "charity_case_no", "approved_by", "approved_at", "rejected_by", "rejected_at",
+                    "rejection_reason", "acknowledged_by", "acknowledged_at",
+                    # Link back to the originating Procedures & Checkups encounter
+                    "encounter_id", "encounter_date", "encounter_snapshot",
+                ]:
                     if new_col not in col_names:
                         conn.execute(f"ALTER TABLE financial_referrals ADD COLUMN {new_col} TEXT;")
                 conn.commit()
@@ -91,6 +96,7 @@ class ReferralService:
 
             # Create index on charity_case_no now that column existence is guaranteed
             conn.execute("CREATE INDEX IF NOT EXISTS idx_referrals_charity_case ON financial_referrals(charity_case_no);")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_referrals_encounter_id ON financial_referrals(encounter_id);")
             conn.commit()
 
             # Seed default official clinical referral if empty
@@ -177,7 +183,47 @@ class ReferralService:
                 d["particulars"] = json.loads(d["particulars"])
             except Exception:
                 d["particulars"] = []
+        snap = d.get("encounter_snapshot")
+        if isinstance(snap, str) and snap:
+            try:
+                d["encounter_snapshot"] = json.loads(snap)
+            except Exception:
+                d["encounter_snapshot"] = None
         return d
+
+    # Statuses after which an encounter may be endorsed again with a fresh referral.
+    RELEASED_LINK_STATUSES = ("CANCELLED", "DELETED")
+
+    def get_referral_for_encounter(self, encounter_id: str) -> Optional[Dict[str, Any]]:
+        """Return the referral currently linked to an encounter (ignoring cancelled ones)."""
+        if not encounter_id:
+            return None
+        with self._connect() as conn:
+            row = conn.execute(
+                f"""
+                SELECT * FROM financial_referrals
+                WHERE encounter_id = ?
+                  AND UPPER(status) NOT IN ({",".join("?" * len(self.RELEASED_LINK_STATUSES))})
+                ORDER BY created_at DESC LIMIT 1
+                """,
+                (encounter_id.strip(), *self.RELEASED_LINK_STATUSES),
+            ).fetchone()
+            return self._row_to_dict(row) if row else None
+
+    @staticmethod
+    def _next_referral_id(conn: sqlite3.Connection) -> str:
+        """Allocate the next sequential OFPHIL-FA-YYYY-NNNN id (call inside a write transaction)."""
+        year = datetime.now(timezone.utc).year
+        prefix = f"OFPHIL-FA-{year}-"
+        rows = conn.execute(
+            "SELECT id FROM financial_referrals WHERE id LIKE ?", (prefix + "%",)
+        ).fetchall()
+        seq = 0
+        for (rid,) in rows:
+            tail = str(rid)[len(prefix):]
+            if tail.isdigit():
+                seq = max(seq, int(tail))
+        return f"{prefix}{seq + 1:04d}"
 
     def get_patient_assistance_history(
         self, patient_id: str, exclude_referral_id: Optional[str] = None
@@ -366,8 +412,14 @@ class ReferralService:
             return ref
 
     def create_referral(self, payload: Dict[str, Any], actor_id: str, role: str) -> Dict[str, Any]:
-        ref_id = payload.get("id") or f"OFPHIL-FA-{uuid.uuid4().hex[:6].upper()}"
-        ref_no = payload.get("referral_no") or f"REF-{uuid.uuid4().hex[:6].upper()}"
+        ref_id = (payload.get("id") or "").strip()
+        ref_no = (payload.get("referral_no") or "").strip()
+        encounter_id = str(payload.get("encounter_id") or "").strip() or None
+        encounter_date = str(payload.get("encounter_date") or "").strip() or None
+        encounter_snapshot = payload.get("encounter_snapshot")
+        encounter_snapshot_str = (
+            json.dumps(encounter_snapshot) if isinstance(encounter_snapshot, dict) else None
+        )
         patient_id = payload.get("patient_id", "").strip()
 
         patient_name = payload.get("patient_name", "").strip()
@@ -425,14 +477,35 @@ class ReferralService:
                         "This patient already has a medical assistance referral awaiting MSW review. "
                         "Another referral can only be created after the current referral has been resolved."
                     )
+            # Enforce: one live referral per Procedure & Checkup encounter
+            if encounter_id:
+                linked = conn.execute(
+                    f"""
+                    SELECT id FROM financial_referrals
+                    WHERE encounter_id = ?
+                      AND UPPER(status) NOT IN ({",".join("?" * len(self.RELEASED_LINK_STATUSES))})
+                    LIMIT 1
+                    """,
+                    (encounter_id, *self.RELEASED_LINK_STATUSES),
+                ).fetchone()
+                if linked:
+                    raise ValueError(
+                        f"Procedure/Checkup {encounter_id} is already linked to medical assistance "
+                        f"referral {linked['id']}. Open the existing form instead of creating a new one."
+                    )
+            if not ref_id:
+                ref_id = self._next_referral_id(conn)
+            if not ref_no:
+                ref_no = ref_id.replace("OFPHIL-FA-", "REF-", 1)
             conn.execute(
                 """
                 INSERT OR REPLACE INTO financial_referrals (
                     id, referral_no, patient_id, patient_name, diagnosis, eye_laterality,
                     procedure, clinical_findings, particulars, total, requested_amount,
                     attending_doctor, doctor_signature_title, referring_individual,
-                    referring_signature_title, status, assessment_id, notes, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?)
+                    referring_signature_title, status, assessment_id, notes, created_at, updated_at,
+                    encounter_id, encounter_date, encounter_snapshot
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     ref_id,
@@ -454,15 +527,23 @@ class ReferralService:
                     notes,
                     now,
                     now,
+                    encounter_id,
+                    encounter_date,
+                    encounter_snapshot_str,
                 ),
             )
             audit_id = f"aud-{uuid.uuid4().hex[:8]}"
             conn.execute(
                 """
                 INSERT INTO referral_status_audit (id, referral_id, old_status, new_status, changed_by, role, reason, created_at)
-                VALUES (?, ?, 'NONE', ?, ?, ?, 'Referral created and endorsed', ?)
+                VALUES (?, ?, 'NONE', ?, ?, ?, ?, ?)
                 """,
-                (audit_id, ref_id, status_val, actor_id, role, now),
+                (
+                    audit_id, ref_id, status_val, actor_id, role,
+                    f"Referral created and endorsed from Procedure/Checkup {encounter_id}"
+                    if encounter_id else "Referral created and endorsed",
+                    now,
+                ),
             )
             conn.commit()
 

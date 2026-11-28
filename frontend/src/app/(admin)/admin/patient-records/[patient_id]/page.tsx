@@ -8,6 +8,59 @@ import { useAuth } from '@/context/AuthContext';
 import { fetchApi } from '@/lib/api';
 import { toast } from 'sonner';
 import PsgcAddressSelector from '@/components/PsgcAddressSelector';
+import { NumericInput } from '@/components/ui/NumericInput';
+
+type ReferralFormData = {
+  diagnosis: string;
+  procedure: string;
+  eye_laterality: string;
+  clinical_findings: string;
+  particulars: Array<{ id: number; name: string; amount: number }>;
+  attending_doctor: string;
+  doctor_signature_title: string;
+  referring_individual: string;
+  referring_signature_title: string;
+  // Link to the originating Procedures & Checkups encounter
+  encounter_id: string;
+  encounter_date: string;
+  encounter_snapshot: Record<string, any> | null;
+};
+
+const EMPTY_REFERRAL_FORM = (): ReferralFormData => ({
+  diagnosis: '',
+  procedure: '',
+  eye_laterality: '',
+  clinical_findings: '',
+  particulars: [{ id: Date.now(), name: 'OPERATION FEE / SURGICAL PACKAGE', amount: 0 }],
+  attending_doctor: '',
+  doctor_signature_title: '',
+  referring_individual: '',
+  referring_signature_title: '',
+  encounter_id: '',
+  encounter_date: '',
+  encounter_snapshot: null,
+});
+
+const LATERALITY_LABELS: Record<string, string> = {
+  OD: 'OD (Right Eye)',
+  OS: 'OS (Left Eye)',
+  OU: 'OU (Both Eyes)',
+};
+
+const encounterKey = (enc: any): string => String(enc?.assessment_id || enc?.id || '');
+
+// Referral statuses that release an encounter so it can be endorsed again.
+const RELEASED_REFERRAL_STATUSES = ['CANCELLED', 'DELETED'];
+const RESOLVED_REFERRAL_STATUSES = ['APPROVED', 'MSW APPROVED', 'DISAPPROVED', 'MSW REJECTED', 'CANCELLED'];
+
+const linkedReferralStatusMeta = (status?: string): { label: string; style: string } => {
+  const s = String(status || '').toUpperCase();
+  if (['APPROVED', 'MSW APPROVED'].includes(s)) return { label: 'Approved', style: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+  if (['DISAPPROVED', 'MSW REJECTED'].includes(s)) return { label: 'Disapproved', style: 'bg-red-50 text-red-700 border-red-200' };
+  if (s === 'RETURNED_FOR_CORRECTION') return { label: 'Returned for Correction', style: 'bg-orange-50 text-orange-700 border-orange-200' };
+  if (['UNDER_REVIEW', 'ASSESSMENT IN PROGRESS'].includes(s)) return { label: 'Under MSW Review', style: 'bg-blue-50 text-blue-700 border-blue-200' };
+  return { label: 'Awaiting MSW Review', style: 'bg-amber-50 text-amber-800 border-amber-300' };
+};
 
 export default function PatientDossierPage() {
   const params = useParams();
@@ -173,17 +226,8 @@ export default function PatientDossierPage() {
   const [viewSlipModalReferral, setViewSlipModalReferral] = useState<any | null>(null);
   const [savedReferralMeta, setSavedReferralMeta] = useState<{ id?: string; status?: string; created_at?: string; assigned_msw?: string } | null>(null);
   const [referralFeedbackModal, setReferralFeedbackModal] = useState<{ title: string; message: string } | null>(null);
-  const [referralData, setReferralData] = useState({
-    diagnosis: '',
-    procedure: '',
-    particulars: [
-      { id: 1, name: 'OPERATION FEE / SURGICAL PACKAGE', amount: 0 },
-    ],
-    attending_doctor: '',
-    doctor_signature_title: '',
-    referring_individual: '',
-    referring_signature_title: '',
-  });
+  const [referralData, setReferralData] = useState<ReferralFormData>(EMPTY_REFERRAL_FORM);
+  const [highlightEncounterId, setHighlightEncounterId] = useState<string | null>(null);
 
   // Calculate live total from referral particulars
   const referralTotal = referralData.particulars.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
@@ -885,6 +929,11 @@ export default function PatientDossierPage() {
               doctor_signature_title: persistedRef.attending_signature || persistedRef.doctor_signature_title || '',
               referring_individual: persistedRef.referring_individual || '',
               referring_signature_title: persistedRef.referring_signature || persistedRef.referring_signature_title || '',
+              eye_laterality: persistedRef.eye_laterality || '',
+              clinical_findings: persistedRef.clinical_findings || '',
+              encounter_id: persistedRef.encounter_id || '',
+              encounter_date: persistedRef.encounter_date || '',
+              encounter_snapshot: persistedRef.encounter_snapshot || null,
             });
           }
         } catch { }
@@ -1399,7 +1448,7 @@ export default function PatientDossierPage() {
   const handleLogCheckup = (e: React.FormEvent) => {
     e.preventDefault();
     const newEnc = {
-      assessment_id: `OFP-ENC-${Date.now().toString().slice(-4)}`,
+      assessment_id: `OFP-ENC-${Date.now().toString().slice(-8)}`,
       encounter_date: checkupForm.encounter_date,
       diagnosis: checkupForm.diagnosis || 'Unspecified Ophthalmic Condition',
       procedure: checkupForm.procedure || 'Clinical Eye Consultation / Workup',
@@ -1454,6 +1503,126 @@ export default function PatientDossierPage() {
     );
     setEditingEncounterId(null);
     setCheckupModalOpen(false);
+  };
+
+  // ---------------------------------------------------------------------------
+  // Procedure & Checkup  <->  Medical Assistance Referral linking
+  // ---------------------------------------------------------------------------
+  const canEndorseReferral = role === 'admin' || role === 'nurse';
+
+  const getLinkedReferral = (enc: any): any | null => {
+    const key = encounterKey(enc);
+    if (!key) return null;
+    const live = patientReferralsHistory.find(
+      (r) => r.encounter_id === key && !RELEASED_REFERRAL_STATUSES.includes(String(r.status || '').toUpperCase())
+    );
+    if (live) return live;
+    // Fallback to backend-annotated link on the encounter row (e.g. history not yet loaded)
+    if (enc?.linked_referral_id) return { id: enc.linked_referral_id, status: enc.linked_referral_status, encounter_id: key };
+    return null;
+  };
+
+  const activeUnresolvedReferral = patientReferralsHistory.find(
+    (r) => !RESOLVED_REFERRAL_STATUSES.includes(String(r.status || '').toUpperCase()) &&
+      !RELEASED_REFERRAL_STATUSES.includes(String(r.status || '').toUpperCase())
+  );
+
+  const buildReferralFromEncounter = (enc: any): ReferralFormData => {
+    const lat = String(enc.laterality || '').toUpperCase();
+    const costLines = [
+      { name: 'PROFESSIONAL / SURGICAL FEE (COST OF TREATMENT)', amount: Number(enc.cost_of_treatment) || 0 },
+      { name: 'ANESTHESIOLOGIST FEE', amount: Number(enc.anesthesiologist_fee) || 0 },
+      { name: 'OPERATING ROOM SUPPLIES', amount: Number(enc.or_supplies) || 0 },
+    ].filter((l) => l.amount > 0);
+    const encTotal = Number(enc.total_amount ?? enc.total_quotation ?? 0) || 0;
+    const particulars = (costLines.length > 0
+      ? costLines
+      : [{ name: 'OPERATION FEE / SURGICAL PACKAGE', amount: encTotal }]
+    ).map((l, i) => ({ id: Date.now() + i, ...l }));
+    const physician = enc.attending_doctor || enc.attending_surgeon || enc.consultant || '';
+    const officerName = user?.name || (role === 'nurse' ? 'Clinic Nurse' : 'Clinic Medical Administrator');
+    const officerTitle = role === 'nurse' ? 'Clinic Nurse' : 'Clinic Medical Administrator';
+    const findings = [
+      enc.clinical_description || enc.notes || '',
+      enc.diagnosis_severity || enc.severity_grade ? `Severity / Urgency: ${enc.diagnosis_severity || enc.severity_grade}.` : '',
+    ].filter(Boolean).join(' ');
+    return {
+      diagnosis: enc.diagnosis || '',
+      procedure: enc.procedure || '',
+      eye_laterality: LATERALITY_LABELS[lat] || enc.laterality || '',
+      clinical_findings: findings,
+      particulars,
+      attending_doctor: physician,
+      doctor_signature_title: physician ? 'Attending Eye Surgeon / Examining Physician' : '',
+      referring_individual: officerName,
+      referring_signature_title: officerTitle,
+      encounter_id: encounterKey(enc),
+      encounter_date: enc.encounter_date || enc.checkup_date || enc.date || '',
+      encounter_snapshot: {
+        encounter_id: encounterKey(enc),
+        encounter_date: enc.encounter_date || enc.checkup_date || enc.date || '',
+        diagnosis: enc.diagnosis || '',
+        procedure: enc.procedure || '',
+        laterality: enc.laterality || '',
+        severity: enc.diagnosis_severity || enc.severity_grade || '',
+        attending_doctor: physician,
+        total_amount: encTotal,
+      },
+    };
+  };
+
+  const scrollToTop = () => {
+    try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch { }
+  };
+
+  const handleEndorseEncounter = (enc: any) => {
+    if (!canEndorseReferral) {
+      toast.error('Only Admin and Clinic Nurse accounts can endorse procedures for medical assistance.');
+      return;
+    }
+    const linked = getLinkedReferral(enc);
+    if (linked) {
+      handleViewLinkedReferral(linked);
+      return;
+    }
+    if (activeUnresolvedReferral) {
+      toast.error(
+        `This patient already has referral ${activeUnresolvedReferral.id} awaiting MSW review. ` +
+        'Another referral can only be created after the current referral has been resolved.'
+      );
+      return;
+    }
+    setReferralData(buildReferralFromEncounter(enc));
+    setSavedReferralMeta(null);
+    setHasReferralSlip(true);
+    setIsEditingReferral(true);
+    setDossierTab('referral');
+    scrollToTop();
+    toast.success(`Medical Assistance form pre-filled from ${encounterKey(enc)}. Review and complete the quotation.`);
+  };
+
+  const handleViewLinkedReferral = (ref: any) => {
+    const refId = ref?.id;
+    const isActive = savedReferralMeta?.id && (savedReferralMeta.id === refId || savedReferralMeta.id === ref?.referral_no);
+    if (isActive) {
+      setDossierTab('referral');
+      scrollToTop();
+      return;
+    }
+    const full = patientReferralsHistory.find((r) => r.id === refId || r.referral_no === refId) || ref;
+    setDossierTab('referral');
+    setViewSlipModalReferral(full);
+  };
+
+  const handleViewOriginEncounter = (encounterId?: string) => {
+    if (!encounterId) return;
+    setDossierTab('procedures');
+    setHighlightEncounterId(encounterId);
+    setTimeout(() => {
+      const el = document.getElementById(`encounter-row-${encounterId}`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 80);
+    setTimeout(() => setHighlightEncounterId(null), 3500);
   };
 
   const hasApprovedReferral = patientReferralsHistory.some((r) => ['MSW APPROVED', 'APPROVED'].includes(String(r.status || '').toUpperCase()) || Boolean(r.charity_case_no));
@@ -2197,13 +2366,27 @@ export default function PatientDossierPage() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {encounters.map((enc, idx) => (
+                  {encounters.map((enc, idx) => {
+                    const encId = encounterKey(enc);
+                    const linkedRef = getLinkedReferral(enc);
+                    const linkedMeta = linkedRef ? linkedReferralStatusMeta(linkedRef.status) : null;
+                    return (
                     <div
-                      key={enc.id || idx}
-                      className="rounded-xl border border-[#D5E2D9] bg-[#FAFBF8] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                      key={encId || idx}
+                      id={encId ? `encounter-row-${encId}` : undefined}
+                      className={`rounded-xl border p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-shadow ${
+                        highlightEncounterId && highlightEncounterId === encId
+                          ? 'border-[#0B6B3A] bg-[#F0FAF3] ring-2 ring-[#0B6B3A]/40'
+                          : 'border-[#D5E2D9] bg-[#FAFBF8]'
+                      }`}
                     >
                       <div className="space-y-1">
                         <div className="flex items-center gap-2 flex-wrap">
+                          {encId && (
+                            <span className="font-mono text-[10.5px] font-bold px-2 py-0.5 rounded bg-white text-[#0369A1] border border-[#BAE6FD]">
+                              {encId}
+                            </span>
+                          )}
                           <span className="font-mono text-[11px] font-bold px-2 py-0.5 rounded bg-white text-[#0B6B3A] border border-[#A7F3D0]">
                             {enc.encounter_date || enc.checkup_date || enc.date || 'Logged'}
                           </span>
@@ -2224,6 +2407,17 @@ export default function PatientDossierPage() {
                           {enc.attending_doctor || enc.attending_surgeon || enc.consultant || 'OFPHIL Medical Team'}
                         </div>
                         {enc.notes && <p className="text-xs text-[#64748B] m-0">{enc.notes}</p>}
+                        {linkedRef && linkedMeta && (
+                          <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#E8F5EC] text-[#0B6B3A] border border-[#A7F3D0]">
+                              <i className="fa-solid fa-link text-[9px]" />
+                              Linked to {linkedRef.id}
+                            </span>
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide border ${linkedMeta.style}`}>
+                              {linkedMeta.label}
+                            </span>
+                          </div>
+                        )}
                       </div>
                       <div className="flex sm:flex-col items-end justify-between gap-2 shrink-0">
                         <div className="text-right">
@@ -2232,7 +2426,7 @@ export default function PatientDossierPage() {
                             &#8369;{Number(enc.total_amount ?? enc.total_quotation ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
                           </div>
                         </div>
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap justify-end">
                           <button
                             type="button"
                             onClick={() => {
@@ -2260,6 +2454,10 @@ export default function PatientDossierPage() {
                             type="button"
                             onClick={() => {
                               const targetId = enc.assessment_id || enc.id;
+                              if (linkedRef) {
+                                toast.error(`This encounter is linked to referral ${linkedRef.id} and cannot be deleted. Cancel the referral first.`);
+                                return;
+                              }
                               const updated = encounters.filter((e) => (e.assessment_id || e.id) !== targetId);
                               setEncounters(updated);
                               try {
@@ -2275,7 +2473,8 @@ export default function PatientDossierPage() {
                         </div>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -2300,21 +2499,93 @@ export default function PatientDossierPage() {
                     </div>
                     <p className="text-xs text-[#5A7466] m-0 leading-relaxed">
                       {patientReferralsHistory.length > 0
-                        ? 'Previous referrals for this patient have already been resolved. Issue another referral slip if endorsing a procedure quotation again to Medical Social Services.'
-                        : 'This regular clinic patient does not have an active medical assistance referral form yet. Issue a referral slip to endorse a procedure quotation for subsidy review.'}
+                        ? 'Previous referrals for this patient have already been resolved. Select a recorded procedure or checkup below to endorse it to Medical Social Services.'
+                        : 'This patient does not have an active medical assistance referral form yet. Select a recorded procedure or checkup below to create a pre-filled referral form.'}
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setHasReferralSlip(true);
-                      setIsEditingReferral(true);
-                    }}
-                    className="mt-1 px-4 py-2 rounded-xl bg-[#0B6B3A] hover:bg-[#084D29] text-white font-bold text-xs inline-flex items-center gap-2 transition shadow-xs cursor-pointer border-0"
-                  >
-                    <i className="fa-solid fa-file-medical text-xs" />
-                    <span>+ Create Medical Assistance Referral Form</span>
-                  </button>
+                  {(() => {
+                    const available = encounters.filter((e) => encounterKey(e) && !getLinkedReferral(e));
+                    if (available.length === 0) {
+                      return (
+                        <div className="w-full max-w-xl rounded-xl border border-[#E2E8F0] bg-white p-4 text-xs text-[#5A7466] space-y-2">
+                          <div>
+                            {encounters.length === 0
+                              ? 'No Procedures & Checkups have been recorded for this patient yet.'
+                              : 'All recorded Procedures & Checkups are already linked to a Medical Assistance form.'}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setDossierTab('procedures')}
+                            className="px-3 py-1.5 rounded-lg border border-[#D5E2D9] bg-[#FAFBF8] hover:bg-white text-[#10241A] font-bold text-[11px] cursor-pointer"
+                          >
+                            <i className="fa-solid fa-stethoscope mr-1 text-[#0B6B3A]" />
+                            Go to Procedures &amp; Checkups
+                          </button>
+                        </div>
+                      );
+                    }
+                    return (
+                      <div className="w-full max-w-3xl text-left space-y-2 mt-1">
+                        <div className="text-[10.5px] font-bold uppercase tracking-wider text-[#5A7466]">
+                          Select a Procedure &amp; Checkup to endorse ({available.length} available)
+                        </div>
+                        {available.map((enc) => {
+                          const encId = encounterKey(enc);
+                          return (
+                            <div
+                              key={encId}
+                              className="rounded-xl border border-[#D5E2D9] bg-white p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                            >
+                              <div className="space-y-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-mono text-[10.5px] font-bold px-2 py-0.5 rounded bg-white text-[#0369A1] border border-[#BAE6FD]">
+                                    {encId}
+                                  </span>
+                                  <span className="font-mono text-[11px] font-bold px-2 py-0.5 rounded bg-white text-[#0B6B3A] border border-[#A7F3D0]">
+                                    {enc.encounter_date || enc.checkup_date || enc.date || 'Logged'}
+                                  </span>
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                                    {enc.laterality || 'OU'}
+                                  </span>
+                                </div>
+                                <div className="font-bold text-sm text-[#10241A]">{enc.diagnosis || 'Ophthalmology Assessment'}</div>
+                                <div className="text-xs text-[#5A7466]">
+                                  <strong>Procedure:</strong> {enc.procedure || 'N/A'} &bull; <strong>Physician:</strong>{' '}
+                                  {enc.attending_doctor || enc.attending_surgeon || enc.consultant || 'OFPHIL Medical Team'}
+                                </div>
+                              </div>
+                              <div className="flex sm:flex-col items-end justify-between gap-2 shrink-0">
+                                <div className="font-['Outfit'] text-sm font-extrabold text-[#0B6B3A]">
+                                  &#8369;{Number(enc.total_amount ?? enc.total_quotation ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                                </div>
+                                {canEndorseReferral && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleEndorseEncounter(enc)}
+                                    disabled={Boolean(activeUnresolvedReferral)}
+                                    title={
+                                      activeUnresolvedReferral
+                                        ? `Referral ${activeUnresolvedReferral.id} is still awaiting MSW review`
+                                        : 'Create a Medical Assistance form pre-filled from this encounter'
+                                    }
+                                    className="px-3 py-1.5 rounded-lg bg-[#0B6B3A] hover:bg-[#084D29] text-white font-bold text-[11px] inline-flex items-center gap-1.5 cursor-pointer border-0 disabled:bg-slate-200 disabled:text-slate-500 disabled:cursor-not-allowed"
+                                  >
+                                    <i className="fa-solid fa-file-medical text-[10px]" />
+                                    Create Medical Assistance Form
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                        {activeUnresolvedReferral && (
+                          <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 m-0">
+                            Referral {activeUnresolvedReferral.id} is still awaiting MSW review. A new referral can be created after it is resolved.
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               ) : (() => {
                 const isReferralSubmitted = Boolean(savedReferralMeta?.id);
@@ -2480,15 +2751,7 @@ export default function PatientDossierPage() {
                           onClick={() => {
                             setSavedReferralMeta(null);
                             setIsEditingReferral(true);
-                            setReferralData({
-                              diagnosis: '',
-                              procedure: '',
-                              particulars: [{ id: Date.now(), name: 'OPERATION FEE / SURGICAL PACKAGE', amount: 0 }],
-                              attending_doctor: '',
-                              doctor_signature_title: '',
-                              referring_individual: '',
-                              referring_signature_title: '',
-                            });
+                            setReferralData(EMPTY_REFERRAL_FORM());
                           }}
                           className={`px-3.5 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 border ${
                             ['APPROVED', 'MSW APPROVED', 'DISAPPROVED', 'MSW REJECTED', 'CANCELLED'].includes(rawStatus)
@@ -2569,6 +2832,81 @@ export default function PatientDossierPage() {
                       </div>
                     </div>
 
+                    {/* Contact Number & Residence (Read-Only, from patient profile) */}
+                    <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-3 bg-white p-3.5 rounded-xl border border-[#E2E8F0] text-xs">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-[11px] font-bold uppercase text-[#5A7466] whitespace-nowrap shrink-0">Contact No. :</span>
+                        <input
+                          type="text"
+                          readOnly
+                          value={patientData?.contact || '—'}
+                          className="w-full min-w-0 h-9 px-3 border border-[#E2E8F0] rounded-lg bg-[#FAFBF8] font-mono font-semibold text-[#10241A]"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-[11px] font-bold uppercase text-[#5A7466] whitespace-nowrap shrink-0">Residence :</span>
+                        <input
+                          type="text"
+                          readOnly
+                          value={
+                            [
+                              patientData?.perm_street,
+                              patientData?.perm_barangay,
+                              patientData?.perm_city || patientData?.residence_city,
+                              patientData?.perm_province || patientData?.residence_region,
+                            ].filter(Boolean).join(', ') || '—'
+                          }
+                          className="w-full min-w-0 h-9 px-3 border border-[#E2E8F0] rounded-lg bg-[#FAFBF8] font-semibold text-[#10241A]"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Linked Procedure & Checkup Reference (Read-Only) */}
+                    {referralData.encounter_id && (() => {
+                      const liveEnc = encounters.find((e) => encounterKey(e) === referralData.encounter_id);
+                      const snap = referralData.encounter_snapshot || {};
+                      const encDate = liveEnc?.encounter_date || referralData.encounter_date || snap.encounter_date || '—';
+                      const encProc = liveEnc?.procedure || snap.procedure || referralData.procedure || '—';
+                      const encDx = liveEnc?.diagnosis || snap.diagnosis || referralData.diagnosis || '—';
+                      const encLat = liveEnc?.laterality || snap.laterality || '';
+                      const encDoc = liveEnc?.attending_doctor || snap.attending_doctor || '';
+                      return (
+                        <div className="rounded-xl border border-[#BAE6FD] bg-[#F0F9FF] p-3.5 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="space-y-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9.5px] font-extrabold uppercase tracking-wider bg-white text-[#0369A1] border border-[#BAE6FD]">
+                                <i className="fa-solid fa-link text-[9px]" />
+                                Linked Procedure &amp; Checkup
+                              </span>
+                              <span className="font-mono font-bold text-[#0369A1]">{referralData.encounter_id}</span>
+                              <span className="font-mono text-[11px] text-[#334155]">{encDate}</span>
+                              {encLat && (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">{encLat}</span>
+                              )}
+                            </div>
+                            <div className="text-[#10241A] font-semibold truncate">{encDx}</div>
+                            <div className="text-[11px] text-[#5A7466]">
+                              <strong>Procedure:</strong> {encProc}
+                              {encDoc && <> &bull; <strong>Physician:</strong> {encDoc}</>}
+                            </div>
+                            {!liveEnc && (
+                              <div className="text-[10.5px] text-amber-700">Snapshot shown — the original encounter is not in this device&apos;s records.</div>
+                            )}
+                          </div>
+                          {liveEnc && (
+                            <button
+                              type="button"
+                              onClick={() => handleViewOriginEncounter(referralData.encounter_id)}
+                              className="shrink-0 px-3 py-1.5 rounded-lg border border-[#BAE6FD] bg-white hover:bg-[#E0F2FE] text-[#0369A1] font-bold text-[11px] cursor-pointer"
+                            >
+                              <i className="fa-solid fa-stethoscope mr-1" />
+                              View Encounter
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })()}
+
                     {/* Diagnosis & Procedure */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-4 rounded-xl border border-[#E2E8F0]">
                       <div>
@@ -2593,6 +2931,35 @@ export default function PatientDossierPage() {
                           onChange={(e) => setReferralData({ ...referralData, procedure: e.target.value })}
                           placeholder="e.g. Phacoemulsification with Foldable IOL Implant"
                           className={`w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs font-semibold text-[#10241A] focus:outline-none focus:border-[#0B6B3A] ${isReferralSubmitted ? 'bg-[#FAFBF8] text-[#334155] cursor-not-allowed' : ''}`}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10.5px] font-bold uppercase text-[#5A7466] mb-1">Eye Laterality :</label>
+                        <select
+                          disabled={isReferralSubmitted}
+                          value={referralData.eye_laterality}
+                          onChange={(e) => setReferralData({ ...referralData, eye_laterality: e.target.value })}
+                          className={`w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs font-semibold text-[#10241A] bg-white focus:outline-none focus:border-[#0B6B3A] ${isReferralSubmitted ? 'bg-[#FAFBF8] text-[#334155] cursor-not-allowed' : ''}`}
+                        >
+                          <option value="">Select laterality…</option>
+                          {Object.values(LATERALITY_LABELS).map((lbl) => (
+                            <option key={lbl} value={lbl}>{lbl}</option>
+                          ))}
+                          {referralData.eye_laterality && !Object.values(LATERALITY_LABELS).includes(referralData.eye_laterality) && (
+                            <option value={referralData.eye_laterality}>{referralData.eye_laterality}</option>
+                          )}
+                        </select>
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-[10.5px] font-bold uppercase text-[#5A7466] mb-1">Clinical Findings &amp; Urgency :</label>
+                        <textarea
+                          rows={2}
+                          disabled={isReferralSubmitted}
+                          readOnly={isReferralSubmitted}
+                          value={referralData.clinical_findings}
+                          onChange={(e) => setReferralData({ ...referralData, clinical_findings: e.target.value })}
+                          placeholder="e.g. Grade 4 nuclear sclerotic cataract, VA OD 20/200. Urgent surgery required."
+                          className={`w-full px-3 py-2 border border-[#CBD5E1] rounded-lg text-xs font-semibold text-[#10241A] focus:outline-none focus:border-[#0B6B3A] resize-y ${isReferralSubmitted ? 'bg-[#FAFBF8] text-[#334155] cursor-not-allowed' : ''}`}
                         />
                       </div>
                     </div>
@@ -2654,14 +3021,14 @@ export default function PatientDossierPage() {
                                 <td className="py-2 px-2">
                                   <div className="flex items-center gap-1 justify-end">
                                     <span className="text-[#64748B] font-bold">&#8369;</span>
-                                    <input
-                                      type="number"
+                                    <NumericInput
+                                      mode="currency"
                                       disabled={isReferralSubmitted}
                                       readOnly={isReferralSubmitted}
                                       value={item.amount}
-                                      onChange={(e) => {
+                                      onValueChange={(v) => {
                                         const next = [...referralData.particulars];
-                                        next[idx] = { ...next[idx], amount: Number(e.target.value) || 0 };
+                                        next[idx] = { ...next[idx], amount: Number(v) || 0 };
                                         setReferralData({ ...referralData, particulars: next });
                                       }}
                                       className={`w-28 h-9 px-2.5 border border-[#CBD5E1] rounded-lg text-xs font-bold text-[#10241A] text-right ${isReferralSubmitted ? 'bg-[#FAFBF8] text-[#334155] cursor-not-allowed' : ''}`}
@@ -2812,6 +3179,13 @@ export default function PatientDossierPage() {
                             </div>
                             <div className="text-xs font-semibold text-[#10241A]">{histRef.diagnosis || '—'}</div>
                             <div className="text-[11px] text-[#5A7466]">{histRef.procedure || '—'}</div>
+                            {histRef.encounter_id && (
+                              <div className="inline-flex items-center gap-1.5 text-[10.5px] font-semibold text-[#0369A1]">
+                                <i className="fa-solid fa-link text-[9px]" />
+                                From Procedure &amp; Checkup <span className="font-mono font-bold">{histRef.encounter_id}</span>
+                                {histRef.encounter_date && <span className="text-[#5A7466]">({histRef.encounter_date})</span>}
+                              </div>
+                            )}
                           </div>
                           <div className="text-right space-y-1">
                             <div className="font-mono font-bold text-sm text-[#0B6B3A]">
@@ -4696,10 +5070,11 @@ export default function PatientDossierPage() {
                   <label className="block text-[11px] font-bold text-[#10241A] uppercase tracking-wider mb-1">
                     Age
                   </label>
-                  <input
-                    type="number"
+                  <NumericInput
+                    mode="integer"
+                    maxDigits={3}
                     value={editForm.age}
-                    onChange={(e) => setEditForm({ ...editForm, age: e.target.value })}
+                    onValueChange={(v) => setEditForm({ ...editForm, age: v })}
                     className="w-full h-9 px-3 text-xs bg-white border border-[#D5E2D9] rounded-lg focus:outline-none focus:border-[#0B6B3A]"
                   />
                 </div>
@@ -4732,11 +5107,12 @@ export default function PatientDossierPage() {
                   <label className="block text-xs font-medium text-[#334155]">
                     Mobile Phone Number <span className="text-[#DC2626]">*</span>
                   </label>
-                  <input
-                    type="text"
+                  <NumericInput
+                    mode="integer"
+                    maxDigits={11}
                     value={editForm.contact}
-                    onChange={(e) => setEditForm({ ...editForm, contact: e.target.value })}
-                    placeholder="0917 123 4567"
+                    onValueChange={(v) => setEditForm({ ...editForm, contact: v })}
+                    placeholder="09171234567"
                     required
                     className="w-full h-10 px-3.5 border border-[#D5E2D9] rounded-xl text-xs bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A] focus:ring-2 focus:ring-[#0B6B3A]/15 transition"
                   />
@@ -4812,11 +5188,11 @@ export default function PatientDossierPage() {
                   <label className="block text-[11px] font-bold text-[#10241A] uppercase tracking-wider mb-1">
                     Dependents
                   </label>
-                  <input
-                    type="number"
-                    min="0"
+                  <NumericInput
+                    mode="integer"
+                    maxDigits={2}
                     value={editForm.num_dependents}
-                    onChange={(e) => setEditForm({ ...editForm, num_dependents: e.target.value })}
+                    onValueChange={(v) => setEditForm({ ...editForm, num_dependents: v })}
                     className="w-full h-9 px-3 text-xs bg-white border border-[#D5E2D9] rounded-lg focus:outline-none focus:border-[#0B6B3A]"
                   />
                 </div>
@@ -5032,11 +5408,11 @@ export default function PatientDossierPage() {
                   <label className="block text-[11px] font-bold text-[#10241A] uppercase tracking-wider mb-1">
                     Total Quotation (PHP)
                   </label>
-                  <input
-                    type="number"
+                  <NumericInput
+                    mode="currency"
                     placeholder="e.g. 11600"
                     value={checkupForm.total_amount ? checkupForm.total_amount : ''}
-                    onChange={(e) => setCheckupForm({ ...checkupForm, total_amount: parseFloat(e.target.value) || 0 })}
+                    onValueChange={(v) => setCheckupForm({ ...checkupForm, total_amount: parseFloat(v) || 0 })}
                     className="w-full h-9 px-3 text-xs bg-white border border-[#D5E2D9] rounded-lg focus:outline-none focus:border-[#0B6B3A] placeholder:text-slate-400"
                   />
                 </div>
@@ -5440,6 +5816,28 @@ export default function PatientDossierPage() {
               </div>
             </div>
 
+            {viewSlipModalReferral.encounter_id && (
+              <button
+                type="button"
+                onClick={() => {
+                  const eid = viewSlipModalReferral.encounter_id;
+                  setViewSlipModalReferral(null);
+                  handleViewOriginEncounter(eid);
+                }}
+                className="w-full text-left rounded-xl border border-[#BAE6FD] bg-[#F0F9FF] hover:bg-[#E0F2FE] p-3 text-xs flex items-center justify-between gap-3 cursor-pointer"
+              >
+                <span className="flex items-center gap-2 flex-wrap">
+                  <i className="fa-solid fa-link text-[#0369A1]" />
+                  <span className="font-bold uppercase text-[10px] text-[#0369A1]">Originating Procedure &amp; Checkup</span>
+                  <span className="font-mono font-bold text-[#0369A1]">{viewSlipModalReferral.encounter_id}</span>
+                  {viewSlipModalReferral.encounter_date && (
+                    <span className="font-mono text-[#334155]">{viewSlipModalReferral.encounter_date}</span>
+                  )}
+                </span>
+                <span className="font-bold text-[#0369A1] shrink-0">View encounter &rarr;</span>
+              </button>
+            )}
+
             <div className="border border-[#E2E8F0] rounded-xl overflow-hidden">
               <table className="w-full text-xs border-collapse">
                 <thead className="bg-[#FAFBF8] border-b border-[#E2E8F0] text-[10px] font-bold uppercase text-[#5A7466] text-left">
@@ -5658,8 +6056,13 @@ export default function PatientDossierPage() {
                         patient_name: patientData?.name || `${patientData?.first_name || ''} ${patientData?.last_name || ''}`.trim() || patientId,
                         diagnosis: referralData.diagnosis,
                         procedure: referralData.procedure,
+                        eye_laterality: referralData.eye_laterality || 'Bilateral',
+                        clinical_findings: referralData.clinical_findings,
                         particulars: referralData.particulars,
                         total_quotation: referralTotal,
+                        encounter_id: referralData.encounter_id || undefined,
+                        encounter_date: referralData.encounter_date || undefined,
+                        encounter_snapshot: referralData.encounter_snapshot || undefined,
                         attending_doctor: referralData.attending_doctor,
                         attending_signature: referralData.doctor_signature_title,
                         referring_individual: referralData.referring_individual,
@@ -5675,6 +6078,19 @@ export default function PatientDossierPage() {
                       assigned_msw: savedRef.assigned_msw || 'Maria Santos, RSW (msw_lead)',
                     };
                     setSavedReferralMeta(meta);
+                    // Sync: referral history drives the encounter row's linked badge
+                    if (savedRef?.id) {
+                      setPatientReferralsHistory((prev) => [savedRef, ...prev.filter((r) => r.id !== savedRef.id)]);
+                    }
+                    if (savedRef?.encounter_id) {
+                      setEncounters((prev) =>
+                        prev.map((e) =>
+                          encounterKey(e) === savedRef.encounter_id
+                            ? { ...e, linked_referral_id: savedRef.id, linked_referral_status: savedRef.status }
+                            : e
+                        )
+                      );
+                    }
                     try {
                       localStorage.setItem(
                         `ofphil_referral_${patientId}`,
@@ -5686,7 +6102,7 @@ export default function PatientDossierPage() {
                     toast.success('Medical Assistance Referral successfully submitted to MSW.');
                     setReferralFeedbackModal({
                       title: 'Medical Assistance Referral Successfully Submitted',
-                      message: `Referral Number: ${meta.id || 'N/A'} • Patient: ${patientData?.name || patientId} (${patientId}) • Status: PENDING • Email Notification: ${data?.email_sent ? 'Sent to MSW' : 'Saved (Email queued/skipped)'}`,
+                      message: `Referral Number: ${meta.id || 'N/A'} • Patient: ${patientData?.name || patientId} (${patientId})${savedRef?.encounter_id ? ` • Linked Procedure/Checkup: ${savedRef.encounter_id}` : ''} • Status: PENDING • Email Notification: ${data?.email_sent ? 'Sent to MSW' : 'Saved (Email queued/skipped)'}`,
                     });
                   } catch (err: any) {
                     const msg = err?.message === 'Failed to fetch'
@@ -6084,12 +6500,13 @@ export default function PatientDossierPage() {
                               </div>
                               <div className="relative w-full">
                                 <i className="fa-solid fa-phone absolute left-3 top-3.5 text-[#5A7466] text-xs pointer-events-none" />
-                                <input
-                                  type="text"
+                                <NumericInput
+                                  mode="integer"
+                                  maxDigits={11}
                                   required={apptChannel === 'sms' || apptChannel === 'both'}
                                   value={apptForm.recipient_phone}
-                                  onChange={(e) => setApptForm({ ...apptForm, recipient_phone: e.target.value })}
-                                  placeholder="0917 888 1678"
+                                  onValueChange={(v) => setApptForm({ ...apptForm, recipient_phone: v })}
+                                  placeholder="09178881678"
                                   className="w-full h-11 pl-9 pr-3 border border-[#D5E2D9] rounded-xl text-xs bg-white text-[#10241A] font-semibold focus:outline-none focus:border-[#0B6B3A]"
                                 />
                               </div>

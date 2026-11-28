@@ -47,7 +47,7 @@
       "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
     },
     "manual_review": null,
-    "storage_path": "C:\\Users\\ASUS TUF\\Desktop\\Project in Program\\Thesis Project\\ofphil-classification-v2\\storage\\uploads\\originals\\doc-001_Government_Valid_ID_DelaCruz.jpg",
+    "storage_path": "/home/kristoper/Projects/Thesis/ofphil-classification-v2/storage/uploads/originals/doc-001_Government_Valid_ID_DelaCruz.jpg",
     "sha256_hash": "8aa441b1bc3f6febe135f5ade21bb7ce4d74adc313266ffb3ad797d6017c5880",
     "mime_type": "image/jpeg",
     "authenticity_classification": "Authentic",
@@ -101,7 +101,7 @@
       "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
     },
     "manual_review": null,
-    "storage_path": "C:\\Users\\ASUS TUF\\Desktop\\Project in Program\\Thesis Project\\ofphil-classification-v2\\storage\\uploads\\originals\\doc-002_Initial_Eye_Examination_Record.pdf",
+    "storage_path": "/home/kristoper/Projects/Thesis/ofphil-classification-v2/storage/uploads/originals/doc-002_Initial_Eye_Examination_Record.pdf",
     "sha256_hash": "0ff72e07c73a70ebf47283965e62ff2230c1c5c742db0f1f52b7811a1bf9b241",
     "mime_type": "application/pdf",
     "authenticity_classification": "Authentic",
@@ -155,7 +155,7 @@
       "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
     },
     "manual_review": null,
-    "storage_path": "C:\\Users\\ASUS TUF\\Desktop\\Project in Program\\Thesis Project\\ofphil-classification-v2\\storage\\uploads\\originals\\doc-003_Barangay_Indigency_Ramos.pdf",
+    "storage_path": "/home/kristoper/Projects/Thesis/ofphil-classification-v2/storage/uploads/originals/doc-003_Barangay_Indigency_Ramos.pdf",
     "sha256_hash": "912c69408919757d6acd9c1c0099422f2a6aae2dddd66c74ff0ab5d679a74ddf",
     "mime_type": "application/pdf",
     "authenticity_classification": "Authentic",
@@ -209,7 +209,7 @@
       "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
     },
     "manual_review": null,
-    "storage_path": "C:\\Users\\ASUS TUF\\Desktop\\Project in Program\\Thesis Project\\ofphil-classification-v2\\storage\\uploads\\originals\\doc-004_Surgical_Quotation_Ramos.png",
+    "storage_path": "/home/kristoper/Projects/Thesis/ofphil-classification-v2/storage/uploads/originals/doc-004_Surgical_Quotation_Ramos.png",
     "sha256_hash": "5c6fa1eee2f57efcd74547a75e9fe35f539ea4a145e052ac09d044e904eaac68",
     "mime_type": "image/jpeg",
     "authenticity_classification": "Authentic",
@@ -263,7 +263,7 @@
       "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
     },
     "manual_review": null,
-    "storage_path": "C:\\Users\\ASUS TUF\\Desktop\\Project in Program\\Thesis Project\\ofphil-classification-v2\\storage\\uploads\\originals\\doc-005_Senior_Citizen_ID_Bautista.jpg",
+    "storage_path": "/home/kristoper/Projects/Thesis/ofphil-classification-v2/storage/uploads/originals/doc-005_Senior_Citizen_ID_Bautista.jpg",
     "sha256_hash": "aa6fb457f6914969239b7d1a948c8d7824b5af95e7be299b0230ec22285090f5",
     "mime_type": "image/jpeg",
     "authenticity_classification": "Authentic",
@@ -317,7 +317,7 @@
       "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
     },
     "manual_review": null,
-    "storage_path": "C:\\Users\\ASUS TUF\\Desktop\\Project in Program\\Thesis Project\\ofphil-classification-v2\\storage\\uploads\\originals\\doc-006_Clinical_Eye_Exam_Santos.pdf",
+    "storage_path": "/home/kristoper/Projects/Thesis/ofphil-classification-v2/storage/uploads/originals/doc-006_Clinical_Eye_Exam_Santos.pdf",
     "sha256_hash": "4adbe5c8b252827f3e9e8f0d8ea219048f106824454640e35e530c1e7be8bdbe",
     "mime_type": "application/pdf",
     "authenticity_classification": "Authentic",
@@ -332,8 +332,8 @@
     "document_type": "SIGNED CERTIFICATE OF INDIGENCY",
     "file_size_bytes": 17195,
     "mime_type": "image/jpeg",
-    "sha256_hash": "6d976f2a43c86219eb90e1d9aa1fdbf05427ef0e02320dd7ff732a542ba45006",
-    "storage_path": "C:\\Users\\ASUS TUF\\Desktop\\Project in Program\\Thesis Project\\ofphil-classification-v2\\storage\\uploads\\originals\\doc-19da3072e1_ind_p_002.jpeg",
+    "sha256_hash": "da8422d7c36102ace0953b2ffec84d3b06d34fdfee977b695313b262bf82d50c",
+    "storage_path": "/home/kristoper/Projects/Thesis/ofphil-classification-v2/storage/uploads/originals/doc-19da3072e1_ind_p_002.jpeg",
     "uploaded_at": "2026-11-25T13:51:25.255920+00:00",
     "uploaded_by": "msw_lead",
     "status": "processed",
@@ -446,5 +446,129 @@
     "manual_review": null,
     "authenticity_classification": "Authentic",
     "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
+  },
+  "doc-c05b81031a": {
+    "id": "doc-c05b81031a",
+    "patient_id": "M26-11-000002",
+    "patient_name": "Wilbur Nigel Santos",
+    "assessment_id": null,
+    "filename": "ind_p_002.jpeg",
+    "document_type": "SIGNED CERTIFICATE OF INDIGENCY",
+    "file_size_bytes": 6138459,
+    "mime_type": "image/jpeg",
+    "sha256_hash": "da8422d7c36102ace0953b2ffec84d3b06d34fdfee977b695313b262bf82d50c",
+    "storage_path": "/home/kristoper/Projects/Thesis/ofphil-classification-v2/storage/uploads/originals/doc-c05b81031a_ind_p_002.jpeg",
+    "uploaded_at": "2026-11-28T10:08:12.006180+00:00",
+    "uploaded_by": "msw_lead",
+    "status": "processed",
+    "ocr_processed": false,
+    "manipulation_risk": "clean",
+    "verification_status": "Authentic",
+    "authenticity_classification": "Authentic",
+    "authenticity_summary": "Passes signature, metadata, resolution, and ELA forensic integrity checks.",
+    "seal_detected": true,
+    "tamper_risk": "Low",
+    "signature_status": "SIGNATURE_DETECTED",
+    "extracted_text": null,
+    "processing_state": {
+      "job_id": "job-a80dfff6",
+      "processing_status": "COMPLETED",
+      "engine_version": "ofphil-docauth-v2.0",
+      "started_at": "2026-11-28T10:08:12.034130+00:00",
+      "completed_at": "2026-11-28T10:08:13.179665+00:00",
+      "processing_time_ms": 1142.53,
+      "unavailable_checks": [
+        "ocr_engine"
+      ],
+      "error_message": null
+    },
+    "ocr_result": {
+      "engine_used": "unavailable",
+      "engine_version": "ofphil-ocr-v2.0",
+      "extracted_text": null,
+      "confidence_score": null,
+      "fields_detected": {},
+      "missing_information": [
+        "No machine-readable text extracted"
+      ],
+      "unavailable_reason": "OCR engines unavailable locally (ModuleNotFoundError)"
+    },
+    "signature_result": {
+      "signature_status": "SIGNATURE_DETECTED",
+      "signatures_detected_count": 36,
+      "regions": [
+        {
+          "label": "candidate_signature_region",
+          "box": [
+            2379,
+            3419,
+            2465,
+            3452
+          ],
+          "ink_density": 0.052
+        },
+        {
+          "label": "candidate_signature_region",
+          "box": [
+            2198,
+            3287,
+            2243,
+            3303
+          ],
+          "ink_density": 0.044
+        },
+        {
+          "label": "candidate_signature_region",
+          "box": [
+            2149,
+            3284,
+            2194,
+            3300
+          ],
+          "ink_density": 0.069
+        },
+        {
+          "label": "candidate_signature_region",
+          "box": [
+            601,
+            2955,
+            837,
+            2991
+          ],
+          "ink_density": 0.439
+        },
+        {
+          "label": "candidate_signature_region",
+          "box": [
+            476,
+            2953,
+            599,
+            2989
+          ],
+          "ink_density": 0.379
+        }
+      ],
+      "engine_version": "OpenCV-Contour-v1 (YOLO signature weights not loaded)"
+    },
+    "authenticity_result": {
+      "overall_status": "NO_ISSUE_DETECTED",
+      "authenticity_classification": "Authentic",
+      "authenticity_summary": "Passes signature, metadata, resolution, and ELA forensic integrity checks.",
+      "tamper_risk_level": "Low",
+      "indicators": {
+        "resolution": "3024x4032",
+        "ela_mean_diff": 1.202,
+        "ela_std_diff": 1.131,
+        "ela_max_diff": 20.0,
+        "patch_ela_disparity_ratio": 1.3,
+        "laplacian_sharpness_var": 112.92,
+        "editing_software_metadata": false,
+        "splicing_indicator": "Normal compression profile",
+        "signature_presence": "SIGNATURE_DETECTED"
+      },
+      "unavailable_checks": [],
+      "engine_version": "PIL-ELA-OpenCV-v2"
+    },
+    "manual_review": null
   }
 }

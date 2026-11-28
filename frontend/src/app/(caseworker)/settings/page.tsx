@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import PasswordStrengthMeter from '@/components/PasswordStrengthMeter';
 import ProfilePasswordChangeCard from '@/components/ProfilePasswordChangeCard';
 import { fetchApi } from '@/lib/api';
+import { NumericInput } from '@/components/ui/NumericInput';
 
 export default function MSWSettingsPage() {
   const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'work' | 'notifications' | 'casework' | 'accessibility' | 'privacy'>('profile');
@@ -387,10 +388,11 @@ export default function MSWSettingsPage() {
 
                 <div>
                   <label className="block text-xs font-semibold text-[#10241A] mb-1.5">Direct Clinic Extension / Mobile</label>
-                  <input
-                    type="text"
+                  <NumericInput
+                    mode="integer"
+                    maxDigits={15}
                     value={contactNo}
-                    onChange={(e) => setContactNo(e.target.value)}
+                    onValueChange={(v) => setContactNo(v)}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-[#D5E2D9] text-xs font-medium text-[#10241A] focus:outline-none focus:ring-2 focus:ring-[#0B6B3A]/30 focus:border-[#0B6B3A] transition"
                   />
                 </div>

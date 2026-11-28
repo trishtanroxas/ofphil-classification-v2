@@ -8,6 +8,7 @@ import PasswordStrengthMeter from '@/components/PasswordStrengthMeter';
 import ProfilePasswordChangeCard from '@/components/ProfilePasswordChangeCard';
 import { useNavigationBlocker } from '@/context/NavigationBlockerContext';
 import { useLoadingScreen } from '@/context/LoadingScreenContext';
+import { NumericInput } from '@/components/ui/NumericInput';
 
 export default function AdminSettingsPage() {
   const [activeTab, setActiveTab] = useState('org_profile');
@@ -949,13 +950,13 @@ export default function AdminSettingsPage() {
                         <label className="block text-xs font-medium text-[#334155] mb-2">
                           Min Password Length
                         </label>
-                        <input
-                          type="number"
-                          min="6"
-                          max="32"
+                        <NumericInput
+                          mode="integer"
+                          min={6}
+                          max={32}
                           value={minPasswordLength}
-                          onChange={(e) => {
-                            setMinPasswordLength(e.target.value);
+                          onValueChange={(v) => {
+                            setMinPasswordLength(v);
                             markDirty('security');
                           }}
                           className="w-full h-12 px-4 border border-[#CBD5E1] rounded-xl text-sm bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
@@ -966,13 +967,13 @@ export default function AdminSettingsPage() {
                         <label className="block text-xs font-medium text-[#334155] mb-2">
                           Max Failed Login Attempts
                         </label>
-                        <input
-                          type="number"
-                          min="3"
-                          max="10"
+                        <NumericInput
+                          mode="integer"
+                          min={3}
+                          max={10}
                           value={maxLoginAttempts}
-                          onChange={(e) => {
-                            setMaxLoginAttempts(e.target.value);
+                          onValueChange={(v) => {
+                            setMaxLoginAttempts(v);
                             markDirty('security');
                           }}
                           className="w-full h-12 px-4 border border-[#CBD5E1] rounded-xl text-sm bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
@@ -983,13 +984,13 @@ export default function AdminSettingsPage() {
                         <label className="block text-xs font-medium text-[#334155] mb-2">
                           Lockout Duration (Minutes)
                         </label>
-                        <input
-                          type="number"
-                          min="5"
-                          max="120"
+                        <NumericInput
+                          mode="integer"
+                          min={5}
+                          max={120}
                           value={lockoutMinutes}
-                          onChange={(e) => {
-                            setLockoutMinutes(e.target.value);
+                          onValueChange={(v) => {
+                            setLockoutMinutes(v);
                             markDirty('security');
                           }}
                           className="w-full h-12 px-4 border border-[#CBD5E1] rounded-xl text-sm bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
@@ -1009,13 +1010,13 @@ export default function AdminSettingsPage() {
                         <label className="block text-xs font-medium text-[#334155] mb-2">
                           Inactivity Session Timeout (Minutes)
                         </label>
-                        <input
-                          type="number"
-                          min="5"
-                          max="480"
+                        <NumericInput
+                          mode="integer"
+                          min={5}
+                          max={480}
                           value={sessionTimeout}
-                          onChange={(e) => {
-                            setSessionTimeout(e.target.value);
+                          onValueChange={(v) => {
+                            setSessionTimeout(v);
                             markDirty('security');
                           }}
                           className="w-full h-12 px-4 border border-[#CBD5E1] rounded-xl text-sm bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
@@ -1026,13 +1027,13 @@ export default function AdminSettingsPage() {
                         <label className="block text-xs font-medium text-[#334155] mb-2">
                           Max Total Session Lifetime (Hours)
                         </label>
-                        <input
-                          type="number"
-                          min="1"
-                          max="72"
+                        <NumericInput
+                          mode="integer"
+                          min={1}
+                          max={72}
                           value={maxLifetimeHours}
-                          onChange={(e) => {
-                            setMaxLifetimeHours(e.target.value);
+                          onValueChange={(v) => {
+                            setMaxLifetimeHours(v);
                             markDirty('security');
                           }}
                           className="w-full h-12 px-4 border border-[#CBD5E1] rounded-xl text-sm bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
@@ -1193,13 +1194,13 @@ export default function AdminSettingsPage() {
                         <label className="block text-xs font-medium text-[#334155] mb-2">
                           Clinical Master Records (Years)
                         </label>
-                        <input
-                          type="number"
-                          min="1"
-                          max="30"
+                        <NumericInput
+                          mode="integer"
+                          min={1}
+                          max={30}
                           value={dataRetentionYears}
-                          onChange={(e) => {
-                            setDataRetentionYears(e.target.value);
+                          onValueChange={(v) => {
+                            setDataRetentionYears(v);
                             markDirty('privacy');
                           }}
                           className="w-full h-12 px-4 border border-[#CBD5E1] rounded-xl text-sm bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
@@ -1210,13 +1211,13 @@ export default function AdminSettingsPage() {
                         <label className="block text-xs font-medium text-[#334155] mb-2">
                           Supporting Documents (Years)
                         </label>
-                        <input
-                          type="number"
-                          min="1"
-                          max="30"
+                        <NumericInput
+                          mode="integer"
+                          min={1}
+                          max={30}
                           value={docRetentionYears}
-                          onChange={(e) => {
-                            setDocRetentionYears(e.target.value);
+                          onValueChange={(v) => {
+                            setDocRetentionYears(v);
                             markDirty('privacy');
                           }}
                           className="w-full h-12 px-4 border border-[#CBD5E1] rounded-xl text-sm bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
@@ -1227,13 +1228,13 @@ export default function AdminSettingsPage() {
                         <label className="block text-xs font-medium text-[#334155] mb-2">
                           Audit Trail Retention (Years)
                         </label>
-                        <input
-                          type="number"
-                          min="1"
-                          max="30"
+                        <NumericInput
+                          mode="integer"
+                          min={1}
+                          max={30}
                           value={auditLogRetentionYears}
-                          onChange={(e) => {
-                            setAuditLogRetentionYears(e.target.value);
+                          onValueChange={(v) => {
+                            setAuditLogRetentionYears(v);
                             markDirty('privacy');
                           }}
                           className="w-full h-12 px-4 border border-[#CBD5E1] rounded-xl text-sm bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
@@ -1411,13 +1412,13 @@ export default function AdminSettingsPage() {
                       <label className="block text-xs font-medium text-[#334155] mb-2">
                         Max Daily Patient Intake Capacity
                       </label>
-                      <input
-                        type="number"
-                        min="5"
-                        max="500"
+                      <NumericInput
+                        mode="integer"
+                        min={5}
+                        max={500}
                         value={maxDailyIntake}
-                        onChange={(e) => {
-                          setMaxDailyIntake(e.target.value);
+                        onValueChange={(v) => {
+                          setMaxDailyIntake(v);
                           markDirty('queue');
                         }}
                         className="w-full h-12 px-4 border border-[#CBD5E1] rounded-xl text-sm bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
@@ -1428,13 +1429,13 @@ export default function AdminSettingsPage() {
                       <label className="block text-xs font-medium text-[#334155] mb-2">
                         Assessment Slot Duration (Minutes)
                       </label>
-                      <input
-                        type="number"
-                        min="5"
-                        max="120"
+                      <NumericInput
+                        mode="integer"
+                        min={5}
+                        max={120}
                         value={slotDurationMinutes}
-                        onChange={(e) => {
-                          setSlotDurationMinutes(e.target.value);
+                        onValueChange={(v) => {
+                          setSlotDurationMinutes(v);
                           markDirty('queue');
                         }}
                         className="w-full h-12 px-4 border border-[#CBD5E1] rounded-xl text-sm bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
@@ -1474,13 +1475,13 @@ export default function AdminSettingsPage() {
                       <label className="block text-xs font-medium text-[#334155] mb-2">
                         Cancellation Cutoff Window (Hours prior)
                       </label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="72"
+                      <NumericInput
+                        mode="integer"
+                        min={1}
+                        max={72}
                         value={cancellationCutoffHours}
-                        onChange={(e) => {
-                          setCancellationCutoffHours(e.target.value);
+                        onValueChange={(v) => {
+                          setCancellationCutoffHours(v);
                           markDirty('queue');
                         }}
                         className="w-full h-12 px-4 border border-[#CBD5E1] rounded-xl text-sm bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A]"
@@ -1920,7 +1921,7 @@ export default function AdminSettingsPage() {
                     role="admin"
                     userId="admin_sys"
                     defaultEmail="admin.updated@ofphil.org.ph"
-                    defaultMobile="0917 888 1678"
+                    defaultMobile="09178881678"
                     title="Change Administrator Credentials"
                     subtitle="Requires verification of your current password and 2FA OTP authorization."
                   />

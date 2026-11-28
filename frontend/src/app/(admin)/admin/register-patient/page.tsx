@@ -6,6 +6,7 @@ import { DashboardLayout } from '@/components/DashboardLayout';
 import { toast } from 'sonner';
 import PasswordStrengthMeter from '@/components/PasswordStrengthMeter';
 import { getProvinces, getCitiesMunicipalities, getBarangays, GeoItem } from '@/lib/psgc';
+import { NumericInput } from '@/components/ui/NumericInput';
 
 // Geographic Reference Data for Philippine Provinces, Cities/Municipalities, and Barangays
 const PHILIPPINE_GEO_DATA: Record<
@@ -317,7 +318,7 @@ export default function RegisterPatientPage() {
   const [occupation, setOccupation] = useState('');
 
   // Section 3: Patient Contact Information State
-  const [mobileNumber, setMobileNumber] = useState('0917 123 4567');
+  const [mobileNumber, setMobileNumber] = useState('09171234567');
   const [emailAddress, setEmailAddress] = useState('');
   const [phoneVerified, setPhoneVerified] = useState(true);
   const [emailVerified, setEmailVerified] = useState(false);
@@ -1008,14 +1009,14 @@ export default function RegisterPatientPage() {
                   <label className="block text-xs font-medium text-[#334155] mb-1.5" htmlFor="reg_dependents">
                     No. of Dependents <span className="text-[#64748B] text-[11px]">(Optional)</span>
                   </label>
-                  <input
-                    type="number"
-                    min="0"
+                  <NumericInput
+                    mode="integer"
+                    maxDigits={2}
                     id="reg_dependents"
                     className="w-full h-11 px-3.5 border border-[#D5E2D9] rounded-xl text-sm bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A] focus:ring-2 focus:ring-[#0B6B3A]/15 transition"
                     placeholder="0"
                     value={numDependents}
-                    onChange={(e) => setNumDependents(e.target.value)}
+                    onValueChange={(v) => setNumDependents(v)}
                   />
                 </div>
               </div>
@@ -1337,17 +1338,18 @@ export default function RegisterPatientPage() {
                 <label className="block text-xs font-medium text-[#334155]" htmlFor="reg_mobile">
                   Mobile Phone Number <span className="text-[#DC2626]">*</span>
                 </label>
-                <input
-                  type="text"
+                <NumericInput
+                  mode="integer"
+                  maxDigits={11}
                   id="reg_mobile"
                   className="w-full h-11 px-3.5 border border-[#D5E2D9] rounded-xl text-sm bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A] focus:ring-2 focus:ring-[#0B6B3A]/15 transition"
-                  placeholder="0917 123 4567"
+                  placeholder="09171234567"
                   value={mobileNumber}
-                  onChange={(e) => setMobileNumber(e.target.value)}
+                  onValueChange={(v) => setMobileNumber(v)}
                   required
                 />
                 <div className="text-[11px] text-[#64748B]">
-                  Standard Philippine mobile format (09XX or +639XX)
+                  11-digit Philippine mobile number, digits only (e.g. 09171234567)
                 </div>
 
                 <label className="flex items-center gap-2 pt-1 text-xs text-[#1E293B] cursor-pointer">

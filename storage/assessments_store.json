@@ -13923,5 +13923,467 @@
         }
       }
     ]
+  },
+  "asmt-3ba3094520": {
+    "id": "asmt-3ba3094520",
+    "patient_id": "M26-11-000002",
+    "referral_id": "OFPHIL-FA-2026-0003",
+    "encounter_no": "ENC-M26-11-000002",
+    "interview_date": "2026-11-28",
+    "source_of_referral": "CLINICAL REFERRAL: Dr. Roberto Reyes, MD",
+    "active_stage": 3,
+    "workflow_status": "PENDING_MSW_REVIEW",
+    "is_initial_load": true,
+    "stage1_data": {
+      "informant_is_patient": true,
+      "informant_relation": "Self",
+      "informant_first_name": "Wilbur Nigel",
+      "informant_middle_name": "Talawe",
+      "informant_last_name": "Santos",
+      "informant_suffix": "Jr.",
+      "informant_age": "21",
+      "informant_dob": "2005-04-02",
+      "informant_sex": "Male",
+      "informant_religion": "Roman Catholic",
+      "informant_civil_status": "Widowed",
+      "informant_street": "Nigel's House 1236967",
+      "informant_barangay": "Concepcion Uno",
+      "informant_city": "City of Marikina",
+      "informant_province": "Metro Manila (NCR)",
+      "informant_region": "Metro Manila (NCR)",
+      "informant_contact": "0917 123 4567",
+      "informant_occupation": "Tambay",
+      "informant_education": "High School",
+      "informant_income": 0,
+      "patient_first_name": "Wilbur Nigel",
+      "patient_middle_name": "Talawe",
+      "patient_last_name": "Santos",
+      "patient_suffix": "Jr.",
+      "patient_age": "21",
+      "patient_dob": "2005-04-02",
+      "patient_sex": "Male",
+      "patient_religion": "Roman Catholic",
+      "patient_civil_status": "Widowed",
+      "patient_contact": "0917 123 4567",
+      "patient_email": "nigel123@gmail.com",
+      "patient_occupation": "Tambay",
+      "patient_income": 0,
+      "patient_street": "Nigel's House 1236967",
+      "patient_barangay": "Concepcion Uno",
+      "patient_city": "City of Marikina",
+      "patient_province": "Metro Manila (NCR)",
+      "patient_region": "Metro Manila (NCR)",
+      "patient_permanent_address": "Nigel's House 1236967, Concepcion Uno, City of Marikina, Metro Manila (NCR), Metro Manila (NCR)",
+      "same_as_permanent_address": true,
+      "patient_alt_street": "Nigel's House 1236967",
+      "patient_alt_barangay": "Concepcion Uno",
+      "patient_alt_city": "City of Marikina",
+      "patient_alt_province": "Metro Manila (NCR)",
+      "patient_alt_region": "Metro Manila (NCR)",
+      "patient_alt_address": "Nigel's House 1236967, Concepcion Uno, City of Marikina, Metro Manila (NCR), Metro Manila (NCR)",
+      "patient_education": "High School",
+      "sectoral": {
+        "artisanalFisherfolk": false,
+        "seniorCitizens": false,
+        "urbanPoor": false,
+        "victimsOfDisasters": false,
+        "farmersLandless": false,
+        "informalSector": false,
+        "pwd": false,
+        "indigenousPeoples": false,
+        "formalLaborMigrant": false
+      },
+      "sectoral_others": "",
+      "household_size": 1,
+      "total_household_income": 0,
+      "family_members": [],
+      "socio_economic_expenses": {
+        "patient_source_detail": "Tambay",
+        "patient_source_rate": "1000",
+        "patient_source_period": "per day",
+        "spouse_not_applicable": true,
+        "spouse_source_detail": "Not Applicable",
+        "spouse_source_rate": "",
+        "spouse_source_period": "per day",
+        "gov_assistance_enrolled": "No",
+        "gov_assistance_programs": "",
+        "rent_amount": 2220,
+        "rent_note": "",
+        "water_bill": 0,
+        "electricity_bill": 0,
+        "transportation_amount": 0,
+        "transportation_notes": "",
+        "other_medical_expenses": [],
+        "eye_maintenance_amount": 0,
+        "total_monthly_expenses": 2220,
+        "first_consultation_date": "2026-11-22"
+      },
+      "admitting_diagnosis": "Cataract",
+      "final_diagnosis": "Cataract",
+      "treatment_plan": "tanggalin mo na yang mata mo"
+    },
+    "stage2_data": {
+      "interview_answers": [
+        {
+          "question_key": "living_situation",
+          "question_text": "Living Situation & Housing Tenancy",
+          "patient_answer": "Renting a small room in high-density settlement; informal tenancy",
+          "msw_observation": "Crowded living quarters; verified with barangay certificate of residency"
+        },
+        {
+          "question_key": "household_composition",
+          "question_text": "Household Composition & Dependents",
+          "patient_answer": "4 household members: patient, spouse, and 2 minor school-age children",
+          "msw_observation": "Two vulnerable minor dependents entirely reliant on parental labor"
+        },
+        {
+          "question_key": "family_support",
+          "question_text": "Family Caregiving & Support",
+          "patient_answer": "Spouse provides primary home caregiving, guided mobility, and basic nursing",
+          "msw_observation": "Caregiver shows high dedication but experiences substantial emotional strain"
+        },
+        {
+          "question_key": "employment_situation",
+          "question_text": "Employment & Livelihood Situation",
+          "patient_answer": "Patient previously worked as daily informal utility driver; now incapacitated by cataract",
+          "msw_observation": "Complete loss of primary family livelihood directly attributable to ocular disability"
+        },
+        {
+          "question_key": "income_sources",
+          "question_text": "Household Income Sources",
+          "patient_answer": "Irregular earnings from spouse home laundry and occasional sibling assistance",
+          "msw_observation": "Combined monthly earnings below poverty threshold; unstable and intermittent"
+        },
+        {
+          "question_key": "financial_responsibilities",
+          "question_text": "Monthly Household Financial Responsibilities",
+          "patient_answer": "Monthly room rental (\u20b13,500), basic food sustenance, children educational needs",
+          "msw_observation": "Zero emergency savings; family accumulating neighborhood sari-sari store debt"
+        },
+        {
+          "question_key": "medical_condition_summary",
+          "question_text": "Medical Condition & Visual Functional Impact",
+          "patient_answer": "Mature cataract with near-total visual acuity loss in operative eye; secondary glare",
+          "msw_observation": "Clinical referral confirms urgent surgical necessity to prevent bilateral blindness"
+        },
+        {
+          "question_key": "financial_barriers",
+          "question_text": "Procedure Quotation & Medical Expense Barriers",
+          "patient_answer": "Inability to afford hospital surgical package, intraocular lens, and post-op medication",
+          "msw_observation": "Procedure quotation represents over 100% of entire monthly family earnings"
+        },
+        {
+          "question_key": "accessibility_concerns",
+          "question_text": "Travel & Companion Accessibility Concerns",
+          "patient_answer": "Patient cannot safely travel alone; requires two jeepney transfers and companion fare",
+          "msw_observation": "Travel barriers pose safety hazards; companion wage loss is a major deterrent"
+        },
+        {
+          "question_key": "discrimination_experienced",
+          "question_text": "Stigma & Employment Discrimination Experienced",
+          "patient_answer": "Experienced job refusal and societal stigma due to visible white cataract pupillary reflex",
+          "msw_observation": "Social isolation and withdrawal observed; loss of social status as productive worker"
+        },
+        {
+          "question_key": "safety_hazards",
+          "question_text": "Home & Mobility Safety Hazards",
+          "patient_answer": "Multiple indoor stumble incidents; unpaved wet pathways around dwelling",
+          "msw_observation": "High fall and domestic trauma risk without restoration of bilateral stereoscopic vision"
+        },
+        {
+          "question_key": "social_responsibilities",
+          "question_text": "Family & Social Role Responsibilities",
+          "patient_answer": "Traditional role as head of household and family protector now severely impaired",
+          "msw_observation": "Role reversal causing distress; spouse forced to seek outside daily labor"
+        },
+        {
+          "question_key": "support_systems",
+          "question_text": "Community & Extended Family Support Systems",
+          "patient_answer": "Barangay health worker, parish medical assistance network, and extended family neighbors",
+          "msw_observation": "Informal community support present but financial capacity of neighbors is also limited"
+        },
+        {
+          "question_key": "basic_needs_living_conditions",
+          "question_text": "Basic Needs & Living Conditions",
+          "patient_answer": "Shared communal water meter; reliance on subsidized rice ration",
+          "msw_observation": "Basic caloric intake maintained with difficulty; vulnerable to inflationary food shocks"
+        },
+        {
+          "question_key": "resilience_narrative",
+          "question_text": "Patient & Family Resilience Narrative",
+          "patient_answer": "Patient relies on faith and spouse encouragement, but feels burdened by inactivity",
+          "msw_observation": "Psychological resilience present; highly motivated for sight restoration and return to work"
+        },
+        {
+          "question_key": "health_factor_1",
+          "question_text": "Absence of adequate health services",
+          "patient_answer": "High surgical fee barrier; nearest specialty tertiary hospital requires substantial out-of-pocket payment.",
+          "msw_observation": "Nearest tertiary hospital with phacoemulsification equipment requires inter-city transport."
+        },
+        {
+          "question_key": "health_factor_2",
+          "question_text": "Inaccessibility of Health Services",
+          "patient_answer": "No direct ophthalmic subspecialist in local municipality; requires long travel with escort.",
+          "msw_observation": "Public transportation inaccessible for unaccompanied visually impaired patient."
+        },
+        {
+          "question_key": "health_factor_3",
+          "question_text": "Absence of support services needed to use health services",
+          "patient_answer": "Limited caregiver capacity; primary earner cannot take leave without wage loss.",
+          "msw_observation": "Caregiver wage loss represents substantial portion of weekly household sustenance."
+        },
+        {
+          "question_key": "health_factor_4",
+          "question_text": "Absence of adequate Mental Health / Psychosocial Support services",
+          "patient_answer": "Mild anxiety over deteriorating sight; community social worker supportive.",
+          "msw_observation": "Patient emotionally supported by spouse and parish counseling; well-oriented."
+        },
+        {
+          "question_key": "domain_discrimination",
+          "question_text": "VI. Discrimination Burden",
+          "patient_answer": "Faced hiring reluctance and wage discount due to visual impairment.",
+          "msw_observation": "Economic marginalization directly linked to progressive cataract blindness."
+        },
+        {
+          "question_key": "domain_safety",
+          "question_text": "VII. Safety / Hazards",
+          "patient_answer": "Frequent stumbling and disorientation at dusk.",
+          "msw_observation": "Home environment lacks handrails and adequate task lighting."
+        },
+        {
+          "question_key": "domain_roles",
+          "question_text": "VIII. Social Roles",
+          "patient_answer": "Unable to work or guide children safely.",
+          "msw_observation": "Breadwinner role strain; spouse forced into informal work."
+        },
+        {
+          "question_key": "domain_environment",
+          "question_text": "IX. Environment & Basic Needs",
+          "patient_answer": "Congested rental room with communal water facility.",
+          "msw_observation": "Substandard dwelling conditions with high vulnerability to economic shocks."
+        }
+      ],
+      "interview_info": {
+        "interview_date": "2026-11-28",
+        "interview_start_time": "09:00 AM",
+        "interview_end_time": "09:45 AM",
+        "assigned_msw": "Maria Santos, RSW",
+        "interviewed_person": "PATIENT",
+        "representative_relationship": "Self",
+        "interview_method": "FACE_TO_FACE",
+        "interview_status": "IN_PROGRESS",
+        "consent_obtained": true,
+        "consent_notes": "Patient/Representative signed social service intake acknowledgment and privacy consent."
+      },
+      "background": {
+        "living_situation": "Renting a small room in high-density settlement; informal tenancy",
+        "living_situation_obs": "Crowded living quarters; verified with barangay certificate of residency",
+        "household_composition": "4 household members: patient, spouse, and 2 minor school-age children",
+        "household_composition_obs": "Two vulnerable minor dependents entirely reliant on parental labor",
+        "family_support": "Spouse provides primary home caregiving, guided mobility, and basic nursing",
+        "family_support_obs": "Caregiver shows high dedication but experiences substantial emotional strain",
+        "employment_situation": "Patient previously worked as daily informal utility driver; now incapacitated by cataract",
+        "employment_obs": "Complete loss of primary family livelihood directly attributable to ocular disability",
+        "income_sources": "Irregular earnings from spouse home laundry and occasional sibling assistance",
+        "income_sources_obs": "Combined monthly earnings below poverty threshold; unstable and intermittent",
+        "financial_responsibilities": "Monthly room rental (\u20b13,500), basic food sustenance, children educational needs",
+        "financial_responsibilities_obs": "Zero emergency savings; family accumulating neighborhood sari-sari store debt"
+      },
+      "medical_difficulties": {
+        "medical_condition_summary": "Mature cataract with near-total visual acuity loss in operative eye; secondary glare",
+        "medical_condition_obs": "Clinical referral confirms urgent surgical necessity to prevent bilateral blindness",
+        "problem_duration": "2 years progressive visual deterioration with significant functional impairment",
+        "previous_treatments": "Over-the-counter lubricant eyedrops; optical consultation with local optometrist",
+        "recommended_procedure": "tanggalin mo na yang mata mo",
+        "estimated_treatment_expenses": 10000000,
+        "financial_barriers": "Inability to afford hospital surgical package, intraocular lens, and post-op medication",
+        "financial_barriers_obs": "Procedure quotation represents over 100% of entire monthly family earnings",
+        "service_accessibility": "Lack of specialized ophthalmic surgical center in local municipal district",
+        "available_healthcare_resources": "PhilHealth Indigent Member, Barangay Certificate of Indigency, Malasakit Referral"
+      },
+      "psychosocial": {
+        "accessibility_concerns": "Patient cannot safely travel alone; requires two jeepney transfers and companion fare",
+        "discrimination_experienced": "Experienced job refusal and societal stigma due to visible white cataract pupillary reflex",
+        "discrimination_obs": "Social isolation and withdrawal observed; loss of social status as productive worker",
+        "safety_hazards": "Multiple indoor stumble incidents; unpaved wet pathways around dwelling",
+        "safety_hazards_obs": "High fall and domestic trauma risk without restoration of bilateral stereoscopic vision",
+        "social_responsibilities": "Traditional role as head of household and family protector now severely impaired",
+        "social_responsibilities_obs": "Role reversal causing distress; spouse forced to seek outside daily labor",
+        "support_systems": "Barangay health worker, parish medical assistance network, and extended family neighbors",
+        "support_systems_obs": "Informal community support present but financial capacity of neighbors is also limited",
+        "basic_needs_living_conditions": "Shared communal water meter; reliance on subsidized rice ration",
+        "basic_needs_obs": "Basic caloric intake maintained with difficulty; vulnerable to inflationary food shocks",
+        "coping_capacity_narrative": "Patient relies on faith and spouse encouragement, but feels burdened by inactivity",
+        "coping_capacity_obs": "Psychological resilience present; highly motivated for sight restoration and return to work"
+      },
+      "health_factors": [
+        {
+          "factor": "Absence of adequate health services",
+          "patient_reported": "High surgical fee barrier; nearest specialty tertiary hospital requires substantial out-of-pocket payment.",
+          "msw_observation": "Nearest tertiary hospital with phacoemulsification equipment requires inter-city transport."
+        },
+        {
+          "factor": "Inaccessibility of Health Services",
+          "patient_reported": "No direct ophthalmic subspecialist in local municipality; requires long travel with escort.",
+          "msw_observation": "Public transportation inaccessible for unaccompanied visually impaired patient."
+        },
+        {
+          "factor": "Absence of support services needed to use health services",
+          "patient_reported": "Limited caregiver capacity; primary earner cannot take leave without wage loss.",
+          "msw_observation": "Caregiver wage loss represents substantial portion of weekly household sustenance."
+        },
+        {
+          "factor": "Absence of adequate Mental Health / Psychosocial Support services",
+          "patient_reported": "Mild anxiety over deteriorating sight; community social worker supportive.",
+          "msw_observation": "Patient emotionally supported by spouse and parish counseling; well-oriented."
+        }
+      ],
+      "discrimination_patient_reported": "Faced hiring reluctance and wage discount due to visual impairment.",
+      "discrimination_msw_observation": "Economic marginalization directly linked to progressive cataract blindness.",
+      "safety_patient_reported": "Frequent stumbling and disorientation at dusk.",
+      "safety_msw_observation": "Home environment lacks handrails and adequate task lighting.",
+      "roles_patient_reported": "Unable to work or guide children safely.",
+      "roles_msw_observation": "Breadwinner role strain; spouse forced into informal work.",
+      "environment_patient_reported": "Congested rental room with communal water facility.",
+      "environment_msw_observation": "Substandard dwelling conditions with high vulnerability to economic shocks."
+    },
+    "stage3_documents": [
+      "doc-c05b81031a"
+    ],
+    "classification_result": {
+      "financial_classification": {
+        "monthly_per_capita_income": "0.00",
+        "total_monthly_household_income": "0.00",
+        "household_size": 1,
+        "classification": "INDIGENT",
+        "classification_label": "Indigent",
+        "reference_threshold": "4715.76",
+        "pcpt_reference": "3368.40",
+        "family_of_five_reference": "16842.00",
+        "classification_basis": "OFPHIL_FINANCIAL_RUBRIC",
+        "rubric_version": "1.0",
+        "explanation": "Monthly per capita income (\u20b10.00) is at or below the OFPHIL Indigent threshold of \u20b14,715.76."
+      },
+      "msw_classification": null,
+      "monthly_per_capita_income": "0.00",
+      "average_severity": null,
+      "average_coping": null,
+      "total_risk": null,
+      "triggered_conditions": [],
+      "subsidy_recommendation": "Manual MSW Decision Required (Procedure Quotation Subsidy)",
+      "discrepancy_detected": false,
+      "discrepancy_details": null,
+      "requires_msw_review": true,
+      "explanations": {
+        "financial": "Monthly per capita income (\u20b10.00) is at or below the OFPHIL Indigent threshold of \u20b14,715.76.",
+        "msw": "Stage 2 is a qualitative text-based interview; final procedure quotation subsidy is decided manually by the MSW."
+      }
+    },
+    "classification_history": [
+      {
+        "timestamp": "2026-11-28T10:23:04.997298+00:00",
+        "actor_id": "msw_lead",
+        "result": {
+          "financial_classification": {
+            "monthly_per_capita_income": "0.00",
+            "total_monthly_household_income": "0.00",
+            "household_size": 1,
+            "classification": "INDIGENT",
+            "classification_label": "Indigent",
+            "reference_threshold": "4715.76",
+            "pcpt_reference": "3368.40",
+            "family_of_five_reference": "16842.00",
+            "classification_basis": "OFPHIL_FINANCIAL_RUBRIC",
+            "rubric_version": "1.0",
+            "explanation": "Monthly per capita income (\u20b10.00) is at or below the OFPHIL Indigent threshold of \u20b14,715.76."
+          },
+          "msw_classification": null,
+          "monthly_per_capita_income": "0.00",
+          "average_severity": null,
+          "average_coping": null,
+          "total_risk": null,
+          "triggered_conditions": [],
+          "subsidy_recommendation": "Manual MSW Decision Required (Procedure Quotation Subsidy)",
+          "discrepancy_detected": false,
+          "discrepancy_details": null,
+          "requires_msw_review": true,
+          "explanations": {
+            "financial": "Monthly per capita income (\u20b10.00) is at or below the OFPHIL Indigent threshold of \u20b14,715.76.",
+            "msw": "Stage 2 is a qualitative text-based interview; final procedure quotation subsidy is decided manually by the MSW."
+          }
+        }
+      }
+    ],
+    "ml_prediction": null,
+    "msw_recommendation": null,
+    "institutional_approval": null,
+    "created_by": "msw_lead",
+    "created_at": "2026-11-28T10:13:08.535111+00:00",
+    "updated_at": "2026-11-28T10:23:04.997326+00:00",
+    "history": [
+      {
+        "timestamp": "2026-11-28T10:13:08.535185+00:00",
+        "event": "ASSESSMENT_CREATED",
+        "actor_id": "msw_lead",
+        "role": "msw",
+        "workflow_status": "DRAFT",
+        "details": {
+          "encounter_no": "ENC-M26-11-000002",
+          "referral_id": "OFPHIL-FA-2026-0003"
+        }
+      },
+      {
+        "timestamp": "2026-11-28T10:21:22.988527+00:00",
+        "event": "DRAFT_SAVED",
+        "actor_id": "msw_lead",
+        "role": "msw",
+        "workflow_status": "ASSESSMENT_IN_PROGRESS",
+        "details": {
+          "active_stage": 1
+        }
+      },
+      {
+        "timestamp": "2026-11-28T10:21:30.959811+00:00",
+        "event": "DRAFT_SAVED",
+        "actor_id": "msw_lead",
+        "role": "msw",
+        "workflow_status": "ASSESSMENT_IN_PROGRESS",
+        "details": {
+          "active_stage": 2
+        }
+      },
+      {
+        "timestamp": "2026-11-28T10:22:37.516977+00:00",
+        "event": "DRAFT_SAVED",
+        "actor_id": "msw_lead",
+        "role": "msw",
+        "workflow_status": "ASSESSMENT_IN_PROGRESS",
+        "details": {
+          "active_stage": 2
+        }
+      },
+      {
+        "timestamp": "2026-11-28T10:23:04.940985+00:00",
+        "event": "DRAFT_SAVED",
+        "actor_id": "msw_lead",
+        "role": "msw",
+        "workflow_status": "ASSESSMENT_IN_PROGRESS",
+        "details": {
+          "active_stage": 3
+        }
+      },
+      {
+        "timestamp": "2026-11-28T10:23:04.997338+00:00",
+        "event": "ASSESSMENT_CLASSIFIED",
+        "actor_id": "msw_lead",
+        "role": "msw",
+        "workflow_status": "PENDING_MSW_REVIEW",
+        "details": {
+          "financial_classification": "INDIGENT",
+          "msw_classification": "MANUAL_MSW_DECISION_REQUIRED",
+          "discrepancy_detected": false
+        }
+      }
+    ]
   }
 }

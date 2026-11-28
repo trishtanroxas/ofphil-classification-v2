@@ -63,6 +63,11 @@ function MSWDossierContent() {
     }
   }, [searchParams]);
 
+  // Deep-link highlight for ?encounter=<id> (from a referral's originating Procedure & Checkup link)
+  const [highlightEncounterId, setHighlightEncounterId] = useState<string | null>(
+    searchParams?.get('encounter') || null
+  );
+
   const mswUserId = (user as any)?.username || user?.id || 'msw_lead';
   const mswDisplayName = user?.name || 'Maria Santos, RSW';
 
@@ -556,6 +561,16 @@ function MSWDossierContent() {
       },
     ];
   }, [activeAssessment, documents, patient]);
+
+  useEffect(() => {
+    if (!highlightEncounterId || activeTab !== 'appointments') return;
+    const t1 = setTimeout(() => {
+      const el = document.getElementById(`encounter-row-${highlightEncounterId}`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 120);
+    const t2 = setTimeout(() => setHighlightEncounterId(null), 4000);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [highlightEncounterId, activeTab, encounters.length]);
 
   const handleTabChange = (tab: DossierTabId) => {
     setActiveTab(tab);
@@ -1383,7 +1398,15 @@ function MSWDossierContent() {
                   </thead>
                   <tbody className="divide-y divide-[#EEF2EF]">
                     {encounters.map((enc) => (
-                      <tr key={enc.id} className="hover:bg-[#F8FAFC]">
+                      <tr
+                        key={enc.id || enc.assessment_id}
+                        id={`encounter-row-${enc.id || enc.assessment_id}`}
+                        className={
+                          highlightEncounterId && highlightEncounterId === (enc.id || enc.assessment_id)
+                            ? 'bg-[#E0F2FE] outline outline-2 outline-[#0369A1]'
+                            : 'hover:bg-[#F8FAFC]'
+                        }
+                      >
                         <td className="py-3 px-3 font-mono font-bold text-[#0369A1]">{enc.id}</td>
                         <td className="py-3 px-3 font-mono font-semibold text-[#10241A]">{identifiers.patientId}</td>
                         <td className="py-3 px-3 font-mono text-[#0B6B3A]">{identifiers.charityCaseNo}</td>
@@ -1592,6 +1615,21 @@ function MSWDossierContent() {
                       <div className="text-xs text-[#5A7466] mt-0.5">
                         Patient: <strong className="text-[#10241A]">{fullName}</strong> ({ref.patient_id})
                       </div>
+                      {ref.encounter_id && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setHighlightEncounterId(ref.encounter_id);
+                            handleTabChange('appointments');
+                          }}
+                          className="mt-1.5 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-[#BAE6FD] bg-[#F0F9FF] hover:bg-[#E0F2FE] text-[11px] font-semibold text-[#0369A1] cursor-pointer"
+                        >
+                          <i className="fa-solid fa-link text-[9px]" />
+                          <span>Originating Procedure &amp; Checkup:</span>
+                          <span className="font-mono font-bold">{ref.encounter_id}</span>
+                          {ref.encounter_date && <span className="text-[#334155]">({ref.encounter_date})</span>}
+                        </button>
+                      )}
                     </div>
                     <div className="text-right">
                       <div className="text-[10px] font-bold uppercase text-[#5A7466]">Total Quotation</div>

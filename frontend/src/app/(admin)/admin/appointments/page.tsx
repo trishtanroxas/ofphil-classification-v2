@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { fetchApi } from '@/lib/api';
 import { toast } from 'sonner';
+import { NumericInput } from '@/components/ui/NumericInput';
 
 export interface AppointmentItem {
   id: string;
@@ -767,10 +768,11 @@ export default function AdminUpcomingAppointmentsPage() {
                       />
                       <span>Send Mobile Text (SMS) Reminder</span>
                     </label>
-                    <input
-                      type="text"
+                    <NumericInput
+                      mode="integer"
+                      maxDigits={11}
                       value={form.recipient_phone}
-                      onChange={(e) => setForm({ ...form, recipient_phone: e.target.value })}
+                      onValueChange={(v) => setForm({ ...form, recipient_phone: v })}
                       className="w-full h-10 px-3 border border-[#D5E2D9] rounded-lg text-xs bg-white text-[#10241A]"
                     />
                   </div>

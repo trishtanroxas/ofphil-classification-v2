@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import AuthLayout from '@/components/AuthLayout';
 import { fetchApi } from '@/lib/api';
+import { NumericInput } from '@/components/ui/NumericInput';
 
 interface PasswordRecoveryFlowProps {
   role: 'patient' | 'msw' | 'admin';
@@ -408,13 +409,14 @@ export default function PasswordRecoveryFlow({ role }: PasswordRecoveryFlowProps
                 Registered Mobile Number <span className="text-[#DC2626]">*</span>
               </label>
               <div className="relative">
-                <input
-                  type="tel"
+                <NumericInput
+                  mode="integer"
+                  maxDigits={11}
                   id="registered_mobile"
                   className="saas-input w-full h-12 pl-10 pr-4 border border-[#D5E2D9] rounded-xl text-[14.5px] bg-white text-[#10241A] focus:outline-none focus:border-[#0B6B3A] focus:ring-2 focus:ring-[#0B6B3A]/15 transition"
-                  placeholder="e.g. 0917 888 1678"
+                  placeholder="e.g. 09178881678"
                   value={mobile}
-                  onChange={(e) => setMobile(e.target.value)}
+                  onValueChange={(v) => setMobile(v)}
                   required
                 />
                 <i className="fa-solid fa-mobile-screen absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8F9E96] text-[15px]" />
