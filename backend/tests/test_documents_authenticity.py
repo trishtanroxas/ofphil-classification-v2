@@ -38,7 +38,7 @@ def test_document_authenticity_full_flow():
     doc = r_up.json()
     doc_id = doc["id"]
     assert doc["sha256_hash"] is not None
-    assert doc["signature_status"] == "NOT_CHECKED"
+    assert doc["signature_status"] in {"NOT_CHECKED", "NOT_EVALUATED"}
 
     # 2. Unauthorized access check (Patient role cannot download or review or process)
     r_unauth_proc = client.post(f"/api/v1/documents/{doc_id}/process", json={}, headers=PATIENT_HEADERS)
@@ -70,6 +70,7 @@ def test_document_authenticity_full_flow():
     assert r_sig.status_code == 200
     assert r_sig.json()["signature_status"] in {
         "SIGNATURE_DETECTED",
+        "PRESENCE_DETECTED",
         "SIGNATURE_NOT_FOUND",
         "REQUIRES_MANUAL_REVIEW",
         "UNVERIFIABLE",
@@ -78,12 +79,18 @@ def test_document_authenticity_full_flow():
     # 7. Check authenticity results
     r_auth = client.get(f"/api/v1/documents/{doc_id}/authenticity-results", headers=MSW_HEADERS)
     assert r_auth.status_code == 200
-    assert r_auth.json()["overall_status"] in {
+    assert r_auth.json()["status"] in {
+        "NO_SUSPICIOUS_INDICATORS",
+        "NEEDS_VERIFICATION",
+        "FLAGGED_FOR_MANUAL_REVIEW",
+        "INSUFFICIENT_IMAGE_QUALITY",
+    } or r_auth.json().get("overall_status") in {
         "NO_ISSUE_DETECTED",
         "REQUIRES_REVIEW",
         "VERIFICATION_FAILED",
         "UNVERIFIABLE",
     }
+
 
     # 8. Record manual review
     r_rev = client.post(

@@ -1,21 +1,24 @@
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, Header, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse
 
 from app.core.audit import log_audit_event
 from app.core.rbac import UserRole, require_roles
 from app.schemas.document_schemas import (
-    DocumentAuthenticityResultResponse,
     DocumentOCRResultResponse,
     DocumentProcessRequest,
     DocumentProcessingStatusResponse,
     DocumentReviewRequest,
     DocumentReviewResponse,
     DocumentSignatureResultResponse,
+    DocumentStampResultResponse,
+    DocumentStandardReportResponse,
+    DocumentVerificationResultResponse,
 )
 from app.schemas.schemas import DocumentItem
 from app.services.document_authenticity_service import document_authenticity_service
+from app.services.document_screening.ocr.field_extractor import extract_essential_fields
 from app.services.inquiry_service import inquiry_service
 from app.services.mock_store import db_store
 
@@ -55,7 +58,6 @@ async def upload_document(
         uploaded_by=x_user_id,
     )
 
-    # Log upload without logging document image or OCR text
     log_audit_event(
         action="DOCUMENT_UPLOAD",
         actor_id=x_user_id,
@@ -169,6 +171,16 @@ def process_document(
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
 
+    # Prevent concurrent duplicate processing requests
+    current_proc_status = (doc.get("processing_state") or {}).get("processing_status")
+    if current_proc_status == "PROCESSING":
+        return DocumentProcessingStatusResponse(
+            document_id=document_id,
+            job_id=(doc.get("processing_state") or {}).get("job_id"),
+            processing_status="PROCESSING",
+            engine_version="ofphil-docproc-v2.0",
+        )
+
     state = document_authenticity_service.queue_processing(
         document_id=document_id,
         assessment_id=payload.assessment_id,
@@ -192,6 +204,7 @@ def process_document(
     return DocumentProcessingStatusResponse(document_id=document_id, **state)
 
 
+@router.get("/{document_id}/status", response_model=DocumentProcessingStatusResponse)
 @router.get("/{document_id}/processing-status", response_model=DocumentProcessingStatusResponse)
 def get_processing_status(
     document_id: str,
@@ -202,12 +215,13 @@ def get_processing_status(
         raise HTTPException(status_code=404, detail="Document not found")
     state = doc.get("processing_state") or {
         "job_id": "none",
-        "processing_status": "NOT_CHECKED",
-        "engine_version": "ofphil-docauth-v2.0",
+        "processing_status": "UPLOADED",
+        "engine_version": "ofphil-docproc-v2.0",
     }
     return DocumentProcessingStatusResponse(document_id=document_id, **state)
 
 
+@router.get("/{document_id}/ocr", response_model=DocumentOCRResultResponse)
 @router.get("/{document_id}/ocr-results", response_model=DocumentOCRResultResponse)
 def get_ocr_results(
     document_id: str,
@@ -218,15 +232,23 @@ def get_ocr_results(
         raise HTTPException(status_code=404, detail="Document not found")
     state = doc.get("processing_state") or {}
     ocr = doc.get("ocr_result") or {}
+    raw_text = ocr.get("extracted_text") or doc.get("extracted_text")
+    stored_fields = dict(ocr.get("fields_detected") or {})
+    if raw_text and not all(k in stored_fields for k in ("name", "address", "purpose")):
+        parsed = extract_essential_fields(raw_text, document_type=doc.get("document_type", ""))
+        for k, v in parsed.items():
+            if k not in stored_fields or not stored_fields[k]:
+                stored_fields[k] = v
     return DocumentOCRResultResponse(
         document_id=document_id,
         job_id=state.get("job_id"),
-        processing_status=state.get("processing_status", "NOT_CHECKED"),
-        engine_used=ocr.get("engine_used", "none"),
-        engine_version=ocr.get("engine_version", "ofphil-ocr-v2.0"),
-        extracted_text=ocr.get("extracted_text"),
+        processing_status=state.get("processing_status", "UPLOADED"),
+        status=ocr.get("status", "NOT_EVALUATED"),
+        engine_used=ocr.get("engine_used", "PaddleOCR PP-OCRv6"),
+        engine_version=ocr.get("engine_version", "ppocr-v6"),
+        extracted_text=raw_text,
         confidence_score=ocr.get("confidence_score"),
-        fields_detected=ocr.get("fields_detected", {}),
+        fields_detected=stored_fields,
         missing_information=ocr.get("missing_information", []),
         unavailable_reason=ocr.get("unavailable_reason"),
     )
@@ -245,15 +267,44 @@ def get_signature_results(
     return DocumentSignatureResultResponse(
         document_id=document_id,
         job_id=state.get("job_id"),
-        signature_status=sig.get("signature_status", "NOT_CHECKED"),
+        status=sig.get("status", "NOT_EVALUATED"),
+        presence=sig.get("presence", False),
+        signature_status=sig.get("signature_status", "NOT_EVALUATED"),
         signatures_detected_count=sig.get("signatures_detected_count", 0),
         regions=sig.get("regions", []),
-        engine_version=sig.get("engine_version", "ofphil-docauth-v2.0"),
+        engine_version=sig.get("engine_version", "YOLO11s-OFPHIL"),
+        details=sig.get("details"),
+        disclaimer=sig.get("disclaimer", "Signature presence detection only; does not establish signer identity or signature authenticity."),
     )
 
 
-@router.get("/{document_id}/authenticity-results", response_model=DocumentAuthenticityResultResponse)
-def get_authenticity_results(
+@router.get("/{document_id}/stamp-results", response_model=DocumentStampResultResponse)
+def get_stamp_results(
+    document_id: str,
+    role: UserRole = Depends(require_roles([UserRole.ADMIN, UserRole.MSW])),
+):
+    doc = document_authenticity_service.get_document(document_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    state = doc.get("processing_state") or {}
+    stamp = doc.get("stamp_result") or {}
+    return DocumentStampResultResponse(
+        document_id=document_id,
+        job_id=state.get("job_id"),
+        status=stamp.get("status", "NOT_EVALUATED"),
+        presence=stamp.get("presence", False),
+        stamp_status=stamp.get("stamp_status", "NOT_EVALUATED"),
+        stamps_detected_count=stamp.get("stamps_detected_count", 0),
+        regions=stamp.get("regions", []),
+        engine_version=stamp.get("engine_version", "YOLO11s-OFPHIL"),
+        details=stamp.get("details"),
+        disclaimer=stamp.get("disclaimer", "Stamp/seal screening only; does not establish official issuing authority legitimacy."),
+    )
+
+
+@router.get("/{document_id}/verification", response_model=DocumentVerificationResultResponse)
+@router.get("/{document_id}/authenticity-results", response_model=DocumentVerificationResultResponse)
+def get_verification_results(
     document_id: str,
     role: UserRole = Depends(require_roles([UserRole.ADMIN, UserRole.MSW])),
 ):
@@ -262,16 +313,93 @@ def get_authenticity_results(
         raise HTTPException(status_code=404, detail="Document not found")
     state = doc.get("processing_state") or {}
     auth = doc.get("authenticity_result") or {}
-    return DocumentAuthenticityResultResponse(
+    forensics = doc.get("forensics_result") or {}
+    screening_status = auth.get("status") or doc.get("screening_status") or "NEEDS_VERIFICATION"
+    tamper_risk = auth.get("tamper_risk") or doc.get("tamper_risk") or "UNDETERMINED"
+
+    return DocumentVerificationResultResponse(
         document_id=document_id,
         job_id=state.get("job_id"),
-        overall_status=auth.get("overall_status", "UNVERIFIABLE"),
-        authenticity_classification=auth.get("authenticity_classification") or doc.get("authenticity_classification") or "Suspicious",
-        authenticity_summary=auth.get("authenticity_summary") or doc.get("authenticity_summary") or "Automated forensic screening completed.",
-        tamper_risk_level=auth.get("tamper_risk_level", "Not Checked"),
+        processing_status=state.get("processing_status", "UPLOADED"),
+        document_type=doc.get("document_type", "general"),
+        sha256=doc.get("sha256_hash", ""),
+        status=screening_status,
+        screening_status=screening_status,
+        authenticity_classification=screening_status,
+        tamper_risk=tamper_risk,
+        tamper_risk_level=tamper_risk,
+        reason=auth.get("reason") or "Evidence-based multi-factor forensic screening.",
+        authenticity_summary=auth.get("authenticity_summary") or doc.get("authenticity_summary") or "Screening complete.",
+        supporting_evidence=auth.get("supporting_evidence", []),
+        confidence_assessment=auth.get("confidence_assessment", "MODERATE"),
         indicators=auth.get("indicators", {}),
+        checks=forensics,
         unavailable_checks=auth.get("unavailable_checks", []),
-        engine_version=auth.get("engine_version", "ofphil-docauth-v2.0"),
+        engine_version=auth.get("engine_version", "ofphil-docproc-v2.0"),
+        disclaimer=auth.get("disclaimer", "Automated forensic screening provides evidence of integrity or anomalies."),
+    )
+
+
+@router.get("/{document_id}/report", response_model=DocumentStandardReportResponse)
+def get_standard_report(
+    document_id: str,
+    role: UserRole = Depends(require_roles([UserRole.ADMIN, UserRole.MSW])),
+):
+    doc = document_authenticity_service.get_document(document_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    state = doc.get("processing_state") or {}
+    auth = doc.get("authenticity_result") or {}
+    forensics = doc.get("forensics_result") or {}
+    sig = doc.get("signature_result") or {}
+    stamp = doc.get("stamp_result") or {}
+    ocr = doc.get("ocr_result") or {}
+    review = doc.get("manual_review") or {"status": "PENDING_MSW_REVIEW"}
+
+    checks_summary = {
+        "ela": forensics.get("ela_analysis", {"status": "NOT_EVALUATED"}),
+        "noise_analysis": forensics.get("noise_analysis", {"status": "NOT_EVALUATED"}),
+        "chromatic_analysis": forensics.get("chromatic_analysis", {"status": "NOT_EVALUATED"}),
+        "edge_analysis": forensics.get("edge_analysis", {"status": "NOT_EVALUATED"}),
+        "copy_move": forensics.get("copy_move_analysis", {"status": "NOT_EVALUATED"}),
+        "metadata": forensics.get("metadata_analysis", {"status": "NOT_EVALUATED"}),
+        "resolution": forensics.get("resolution_analysis", {"status": "NOT_EVALUATED"}),
+        "signature": {
+            "status": sig.get("status", "NOT_EVALUATED"),
+            "presence": sig.get("presence", False),
+            "signature_status": sig.get("signature_status", "NOT_EVALUATED"),
+            "authenticity": "NOT_EVALUATED",
+            "details": sig.get("details"),
+        },
+        "stamp_seal": {
+            "status": stamp.get("status", "NOT_EVALUATED"),
+            "presence": stamp.get("presence", False),
+            "stamp_status": stamp.get("stamp_status", "NOT_EVALUATED"),
+            "legitimacy": "NOT_EVALUATED",
+            "details": stamp.get("details"),
+        },
+        "ocr": {
+            "status": ocr.get("status", "NOT_EVALUATED"),
+            "engine": ocr.get("engine_used", "PaddleOCR PP-OCRv6"),
+            "confidence": ocr.get("confidence_score"),
+        },
+    }
+
+    return DocumentStandardReportResponse(
+        document_id=document_id,
+        processing_status=state.get("processing_status", "UPLOADED"),
+        document_type=doc.get("document_type", "general"),
+        sha256=doc.get("sha256_hash", ""),
+        verification={
+            "status": auth.get("status") or doc.get("screening_status") or "NEEDS_VERIFICATION",
+            "tamper_risk": auth.get("tamper_risk") or doc.get("tamper_risk") or "UNDETERMINED",
+            "reason": auth.get("reason", "Forensic evidence screening."),
+            "summary": auth.get("authenticity_summary", ""),
+            "supporting_evidence": auth.get("supporting_evidence", []),
+        },
+        checks=checks_summary,
+        review=review,
     )
 
 
@@ -313,20 +441,52 @@ def review_document(
 def delete_document(
     doc_id: str,
     role: UserRole = Depends(require_roles([UserRole.ADMIN, UserRole.MSW])),
+    x_user_id: str = Header(default="msw_lead"),
 ):
-    if doc_id in document_authenticity_service._records:
-        removed = document_authenticity_service._records.pop(doc_id)
-        document_authenticity_service._save_registry()
-        db_store.documents[:] = [d for d in db_store.documents if d.get("id") != doc_id]
-        return {"status": "success", "message": f"Document {doc_id} deleted successfully.", "deleted": removed}
-    raise HTTPException(status_code=404, detail="Document not found")
+    try:
+        result = document_authenticity_service.delete_document(
+            document_id=doc_id,
+            deleted_by=x_user_id,
+            role=role.value,
+        )
+        log_audit_event(
+            action="DOCUMENT_DELETE",
+            actor_id=x_user_id,
+            role=role.value,
+            resource=f"patient_document:{doc_id}",
+            status="SUCCESS",
+            details={
+                "document_id": doc_id,
+                "patient_id": result["patient_id"],
+                "filename": result["filename"],
+                "sha256": result["sha256"],
+            },
+        )
+        return {
+            "status": "success",
+            "message": f"Document {doc_id} ({result['filename']}) deleted successfully.",
+            "audit_record": result,
+        }
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Document not found")
 
 
 @router.delete("")
 def clear_all_documents(
     role: UserRole = Depends(require_roles([UserRole.ADMIN])),
+    x_user_id: str = Header(default="admin_lead"),
 ):
+    count = len(document_authenticity_service._records)
     document_authenticity_service._records.clear()
     document_authenticity_service._save_registry()
     db_store.documents.clear()
-    return {"status": "success", "message": "All documents cleared successfully."}
+
+    log_audit_event(
+        action="ALL_DOCUMENTS_CLEARED",
+        actor_id=x_user_id,
+        role=role.value,
+        resource="patient_documents:all",
+        status="SUCCESS",
+        details={"cleared_count": count},
+    )
+    return {"status": "success", "message": f"All {count} documents cleared successfully."}

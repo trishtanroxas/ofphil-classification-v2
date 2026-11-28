@@ -47,15 +47,29 @@ def _assert_charity_patient_eligible(patient_id: str) -> None:
     category=REGULAR and sets charity_status / is_charity_beneficiary / charity_case_no)."""
     try:
         from app.api.v1.endpoints.endpoints import REGISTERED_PATIENTS_REGISTRY
+        from app.services.referral_service import referral_service
+        
+        # Check if patient exists and if they are classified as CHARITY or are a charity beneficiary/approved referral
         for p in REGISTERED_PATIENTS_REGISTRY:
             if str(p.get("patient_id") or "").strip().upper() == str(patient_id or "").strip().upper():
                 cat = str(p.get("category") or "").strip().upper()
                 is_beneficiary = (
-                    bool(p.get("is_charity_beneficiary"))
+                    cat == "CHARITY"
+                    or bool(p.get("is_charity_beneficiary"))
                     or str(p.get("charity_status") or "").strip().upper() == "APPROVED"
                     or bool(p.get("charity_case_no"))
                 )
-                if cat != "CHARITY" and not is_beneficiary and not _has_approved_charity_referral(patient_id):
+                if not is_beneficiary:
+                    refs = referral_service.list_referrals(patient_id=str(patient_id))
+                    has_appr = any(
+                        str(r.get("status") or "").upper() in {"MSW APPROVED", "APPROVED", "ASSESSMENT IN PROGRESS", "REFERRED FOR ADMINISTRATIVE DECISION", "ASSESSED"}
+                        or bool(r.get("charity_case_no"))
+                        for r in refs
+                    )
+                    if has_appr or _has_approved_charity_referral(patient_id):
+                        is_beneficiary = True
+
+                if not is_beneficiary:
                     raise HTTPException(
                         status_code=403,
                         detail=f"Patient '{patient_id}' is classified as a Regular Patient ({cat or 'REGULAR'}). Only Charity Patients are eligible for MSW Charity Assessments.",
