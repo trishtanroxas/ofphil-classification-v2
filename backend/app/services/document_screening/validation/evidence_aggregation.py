@@ -24,6 +24,18 @@ from pydantic import BaseModel, Field
 class ScreeningAssessment(BaseModel):
     status: str  # NO_SUSPICIOUS_INDICATORS | NEEDS_VERIFICATION | FLAGGED_FOR_MANUAL_REVIEW | INSUFFICIENT_IMAGE_QUALITY
     tamper_risk: str  # LOW | MEDIUM | HIGH | UNDETERMINED
+    document_integrity_screening_score: float = Field(
+        default=100.0,
+        description="Document Integrity Screening Score (0.0% to 100.0%). Evidence-based screening index, not a mathematical probability of authenticity."
+    )
+    score_interpretation: str = Field(
+        default="High Integrity Indicator",
+        description="Explains what the screening score indicates."
+    )
+    score_contributors: List[str] = Field(
+        default_factory=list,
+        description="List of positive or negative evidence contributors to the screening score."
+    )
     reason: str
     summary: str
     supporting_evidence: List[str] = Field(default_factory=list)
@@ -112,7 +124,7 @@ class EvidenceAggregationEngine:
         elif ocr_status == "COMPLETED":
             supporting_evidence.append(f"[OCR] Machine text extracted (confidence: {ocr_conf or 'N/A'}).")
 
-        # Determine Final Aggregated Screening Status
+        # Determine Final Aggregated Screening Status & Document Integrity Screening Score
         # Rule 1: Insufficient image quality
         res_check = forensic_results.get("resolution_analysis", {})
         if (
@@ -124,6 +136,8 @@ class EvidenceAggregationEngine:
             reason = "Document spatial resolution or image clarity is insufficient to perform reliable evidential forensic analysis."
             summary = "Insufficient image quality for digital forensic verification. Physical inspection recommended."
             confidence = "LOW"
+            screening_score = 40.0
+            score_interpretation = "Insufficient Image Quality (Inconclusive Forensic Screening)"
 
         # Rule 2: Flagged for manual review (high or medium tampering indicators)
         elif len(suspicious_modules) >= 2 or any(
@@ -134,6 +148,9 @@ class EvidenceAggregationEngine:
             reason = f"Corroborated forensic anomalies detected in: {', '.join(suspicious_modules)}."
             summary = f"Flagged for caseworker manual review due to {len(suspicious_modules)} suspicious forensic indicators."
             confidence = "HIGH" if len(suspicious_modules) >= 2 else "MODERATE"
+            penalty = 30.0 * len(suspicious_modules)
+            screening_score = max(15.0, round(100.0 - penalty, 1))
+            score_interpretation = "Elevated Anomaly Concern (Requires Exhaustive Physical Verification)"
 
         elif len(suspicious_modules) == 1:
             final_status = "FLAGGED_FOR_MANUAL_REVIEW"
@@ -141,6 +158,8 @@ class EvidenceAggregationEngine:
             reason = f"Isolated forensic anomaly detected in {suspicious_modules[0]} requiring caseworker examination."
             summary = f"Isolated forensic indicator ({suspicious_modules[0]}) flagged for manual review."
             confidence = "MODERATE"
+            screening_score = 65.0
+            score_interpretation = "Moderate Anomaly Concern (Isolated Indicator Requiring Review)"
 
         # Rule 3: Needs verification (missing critical evidence, unverified checks, photocopies, missing signature)
         elif (
@@ -161,6 +180,8 @@ class EvidenceAggregationEngine:
             reason = f"Document lacks conclusive digital verification ({', '.join(unverified_notes)}). Verification by caseworker required."
             summary = "Document requires secondary caseworker verification before clinical grant finalization."
             confidence = "MODERATE"
+            screening_score = 82.5
+            score_interpretation = "Standard Screening Passed with Secondary Verifications Pending"
 
         # Rule 4: No suspicious indicators (all evaluated modules passed without anomaly)
         else:
@@ -169,10 +190,15 @@ class EvidenceAggregationEngine:
             reason = "Automated forensic screening did not detect image tampering, compression disparities, copy-move duplication, or metadata anomalies."
             summary = "No suspicious forensic indicators detected across all executed screening modules."
             confidence = "HIGH"
+            screening_score = 96.0
+            score_interpretation = "High Integrity Indicator (Zero Forensic Anomalies Detected)"
 
         return ScreeningAssessment(
             status=final_status,
             tamper_risk=tamper_risk,
+            document_integrity_screening_score=screening_score,
+            score_interpretation=score_interpretation,
+            score_contributors=passed_modules + ([f"anomalies_flagged: {len(suspicious_modules)}"] if suspicious_modules else []),
             reason=reason,
             summary=summary,
             supporting_evidence=supporting_evidence,

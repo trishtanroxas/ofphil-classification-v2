@@ -10,9 +10,9 @@
     "status": "processed",
     "ocr_processed": true,
     "manipulation_risk": "clean",
-    "verification_status": "Verified Authentic",
+    "verification_status": "NO_SUSPICIOUS_INDICATORS",
     "seal_detected": true,
-    "tamper_risk": "Low",
+    "tamper_risk": "LOW",
     "extracted_text": "REPUBLIC OF THE PHILIPPINES\nUNIFIED MULTI-PURPOSE ID (UMID)\nCRN: 0111-2948192-4\nNAME: DELA CRUZ, JUAN\nDATE OF BIRTH: MAY 15, 1978\nADDRESS: DISTRICT 4, SAMPALOC, MANILA",
     "processing_state": {
       "job_id": "seed-doc-001",
@@ -28,7 +28,11 @@
       "engine_version": "seed-v1",
       "extracted_text": "REPUBLIC OF THE PHILIPPINES\nUNIFIED MULTI-PURPOSE ID (UMID)\nCRN: 0111-2948192-4\nNAME: DELA CRUZ, JUAN\nDATE OF BIRTH: MAY 15, 1978\nADDRESS: DISTRICT 4, SAMPALOC, MANILA",
       "confidence_score": null,
-      "fields_detected": {},
+      "fields_detected": {
+        "name": "DELA JUAN",
+        "address": "DISTRICT 4, SAMPALOC, MANILA",
+        "purpose": "NOT_DETECTED"
+      },
       "missing_information": []
     },
     "signature_result": {
@@ -43,15 +47,18 @@
       "indicators": {},
       "unavailable_checks": [],
       "engine_version": "seed-v1",
-      "authenticity_classification": "Authentic",
-      "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
+      "authenticity_classification": "NO_SUSPICIOUS_INDICATORS",
+      "authenticity_summary": "No suspicious forensic indicators detected across evaluated screening modules.",
+      "screening_status": "NO_SUSPICIOUS_INDICATORS",
+      "tamper_risk": "LOW"
     },
     "manual_review": null,
-    "storage_path": "/home/kristoper/Projects/Thesis/ofphil-classification-v2/storage/uploads/originals/doc-001_Government_Valid_ID_DelaCruz.jpg",
+    "storage_path": "C:\\Users\\ASUS TUF\\Desktop\\Project in Program\\Thesis Project\\ofphil-classification-v2\\storage\\uploads\\originals\\doc-001_Government_Valid_ID_DelaCruz.jpg",
     "sha256_hash": "8aa441b1bc3f6febe135f5ade21bb7ce4d74adc313266ffb3ad797d6017c5880",
     "mime_type": "image/jpeg",
-    "authenticity_classification": "Authentic",
-    "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
+    "authenticity_classification": "NO_SUSPICIOUS_INDICATORS",
+    "authenticity_summary": "No suspicious forensic indicators detected across evaluated screening modules.",
+    "screening_status": "NO_SUSPICIOUS_INDICATORS"
   },
   "doc-002": {
     "id": "doc-002",
@@ -64,9 +71,9 @@
     "status": "processed",
     "ocr_processed": true,
     "manipulation_risk": "clean",
-    "verification_status": "Verified Authentic",
+    "verification_status": "NO_SUSPICIOUS_INDICATORS",
     "seal_detected": false,
-    "tamper_risk": "Low",
+    "tamper_risk": "LOW",
     "extracted_text": "OFPHIL EYE CENTER - OUTPATIENT REGULAR CLINIC\nPATIENT: Juan Dela Cruz (M26-11-00001)\nCHIEF COMPLAINT: Blurring of vision on both eyes\nDIAGNOSIS: Bilateral Cataract, Senile Mature (OD > OS)\nATTENDING PHYSICIAN: Dr. J. E. Garcia, MD",
     "processing_state": {
       "job_id": "seed-doc-002",
@@ -82,7 +89,12 @@
       "engine_version": "seed-v1",
       "extracted_text": "OFPHIL EYE CENTER - OUTPATIENT REGULAR CLINIC\nPATIENT: Juan Dela Cruz (M26-11-00001)\nCHIEF COMPLAINT: Blurring of vision on both eyes\nDIAGNOSIS: Bilateral Cataract, Senile Mature (OD > OS)\nATTENDING PHYSICIAN: Dr. J. E. Garcia, MD",
       "confidence_score": null,
-      "fields_detected": {},
+      "fields_detected": {
+        "clinical_eye_reference": true,
+        "name": "Juan Dela Cruz",
+        "address": "NOT_DETECTED",
+        "purpose": "NOT_DETECTED"
+      },
       "missing_information": []
     },
     "signature_result": {
@@ -97,15 +109,18 @@
       "indicators": {},
       "unavailable_checks": [],
       "engine_version": "seed-v1",
-      "authenticity_classification": "Authentic",
-      "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
+      "authenticity_classification": "NO_SUSPICIOUS_INDICATORS",
+      "authenticity_summary": "No suspicious forensic indicators detected across evaluated screening modules.",
+      "screening_status": "NO_SUSPICIOUS_INDICATORS",
+      "tamper_risk": "LOW"
     },
     "manual_review": null,
-    "storage_path": "/home/kristoper/Projects/Thesis/ofphil-classification-v2/storage/uploads/originals/doc-002_Initial_Eye_Examination_Record.pdf",
+    "storage_path": "C:\\Users\\ASUS TUF\\Desktop\\Project in Program\\Thesis Project\\ofphil-classification-v2\\storage\\uploads\\originals\\doc-002_Initial_Eye_Examination_Record.pdf",
     "sha256_hash": "0ff72e07c73a70ebf47283965e62ff2230c1c5c742db0f1f52b7811a1bf9b241",
     "mime_type": "application/pdf",
-    "authenticity_classification": "Authentic",
-    "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
+    "authenticity_classification": "NO_SUSPICIOUS_INDICATORS",
+    "authenticity_summary": "No suspicious forensic indicators detected across evaluated screening modules.",
+    "screening_status": "NO_SUSPICIOUS_INDICATORS"
   },
   "doc-003": {
     "id": "doc-003",
@@ -118,9 +133,9 @@
     "status": "processed",
     "ocr_processed": true,
     "manipulation_risk": "clean",
-    "verification_status": "Verified Authentic",
+    "verification_status": "NO_SUSPICIOUS_INDICATORS",
     "seal_detected": true,
-    "tamper_risk": "Low",
+    "tamper_risk": "LOW",
     "extracted_text": "REPUBLIC OF THE PHILIPPINES\nBARANGAY 12, CALOOCAN CITY\nCERTIFICATE OF INDIGENCY\nPATIENT: Maria Clara Flores Ramos (MSW_FA_1126-01)\nOCCUPATION: Market Vendor\nPURPOSE: Ophthalmic Surgery Financial Assistance (Senile Cataract OS)",
     "processing_state": {
       "job_id": "seed-doc-003",
@@ -136,7 +151,14 @@
       "engine_version": "seed-v1",
       "extracted_text": "REPUBLIC OF THE PHILIPPINES\nBARANGAY 12, CALOOCAN CITY\nCERTIFICATE OF INDIGENCY\nPATIENT: Maria Clara Flores Ramos (MSW_FA_1126-01)\nOCCUPATION: Market Vendor\nPURPOSE: Ophthalmic Surgery Financial Assistance (Senile Cataract OS)",
       "confidence_score": null,
-      "fields_detected": {},
+      "fields_detected": {
+        "indigency_keyword": true,
+        "barangay_reference": true,
+        "clinical_eye_reference": true,
+        "name": "Maria Clara Flores Ramos",
+        "address": "BARANGAY 12, CALOOCAN CITY",
+        "purpose": "Ophthalmic Surgery Financial Assistance (Senile Cataract OS)"
+      },
       "missing_information": []
     },
     "signature_result": {
@@ -151,15 +173,18 @@
       "indicators": {},
       "unavailable_checks": [],
       "engine_version": "seed-v1",
-      "authenticity_classification": "Authentic",
-      "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
+      "authenticity_classification": "NO_SUSPICIOUS_INDICATORS",
+      "authenticity_summary": "No suspicious forensic indicators detected across evaluated screening modules.",
+      "screening_status": "NO_SUSPICIOUS_INDICATORS",
+      "tamper_risk": "LOW"
     },
     "manual_review": null,
-    "storage_path": "/home/kristoper/Projects/Thesis/ofphil-classification-v2/storage/uploads/originals/doc-003_Barangay_Indigency_Ramos.pdf",
+    "storage_path": "C:\\Users\\ASUS TUF\\Desktop\\Project in Program\\Thesis Project\\ofphil-classification-v2\\storage\\uploads\\originals\\doc-003_Barangay_Indigency_Ramos.pdf",
     "sha256_hash": "912c69408919757d6acd9c1c0099422f2a6aae2dddd66c74ff0ab5d679a74ddf",
     "mime_type": "application/pdf",
-    "authenticity_classification": "Authentic",
-    "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
+    "authenticity_classification": "NO_SUSPICIOUS_INDICATORS",
+    "authenticity_summary": "No suspicious forensic indicators detected across evaluated screening modules.",
+    "screening_status": "NO_SUSPICIOUS_INDICATORS"
   },
   "doc-004": {
     "id": "doc-004",
@@ -172,9 +197,9 @@
     "status": "processed",
     "ocr_processed": true,
     "manipulation_risk": "clean",
-    "verification_status": "Verified Authentic",
+    "verification_status": "NO_SUSPICIOUS_INDICATORS",
     "seal_detected": true,
-    "tamper_risk": "Low",
+    "tamper_risk": "LOW",
     "extracted_text": "OFPHIL EYE CENTER - SURGICAL QUOTATION\nPATIENT: Maria Clara Ramos (MSW_FA_1126-01)\nDIAGNOSIS: Senile Cataract, Immature (OS)\nPROCEDURE: Phacoemulsification with Foldable IOL Implant (OS)\nESTIMATED TOTAL: PHP 11,600.00",
     "processing_state": {
       "job_id": "seed-doc-004",
@@ -190,7 +215,12 @@
       "engine_version": "seed-v1",
       "extracted_text": "OFPHIL EYE CENTER - SURGICAL QUOTATION\nPATIENT: Maria Clara Ramos (MSW_FA_1126-01)\nDIAGNOSIS: Senile Cataract, Immature (OS)\nPROCEDURE: Phacoemulsification with Foldable IOL Implant (OS)\nESTIMATED TOTAL: PHP 11,600.00",
       "confidence_score": null,
-      "fields_detected": {},
+      "fields_detected": {
+        "clinical_eye_reference": true,
+        "name": "Maria Clara Ramos",
+        "address": "NOT_DETECTED",
+        "purpose": "NOT_DETECTED"
+      },
       "missing_information": []
     },
     "signature_result": {
@@ -205,15 +235,18 @@
       "indicators": {},
       "unavailable_checks": [],
       "engine_version": "seed-v1",
-      "authenticity_classification": "Authentic",
-      "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
+      "authenticity_classification": "NO_SUSPICIOUS_INDICATORS",
+      "authenticity_summary": "No suspicious forensic indicators detected across evaluated screening modules.",
+      "screening_status": "NO_SUSPICIOUS_INDICATORS",
+      "tamper_risk": "LOW"
     },
     "manual_review": null,
-    "storage_path": "/home/kristoper/Projects/Thesis/ofphil-classification-v2/storage/uploads/originals/doc-004_Surgical_Quotation_Ramos.png",
+    "storage_path": "C:\\Users\\ASUS TUF\\Desktop\\Project in Program\\Thesis Project\\ofphil-classification-v2\\storage\\uploads\\originals\\doc-004_Surgical_Quotation_Ramos.png",
     "sha256_hash": "5c6fa1eee2f57efcd74547a75e9fe35f539ea4a145e052ac09d044e904eaac68",
     "mime_type": "image/jpeg",
-    "authenticity_classification": "Authentic",
-    "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
+    "authenticity_classification": "NO_SUSPICIOUS_INDICATORS",
+    "authenticity_summary": "No suspicious forensic indicators detected across evaluated screening modules.",
+    "screening_status": "NO_SUSPICIOUS_INDICATORS"
   },
   "doc-005": {
     "id": "doc-005",
@@ -226,9 +259,9 @@
     "status": "processed",
     "ocr_processed": true,
     "manipulation_risk": "clean",
-    "verification_status": "Verified Authentic",
+    "verification_status": "NO_SUSPICIOUS_INDICATORS",
     "seal_detected": true,
-    "tamper_risk": "Low",
+    "tamper_risk": "LOW",
     "extracted_text": "REPUBLIC OF THE PHILIPPINES\nOFFICE FOR SENIOR CITIZENS AFFAIRS (OSCA) - QUEZON CITY\nNAME: BAUTISTA, PEDRO ALVAREZ SR.\nBARANGAY: COMMONWEALTH, QUEZON CITY\nDIAGNOSIS: Primary Open-Angle Glaucoma (OU)",
     "processing_state": {
       "job_id": "seed-doc-005",
@@ -244,7 +277,13 @@
       "engine_version": "seed-v1",
       "extracted_text": "REPUBLIC OF THE PHILIPPINES\nOFFICE FOR SENIOR CITIZENS AFFAIRS (OSCA) - QUEZON CITY\nNAME: BAUTISTA, PEDRO ALVAREZ SR.\nBARANGAY: COMMONWEALTH, QUEZON CITY\nDIAGNOSIS: Primary Open-Angle Glaucoma (OU)",
       "confidence_score": null,
-      "fields_detected": {},
+      "fields_detected": {
+        "barangay_reference": true,
+        "clinical_eye_reference": true,
+        "name": "PEDRO ALVAREZ SR",
+        "address": "COMMONWEALTH, QUEZON CITY",
+        "purpose": "NOT_DETECTED"
+      },
       "missing_information": []
     },
     "signature_result": {
@@ -259,15 +298,18 @@
       "indicators": {},
       "unavailable_checks": [],
       "engine_version": "seed-v1",
-      "authenticity_classification": "Authentic",
-      "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
+      "authenticity_classification": "NO_SUSPICIOUS_INDICATORS",
+      "authenticity_summary": "No suspicious forensic indicators detected across evaluated screening modules.",
+      "screening_status": "NO_SUSPICIOUS_INDICATORS",
+      "tamper_risk": "LOW"
     },
     "manual_review": null,
-    "storage_path": "/home/kristoper/Projects/Thesis/ofphil-classification-v2/storage/uploads/originals/doc-005_Senior_Citizen_ID_Bautista.jpg",
+    "storage_path": "C:\\Users\\ASUS TUF\\Desktop\\Project in Program\\Thesis Project\\ofphil-classification-v2\\storage\\uploads\\originals\\doc-005_Senior_Citizen_ID_Bautista.jpg",
     "sha256_hash": "aa6fb457f6914969239b7d1a948c8d7824b5af95e7be299b0230ec22285090f5",
     "mime_type": "image/jpeg",
-    "authenticity_classification": "Authentic",
-    "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
+    "authenticity_classification": "NO_SUSPICIOUS_INDICATORS",
+    "authenticity_summary": "No suspicious forensic indicators detected across evaluated screening modules.",
+    "screening_status": "NO_SUSPICIOUS_INDICATORS"
   },
   "doc-006": {
     "id": "doc-006",
@@ -280,9 +322,9 @@
     "status": "processed",
     "ocr_processed": true,
     "manipulation_risk": "clean",
-    "verification_status": "Pending MSW Verification",
+    "verification_status": "NO_SUSPICIOUS_INDICATORS",
     "seal_detected": true,
-    "tamper_risk": "Low",
+    "tamper_risk": "LOW",
     "extracted_text": "OFPHIL EYE CENTER - RETINA & VITREOUS CLINIC\nPATIENT: Elena Velasco Santos (MSW_FA_1126-03)\nDIAGNOSIS: Diabetic Retinopathy (OU)\nRECOMMENDED TREATMENT: Panretinal Photocoagulation / Anti-VEGF Therapy",
     "processing_state": {
       "job_id": "seed-doc-006",
@@ -298,7 +340,12 @@
       "engine_version": "seed-v1",
       "extracted_text": "OFPHIL EYE CENTER - RETINA & VITREOUS CLINIC\nPATIENT: Elena Velasco Santos (MSW_FA_1126-03)\nDIAGNOSIS: Diabetic Retinopathy (OU)\nRECOMMENDED TREATMENT: Panretinal Photocoagulation / Anti-VEGF Therapy",
       "confidence_score": null,
-      "fields_detected": {},
+      "fields_detected": {
+        "clinical_eye_reference": true,
+        "name": "Elena Velasco Santos",
+        "address": "NOT_DETECTED",
+        "purpose": "NOT_DETECTED"
+      },
       "missing_information": []
     },
     "signature_result": {
@@ -313,15 +360,18 @@
       "indicators": {},
       "unavailable_checks": [],
       "engine_version": "seed-v1",
-      "authenticity_classification": "Authentic",
-      "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
+      "authenticity_classification": "NO_SUSPICIOUS_INDICATORS",
+      "authenticity_summary": "No suspicious forensic indicators detected across evaluated screening modules.",
+      "screening_status": "NO_SUSPICIOUS_INDICATORS",
+      "tamper_risk": "LOW"
     },
     "manual_review": null,
-    "storage_path": "/home/kristoper/Projects/Thesis/ofphil-classification-v2/storage/uploads/originals/doc-006_Clinical_Eye_Exam_Santos.pdf",
+    "storage_path": "C:\\Users\\ASUS TUF\\Desktop\\Project in Program\\Thesis Project\\ofphil-classification-v2\\storage\\uploads\\originals\\doc-006_Clinical_Eye_Exam_Santos.pdf",
     "sha256_hash": "4adbe5c8b252827f3e9e8f0d8ea219048f106824454640e35e530c1e7be8bdbe",
     "mime_type": "application/pdf",
-    "authenticity_classification": "Authentic",
-    "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
+    "authenticity_classification": "NO_SUSPICIOUS_INDICATORS",
+    "authenticity_summary": "No suspicious forensic indicators detected across evaluated screening modules.",
+    "screening_status": "NO_SUSPICIOUS_INDICATORS"
   },
   "doc-19da3072e1": {
     "id": "doc-19da3072e1",
@@ -332,16 +382,16 @@
     "document_type": "SIGNED CERTIFICATE OF INDIGENCY",
     "file_size_bytes": 17195,
     "mime_type": "image/jpeg",
-    "sha256_hash": "da8422d7c36102ace0953b2ffec84d3b06d34fdfee977b695313b262bf82d50c",
-    "storage_path": "/home/kristoper/Projects/Thesis/ofphil-classification-v2/storage/uploads/originals/doc-19da3072e1_ind_p_002.jpeg",
+    "sha256_hash": "6d976f2a43c86219eb90e1d9aa1fdbf05427ef0e02320dd7ff732a542ba45006",
+    "storage_path": "C:\\Users\\ASUS TUF\\Desktop\\Project in Program\\Thesis Project\\ofphil-classification-v2\\storage\\uploads\\originals\\doc-19da3072e1_ind_p_002.jpeg",
     "uploaded_at": "2026-11-25T13:51:25.255920+00:00",
     "uploaded_by": "msw_lead",
     "status": "processed",
     "ocr_processed": false,
     "manipulation_risk": "clean",
-    "verification_status": "NO_ISSUE_DETECTED",
+    "verification_status": "NO_SUSPICIOUS_INDICATORS",
     "seal_detected": true,
-    "tamper_risk": "Low",
+    "tamper_risk": "LOW",
     "signature_status": "SIGNATURE_DETECTED",
     "extracted_text": null,
     "processing_state": {
@@ -440,12 +490,15 @@
         "custom_cnn_splice_detector"
       ],
       "engine_version": "PIL-ELA-OpenCV-v1",
-      "authenticity_classification": "Authentic",
-      "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
+      "authenticity_classification": "NO_SUSPICIOUS_INDICATORS",
+      "authenticity_summary": "No suspicious forensic indicators detected across evaluated screening modules.",
+      "screening_status": "NO_SUSPICIOUS_INDICATORS",
+      "tamper_risk": "LOW"
     },
     "manual_review": null,
-    "authenticity_classification": "Authentic",
-    "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
+    "authenticity_classification": "NO_SUSPICIOUS_INDICATORS",
+    "authenticity_summary": "No suspicious forensic indicators detected across evaluated screening modules.",
+    "screening_status": "NO_SUSPICIOUS_INDICATORS"
   },
   "doc-8216a747d7": {
     "id": "doc-8216a747d7",
@@ -708,7 +761,10 @@
       "confidence_score": 0.8772,
       "fields_detected": {
         "indigency_keyword": true,
-        "barangay_reference": true
+        "barangay_reference": true,
+        "name": "Juan Dela Cruz",
+        "address": "NOT_DETECTED",
+        "purpose": "NOT_DETECTED"
       },
       "missing_information": [],
       "unavailable_reason": null
@@ -919,7 +975,10 @@
       "confidence_score": 0.8772,
       "fields_detected": {
         "indigency_keyword": true,
-        "barangay_reference": true
+        "barangay_reference": true,
+        "name": "Juan Dela Cruz",
+        "address": "NOT_DETECTED",
+        "purpose": "NOT_DETECTED"
       },
       "missing_information": [],
       "unavailable_reason": null
@@ -1087,8 +1146,4449 @@
     },
     "manual_review": null
   },
-  "doc-aac5e2fad4": {
-    "id": "doc-aac5e2fad4",
+  "doc-c05b81031a": {
+    "id": "doc-c05b81031a",
+    "patient_id": "M26-11-000002",
+    "patient_name": "Wilbur Nigel Santos",
+    "assessment_id": null,
+    "filename": "ind_p_002.jpeg",
+    "document_type": "SIGNED CERTIFICATE OF INDIGENCY",
+    "file_size_bytes": 17249,
+    "mime_type": "image/jpeg",
+    "sha256_hash": "644a86ce73cf064c624561207af1e4da886ae3a447bd6fa31b3d081ad254eea2",
+    "storage_path": "C:\\Users\\ASUS TUF\\Desktop\\Project in Program\\Thesis Project\\ofphil-classification-v2\\storage\\uploads\\originals\\doc-c05b81031a_ind_p_002.jpeg",
+    "uploaded_at": "2026-11-28T10:08:12.006180+00:00",
+    "uploaded_by": "msw_lead",
+    "status": "processed",
+    "ocr_processed": false,
+    "manipulation_risk": "clean",
+    "verification_status": "NO_SUSPICIOUS_INDICATORS",
+    "authenticity_classification": "NO_SUSPICIOUS_INDICATORS",
+    "authenticity_summary": "No suspicious forensic indicators detected across evaluated screening modules.",
+    "seal_detected": true,
+    "tamper_risk": "LOW",
+    "signature_status": "SIGNATURE_DETECTED",
+    "extracted_text": null,
+    "processing_state": {
+      "job_id": "job-a80dfff6",
+      "processing_status": "COMPLETED",
+      "engine_version": "ofphil-docauth-v2.0",
+      "started_at": "2026-11-28T10:08:12.034130+00:00",
+      "completed_at": "2026-11-28T10:08:13.179665+00:00",
+      "processing_time_ms": 1142.53,
+      "unavailable_checks": [
+        "ocr_engine"
+      ],
+      "error_message": null
+    },
+    "ocr_result": {
+      "engine_used": "unavailable",
+      "engine_version": "ofphil-ocr-v2.0",
+      "extracted_text": null,
+      "confidence_score": null,
+      "fields_detected": {},
+      "missing_information": [
+        "No machine-readable text extracted"
+      ],
+      "unavailable_reason": "OCR engines unavailable locally (ModuleNotFoundError)"
+    },
+    "signature_result": {
+      "signature_status": "SIGNATURE_DETECTED",
+      "signatures_detected_count": 36,
+      "regions": [
+        {
+          "label": "candidate_signature_region",
+          "box": [
+            2379,
+            3419,
+            2465,
+            3452
+          ],
+          "ink_density": 0.052
+        },
+        {
+          "label": "candidate_signature_region",
+          "box": [
+            2198,
+            3287,
+            2243,
+            3303
+          ],
+          "ink_density": 0.044
+        },
+        {
+          "label": "candidate_signature_region",
+          "box": [
+            2149,
+            3284,
+            2194,
+            3300
+          ],
+          "ink_density": 0.069
+        },
+        {
+          "label": "candidate_signature_region",
+          "box": [
+            601,
+            2955,
+            837,
+            2991
+          ],
+          "ink_density": 0.439
+        },
+        {
+          "label": "candidate_signature_region",
+          "box": [
+            476,
+            2953,
+            599,
+            2989
+          ],
+          "ink_density": 0.379
+        }
+      ],
+      "engine_version": "OpenCV-Contour-v1 (YOLO signature weights not loaded)"
+    },
+    "authenticity_result": {
+      "overall_status": "NO_ISSUE_DETECTED",
+      "authenticity_classification": "NO_SUSPICIOUS_INDICATORS",
+      "authenticity_summary": "No suspicious forensic indicators detected across evaluated screening modules.",
+      "tamper_risk_level": "Low",
+      "indicators": {
+        "resolution": "3024x4032",
+        "ela_mean_diff": 1.202,
+        "ela_std_diff": 1.131,
+        "ela_max_diff": 20.0,
+        "patch_ela_disparity_ratio": 1.3,
+        "laplacian_sharpness_var": 112.92,
+        "editing_software_metadata": false,
+        "splicing_indicator": "Normal compression profile",
+        "signature_presence": "SIGNATURE_DETECTED"
+      },
+      "unavailable_checks": [],
+      "engine_version": "PIL-ELA-OpenCV-v2",
+      "screening_status": "NO_SUSPICIOUS_INDICATORS",
+      "tamper_risk": "LOW"
+    },
+    "manual_review": null,
+    "screening_status": "NO_SUSPICIOUS_INDICATORS"
+  },
+  "doc-c75223eb07": {
+    "id": "doc-c75223eb07",
+    "patient_id": "M26-11-000001",
+    "patient_name": "Trishtan Roxas",
+    "assessment_id": "asmt-d4b4a5efdd",
+    "filename": "ind_p_001.jpeg",
+    "document_type": "SIGNED CERTIFICATE OF INDIGENCY",
+    "file_size_bytes": 5629792,
+    "mime_type": "image/jpeg",
+    "sha256_hash": "5c4d442e64ac9e9dbe0c35af649fafd362c87d02009f3977c13e2856fe02f70a",
+    "storage_path": "C:\\Users\\ASUS TUF\\Desktop\\Project in Program\\Thesis Project\\ofphil-classification-v2\\storage\\uploads\\originals\\doc-c75223eb07_ind_p_001.jpeg",
+    "uploaded_at": "2026-11-28T12:22:12.132442+00:00",
+    "uploaded_by": "msw_lead",
+    "status": "COMPLETED",
+    "processing_status": "COMPLETED",
+    "ocr_processed": true,
+    "screening_status": "NO_SUSPICIOUS_INDICATORS",
+    "authenticity_classification": "NO_SUSPICIOUS_INDICATORS",
+    "tamper_risk": "LOW",
+    "verification_status": "NO_SUSPICIOUS_INDICATORS",
+    "authenticity_summary": "No suspicious forensic indicators detected across all executed screening modules.",
+    "seal_detected": true,
+    "signature_status": "PRESENCE_DETECTED",
+    "stamp_status": "PRESENCE_DETECTED",
+    "extracted_text": "Alp \u20acoz? H. oolo\nizop\nRepublic of the Philippines City of Manila\nOFFICE OF THE PUNONG BARANGAY BARANGAY 475 ZONE 47 District IV\nBACOHG PiLipinas\nCERTIFICATE OF INDIGENCY\nTo Whom It May Concern,\nage, a bonafide resident; with This certification is hereby granted to Mr IMs. a postal address of 1065 Cristobal ALBERTO 0. DIZON, of legal St, Sampaloc,\nManila,\nThis certifies that the individual named above has no income.\nThis certification is being issued upon the request of the above-mentioned\nname for whatever legal purpose it may served.\nIssued this 14th day of March, 2025, at Barangay 475, Zone 47, District IV,\nSampaloc, Manila.\n81\nHON/ ROLANDO T PEREZ\nPUnONG BARANGAY\nNot VALID Without A SEAL",
+    "processing_state": {
+      "job_id": "job-4bfcdf98",
+      "processing_status": "COMPLETED",
+      "engine_version": "ofphil-docproc-v2.0",
+      "started_at": "2026-11-28T12:22:12.146987+00:00",
+      "completed_at": "2026-11-28T12:22:40.293019+00:00",
+      "processing_time_ms": 28142.32,
+      "unavailable_checks": [],
+      "error_message": null
+    },
+    "ocr_result": {
+      "status": "COMPLETED",
+      "engine_used": "EasyOCR",
+      "engine_version": "ppocr-v6",
+      "extracted_text": "Alp \u20acoz? H. oolo\nizop\nRepublic of the Philippines City of Manila\nOFFICE OF THE PUNONG BARANGAY BARANGAY 475 ZONE 47 District IV\nBACOHG PiLipinas\nCERTIFICATE OF INDIGENCY\nTo Whom It May Concern,\nage, a bonafide resident; with This certification is hereby granted to Mr IMs. a postal address of 1065 Cristobal ALBERTO 0. DIZON, of legal St, Sampaloc,\nManila,\nThis certifies that the individual named above has no income.\nThis certification is being issued upon the request of the above-mentioned\nname for whatever legal purpose it may served.\nIssued this 14th day of March, 2025, at Barangay 475, Zone 47, District IV,\nSampaloc, Manila.\n81\nHON/ ROLANDO T PEREZ\nPUnONG BARANGAY\nNot VALID Without A SEAL",
+      "confidence_score": 0.7235,
+      "fields_detected": {
+        "indigency_keyword": true,
+        "barangay_reference": true,
+        "name": "ALBERTO O. DIZON",
+        "address": "1065 Cristobal St., Sampaloc, Manila",
+        "purpose": "Whatever legal purpose it may served"
+      },
+      "missing_information": [],
+      "unavailable_reason": null
+    },
+    "signature_result": {
+      "status": "PASSED",
+      "presence": true,
+      "signature_status": "PRESENCE_DETECTED",
+      "signatures_detected_count": 45,
+      "regions": [
+        {
+          "bounding_box": [
+            932,
+            3096,
+            1100,
+            3146
+          ],
+          "confidence": 0.56,
+          "width": 168,
+          "height": 50,
+          "ink_density": 0.3518,
+          "connected_components": 5
+        },
+        {
+          "bounding_box": [
+            868,
+            3095,
+            919,
+            3144
+          ],
+          "confidence": 0.65,
+          "width": 51,
+          "height": 49,
+          "ink_density": 0.3325,
+          "connected_components": 2
+        },
+        {
+          "bounding_box": [
+            564,
+            3087,
+            859,
+            3143
+          ],
+          "confidence": 0.537,
+          "width": 295,
+          "height": 56,
+          "ink_density": 0.3205,
+          "connected_components": 8
+        },
+        {
+          "bounding_box": [
+            402,
+            3083,
+            551,
+            3134
+          ],
+          "confidence": 0.55,
+          "width": 149,
+          "height": 51,
+          "ink_density": 0.3508,
+          "connected_components": 6
+        },
+        {
+          "bounding_box": [
+            219,
+            3077,
+            353,
+            3129
+          ],
+          "confidence": 0.575,
+          "width": 134,
+          "height": 52,
+          "ink_density": 0.3352,
+          "connected_components": 4
+        },
+        {
+          "bounding_box": [
+            1998,
+            2779,
+            2314,
+            2835
+          ],
+          "confidence": 0.537,
+          "width": 316,
+          "height": 56,
+          "ink_density": 0.3554,
+          "connected_components": 8
+        },
+        {
+          "bounding_box": [
+            1798,
+            2774,
+            1981,
+            2827
+          ],
+          "confidence": 0.56,
+          "width": 183,
+          "height": 53,
+          "ink_density": 0.3695,
+          "connected_components": 5
+        },
+        {
+          "bounding_box": [
+            1713,
+            2772,
+            1797,
+            2822
+          ],
+          "confidence": 0.6,
+          "width": 84,
+          "height": 50,
+          "ink_density": 0.3698,
+          "connected_components": 3
+        },
+        {
+          "bounding_box": [
+            2282,
+            2675,
+            2489,
+            2727
+          ],
+          "confidence": 0.55,
+          "width": 207,
+          "height": 52,
+          "ink_density": 0.3746,
+          "connected_components": 6
+        },
+        {
+          "bounding_box": [
+            1715,
+            2537,
+            1989,
+            2736
+          ],
+          "confidence": 0.533,
+          "width": 274,
+          "height": 199,
+          "ink_density": 0.1335,
+          "connected_components": 9
+        },
+        {
+          "bounding_box": [
+            1884,
+            2534,
+            2212,
+            2721
+          ],
+          "confidence": 0.53,
+          "width": 328,
+          "height": 187,
+          "ink_density": 0.1764,
+          "connected_components": 10
+        },
+        {
+          "bounding_box": [
+            561,
+            2195,
+            777,
+            2246
+          ],
+          "confidence": 0.533,
+          "width": 216,
+          "height": 51,
+          "ink_density": 0.3307,
+          "connected_components": 9
+        },
+        {
+          "bounding_box": [
+            232,
+            2187,
+            547,
+            2251
+          ],
+          "confidence": 0.53,
+          "width": 315,
+          "height": 64,
+          "ink_density": 0.2504,
+          "connected_components": 10
+        },
+        {
+          "bounding_box": [
+            2527,
+            2161,
+            2589,
+            2209
+          ],
+          "confidence": 0.6,
+          "width": 62,
+          "height": 48,
+          "ink_density": 0.3501,
+          "connected_components": 3
+        },
+        {
+          "bounding_box": [
+            2294,
+            2155,
+            2512,
+            2207
+          ],
+          "confidence": 0.527,
+          "width": 218,
+          "height": 52,
+          "ink_density": 0.3245,
+          "connected_components": 11
+        },
+        {
+          "bounding_box": [
+            2184,
+            2153,
+            2259,
+            2201
+          ],
+          "confidence": 0.6,
+          "width": 75,
+          "height": 48,
+          "ink_density": 0.3058,
+          "connected_components": 3
+        },
+        {
+          "bounding_box": [
+            2014,
+            2149,
+            2168,
+            2199
+          ],
+          "confidence": 0.56,
+          "width": 154,
+          "height": 50,
+          "ink_density": 0.311,
+          "connected_components": 5
+        },
+        {
+          "bounding_box": [
+            1875,
+            2146,
+            2001,
+            2204
+          ],
+          "confidence": 0.56,
+          "width": 126,
+          "height": 58,
+          "ink_density": 0.2536,
+          "connected_components": 5
+        },
+        {
+          "bounding_box": [
+            1580,
+            2139,
+            1861,
+            2204
+          ],
+          "confidence": 0.533,
+          "width": 281,
+          "height": 65,
+          "ink_density": 0.2654,
+          "connected_components": 9
+        },
+        {
+          "bounding_box": [
+            1503,
+            2138,
+            1566,
+            2185
+          ],
+          "confidence": 0.6,
+          "width": 63,
+          "height": 47,
+          "ink_density": 0.33,
+          "connected_components": 3
+        },
+        {
+          "bounding_box": [
+            1330,
+            2133,
+            1489,
+            2192
+          ],
+          "confidence": 0.55,
+          "width": 159,
+          "height": 59,
+          "ink_density": 0.2887,
+          "connected_components": 6
+        },
+        {
+          "bounding_box": [
+            1115,
+            2129,
+            1316,
+            2188
+          ],
+          "confidence": 0.543,
+          "width": 201,
+          "height": 59,
+          "ink_density": 0.2686,
+          "connected_components": 7
+        },
+        {
+          "bounding_box": [
+            1033,
+            2128,
+            1102,
+            2175
+          ],
+          "confidence": 0.6,
+          "width": 69,
+          "height": 47,
+          "ink_density": 0.2982,
+          "connected_components": 3
+        },
+        {
+          "bounding_box": [
+            905,
+            2125,
+            1017,
+            2186
+          ],
+          "confidence": 0.575,
+          "width": 112,
+          "height": 61,
+          "ink_density": 0.2654,
+          "connected_components": 4
+        },
+        {
+          "bounding_box": [
+            640,
+            2120,
+            757,
+            2169
+          ],
+          "confidence": 0.55,
+          "width": 117,
+          "height": 49,
+          "ink_density": 0.3344,
+          "connected_components": 6
+        },
+        {
+          "bounding_box": [
+            809,
+            2119,
+            888,
+            2171
+          ],
+          "confidence": 0.575,
+          "width": 79,
+          "height": 52,
+          "ink_density": 0.2634,
+          "connected_components": 4
+        },
+        {
+          "bounding_box": [
+            424,
+            2115,
+            623,
+            2167
+          ],
+          "confidence": 0.543,
+          "width": 199,
+          "height": 52,
+          "ink_density": 0.3242,
+          "connected_components": 7
+        },
+        {
+          "bounding_box": [
+            1279,
+            1924,
+            1404,
+            1975
+          ],
+          "confidence": 0.575,
+          "width": 125,
+          "height": 51,
+          "ink_density": 0.3118,
+          "connected_components": 4
+        },
+        {
+          "bounding_box": [
+            1415,
+            1919,
+            1633,
+            1967
+          ],
+          "confidence": 0.537,
+          "width": 218,
+          "height": 48,
+          "ink_density": 0.3034,
+          "connected_components": 8
+        },
+        {
+          "bounding_box": [
+            966,
+            1917,
+            1211,
+            1967
+          ],
+          "confidence": 0.537,
+          "width": 245,
+          "height": 50,
+          "ink_density": 0.3154,
+          "connected_components": 8
+        },
+        {
+          "bounding_box": [
+            808,
+            1901,
+            954,
+            1963
+          ],
+          "confidence": 0.55,
+          "width": 146,
+          "height": 62,
+          "ink_density": 0.2937,
+          "connected_components": 6
+        },
+        {
+          "bounding_box": [
+            240,
+            1900,
+            406,
+            1940
+          ],
+          "confidence": 0.56,
+          "width": 166,
+          "height": 40,
+          "ink_density": 0.3875,
+          "connected_components": 5
+        },
+        {
+          "bounding_box": [
+            516,
+            1895,
+            797,
+            1948
+          ],
+          "confidence": 0.533,
+          "width": 281,
+          "height": 53,
+          "ink_density": 0.2956,
+          "connected_components": 9
+        },
+        {
+          "bounding_box": [
+            417,
+            1892,
+            510,
+            1941
+          ],
+          "confidence": 0.575,
+          "width": 93,
+          "height": 49,
+          "ink_density": 0.2956,
+          "connected_components": 4
+        },
+        {
+          "bounding_box": [
+            2097,
+            1856,
+            2610,
+            1913
+          ],
+          "confidence": 0.518,
+          "width": 513,
+          "height": 57,
+          "ink_density": 0.2757,
+          "connected_components": 17
+        },
+        {
+          "bounding_box": [
+            1984,
+            1853,
+            2084,
+            1902
+          ],
+          "confidence": 0.575,
+          "width": 100,
+          "height": 49,
+          "ink_density": 0.321,
+          "connected_components": 4
+        },
+        {
+          "bounding_box": [
+            1910,
+            1852,
+            1978,
+            1899
+          ],
+          "confidence": 0.6,
+          "width": 68,
+          "height": 47,
+          "ink_density": 0.3004,
+          "connected_components": 3
+        },
+        {
+          "bounding_box": [
+            1674,
+            1852,
+            1899,
+            1906
+          ],
+          "confidence": 0.537,
+          "width": 225,
+          "height": 54,
+          "ink_density": 0.2891,
+          "connected_components": 8
+        },
+        {
+          "bounding_box": [
+            1398,
+            1852,
+            1546,
+            1900
+          ],
+          "confidence": 0.56,
+          "width": 148,
+          "height": 48,
+          "ink_density": 0.3166,
+          "connected_components": 5
+        },
+        {
+          "bounding_box": [
+            1561,
+            1844,
+            1659,
+            1893
+          ],
+          "confidence": 0.575,
+          "width": 98,
+          "height": 49,
+          "ink_density": 0.3217,
+          "connected_components": 4
+        },
+        {
+          "bounding_box": [
+            933,
+            1841,
+            987,
+            1877
+          ],
+          "confidence": 0.6,
+          "width": 54,
+          "height": 36,
+          "ink_density": 0.3987,
+          "connected_components": 3
+        },
+        {
+          "bounding_box": [
+            1186,
+            1835,
+            1380,
+            1887
+          ],
+          "confidence": 0.537,
+          "width": 194,
+          "height": 52,
+          "ink_density": 0.3037,
+          "connected_components": 8
+        },
+        {
+          "bounding_box": [
+            1004,
+            1830,
+            1169,
+            1894
+          ],
+          "confidence": 0.543,
+          "width": 165,
+          "height": 64,
+          "ink_density": 0.2711,
+          "connected_components": 7
+        },
+        {
+          "bounding_box": [
+            559,
+            1822,
+            914,
+            1875
+          ],
+          "confidence": 0.518,
+          "width": 355,
+          "height": 53,
+          "ink_density": 0.3025,
+          "connected_components": 17
+        },
+        {
+          "bounding_box": [
+            411,
+            1815,
+            544,
+            1866
+          ],
+          "confidence": 0.55,
+          "width": 133,
+          "height": 51,
+          "ink_density": 0.3061,
+          "connected_components": 6
+        }
+      ],
+      "primary_bounding_box": [
+        932,
+        3096,
+        1100,
+        3146
+      ],
+      "stroke_analysis": {
+        "status": "PASSED",
+        "stroke_continuity_score": 0.499,
+        "stroke_laplacian_sharpness": 418.61,
+        "is_blurred_or_pixelated": false,
+        "structural_density": 0.0399
+      },
+      "reference_matching": {
+        "status": "NOT_EVALUATED",
+        "similarity_score": null,
+        "reference_id": null,
+        "reason": "No verified reference signature specimen available for comparison.",
+        "disclaimer": "Reference matching requires an independently verified reference specimen."
+      },
+      "engine_version": "OFPHIL-Signature-Screening-v2",
+      "details": "Detected 45 signature region(s) with normal stroke continuity.",
+      "disclaimer": "Signature presence and stroke screening only; does not prove signer identity or legal authenticity."
+    },
+    "stamp_result": {
+      "status": "PASSED",
+      "presence": true,
+      "stamp_status": "PRESENCE_DETECTED",
+      "stamps_detected_count": 217,
+      "regions": [
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1380,
+            143,
+            1580,
+            343
+          ],
+          "center": [
+            1480,
+            243
+          ],
+          "radius": 100,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            780,
+            383,
+            968,
+            571
+          ],
+          "center": [
+            874,
+            477
+          ],
+          "radius": 94,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            792,
+            3781,
+            1040,
+            4029
+          ],
+          "center": [
+            916,
+            3905
+          ],
+          "radius": 124,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            103,
+            3749,
+            363,
+            4009
+          ],
+          "center": [
+            233,
+            3879
+          ],
+          "radius": 130,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            573,
+            3787,
+            813,
+            4027
+          ],
+          "center": [
+            693,
+            3907
+          ],
+          "radius": 120,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1851,
+            2514,
+            2161,
+            2824
+          ],
+          "center": [
+            2006,
+            2669
+          ],
+          "radius": 155,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1934,
+            418,
+            2088,
+            572
+          ],
+          "center": [
+            2011,
+            495
+          ],
+          "radius": 77,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1350,
+            318,
+            1594,
+            562
+          ],
+          "center": [
+            1472,
+            440
+          ],
+          "radius": 122,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            651,
+            3775,
+            903,
+            4027
+          ],
+          "center": [
+            777,
+            3901
+          ],
+          "radius": 126,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2750,
+            1912,
+            3008,
+            2170
+          ],
+          "center": [
+            2879,
+            2041
+          ],
+          "radius": 129,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2759,
+            1411,
+            2987,
+            1639
+          ],
+          "center": [
+            2873,
+            1525
+          ],
+          "radius": 114,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2775,
+            1191,
+            3024,
+            1501
+          ],
+          "center": [
+            2930,
+            1346
+          ],
+          "radius": 155,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2791,
+            696,
+            3011,
+            916
+          ],
+          "center": [
+            2901,
+            806
+          ],
+          "radius": 110,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            21,
+            3748,
+            287,
+            4014
+          ],
+          "center": [
+            154,
+            3881
+          ],
+          "radius": 133,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2805,
+            603,
+            3024,
+            853
+          ],
+          "center": [
+            2930,
+            728
+          ],
+          "radius": 125,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1156,
+            248,
+            1474,
+            566
+          ],
+          "center": [
+            1315,
+            407
+          ],
+          "radius": 159,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1057,
+            3806,
+            1267,
+            4016
+          ],
+          "center": [
+            1162,
+            3911
+          ],
+          "radius": 105,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1323,
+            3839,
+            1507,
+            4023
+          ],
+          "center": [
+            1415,
+            3931
+          ],
+          "radius": 92,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2743,
+            3290,
+            3024,
+            3572
+          ],
+          "center": [
+            2884,
+            3431
+          ],
+          "radius": 141,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1332,
+            400,
+            1544,
+            612
+          ],
+          "center": [
+            1438,
+            506
+          ],
+          "radius": 106,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1170,
+            3835,
+            1322,
+            3987
+          ],
+          "center": [
+            1246,
+            3911
+          ],
+          "radius": 76,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            739,
+            3778,
+            937,
+            3976
+          ],
+          "center": [
+            838,
+            3877
+          ],
+          "radius": 99,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1526,
+            401,
+            1746,
+            621
+          ],
+          "center": [
+            1636,
+            511
+          ],
+          "radius": 110,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1194,
+            396,
+            1412,
+            614
+          ],
+          "center": [
+            1303,
+            505
+          ],
+          "radius": 109,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2710,
+            2817,
+            2922,
+            3029
+          ],
+          "center": [
+            2816,
+            2923
+          ],
+          "radius": 106,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2800,
+            840,
+            3018,
+            1058
+          ],
+          "center": [
+            2909,
+            949
+          ],
+          "radius": 109,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1467,
+            254,
+            1783,
+            570
+          ],
+          "center": [
+            1625,
+            412
+          ],
+          "radius": 158,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2768,
+            522,
+            3012,
+            766
+          ],
+          "center": [
+            2890,
+            644
+          ],
+          "radius": 122,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2722,
+            2665,
+            2958,
+            2901
+          ],
+          "center": [
+            2840,
+            2783
+          ],
+          "radius": 118,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2690,
+            3452,
+            2916,
+            3678
+          ],
+          "center": [
+            2803,
+            3565
+          ],
+          "radius": 113,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1211,
+            227,
+            1289,
+            305
+          ],
+          "center": [
+            1250,
+            266
+          ],
+          "radius": 39,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1426,
+            308,
+            1636,
+            518
+          ],
+          "center": [
+            1531,
+            413
+          ],
+          "radius": 105,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2073,
+            270,
+            2149,
+            346
+          ],
+          "center": [
+            2111,
+            308
+          ],
+          "radius": 38,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            900,
+            3831,
+            1066,
+            3997
+          ],
+          "center": [
+            983,
+            3914
+          ],
+          "radius": 83,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            906,
+            376,
+            1136,
+            606
+          ],
+          "center": [
+            1021,
+            491
+          ],
+          "radius": 115,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1427,
+            3800,
+            1589,
+            3962
+          ],
+          "center": [
+            1508,
+            3881
+          ],
+          "radius": 81,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1286,
+            3812,
+            1436,
+            3962
+          ],
+          "center": [
+            1361,
+            3887
+          ],
+          "radius": 75,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2736,
+            429,
+            3014,
+            707
+          ],
+          "center": [
+            2875,
+            568
+          ],
+          "radius": 139,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2828,
+            1464,
+            3024,
+            1666
+          ],
+          "center": [
+            2929,
+            1565
+          ],
+          "radius": 101,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            578,
+            3770,
+            740,
+            3932
+          ],
+          "center": [
+            659,
+            3851
+          ],
+          "radius": 81,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1116,
+            206,
+            1194,
+            284
+          ],
+          "center": [
+            1155,
+            245
+          ],
+          "radius": 39,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1279,
+            285,
+            1515,
+            521
+          ],
+          "center": [
+            1397,
+            403
+          ],
+          "radius": 118,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2757,
+            1006,
+            3009,
+            1258
+          ],
+          "center": [
+            2883,
+            1132
+          ],
+          "radius": 126,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2766,
+            3205,
+            3024,
+            3513
+          ],
+          "center": [
+            2920,
+            3359
+          ],
+          "radius": 154,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2779,
+            3605,
+            3024,
+            3887
+          ],
+          "center": [
+            2920,
+            3746
+          ],
+          "radius": 141,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            677,
+            3883,
+            821,
+            4027
+          ],
+          "center": [
+            749,
+            3955
+          ],
+          "radius": 72,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2765,
+            1583,
+            2933,
+            1751
+          ],
+          "center": [
+            2849,
+            1667
+          ],
+          "radius": 84,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2820,
+            434,
+            2974,
+            588
+          ],
+          "center": [
+            2897,
+            511
+          ],
+          "radius": 77,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1355,
+            3663,
+            1639,
+            3947
+          ],
+          "center": [
+            1497,
+            3805
+          ],
+          "radius": 142,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2765,
+            1805,
+            2977,
+            2017
+          ],
+          "center": [
+            2871,
+            1911
+          ],
+          "radius": 106,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1487,
+            419,
+            1639,
+            571
+          ],
+          "center": [
+            1563,
+            495
+          ],
+          "radius": 76,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            509,
+            3857,
+            645,
+            3993
+          ],
+          "center": [
+            577,
+            3925
+          ],
+          "radius": 68,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1121,
+            3785,
+            1275,
+            3939
+          ],
+          "center": [
+            1198,
+            3862
+          ],
+          "radius": 77,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2731,
+            2619,
+            2935,
+            2823
+          ],
+          "center": [
+            2833,
+            2721
+          ],
+          "radius": 102,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2764,
+            1602,
+            3000,
+            1838
+          ],
+          "center": [
+            2882,
+            1720
+          ],
+          "radius": 118,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2668,
+            2748,
+            2902,
+            2982
+          ],
+          "center": [
+            2785,
+            2865
+          ],
+          "radius": 117,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1959,
+            2589,
+            2171,
+            2801
+          ],
+          "center": [
+            2065,
+            2695
+          ],
+          "radius": 106,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            966,
+            3870,
+            1136,
+            4032
+          ],
+          "center": [
+            1051,
+            3955
+          ],
+          "radius": 85,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1578,
+            263,
+            1876,
+            561
+          ],
+          "center": [
+            1727,
+            412
+          ],
+          "radius": 149,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2141,
+            2639,
+            2293,
+            2791
+          ],
+          "center": [
+            2217,
+            2715
+          ],
+          "radius": 76,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            825,
+            3900,
+            953,
+            4028
+          ],
+          "center": [
+            889,
+            3964
+          ],
+          "radius": 64,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1409,
+            45,
+            1553,
+            189
+          ],
+          "center": [
+            1481,
+            117
+          ],
+          "radius": 72,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1382,
+            3815,
+            1490,
+            3923
+          ],
+          "center": [
+            1436,
+            3869
+          ],
+          "radius": 54,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1224,
+            3790,
+            1364,
+            3930
+          ],
+          "center": [
+            1294,
+            3860
+          ],
+          "radius": 70,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1972,
+            72,
+            2206,
+            306
+          ],
+          "center": [
+            2089,
+            189
+          ],
+          "radius": 117,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1133,
+            391,
+            1353,
+            611
+          ],
+          "center": [
+            1243,
+            501
+          ],
+          "radius": 110,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2700,
+            3648,
+            2908,
+            3856
+          ],
+          "center": [
+            2804,
+            3752
+          ],
+          "radius": 104,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            616,
+            1224,
+            834,
+            1442
+          ],
+          "center": [
+            725,
+            1333
+          ],
+          "radius": 109,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2740,
+            3557,
+            2940,
+            3757
+          ],
+          "center": [
+            2840,
+            3657
+          ],
+          "radius": 100,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2873,
+            803,
+            3013,
+            943
+          ],
+          "center": [
+            2943,
+            873
+          ],
+          "radius": 70,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1508,
+            496,
+            1634,
+            622
+          ],
+          "center": [
+            1571,
+            559
+          ],
+          "radius": 63,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1849,
+            2599,
+            2065,
+            2815
+          ],
+          "center": [
+            1957,
+            2707
+          ],
+          "radius": 108,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2752,
+            2380,
+            2954,
+            2582
+          ],
+          "center": [
+            2853,
+            2481
+          ],
+          "radius": 101,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2828,
+            283,
+            3020,
+            475
+          ],
+          "center": [
+            2924,
+            379
+          ],
+          "radius": 96,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1869,
+            2545,
+            2015,
+            2691
+          ],
+          "center": [
+            1942,
+            2618
+          ],
+          "radius": 73,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2690,
+            3620,
+            2822,
+            3752
+          ],
+          "center": [
+            2756,
+            3686
+          ],
+          "radius": 66,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1134,
+            3927,
+            1234,
+            4027
+          ],
+          "center": [
+            1184,
+            3977
+          ],
+          "radius": 50,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1882,
+            311,
+            2104,
+            533
+          ],
+          "center": [
+            1993,
+            422
+          ],
+          "radius": 111,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            617,
+            3906,
+            745,
+            4032
+          ],
+          "center": [
+            681,
+            3970
+          ],
+          "radius": 64,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            877,
+            433,
+            993,
+            549
+          ],
+          "center": [
+            935,
+            491
+          ],
+          "radius": 58,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2711,
+            2329,
+            2879,
+            2497
+          ],
+          "center": [
+            2795,
+            2413
+          ],
+          "radius": 84,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            982,
+            3793,
+            1098,
+            3909
+          ],
+          "center": [
+            1040,
+            3851
+          ],
+          "radius": 58,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2866,
+            1290,
+            3024,
+            1532
+          ],
+          "center": [
+            2987,
+            1411
+          ],
+          "radius": 121,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2855,
+            1849,
+            3024,
+            2061
+          ],
+          "center": [
+            2961,
+            1955
+          ],
+          "radius": 106,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2891,
+            2823,
+            3024,
+            2983
+          ],
+          "center": [
+            2971,
+            2903
+          ],
+          "radius": 80,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2867,
+            2655,
+            3019,
+            2807
+          ],
+          "center": [
+            2943,
+            2731
+          ],
+          "radius": 76,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2873,
+            1022,
+            3009,
+            1158
+          ],
+          "center": [
+            2941,
+            1090
+          ],
+          "radius": 68,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1297,
+            3926,
+            1423,
+            4032
+          ],
+          "center": [
+            1360,
+            3989
+          ],
+          "radius": 63,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2716,
+            2212,
+            2958,
+            2454
+          ],
+          "center": [
+            2837,
+            2333
+          ],
+          "radius": 121,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            0,
+            1186,
+            169,
+            1390
+          ],
+          "center": [
+            67,
+            1288
+          ],
+          "radius": 102,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            501,
+            1167,
+            677,
+            1343
+          ],
+          "center": [
+            589,
+            1255
+          ],
+          "radius": 88,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2780,
+            1110,
+            2940,
+            1270
+          ],
+          "center": [
+            2860,
+            1190
+          ],
+          "radius": 80,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2815,
+            2928,
+            3009,
+            3122
+          ],
+          "center": [
+            2912,
+            3025
+          ],
+          "radius": 97,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2069,
+            2610,
+            2159,
+            2700
+          ],
+          "center": [
+            2114,
+            2655
+          ],
+          "radius": 45,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2856,
+            2059,
+            2992,
+            2195
+          ],
+          "center": [
+            2924,
+            2127
+          ],
+          "radius": 68,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1400,
+            1184,
+            1586,
+            1370
+          ],
+          "center": [
+            1493,
+            1277
+          ],
+          "radius": 93,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            497,
+            1769,
+            661,
+            1933
+          ],
+          "center": [
+            579,
+            1851
+          ],
+          "radius": 82,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2847,
+            2763,
+            2999,
+            2915
+          ],
+          "center": [
+            2923,
+            2839
+          ],
+          "radius": 76,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1046,
+            3827,
+            1166,
+            3947
+          ],
+          "center": [
+            1106,
+            3887
+          ],
+          "radius": 60,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1079,
+            1841,
+            1287,
+            2049
+          ],
+          "center": [
+            1183,
+            1945
+          ],
+          "radius": 104,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            541,
+            2061,
+            717,
+            2237
+          ],
+          "center": [
+            629,
+            2149
+          ],
+          "radius": 88,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1634,
+            503,
+            1754,
+            623
+          ],
+          "center": [
+            1694,
+            563
+          ],
+          "radius": 60,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1298,
+            398,
+            1416,
+            516
+          ],
+          "center": [
+            1357,
+            457
+          ],
+          "radius": 59,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2830,
+            2258,
+            2984,
+            2412
+          ],
+          "center": [
+            2907,
+            2335
+          ],
+          "radius": 77,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2786,
+            910,
+            2912,
+            1036
+          ],
+          "center": [
+            2849,
+            973
+          ],
+          "radius": 63,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2872,
+            537,
+            3014,
+            679
+          ],
+          "center": [
+            2943,
+            608
+          ],
+          "radius": 71,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            511,
+            3760,
+            645,
+            3894
+          ],
+          "center": [
+            578,
+            3827
+          ],
+          "radius": 67,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            436,
+            3849,
+            556,
+            3969
+          ],
+          "center": [
+            496,
+            3909
+          ],
+          "radius": 60,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1455,
+            459,
+            1551,
+            555
+          ],
+          "center": [
+            1503,
+            507
+          ],
+          "radius": 48,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            407,
+            2131,
+            603,
+            2327
+          ],
+          "center": [
+            505,
+            2229
+          ],
+          "radius": 98,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1109,
+            425,
+            1245,
+            561
+          ],
+          "center": [
+            1177,
+            493
+          ],
+          "radius": 68,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2787,
+            3434,
+            2919,
+            3566
+          ],
+          "center": [
+            2853,
+            3500
+          ],
+          "radius": 66,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            320,
+            1220,
+            534,
+            1434
+          ],
+          "center": [
+            427,
+            1327
+          ],
+          "radius": 107,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1799,
+            2599,
+            1991,
+            2791
+          ],
+          "center": [
+            1895,
+            2695
+          ],
+          "radius": 96,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2710,
+            2452,
+            2854,
+            2596
+          ],
+          "center": [
+            2782,
+            2524
+          ],
+          "radius": 72,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2902,
+            1838,
+            3016,
+            1952
+          ],
+          "center": [
+            2959,
+            1895
+          ],
+          "radius": 57,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1556,
+            3893,
+            1656,
+            3993
+          ],
+          "center": [
+            1606,
+            3943
+          ],
+          "radius": 50,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1099,
+            1779,
+            1263,
+            1943
+          ],
+          "center": [
+            1181,
+            1861
+          ],
+          "radius": 82,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2799,
+            2791,
+            2923,
+            2915
+          ],
+          "center": [
+            2861,
+            2853
+          ],
+          "radius": 62,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2460,
+            43,
+            2574,
+            157
+          ],
+          "center": [
+            2517,
+            100
+          ],
+          "radius": 57,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1582,
+            773,
+            1660,
+            851
+          ],
+          "center": [
+            1621,
+            812
+          ],
+          "radius": 39,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1364,
+            1781,
+            1538,
+            1955
+          ],
+          "center": [
+            1451,
+            1868
+          ],
+          "radius": 87,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2749,
+            1933,
+            2901,
+            2085
+          ],
+          "center": [
+            2825,
+            2009
+          ],
+          "radius": 76,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2875,
+            1152,
+            3024,
+            1302
+          ],
+          "center": [
+            2950,
+            1227
+          ],
+          "radius": 75,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            150,
+            3872,
+            286,
+            4008
+          ],
+          "center": [
+            218,
+            3940
+          ],
+          "radius": 68,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1327,
+            487,
+            1455,
+            615
+          ],
+          "center": [
+            1391,
+            551
+          ],
+          "radius": 64,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            838,
+            3781,
+            948,
+            3891
+          ],
+          "center": [
+            893,
+            3836
+          ],
+          "radius": 55,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2762,
+            2949,
+            2868,
+            3055
+          ],
+          "center": [
+            2815,
+            3002
+          ],
+          "radius": 53,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            730,
+            3782,
+            832,
+            3884
+          ],
+          "center": [
+            781,
+            3833
+          ],
+          "radius": 51,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            839,
+            1836,
+            1035,
+            2032
+          ],
+          "center": [
+            937,
+            1934
+          ],
+          "radius": 98,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2812,
+            1179,
+            2982,
+            1349
+          ],
+          "center": [
+            2897,
+            1264
+          ],
+          "radius": 85,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2890,
+            1449,
+            2982,
+            1541
+          ],
+          "center": [
+            2936,
+            1495
+          ],
+          "radius": 46,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1588,
+            1264,
+            1774,
+            1450
+          ],
+          "center": [
+            1681,
+            1357
+          ],
+          "radius": 93,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            730,
+            1182,
+            876,
+            1328
+          ],
+          "center": [
+            803,
+            1255
+          ],
+          "radius": 73,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2902,
+            607,
+            3024,
+            735
+          ],
+          "center": [
+            2966,
+            671
+          ],
+          "radius": 64,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2678,
+            3523,
+            2792,
+            3637
+          ],
+          "center": [
+            2735,
+            3580
+          ],
+          "radius": 57,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2798,
+            1546,
+            2884,
+            1632
+          ],
+          "center": [
+            2841,
+            1589
+          ],
+          "radius": 43,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1507,
+            1264,
+            1695,
+            1452
+          ],
+          "center": [
+            1601,
+            1358
+          ],
+          "radius": 94,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1331,
+            1193,
+            1499,
+            1361
+          ],
+          "center": [
+            1415,
+            1277
+          ],
+          "radius": 84,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2871,
+            1755,
+            2991,
+            1875
+          ],
+          "center": [
+            2931,
+            1815
+          ],
+          "radius": 60,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            661,
+            1767,
+            829,
+            1935
+          ],
+          "center": [
+            745,
+            1851
+          ],
+          "radius": 84,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1441,
+            267,
+            1517,
+            343
+          ],
+          "center": [
+            1479,
+            305
+          ],
+          "radius": 38,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            868,
+            1243,
+            1078,
+            1453
+          ],
+          "center": [
+            973,
+            1348
+          ],
+          "radius": 105,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            0,
+            2052,
+            125,
+            2188
+          ],
+          "center": [
+            57,
+            2120
+          ],
+          "radius": 68,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1,
+            2986,
+            87,
+            3072
+          ],
+          "center": [
+            44,
+            3029
+          ],
+          "radius": 43,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2131,
+            39,
+            2217,
+            125
+          ],
+          "center": [
+            2174,
+            82
+          ],
+          "radius": 43,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            681,
+            3797,
+            761,
+            3877
+          ],
+          "center": [
+            721,
+            3837
+          ],
+          "radius": 40,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1129,
+            1251,
+            1317,
+            1439
+          ],
+          "center": [
+            1223,
+            1345
+          ],
+          "radius": 94,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            940,
+            1782,
+            1102,
+            1944
+          ],
+          "center": [
+            1021,
+            1863
+          ],
+          "radius": 81,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2790,
+            1406,
+            2908,
+            1524
+          ],
+          "center": [
+            2849,
+            1465
+          ],
+          "radius": 59,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            914,
+            3783,
+            1026,
+            3895
+          ],
+          "center": [
+            970,
+            3839
+          ],
+          "radius": 56,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            473,
+            3762,
+            565,
+            3854
+          ],
+          "center": [
+            519,
+            3808
+          ],
+          "radius": 46,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            100,
+            1079,
+            184,
+            1163
+          ],
+          "center": [
+            142,
+            1121
+          ],
+          "radius": 42,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            515,
+            267,
+            591,
+            343
+          ],
+          "center": [
+            553,
+            305
+          ],
+          "radius": 38,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2036,
+            1209,
+            2190,
+            1363
+          ],
+          "center": [
+            2113,
+            1286
+          ],
+          "radius": 77,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            898,
+            3926,
+            1024,
+            4032
+          ],
+          "center": [
+            961,
+            3989
+          ],
+          "radius": 63,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            241,
+            3862,
+            337,
+            3958
+          ],
+          "center": [
+            289,
+            3910
+          ],
+          "radius": 48,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            716,
+            2123,
+            914,
+            2321
+          ],
+          "center": [
+            815,
+            2222
+          ],
+          "radius": 99,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2828,
+            2859,
+            2946,
+            2977
+          ],
+          "center": [
+            2887,
+            2918
+          ],
+          "radius": 59,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2889,
+            2178,
+            2977,
+            2266
+          ],
+          "center": [
+            2933,
+            2222
+          ],
+          "radius": 44,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1457,
+            144,
+            1537,
+            224
+          ],
+          "center": [
+            1497,
+            184
+          ],
+          "radius": 40,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2209,
+            1279,
+            2401,
+            1471
+          ],
+          "center": [
+            2305,
+            1375
+          ],
+          "radius": 96,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            566,
+            1779,
+            720,
+            1933
+          ],
+          "center": [
+            643,
+            1856
+          ],
+          "radius": 77,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            15,
+            1733,
+            123,
+            1841
+          ],
+          "center": [
+            69,
+            1787
+          ],
+          "radius": 54,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            667,
+            1839,
+            843,
+            2015
+          ],
+          "center": [
+            755,
+            1927
+          ],
+          "radius": 88,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1751,
+            513,
+            1859,
+            621
+          ],
+          "center": [
+            1805,
+            567
+          ],
+          "radius": 54,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2737,
+            2140,
+            2841,
+            2244
+          ],
+          "center": [
+            2789,
+            2192
+          ],
+          "radius": 52,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2819,
+            823,
+            2907,
+            911
+          ],
+          "center": [
+            2863,
+            867
+          ],
+          "radius": 44,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2019,
+            2559,
+            2101,
+            2641
+          ],
+          "center": [
+            2060,
+            2600
+          ],
+          "radius": 41,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1697,
+            775,
+            1773,
+            851
+          ],
+          "center": [
+            1735,
+            813
+          ],
+          "radius": 38,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1390,
+            174,
+            1458,
+            242
+          ],
+          "center": [
+            1424,
+            208
+          ],
+          "radius": 34,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2749,
+            3339,
+            2883,
+            3473
+          ],
+          "center": [
+            2816,
+            3406
+          ],
+          "radius": 67,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            892,
+            1200,
+            1014,
+            1322
+          ],
+          "center": [
+            953,
+            1261
+          ],
+          "radius": 61,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            20,
+            1919,
+            138,
+            2037
+          ],
+          "center": [
+            79,
+            1978
+          ],
+          "radius": 59,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2864,
+            1607,
+            2952,
+            1695
+          ],
+          "center": [
+            2908,
+            1651
+          ],
+          "radius": 44,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1827,
+            2771,
+            1883,
+            2827
+          ],
+          "center": [
+            1855,
+            2799
+          ],
+          "radius": 28,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2826,
+            1338,
+            2952,
+            1464
+          ],
+          "center": [
+            2889,
+            1401
+          ],
+          "radius": 63,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1621,
+            408,
+            1733,
+            520
+          ],
+          "center": [
+            1677,
+            464
+          ],
+          "radius": 56,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2764,
+            1702,
+            2844,
+            1782
+          ],
+          "center": [
+            2804,
+            1742
+          ],
+          "radius": 40,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1262,
+            1789,
+            1412,
+            1939
+          ],
+          "center": [
+            1337,
+            1864
+          ],
+          "radius": 75,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            53,
+            2138,
+            129,
+            2214
+          ],
+          "center": [
+            91,
+            2176
+          ],
+          "radius": 38,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            153,
+            3794,
+            225,
+            3866
+          ],
+          "center": [
+            189,
+            3830
+          ],
+          "radius": 36,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1981,
+            259,
+            2047,
+            325
+          ],
+          "center": [
+            2014,
+            292
+          ],
+          "radius": 33,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1078,
+            1186,
+            1236,
+            1344
+          ],
+          "center": [
+            1157,
+            1265
+          ],
+          "radius": 79,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            952,
+            1578,
+            1074,
+            1700
+          ],
+          "center": [
+            1013,
+            1639
+          ],
+          "radius": 61,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            287,
+            1342,
+            407,
+            1462
+          ],
+          "center": [
+            347,
+            1402
+          ],
+          "radius": 60,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1443,
+            538,
+            1525,
+            620
+          ],
+          "center": [
+            1484,
+            579
+          ],
+          "radius": 41,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2959,
+            1495,
+            3024,
+            1569
+          ],
+          "center": [
+            2996,
+            1532
+          ],
+          "radius": 37,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            13,
+            2653,
+            135,
+            2775
+          ],
+          "center": [
+            74,
+            2714
+          ],
+          "radius": 61,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            345,
+            1310,
+            529,
+            1494
+          ],
+          "center": [
+            437,
+            1402
+          ],
+          "radius": 92,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1764,
+            2639,
+            1858,
+            2733
+          ],
+          "center": [
+            1811,
+            2686
+          ],
+          "radius": 47,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1408,
+            768,
+            1486,
+            846
+          ],
+          "center": [
+            1447,
+            807
+          ],
+          "radius": 39,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            496,
+            2146,
+            670,
+            2320
+          ],
+          "center": [
+            583,
+            2233
+          ],
+          "radius": 87,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1048,
+            1864,
+            1194,
+            2010
+          ],
+          "center": [
+            1121,
+            1937
+          ],
+          "radius": 73,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            480,
+            1260,
+            610,
+            1390
+          ],
+          "center": [
+            545,
+            1325
+          ],
+          "radius": 65,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2449,
+            1833,
+            2565,
+            1949
+          ],
+          "center": [
+            2507,
+            1891
+          ],
+          "radius": 58,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1208,
+            1586,
+            1322,
+            1700
+          ],
+          "center": [
+            1265,
+            1643
+          ],
+          "radius": 57,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2754,
+            1768,
+            2824,
+            1838
+          ],
+          "center": [
+            2789,
+            1803
+          ],
+          "radius": 35,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2795,
+            631,
+            2855,
+            691
+          ],
+          "center": [
+            2825,
+            661
+          ],
+          "radius": 30,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2431,
+            1306,
+            2571,
+            1446
+          ],
+          "center": [
+            2501,
+            1376
+          ],
+          "radius": 70,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2815,
+            206,
+            2905,
+            296
+          ],
+          "center": [
+            2860,
+            251
+          ],
+          "radius": 45,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            11,
+            3077,
+            93,
+            3159
+          ],
+          "center": [
+            52,
+            3118
+          ],
+          "radius": 41,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1789,
+            1317,
+            1869,
+            1397
+          ],
+          "center": [
+            1829,
+            1357
+          ],
+          "radius": 40,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1322,
+            1614,
+            1392,
+            1684
+          ],
+          "center": [
+            1357,
+            1649
+          ],
+          "radius": 35,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2279,
+            1257,
+            2339,
+            1317
+          ],
+          "center": [
+            2309,
+            1287
+          ],
+          "radius": 30,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1839,
+            1284,
+            2003,
+            1448
+          ],
+          "center": [
+            1921,
+            1366
+          ],
+          "radius": 82,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            808,
+            1189,
+            942,
+            1323
+          ],
+          "center": [
+            875,
+            1256
+          ],
+          "radius": 67,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            2809,
+            2076,
+            2899,
+            2166
+          ],
+          "center": [
+            2854,
+            2121
+          ],
+          "radius": 45,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1909,
+            1621,
+            1993,
+            1705
+          ],
+          "center": [
+            1951,
+            1663
+          ],
+          "radius": 42,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            631,
+            993,
+            711,
+            1073
+          ],
+          "center": [
+            671,
+            1033
+          ],
+          "radius": 40,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            14,
+            2906,
+            90,
+            2982
+          ],
+          "center": [
+            52,
+            2944
+          ],
+          "radius": 38,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            557,
+            194,
+            623,
+            260
+          ],
+          "center": [
+            590,
+            227
+          ],
+          "radius": 33,
+          "confidence": 0.85,
+          "circularity": 0.95
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1363,
+            531,
+            1436,
+            572
+          ],
+          "center": [
+            1399,
+            551
+          ],
+          "radius": 36,
+          "confidence": 0.732,
+          "circularity": 0.581
+        },
+        {
+          "geometry_type": "RECTANGULAR_STAMP",
+          "bounding_box": [
+            1898,
+            446,
+            2114,
+            605
+          ],
+          "center": [
+            2006,
+            525
+          ],
+          "radius": 108,
+          "confidence": 0.607,
+          "circularity": 0.268
+        },
+        {
+          "geometry_type": "RECTANGULAR_STAMP",
+          "bounding_box": [
+            1425,
+            435,
+            1604,
+            479
+          ],
+          "center": [
+            1514,
+            457
+          ],
+          "radius": 89,
+          "confidence": 0.614,
+          "circularity": 0.286
+        },
+        {
+          "geometry_type": "RECTANGULAR_STAMP",
+          "bounding_box": [
+            1339,
+            432,
+            1417,
+            482
+          ],
+          "center": [
+            1378,
+            457
+          ],
+          "radius": 39,
+          "confidence": 0.657,
+          "circularity": 0.394
+        },
+        {
+          "geometry_type": "CIRCULAR_SEAL",
+          "bounding_box": [
+            1432,
+            183,
+            1529,
+            309
+          ],
+          "center": [
+            1480,
+            246
+          ],
+          "radius": 63,
+          "confidence": 0.795,
+          "circularity": 0.737
+        }
+      ],
+      "primary_bounding_box": [
+        1380,
+        143,
+        1580,
+        343
+      ],
+      "geometry_type": "CIRCULAR_SEAL",
+      "circularity": 0.95,
+      "reference_matching": {
+        "status": "NOT_EVALUATED",
+        "similarity_score": null,
+        "reference_id": null,
+        "reason": "No verified official issuer stamp specimen available for comparison.",
+        "disclaimer": "Stamp authenticity cannot be confirmed without a verified institutional reference."
+      },
+      "engine_version": "OFPHIL-StampSeal-Screening-v2",
+      "details": "Detected 217 official seal/stamp impression(s) (CIRCULAR_SEAL).",
+      "disclaimer": "Stamp/seal screening only; does not establish official issuing authority legitimacy."
+    },
+    "forensics_result": {
+      "resolution_analysis": {
+        "status": "PASSED",
+        "details": "Resolution (3024x4032, 12.19 MP) meets clinical evidential standards.",
+        "metrics": {
+          "width": 3024,
+          "height": 4032,
+          "aspect_ratio": 1.33,
+          "total_pixels": 12192768,
+          "file_size_kb": 5497.8
+        }
+      },
+      "metadata_analysis": {
+        "status": "PASSED",
+        "details": "Standard image metadata present without unauthorized photo-editing application markers.",
+        "metrics": {
+          "has_exif": true,
+          "detected_editing_software": [],
+          "format": "JPEG"
+        }
+      },
+      "ela_analysis": {
+        "status": "PASSED",
+        "details": "Uniform compression profile across document regions (patch ratio 1.46x, ELA std 1.02).",
+        "metrics": {
+          "ela_mean": 1.034,
+          "ela_std": 1.021,
+          "ela_max": 23.0,
+          "patch_ela_disparity_ratio": 1.46,
+          "median_patch_ela": 0.991,
+          "max_patch_ela": 1.443
+        }
+      },
+      "noise_analysis": {
+        "status": "PASSED",
+        "details": "Consistent sensor/scan noise floor across regional blocks (disparity ratio 2.79x).",
+        "metrics": {
+          "noise_mean": 1.078,
+          "noise_std": 1.888,
+          "noise_disparity_ratio": 2.79,
+          "median_block_variance": 3.166,
+          "max_block_variance": 8.832
+        }
+      },
+      "chromatic_analysis": {
+        "status": "PASSED",
+        "details": "Natural optical color balance and uniform chromatic dispersion (303.9).",
+        "metrics": {
+          "chroma_dispersion": 303.91,
+          "saturation_std": 49.86
+        }
+      },
+      "edge_analysis": {
+        "status": "PASSED",
+        "details": "Expected optical edge gradient and natural sharpness (Laplacian variance 99.2).",
+        "metrics": {
+          "laplacian_sharpness_var": 99.2,
+          "canny_edge_density": 0.0367
+        }
+      },
+      "copy_move_analysis": {
+        "status": "PASSED",
+        "details": "Found 10 incidental matching keypoints below suspicious duplication threshold (standard repeating font/lines).",
+        "metrics": {
+          "keypoints_extracted": 2000,
+          "duplicated_pairs_count": 10
+        }
+      }
+    },
+    "authenticity_result": {
+      "status": "NO_SUSPICIOUS_INDICATORS",
+      "screening_status": "NO_SUSPICIOUS_INDICATORS",
+      "authenticity_classification": "NO_SUSPICIOUS_INDICATORS",
+      "tamper_risk": "LOW",
+      "tamper_risk_level": "LOW",
+      "reason": "Automated forensic screening did not detect image tampering, compression disparities, copy-move duplication, or metadata anomalies.",
+      "authenticity_summary": "No suspicious forensic indicators detected across all executed screening modules.",
+      "supporting_evidence": [
+        "[RESOLUTION_ANALYSIS] Consistent: Resolution (3024x4032, 12.19 MP) meets clinical evidential standards.",
+        "[ELA_ANALYSIS] Consistent: Uniform compression profile across document regions (patch ratio 1.46x, ELA std 1.02).",
+        "[NOISE_ANALYSIS] Consistent: Consistent sensor/scan noise floor across regional blocks (disparity ratio 2.79x).",
+        "[SIGNATURE] Presence detected (does not verify signer identity).",
+        "[STAMP_SEAL] Stamp/seal geometry detected (does not verify issuing authority legitimacy).",
+        "[OCR] Machine text extracted (confidence: 0.7235)."
+      ],
+      "confidence_assessment": "HIGH",
+      "indicators": {
+        "resolution_analysis": {
+          "width": 3024,
+          "height": 4032,
+          "aspect_ratio": 1.33,
+          "total_pixels": 12192768,
+          "file_size_kb": 5497.8
+        },
+        "metadata_analysis": {
+          "has_exif": true,
+          "detected_editing_software": [],
+          "format": "JPEG"
+        },
+        "ela_analysis": {
+          "ela_mean": 1.034,
+          "ela_std": 1.021,
+          "ela_max": 23.0,
+          "patch_ela_disparity_ratio": 1.46,
+          "median_patch_ela": 0.991,
+          "max_patch_ela": 1.443
+        },
+        "noise_analysis": {
+          "noise_mean": 1.078,
+          "noise_std": 1.888,
+          "noise_disparity_ratio": 2.79,
+          "median_block_variance": 3.166,
+          "max_block_variance": 8.832
+        },
+        "chromatic_analysis": {
+          "chroma_dispersion": 303.91,
+          "saturation_std": 49.86
+        },
+        "edge_analysis": {
+          "laplacian_sharpness_var": 99.2,
+          "canny_edge_density": 0.0367
+        },
+        "copy_move_analysis": {
+          "keypoints_extracted": 2000,
+          "duplicated_pairs_count": 10
+        }
+      },
+      "unavailable_checks": [],
+      "engine_version": "ofphil-docproc-v2.0",
+      "disclaimer": "Automated forensic screening provides evidence of integrity or anomalies. It does NOT definitively prove authenticity or replace certified MSW document validation."
+    },
+    "manual_review": null,
+    "classification_result": {
+      "predicted_category": "certificate_of_indigency",
+      "category_name": "Certificate of Indigency",
+      "confidence": 0.2667,
+      "class_probabilities": {
+        "certificate_of_indigency": 0.2667,
+        "water_bill": 0.1667,
+        "government_id": 0.1667,
+        "electricity_bill": 0.1667,
+        "medical_certificate": 0.2333
+      },
+      "matches_claimed_type": true,
+      "classification_status": "UNSUPPORTED",
+      "model_version": "ResNet-50-OFPHIL-v2",
+      "disclaimer": "ResNet-50 classifies document category only; does not assess document authenticity or validity."
+    }
+  },
+  "doc-1ea40fe51f": {
+    "id": "doc-1ea40fe51f",
     "patient_id": "M26-11-000001",
     "patient_name": "Trishtan Roxas",
     "assessment_id": "asmt-d4b4a5efdd",
@@ -1097,8 +5597,8 @@
     "file_size_bytes": 379000,
     "mime_type": "image/jpeg",
     "sha256_hash": "492822f8e71525d91a5cdeeafe9064a1456dc00c55d7d007f38d4e9908e8c6e2",
-    "storage_path": "C:\\Users\\ASUS TUF\\Desktop\\Project in Program\\Thesis Project\\ofphil-classification-v2\\storage\\uploads\\originals\\doc-aac5e2fad4_ind_f_001.jpg",
-    "uploaded_at": "2026-11-28T03:17:02.526132+00:00",
+    "storage_path": "C:\\Users\\ASUS TUF\\Desktop\\Project in Program\\Thesis Project\\ofphil-classification-v2\\storage\\uploads\\originals\\doc-1ea40fe51f_ind_f_001.jpg",
+    "uploaded_at": "2026-11-28T12:23:22.997662+00:00",
     "uploaded_by": "msw_lead",
     "status": "COMPLETED",
     "processing_status": "COMPLETED",
@@ -1113,12 +5613,12 @@
     "stamp_status": "PRESENCE_DETECTED",
     "extracted_text": "AANGAY HOLY REPUBLIC OF THE PHILIPPINES\n1 CITY OF QUEZON\nBARANGAY HOLY SPIRIT FOR RESEARCH\nDistrict IV, Quezon City ONLY\nQUEZON CITY\nCERTIFICATE OF INDIGENCY\nTO WHOM IT MAY CONCERN:\nThis is to certify that Mr. Juan Carlos M. Dela Cruz,\n29 years old, single, resident of 123 Sampaguita St,\nBarangay Holy Spirit, Quezon City, is known to be indigent\nin this community.\nThis certification is being issued upon the request of the\nabove-named individual for whatever legal purpose it may\nserve.\nIssued this 20th day of May 2025 at the Barangay Holy Spirit\nHall, Quezon City.\nPrepared by: RANGAY HOLY Certified by:\n1\nOFFICIAL Khedz\nSEAL\nMARIA L. SANTOS QUEZON CItY RICO T. VALENZUELA\nBarangay Secretary Punong Barangay\nSYNTHETIC RESEARCH ONLY NOT VALID",
     "processing_state": {
-      "job_id": "job-012ca25c",
+      "job_id": "job-6026cb46",
       "processing_status": "COMPLETED",
       "engine_version": "ofphil-docproc-v2.0",
-      "started_at": "2026-11-28T03:17:02.545300+00:00",
-      "completed_at": "2026-11-28T03:17:23.418291+00:00",
-      "processing_time_ms": 20866.56,
+      "started_at": "2026-11-28T12:23:23.021439+00:00",
+      "completed_at": "2026-11-28T12:23:31.369996+00:00",
+      "processing_time_ms": 8340.5,
       "unavailable_checks": [],
       "error_message": null
     },
@@ -1132,7 +5632,7 @@
         "indigency_keyword": true,
         "barangay_reference": true,
         "name": "Juan Carlos M. Dela Cruz",
-        "address": "123 Sampaguita St., Barangay Holy Spirit, Quezon City",
+        "address": "29 years St., Barangay",
         "purpose": "Whatever legal purpose it may serve"
       },
       "missing_information": [],
@@ -3114,127 +7614,112 @@
       "disclaimer": "ResNet-50 classifies document category only; does not assess document authenticity or validity."
     }
   },
-  "doc-c05b81031a": {
-    "id": "doc-c05b81031a",
-    "patient_id": "M26-11-000002",
-    "patient_name": "Wilbur Nigel Santos",
+  "doc-61d401c0ca": {
+    "id": "doc-61d401c0ca",
+    "patient_id": "M26-11-00001",
+    "patient_name": "Juan Dela Cruz",
     "assessment_id": null,
-    "filename": "ind_p_002.jpeg",
+    "filename": "indigency_cert.png",
     "document_type": "SIGNED CERTIFICATE OF INDIGENCY",
-    "file_size_bytes": 6138459,
-    "mime_type": "image/jpeg",
-    "sha256_hash": "da8422d7c36102ace0953b2ffec84d3b06d34fdfee977b695313b262bf82d50c",
-    "storage_path": "/home/kristoper/Projects/Thesis/ofphil-classification-v2/storage/uploads/originals/doc-c05b81031a_ind_p_002.jpeg",
-    "uploaded_at": "2026-11-28T10:08:12.006180+00:00",
-    "uploaded_by": "msw_lead",
-    "status": "processed",
+    "file_size_bytes": 6484,
+    "mime_type": "image/png",
+    "sha256_hash": "3f1f34c9536f2783fecd7388287e723752f7a936e156212366a7975eeea5b57e",
+    "storage_path": "C:\\Users\\ASUS TUF\\Desktop\\Project in Program\\Thesis Project\\ofphil-classification-v2\\storage\\uploads\\originals\\doc-61d401c0ca_indigency_cert.png",
+    "uploaded_at": "2026-11-28T12:39:06.230348+00:00",
+    "uploaded_by": "msw_test",
+    "status": "PROCESSING",
+    "processing_status": "PROCESSING",
     "ocr_processed": false,
-    "manipulation_risk": "clean",
-    "verification_status": "Authentic",
-    "authenticity_classification": "Authentic",
-    "authenticity_summary": "Passes signature, metadata, resolution, and ELA forensic integrity checks.",
-    "seal_detected": true,
-    "tamper_risk": "Low",
-    "signature_status": "SIGNATURE_DETECTED",
+    "screening_status": "NEEDS_VERIFICATION",
+    "authenticity_classification": "NEEDS_VERIFICATION",
+    "tamper_risk": "UNDETERMINED",
+    "verification_status": "NEEDS_VERIFICATION",
+    "authenticity_summary": "Document uploaded and hashed. Pending automated processing.",
+    "seal_detected": null,
+    "signature_status": "NOT_EVALUATED",
+    "stamp_status": "NOT_EVALUATED",
     "extracted_text": null,
     "processing_state": {
-      "job_id": "job-a80dfff6",
-      "processing_status": "COMPLETED",
-      "engine_version": "ofphil-docauth-v2.0",
-      "started_at": "2026-11-28T10:08:12.034130+00:00",
-      "completed_at": "2026-11-28T10:08:13.179665+00:00",
-      "processing_time_ms": 1142.53,
-      "unavailable_checks": [
-        "ocr_engine"
-      ],
+      "job_id": "job-c8077816",
+      "processing_status": "PROCESSING",
+      "engine_version": "ofphil-docproc-v2.0",
+      "started_at": "2026-11-28T12:39:06.262541+00:00",
+      "completed_at": null,
+      "processing_time_ms": null,
+      "unavailable_checks": [],
       "error_message": null
     },
     "ocr_result": {
-      "engine_used": "unavailable",
-      "engine_version": "ofphil-ocr-v2.0",
+      "status": "NOT_EVALUATED",
+      "engine_used": "PaddleOCR PP-OCRv6",
+      "engine_version": "ppocr-v6",
       "extracted_text": null,
       "confidence_score": null,
       "fields_detected": {},
-      "missing_information": [
-        "No machine-readable text extracted"
-      ],
-      "unavailable_reason": "OCR engines unavailable locally (ModuleNotFoundError)"
+      "missing_information": [],
+      "unavailable_reason": "Processing not started"
     },
     "signature_result": {
-      "signature_status": "SIGNATURE_DETECTED",
-      "signatures_detected_count": 36,
-      "regions": [
-        {
-          "label": "candidate_signature_region",
-          "box": [
-            2379,
-            3419,
-            2465,
-            3452
-          ],
-          "ink_density": 0.052
-        },
-        {
-          "label": "candidate_signature_region",
-          "box": [
-            2198,
-            3287,
-            2243,
-            3303
-          ],
-          "ink_density": 0.044
-        },
-        {
-          "label": "candidate_signature_region",
-          "box": [
-            2149,
-            3284,
-            2194,
-            3300
-          ],
-          "ink_density": 0.069
-        },
-        {
-          "label": "candidate_signature_region",
-          "box": [
-            601,
-            2955,
-            837,
-            2991
-          ],
-          "ink_density": 0.439
-        },
-        {
-          "label": "candidate_signature_region",
-          "box": [
-            476,
-            2953,
-            599,
-            2989
-          ],
-          "ink_density": 0.379
-        }
-      ],
-      "engine_version": "OpenCV-Contour-v1 (YOLO signature weights not loaded)"
+      "status": "NOT_EVALUATED",
+      "presence": false,
+      "signature_status": "NOT_EVALUATED",
+      "signatures_detected_count": 0,
+      "regions": [],
+      "engine_version": "YOLO11s-OFPHIL",
+      "disclaimer": "Signature presence detection only; does not establish signer identity or signature authenticity."
+    },
+    "stamp_result": {
+      "status": "NOT_EVALUATED",
+      "presence": false,
+      "stamp_status": "NOT_EVALUATED",
+      "stamps_detected_count": 0,
+      "regions": [],
+      "engine_version": "YOLO11s-OFPHIL",
+      "disclaimer": "Stamp/seal screening only; does not establish official issuing authority legitimacy."
+    },
+    "forensics_result": {
+      "resolution_analysis": {
+        "status": "NOT_EVALUATED",
+        "details": "Pending processing"
+      },
+      "metadata_analysis": {
+        "status": "NOT_EVALUATED",
+        "details": "Pending processing"
+      },
+      "ela_analysis": {
+        "status": "NOT_EVALUATED",
+        "details": "Pending processing"
+      },
+      "noise_analysis": {
+        "status": "NOT_EVALUATED",
+        "details": "Pending processing"
+      },
+      "chromatic_analysis": {
+        "status": "NOT_EVALUATED",
+        "details": "Pending processing"
+      },
+      "edge_analysis": {
+        "status": "NOT_EVALUATED",
+        "details": "Pending processing"
+      },
+      "copy_move_analysis": {
+        "status": "NOT_EVALUATED",
+        "details": "Pending processing"
+      }
     },
     "authenticity_result": {
-      "overall_status": "NO_ISSUE_DETECTED",
-      "authenticity_classification": "Authentic",
-      "authenticity_summary": "Passes signature, metadata, resolution, and ELA forensic integrity checks.",
-      "tamper_risk_level": "Low",
-      "indicators": {
-        "resolution": "3024x4032",
-        "ela_mean_diff": 1.202,
-        "ela_std_diff": 1.131,
-        "ela_max_diff": 20.0,
-        "patch_ela_disparity_ratio": 1.3,
-        "laplacian_sharpness_var": 112.92,
-        "editing_software_metadata": false,
-        "splicing_indicator": "Normal compression profile",
-        "signature_presence": "SIGNATURE_DETECTED"
-      },
+      "status": "NEEDS_VERIFICATION",
+      "screening_status": "NEEDS_VERIFICATION",
+      "authenticity_classification": "NEEDS_VERIFICATION",
+      "tamper_risk": "UNDETERMINED",
+      "tamper_risk_level": "UNDETERMINED",
+      "reason": "Document uploaded and hashed. Pending automated forensic screening.",
+      "authenticity_summary": "Pending automated forensic screening.",
+      "supporting_evidence": [],
+      "indicators": {},
       "unavailable_checks": [],
-      "engine_version": "PIL-ELA-OpenCV-v2"
+      "engine_version": "ofphil-docproc-v2.0",
+      "disclaimer": "Evidence-based screening. Missing indicators do not constitute proof of authenticity."
     },
     "manual_review": null
   }

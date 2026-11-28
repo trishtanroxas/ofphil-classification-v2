@@ -133,6 +133,7 @@ class Stage2EvaluationResponse(BaseModel):
     triggered_conditions: List[Dict[str, Any]] = Field(default_factory=list)
     calculation_basis: Optional[str] = "STAGE2_TEXT_INTERVIEW_ONLY"
     rubric_version: Optional[str] = None
+    interview_assessment: Optional[Dict[str, Any]] = None
 
 
 class InterviewSaveRequest(BaseModel):

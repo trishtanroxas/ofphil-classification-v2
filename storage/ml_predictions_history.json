@@ -50,6 +50,476 @@
     "api_classification": "INDIGENT",
     "disagrees_with_api": false,
     "requires_msw_review": true,
+    "prediction_timestamp": "2026-11-28T12:39:18.361047+00:00",
+    "provenance_note": "Prediction from approved Phase 05 ensemble model using 27 clinical features. AI provides decision support only; final charity classification authority rests with the MSW."
+  },
+  {
+    "assessment_id": null,
+    "prediction_enabled": true,
+    "status": "EXPERIMENTAL_BINARY_PREDICTION",
+    "model_candidate": "ebm",
+    "model_version": "ebm_phase05_v1",
+    "classes_supported": [
+      0,
+      1
+    ],
+    "predicted_class": 0,
+    "predicted_label": "Non-Charity / Review (Binary Class 0)",
+    "probabilities": {
+      "class_0_non_indigent": 0.6761,
+      "class_1_indigent": 0.3239
+    },
+    "top_explanations": [
+      {
+        "feature": "monthly_utility_expenses",
+        "value": 2500.0,
+        "contribution": 1.3641
+      },
+      {
+        "feature": "diagnosis_severity",
+        "value": "Moderate",
+        "contribution": -1.1913
+      },
+      {
+        "feature": "disability_status",
+        "value": "None",
+        "contribution": -1.172
+      },
+      {
+        "feature": "monthly_family_income",
+        "value": 12000.0,
+        "contribution": 1.1603
+      },
+      {
+        "feature": "cost_of_treatment",
+        "value": 25000.0,
+        "contribution": -0.8805
+      },
+      {
+        "feature": "sectoral_membership",
+        "value": "Informal Sector",
+        "contribution": 0.6843
+      }
+    ],
+    "api_classification": "INDIGENT",
+    "disagrees_with_api": true,
+    "requires_msw_review": true,
+    "prediction_timestamp": "2026-11-28T12:39:18.248029+00:00",
+    "provenance_note": "Prediction from approved Phase 05 ebm model using 27 clinical features. AI provides decision support only; final charity classification authority rests with the MSW."
+  },
+  {
+    "assessment_id": null,
+    "prediction_enabled": true,
+    "status": "EXPERIMENTAL_BINARY_PREDICTION",
+    "model_candidate": "catboost",
+    "model_version": "catboost_phase05_v1",
+    "classes_supported": [
+      0,
+      1
+    ],
+    "predicted_class": 1,
+    "predicted_label": "Charity Eligible (Binary Class 1)",
+    "probabilities": {
+      "class_0_non_indigent": 0.3661,
+      "class_1_indigent": 0.6339
+    },
+    "top_explanations": [
+      {
+        "feature": "monthly_family_income",
+        "value": 12000.0,
+        "contribution": 1.9764
+      },
+      {
+        "feature": "disability_status",
+        "value": "None",
+        "contribution": -1.2986
+      },
+      {
+        "feature": "monthly_household_obligations_expenses",
+        "value": 11500.0,
+        "contribution": 0.6951
+      },
+      {
+        "feature": "employment_status",
+        "value": "Self-Employed",
+        "contribution": -0.637
+      },
+      {
+        "feature": "monthly_utility_expenses",
+        "value": 2500.0,
+        "contribution": 0.4628
+      },
+      {
+        "feature": "sectoral_membership",
+        "value": "Informal Sector",
+        "contribution": 0.4096
+      }
+    ],
+    "api_classification": "INDIGENT",
+    "disagrees_with_api": false,
+    "requires_msw_review": true,
+    "prediction_timestamp": "2026-11-28T12:39:17.567673+00:00",
+    "provenance_note": "Prediction from approved Phase 05 catboost model using 27 clinical features. AI provides decision support only; final charity classification authority rests with the MSW."
+  },
+  {
+    "assessment_id": null,
+    "prediction_enabled": true,
+    "status": "EXPERIMENTAL_BINARY_PREDICTION",
+    "model_candidate": "logistic_regression",
+    "model_version": "logistic_regression_phase05_v1",
+    "classes_supported": [
+      0,
+      1
+    ],
+    "predicted_class": 1,
+    "predicted_label": "Charity Eligible (Binary Class 1)",
+    "probabilities": {
+      "class_0_non_indigent": 0.1684,
+      "class_1_indigent": 0.8316
+    },
+    "top_explanations": [
+      {
+        "feature": "monthly_household_obligations_expenses",
+        "value": 11500.0,
+        "contribution": 0.524
+      },
+      {
+        "feature": "number_of_dependents",
+        "value": 3,
+        "contribution": 0.516
+      },
+      {
+        "feature": "cost_of_treatment",
+        "value": 25000.0,
+        "contribution": -0.4119
+      },
+      {
+        "feature": "monthly_family_income",
+        "value": 12000.0,
+        "contribution": 0.3381
+      },
+      {
+        "feature": "household_size",
+        "value": 5,
+        "contribution": 0.1151
+      },
+      {
+        "feature": "monthly_utility_expenses",
+        "value": 2500.0,
+        "contribution": 0.0998
+      }
+    ],
+    "api_classification": "INDIGENT",
+    "disagrees_with_api": false,
+    "requires_msw_review": true,
+    "prediction_timestamp": "2026-11-28T12:39:17.452009+00:00",
+    "provenance_note": "Prediction from approved Phase 05 logistic_regression model using 27 clinical features. AI provides decision support only; final charity classification authority rests with the MSW."
+  },
+  {
+    "prediction_enabled": false,
+    "status": "AWAITING_4TIER_VALIDATION",
+    "model_candidate": "ebm",
+    "model_version": "ebm_phase05_v1",
+    "classes_supported": [
+      0,
+      1
+    ],
+    "predicted_class": null,
+    "predicted_label": null,
+    "probabilities": null,
+    "top_explanations": [],
+    "api_classification": "INDIGENT",
+    "disagrees_with_api": null,
+    "requires_msw_review": true,
+    "prediction_timestamp": "2026-11-28T12:39:17.434126+00:00",
+    "provenance_note": "ML predictions are currently gated pending institutional sign-off. Deterministic OFPHIL API classification remains authoritative."
+  },
+  {
+    "assessment_id": null,
+    "prediction_enabled": true,
+    "status": "EXPERIMENTAL_BINARY_PREDICTION",
+    "model_candidate": "ensemble",
+    "model_version": "soft_voting_ensemble_phase05_v1",
+    "classes_supported": [
+      0,
+      1
+    ],
+    "predicted_class": 1,
+    "predicted_label": "Charity Eligible (Binary Class 1)",
+    "probabilities": {
+      "class_0_non_indigent": 0.4035,
+      "class_1_indigent": 0.5965
+    },
+    "top_explanations": [
+      {
+        "feature": "monthly_utility_expenses",
+        "value": 2500.0,
+        "contribution": 1.3641
+      },
+      {
+        "feature": "diagnosis_severity",
+        "value": "Moderate",
+        "contribution": -1.1913
+      },
+      {
+        "feature": "disability_status",
+        "value": "None",
+        "contribution": -1.172
+      },
+      {
+        "feature": "monthly_family_income",
+        "value": 12000.0,
+        "contribution": 1.1603
+      },
+      {
+        "feature": "cost_of_treatment",
+        "value": 25000.0,
+        "contribution": -0.8805
+      },
+      {
+        "feature": "sectoral_membership",
+        "value": "Informal Sector",
+        "contribution": 0.6843
+      }
+    ],
+    "api_classification": "INDIGENT",
+    "disagrees_with_api": false,
+    "requires_msw_review": true,
+    "prediction_timestamp": "2026-11-28T12:01:18.424077+00:00",
+    "provenance_note": "Prediction from approved Phase 05 ensemble model using 27 clinical features. AI provides decision support only; final charity classification authority rests with the MSW."
+  },
+  {
+    "assessment_id": null,
+    "prediction_enabled": true,
+    "status": "EXPERIMENTAL_BINARY_PREDICTION",
+    "model_candidate": "ebm",
+    "model_version": "ebm_phase05_v1",
+    "classes_supported": [
+      0,
+      1
+    ],
+    "predicted_class": 0,
+    "predicted_label": "Non-Charity / Review (Binary Class 0)",
+    "probabilities": {
+      "class_0_non_indigent": 0.6761,
+      "class_1_indigent": 0.3239
+    },
+    "top_explanations": [
+      {
+        "feature": "monthly_utility_expenses",
+        "value": 2500.0,
+        "contribution": 1.3641
+      },
+      {
+        "feature": "diagnosis_severity",
+        "value": "Moderate",
+        "contribution": -1.1913
+      },
+      {
+        "feature": "disability_status",
+        "value": "None",
+        "contribution": -1.172
+      },
+      {
+        "feature": "monthly_family_income",
+        "value": 12000.0,
+        "contribution": 1.1603
+      },
+      {
+        "feature": "cost_of_treatment",
+        "value": 25000.0,
+        "contribution": -0.8805
+      },
+      {
+        "feature": "sectoral_membership",
+        "value": "Informal Sector",
+        "contribution": 0.6843
+      }
+    ],
+    "api_classification": "INDIGENT",
+    "disagrees_with_api": true,
+    "requires_msw_review": true,
+    "prediction_timestamp": "2026-11-28T12:01:18.131251+00:00",
+    "provenance_note": "Prediction from approved Phase 05 ebm model using 27 clinical features. AI provides decision support only; final charity classification authority rests with the MSW."
+  },
+  {
+    "assessment_id": null,
+    "prediction_enabled": true,
+    "status": "EXPERIMENTAL_BINARY_PREDICTION",
+    "model_candidate": "catboost",
+    "model_version": "catboost_phase05_v1",
+    "classes_supported": [
+      0,
+      1
+    ],
+    "predicted_class": 1,
+    "predicted_label": "Charity Eligible (Binary Class 1)",
+    "probabilities": {
+      "class_0_non_indigent": 0.3661,
+      "class_1_indigent": 0.6339
+    },
+    "top_explanations": [
+      {
+        "feature": "monthly_family_income",
+        "value": 12000.0,
+        "contribution": 1.9764
+      },
+      {
+        "feature": "disability_status",
+        "value": "None",
+        "contribution": -1.2986
+      },
+      {
+        "feature": "monthly_household_obligations_expenses",
+        "value": 11500.0,
+        "contribution": 0.6951
+      },
+      {
+        "feature": "employment_status",
+        "value": "Self-Employed",
+        "contribution": -0.637
+      },
+      {
+        "feature": "monthly_utility_expenses",
+        "value": 2500.0,
+        "contribution": 0.4628
+      },
+      {
+        "feature": "sectoral_membership",
+        "value": "Informal Sector",
+        "contribution": 0.4096
+      }
+    ],
+    "api_classification": "INDIGENT",
+    "disagrees_with_api": false,
+    "requires_msw_review": true,
+    "prediction_timestamp": "2026-11-28T12:01:16.213170+00:00",
+    "provenance_note": "Prediction from approved Phase 05 catboost model using 27 clinical features. AI provides decision support only; final charity classification authority rests with the MSW."
+  },
+  {
+    "assessment_id": null,
+    "prediction_enabled": true,
+    "status": "EXPERIMENTAL_BINARY_PREDICTION",
+    "model_candidate": "logistic_regression",
+    "model_version": "logistic_regression_phase05_v1",
+    "classes_supported": [
+      0,
+      1
+    ],
+    "predicted_class": 1,
+    "predicted_label": "Charity Eligible (Binary Class 1)",
+    "probabilities": {
+      "class_0_non_indigent": 0.1684,
+      "class_1_indigent": 0.8316
+    },
+    "top_explanations": [
+      {
+        "feature": "monthly_household_obligations_expenses",
+        "value": 11500.0,
+        "contribution": 0.524
+      },
+      {
+        "feature": "number_of_dependents",
+        "value": 3,
+        "contribution": 0.516
+      },
+      {
+        "feature": "cost_of_treatment",
+        "value": 25000.0,
+        "contribution": -0.4119
+      },
+      {
+        "feature": "monthly_family_income",
+        "value": 12000.0,
+        "contribution": 0.3381
+      },
+      {
+        "feature": "household_size",
+        "value": 5,
+        "contribution": 0.1151
+      },
+      {
+        "feature": "monthly_utility_expenses",
+        "value": 2500.0,
+        "contribution": 0.0998
+      }
+    ],
+    "api_classification": "INDIGENT",
+    "disagrees_with_api": false,
+    "requires_msw_review": true,
+    "prediction_timestamp": "2026-11-28T12:01:15.886936+00:00",
+    "provenance_note": "Prediction from approved Phase 05 logistic_regression model using 27 clinical features. AI provides decision support only; final charity classification authority rests with the MSW."
+  },
+  {
+    "prediction_enabled": false,
+    "status": "AWAITING_4TIER_VALIDATION",
+    "model_candidate": "ebm",
+    "model_version": "ebm_phase05_v1",
+    "classes_supported": [
+      0,
+      1
+    ],
+    "predicted_class": null,
+    "predicted_label": null,
+    "probabilities": null,
+    "top_explanations": [],
+    "api_classification": "INDIGENT",
+    "disagrees_with_api": null,
+    "requires_msw_review": true,
+    "prediction_timestamp": "2026-11-28T12:01:15.852949+00:00",
+    "provenance_note": "ML predictions are currently gated pending institutional sign-off. Deterministic OFPHIL API classification remains authoritative."
+  },
+  {
+    "assessment_id": null,
+    "prediction_enabled": true,
+    "status": "EXPERIMENTAL_BINARY_PREDICTION",
+    "model_candidate": "ensemble",
+    "model_version": "soft_voting_ensemble_phase05_v1",
+    "classes_supported": [
+      0,
+      1
+    ],
+    "predicted_class": 1,
+    "predicted_label": "Charity Eligible (Binary Class 1)",
+    "probabilities": {
+      "class_0_non_indigent": 0.4035,
+      "class_1_indigent": 0.5965
+    },
+    "top_explanations": [
+      {
+        "feature": "monthly_utility_expenses",
+        "value": 2500.0,
+        "contribution": 1.3641
+      },
+      {
+        "feature": "diagnosis_severity",
+        "value": "Moderate",
+        "contribution": -1.1913
+      },
+      {
+        "feature": "disability_status",
+        "value": "None",
+        "contribution": -1.172
+      },
+      {
+        "feature": "monthly_family_income",
+        "value": 12000.0,
+        "contribution": 1.1603
+      },
+      {
+        "feature": "cost_of_treatment",
+        "value": 25000.0,
+        "contribution": -0.8805
+      },
+      {
+        "feature": "sectoral_membership",
+        "value": "Informal Sector",
+        "contribution": 0.6843
+      }
+    ],
+    "api_classification": "INDIGENT",
+    "disagrees_with_api": false,
+    "requires_msw_review": true,
     "prediction_timestamp": "2026-11-28T02:39:40.140035+00:00",
     "provenance_note": "Prediction from approved Phase 05 ensemble model using 27 clinical features. AI provides decision support only; final charity classification authority rests with the MSW."
   },

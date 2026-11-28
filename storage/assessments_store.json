@@ -2879,14 +2879,84 @@
     "stage2_data": {
       "interview_info": {
         "interview_date": "2026-11-23",
+        "interview_start_time": "",
+        "interview_end_time": "",
         "assigned_msw": "Maria Santos, RSW",
-        "interview_status": "IN_PROGRESS"
+        "interviewed_person": "PATIENT",
+        "representative_relationship": "",
+        "interview_method": "FACE_TO_FACE",
+        "interview_status": "IN_PROGRESS",
+        "consent_obtained": true,
+        "consent_notes": ""
       },
       "background": {
         "living_situation": "Informal settlement",
         "living_situation_obs": "High vulnerability observed"
       },
-      "notes": "Patient accompanied by eldest daughter."
+      "notes": "Patient accompanied by eldest daughter.",
+      "interview_answers": [
+        {
+          "question_key": "health_factor_1",
+          "question_text": "Absence of adequate health services",
+          "patient_answer": "Nearest clinic requires 2 hours transit",
+          "msw_observation": "Verified transit hardship"
+        },
+        {
+          "question_key": "domain_discrimination",
+          "question_text": "VI. Discrimination Burden",
+          "patient_answer": "None reported",
+          "msw_observation": "Supportive household"
+        }
+      ],
+      "interview_assessment": {
+        "patient_id": "M26-11-INT01",
+        "overall_consistency_score": 83.9,
+        "status": "ASSESSED",
+        "interpretation_label": "Minor Inconsistencies",
+        "provisional_interpretation": "Minor Inconsistencies",
+        "information_consistency": 92.0,
+        "response_completeness": 60.0,
+        "cross_field_consistency": 90.0,
+        "clarification_resolution": 95.0,
+        "dimension_weights": {
+          "information_consistency": 0.35,
+          "response_completeness": 0.25,
+          "cross_field_consistency": 0.25,
+          "clarification_resolution": 0.15
+        },
+        "per_question_assessments": [
+          {
+            "question_key": "living_situation",
+            "question_text": "Living Situation & Housing Tenancy",
+            "patient_answer": "Informal settlement",
+            "response_completeness": 60.0,
+            "information_consistency": 92.0,
+            "assessment_status": "CONSISTENT",
+            "explanation": "Brief answer; provides basic signal but minimal descriptive elaboration. Response is internally coherent and aligns with the expected intake context.",
+            "msw_verification_status": "PENDING_VERIFICATION"
+          }
+        ],
+        "cross_field_discrepancies": [],
+        "clarification_history": [
+          {
+            "question_key": null,
+            "original_answer": "Primary intake answers clear and descriptive.",
+            "clarification_question": "No additional clarification questions required.",
+            "patient_clarification": "Not applicable \u2014 baseline intake complete.",
+            "resolution_status": "NO_CLARIFICATION_NEEDED",
+            "resolution_percentage": 95.0,
+            "explanation": "Documented rule: 95.0% assigned as no ambiguous answers required follow-up clarification probe."
+          }
+        ],
+        "unresolved_questions": [],
+        "missing_information": [],
+        "execution_mode": "PROTOTYPE_SIMULATED",
+        "model_representation": "Qwen3-4B-Instruct-2507 (Simulated Prototype Representation)",
+        "assessment_timestamp": "2026-11-28T12:42:20.920665+00:00",
+        "score_label": "INTERVIEW CONSISTENCY SCORE",
+        "msw_verification_status": "PENDING_MSW_VERIFICATION",
+        "disclaimer": "PROTOTYPE ASSESSMENT FRAMEWORK PENDING EMPIRICAL VALIDATION. This score is a supporting decision-aid for licensed MSW intake review. It is NOT a validated psychological/clinical instrument, does NOT represent patient truthfulness or eligibility probability, and NEVER automatically rejects patients or replaces professional human judgment."
+      }
     },
     "stage3_documents": [],
     "classification_result": {
@@ -2903,86 +2973,8 @@
         "rubric_version": "1.0",
         "explanation": "Monthly per capita income (\u20b12,666.67) is at or below the OFPHIL Indigent threshold of \u20b14,715.76."
       },
-      "msw_classification": {
-        "classification": "INDIGENT",
-        "classification_label": "Indigent",
-        "proposed_subsidy": "100% Full Charity Subsidy",
-        "subsidy_percentage_range": "100%",
-        "average_severity": "4.40",
-        "average_coping": "4.25",
-        "total_risk": "58.7",
-        "total_risk_formula": "(Average Severity * 8.5) + (Average Coping * 5.0)",
-        "triggered_conditions": [
-          {
-            "tier": "INDIGENT",
-            "rule": "Average Severity >= 3.8",
-            "metric": "average_severity",
-            "actual_value": "4.40",
-            "threshold": "3.8",
-            "context_applicable": true
-          },
-          {
-            "tier": "INDIGENT",
-            "rule": "Average Coping >= 3.8",
-            "metric": "average_coping",
-            "actual_value": "4.25",
-            "threshold": "3.8",
-            "context_applicable": true
-          },
-          {
-            "tier": "FINANCIALLY_INCAPACITATED_B1",
-            "rule": "Average Severity >= 2.8",
-            "metric": "average_severity",
-            "actual_value": "4.40",
-            "threshold": "2.8",
-            "context_applicable": true
-          },
-          {
-            "tier": "FINANCIALLY_INCAPACITATED_B1",
-            "rule": "Average Coping >= 2.8",
-            "metric": "average_coping",
-            "actual_value": "4.25",
-            "threshold": "2.8",
-            "context_applicable": true
-          },
-          {
-            "tier": "FINANCIALLY_INCAPACITATED_B1",
-            "rule": "Total Risk >= 45.0%",
-            "metric": "total_risk",
-            "actual_value": "58.7%",
-            "threshold": "45.0%",
-            "context_applicable": true
-          },
-          {
-            "tier": "FINANCIALLY_INCAPACITATED_B2",
-            "rule": "Total Risk >= 30.0%",
-            "metric": "total_risk",
-            "actual_value": "58.7%",
-            "threshold": "30.0%",
-            "context_applicable": true
-          }
-        ],
-        "classification_precedence": [
-          "INDIGENT",
-          "FINANCIALLY_INCAPACITATED_B1",
-          "FINANCIALLY_INCAPACITATED_B2",
-          "FINANCIALLY_CAPACITATED"
-        ],
-        "initial_load_applied": false,
-        "assessment_context": "live_recalculation",
-        "missing_factors": [],
-        "calculation_breakdown": {
-          "average_severity": 4.4,
-          "average_coping": 4.25,
-          "severity_weighted": 37.4,
-          "coping_weighted": 21.25,
-          "total_risk_percent": 58.7
-        },
-        "classification_basis": "OFPHIL_MSW_RUBRIC",
-        "rubric_version": "1.0",
-        "explanation": "MSW Rubric Classification: Indigent (100% Full Charity Subsidy). Computed Avg Severity=4.40, Avg Coping=4.25, Total Risk=58.7%. Primary triggers: Average Severity >= 3.8; Average Coping >= 3.8."
-      },
-      "total_risk": 58.7
+      "msw_classification": null,
+      "total_risk": null
     },
     "classification_history": [],
     "ml_prediction": null,
@@ -2990,7 +2982,7 @@
     "institutional_approval": null,
     "created_by": "msw_santos_01",
     "created_at": "2026-11-22T18:24:50.011197+00:00",
-    "updated_at": "2026-11-28T00:37:48.635731+00:00",
+    "updated_at": "2026-11-28T12:42:20.920665+00:00",
     "history": [
       {
         "timestamp": "2026-11-22T18:24:50.011197+00:00",
@@ -3572,6 +3564,94 @@
           "status": "EVALUATED",
           "is_complete": true,
           "missing_factors": []
+        }
+      },
+      {
+        "timestamp": "2026-11-28T12:36:23.144455+00:00",
+        "event": "INTERVIEW_DRAFT_SAVED",
+        "actor_id": "msw_santos_01",
+        "role": "msw",
+        "workflow_status": "DRAFT",
+        "details": {
+          "mark_completed": false
+        }
+      },
+      {
+        "timestamp": "2026-11-28T12:36:23.174186+00:00",
+        "event": "STAGE2_INTERVIEW_EVALUATED",
+        "actor_id": "msw_santos_01",
+        "role": "msw",
+        "workflow_status": "DRAFT",
+        "details": {
+          "status": "INTERVIEW_RECORDED",
+          "is_complete": true,
+          "interview_answers_count": 2
+        }
+      },
+      {
+        "timestamp": "2026-11-28T12:38:24.044096+00:00",
+        "event": "INTERVIEW_DRAFT_SAVED",
+        "actor_id": "msw_santos_01",
+        "role": "msw",
+        "workflow_status": "DRAFT",
+        "details": {
+          "mark_completed": false
+        }
+      },
+      {
+        "timestamp": "2026-11-28T12:38:24.070731+00:00",
+        "event": "STAGE2_INTERVIEW_EVALUATED",
+        "actor_id": "msw_santos_01",
+        "role": "msw",
+        "workflow_status": "DRAFT",
+        "details": {
+          "status": "INTERVIEW_RECORDED",
+          "is_complete": true,
+          "interview_answers_count": 2
+        }
+      },
+      {
+        "timestamp": "2026-11-28T12:38:40.669660+00:00",
+        "event": "INTERVIEW_DRAFT_SAVED",
+        "actor_id": "msw_santos_01",
+        "role": "msw",
+        "workflow_status": "DRAFT",
+        "details": {
+          "mark_completed": false
+        }
+      },
+      {
+        "timestamp": "2026-11-28T12:38:40.695603+00:00",
+        "event": "STAGE2_INTERVIEW_EVALUATED",
+        "actor_id": "msw_santos_01",
+        "role": "msw",
+        "workflow_status": "DRAFT",
+        "details": {
+          "status": "INTERVIEW_RECORDED",
+          "is_complete": true,
+          "interview_answers_count": 2
+        }
+      },
+      {
+        "timestamp": "2026-11-28T12:42:20.920665+00:00",
+        "event": "INTERVIEW_DRAFT_SAVED",
+        "actor_id": "msw_santos_01",
+        "role": "msw",
+        "workflow_status": "DRAFT",
+        "details": {
+          "mark_completed": false
+        }
+      },
+      {
+        "timestamp": "2026-11-28T12:42:20.944373+00:00",
+        "event": "STAGE2_INTERVIEW_EVALUATED",
+        "actor_id": "msw_santos_01",
+        "role": "msw",
+        "workflow_status": "DRAFT",
+        "details": {
+          "status": "INTERVIEW_RECORDED",
+          "is_complete": true,
+          "interview_answers_count": 2
         }
       }
     ]

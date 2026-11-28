@@ -8,6 +8,7 @@ from app.api.v1.endpoints.ml import router as ml_router
 from app.api.v1.endpoints.auth_recovery import router as auth_recovery_router
 from app.api.v1.endpoints.inquiries import router as inquiries_router
 from app.api.v1.endpoints.annotator import router as annotator_router
+from app.api.v1.endpoints.prototype import router as prototype_router
 
 router = APIRouter()
 router.include_router(endpoints_router)
@@ -19,3 +20,4 @@ router.include_router(ml_router)
 router.include_router(auth_recovery_router)
 router.include_router(inquiries_router)
 router.include_router(annotator_router)
+router.include_router(prototype_router)

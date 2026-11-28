@@ -792,10 +792,41 @@ def evaluate_stage2_interview(req: Stage2EvaluationRequest) -> Stage2EvaluationR
                 rubric_version="1.0",
             )
 
+    # Compute percentage-based Interview Consistency Assessment (Prototype Decision-Support)
+    interview_assessment_dict = None
+    try:
+        from app.services.interview_scoring_service import evaluate_interview_assessment
+        answers_dict_list = [
+            {
+                "question_key": item.question_key,
+                "question_text": item.question_text,
+                "patient_answer": item.patient_answer,
+                "msw_observation": item.msw_observation,
+            }
+            for item in interview_answers
+        ]
+        bg_dict = req.background.model_dump() if req.background else {}
+        med_dict = req.medical_difficulties.model_dump() if req.medical_difficulties else {}
+        psy_dict = req.psychosocial.model_dump() if req.psychosocial else {}
+        income_val = float(req.total_household_income) if req.total_household_income is not None else None
+        
+        scoring_res = evaluate_interview_assessment(
+            interview_answers=answers_dict_list,
+            background=bg_dict,
+            medical_difficulties=med_dict,
+            psychosocial=psy_dict,
+            patient_id=req.patient_id or "PATIENT_PROTOTYPE",
+            total_household_income=income_val,
+            household_size=req.household_size,
+        )
+        interview_assessment_dict = scoring_res.model_dump()
+    except Exception:
+        pass
+
     return Stage2EvaluationResponse(
         is_complete=True,
         status="INTERVIEW_RECORDED",
-        message="Stage 2 qualitative interview recorded (scoring removed; eligibility decided via Stage 1 financial classification and manual MSW decision).",
+        message="Stage 2 qualitative interview recorded (with prototype Interview Consistency Score for MSW decision-support).",
         interview_answers=interview_answers,
         missing_factors=[],
         missing_mappings=[],
@@ -811,4 +842,5 @@ def evaluate_stage2_interview(req: Stage2EvaluationRequest) -> Stage2EvaluationR
         triggered_conditions=[],
         calculation_basis="STAGE2_TEXT_INTERVIEW_ONLY",
         rubric_version=None,
+        interview_assessment=interview_assessment_dict,
     )

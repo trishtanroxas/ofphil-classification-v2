@@ -618,6 +618,37 @@ class AssessmentService:
         if mark_completed:
             interview_info = merged_stage2.setdefault("interview_info", {})
             interview_info["interview_status"] = "COMPLETED"
+
+        # Compute Interview Consistency Assessment for Stage 2
+        try:
+            from app.services.interview_scoring_service import evaluate_interview_assessment
+            answers = merged_stage2.get("interview_answers") or []
+            if not answers:
+                # Compile basic answers if not passed directly
+                from app.services.classification_service import _compile_stage2_interview_answers
+                from app.schemas.assessment_schemas import Stage2EvaluationRequest
+                eval_req = Stage2EvaluationRequest(**{k: v for k, v in merged_stage2.items() if k in Stage2EvaluationRequest.model_fields})
+                answers = [a.model_dump() for a in _compile_stage2_interview_answers(eval_req)]
+
+            stage1 = record.get("stage1_data") or {}
+            family_members = stage1.get("family_members") or []
+            hh_size = int(stage1.get("household_size") or (len(family_members) + 1))
+            income = float(stage1.get("total_household_income") or 0.0)
+
+            scoring = evaluate_interview_assessment(
+                interview_answers=answers,
+                background=merged_stage2.get("background"),
+                medical_difficulties=merged_stage2.get("medical_difficulties"),
+                psychosocial=merged_stage2.get("psychosocial"),
+                clarification_items=merged_stage2.get("clarification_history") or merged_stage2.get("clarification_items"),
+                patient_id=record.get("patient_id", "PATIENT_PROTOTYPE"),
+                total_household_income=income,
+                household_size=hh_size,
+            )
+            merged_stage2["interview_assessment"] = scoring.model_dump()
+        except Exception:
+            pass
+
         record["stage2_data"] = merged_stage2
         record["updated_at"] = _utc_now()
         self._append_history(

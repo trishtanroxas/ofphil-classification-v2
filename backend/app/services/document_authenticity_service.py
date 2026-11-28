@@ -612,6 +612,8 @@ class DocumentAuthenticityService:
         doc["tamper_risk"] = assessment.tamper_risk
         doc["authenticity_summary"] = assessment.summary
         doc["verification_status"] = assessment.status
+        doc["document_integrity_screening_score"] = assessment.document_integrity_screening_score
+        doc["score_interpretation"] = assessment.score_interpretation
 
         doc["authenticity_result"] = {
             "status": assessment.status,
@@ -619,6 +621,9 @@ class DocumentAuthenticityService:
             "authenticity_classification": assessment.status,
             "tamper_risk": assessment.tamper_risk,
             "tamper_risk_level": assessment.tamper_risk,
+            "document_integrity_screening_score": assessment.document_integrity_screening_score,
+            "score_interpretation": assessment.score_interpretation,
+            "score_contributors": assessment.score_contributors,
             "reason": assessment.reason,
             "authenticity_summary": assessment.summary,
             "supporting_evidence": assessment.supporting_evidence,

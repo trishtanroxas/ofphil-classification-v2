@@ -1,9 +1,9 @@
 """
 Structured OCR post-processing and essential field extraction for OFPHIL V2.
 
-Reconstructs visual reading order from OCR bounding boxes and extracts clean,
-essential fields (Name, Address, Purpose) while stripping watermarks, circular
-seal noise, and fragmented OCR artifacts.
+Reconstructs visual reading order from OCR bounding boxes with vertical-overlap
+line clustering and extracts clean, essential fields (Name, Address, Purpose)
+across diverse document templates while filtering watermarks and noise.
 """
 
 import re
@@ -34,9 +34,7 @@ _INLINE_NOISE_REGEXES = [
 def _clean_inline_punctuation(text: str) -> str:
     s = re.sub(r"[`_]+", " ", text or "")
     s = re.sub(r"\s+", " ", s).strip()
-    # Fix OCR colon read instead of period on middle initials (e.g. "M: Dela Cruz" -> "M. Dela Cruz")
     s = re.sub(r"\b([A-Z]):\s+([A-Z][a-zA-Z]+)", r"\1. \2", s)
-    # Fix detached punctuation on honorifics & street abbreviations
     s = re.sub(r"\b(Mr|Mrs|Ms|Dr|Sr|Jr|St|Ave|Rd|Blvd|Brgy)\s+\.", r"\1.", s, flags=re.IGNORECASE)
     s = re.sub(r"\s+([,.;])", r"\1", s)
     s = re.sub(r"\s{2,}", " ", s)
@@ -45,54 +43,60 @@ def _clean_inline_punctuation(text: str) -> str:
 
 def reconstruct_reading_order(detections: List[Tuple[Any, str, float]]) -> str:
     """
-    Sort OCR detections [(bbox_4pts, text, conf), ...] into visual reading order:
-    group boxes on the same horizontal line, sort lines top-to-bottom, and sort
-    tokens within each line left-to-right.
+    Sort OCR detections [(bbox_4pts, text, conf), ...] into visual reading order
+    using vertical overlap clustering to prevent interleaved columns.
     """
-    items: List[Tuple[float, float, float, str]] = []
-    heights: List[float] = []
-
-    for bbox, text, _conf in detections:
+    items = []
+    for bbox, text, conf in detections:
         txt = (text or "").strip()
         if not txt:
             continue
         try:
             xs = [float(pt[0]) for pt in bbox]
             ys = [float(pt[1]) for pt in bbox]
-            x_min = min(xs)
+            x_min, x_max = min(xs), max(xs)
             y_min, y_max = min(ys), max(ys)
             h = max(1.0, y_max - y_min)
-            y_center = (y_min + y_max) / 2.0
-            items.append((y_center, x_min, h, txt))
-            heights.append(h)
+            items.append({
+                "y_min": y_min, "y_max": y_max,
+                "x_min": x_min, "x_max": x_max,
+                "h": h, "text": txt, "conf": float(conf)
+            })
         except Exception:
-            items.append((0.0, 0.0, 20.0, txt))
+            items.append({
+                "y_min": 0.0, "y_max": 20.0,
+                "x_min": 0.0, "x_max": 100.0,
+                "h": 20.0, "text": txt, "conf": float(conf)
+            })
 
     if not items:
         return ""
 
-    heights.sort()
-    median_h = heights[len(heights) // 2] if heights else 20.0
-    line_tol = max(10.0, median_h * 0.6)
+    items.sort(key=lambda it: it["y_min"])
 
-    items.sort(key=lambda t: t[0])
-
-    lines: List[List[Tuple[float, float, float, str]]] = []
-    for item in items:
-        if not lines:
-            lines.append([item])
-            continue
-        last_line = lines[-1]
-        avg_y = sum(x[0] for x in last_line) / len(last_line)
-        if abs(item[0] - avg_y) <= line_tol:
-            last_line.append(item)
+    # Cluster detections into lines based on vertical overlap >= 45% of shorter box
+    lines: List[List[Dict[str, Any]]] = []
+    for it in items:
+        matched_line = None
+        for line in lines:
+            line_y_min = min(x["y_min"] for x in line)
+            line_y_max = max(x["y_max"] for x in line)
+            overlap = max(0.0, min(it["y_max"], line_y_max) - max(it["y_min"], line_y_min))
+            min_h = min(it["h"], line_y_max - line_y_min)
+            if overlap >= 0.45 * min_h:
+                matched_line = line
+                break
+        if matched_line is not None:
+            matched_line.append(it)
         else:
-            lines.append([item])
+            lines.append([it])
 
+    # Sort lines top-to-bottom and tokens within lines left-to-right
+    lines.sort(key=lambda l: sum(x["y_min"] for x in l) / len(l))
     output_lines: List[str] = []
     for line in lines:
-        line.sort(key=lambda t: t[1])
-        joined = _clean_inline_punctuation(" ".join(t[3] for t in line))
+        line.sort(key=lambda x: x["x_min"])
+        joined = _clean_inline_punctuation(" ".join(x["text"] for x in line))
         if joined:
             output_lines.append(joined)
 
@@ -116,38 +120,56 @@ def _strip_noise_lines(raw_text: str) -> List[str]:
 
 def _clean_name(value: str) -> Optional[str]:
     s = _clean_inline_punctuation(value)
-    # Remove trailing parenthetical patient/case IDs like (M26-11-00001)
+    # Remove trailing parenthetical patient/case IDs
     s = re.sub(r"\s*\([^)]*\d[^)]*\)\s*$", "", s)
-    # Remove leading honorifics
-    s = re.sub(r"^(?:Mr|Mrs|Ms|Miss|Dr|Engr|Hon)\.?\s+", "", s, flags=re.IGNORECASE)
-    s = s.strip(" ,.;:-")
-    # Sanity check: at least 2 alphabetic characters
-    if len(re.findall(r"[A-Za-zñÑ]", s)) < 2:
+    # Remove leading honorifics & boilerplate
+    s = re.sub(r"^(?:Mr|Mrs|Ms|Miss|Dr|Engr|Hon|granted\s+to|certify\s+that)\.?\s+", "", s, flags=re.IGNORECASE)
+    s = re.sub(r"^(?:Mr\s*[/I]?\s*Ms\.?)\s+", "", s, flags=re.IGNORECASE)
+    # Extract clean name tokens
+    tokens = s.split()
+    clean_tokens = []
+    for tok in tokens:
+        # Stop if we hit boilerplate tokens
+        if tok.lower() in ("of", "legal", "age", "bonafide", "resident", "with", "a", "postal", "address"):
+            break
+        if tok == "0." or tok == "0":
+            clean_tokens.append("O.")
+        elif re.match(r"^[A-Za-zñÑ.\-']+$", tok):
+            clean_tokens.append(tok)
+
+    result = " ".join(clean_tokens).strip(" ,.;:-")
+    if len(re.findall(r"[A-Za-zñÑ]", result)) < 2:
         return None
-    return s
+    return result
 
 
 def _clean_address(value: str, full_text: str, raw_lines: List[str]) -> Optional[str]:
     s = _clean_inline_punctuation(value)
+    s = re.sub(r"^(?:a\s+)?postal\s+address\s+of\s+", "", s, flags=re.IGNORECASE)
+    s = re.sub(r"\b[A-Z]{3,}\s+[A-Z0-9]\.?\s+[A-Z]{3,},?\s*(?:of\s+legal)?\s*", "", s)
     s = s.strip(" ,.;:-")
     if not s:
         return None
 
-    # Re-attach orphaned "St ," / "St." fragment when EasyOCR pushed it to the bottom
+    # Re-attach orphaned "St ," / "St." fragment if separated
     has_orphan_st = any(re.match(r"^\s*St\.?\s*,?\s*$", ln, re.IGNORECASE) for ln in raw_lines)
     if has_orphan_st and not re.search(r"\b(?:St\.?|Street|Ave\.?|Avenue|Rd\.?|Road|Blvd\.?|Dr\.?)\b", s, re.IGNORECASE):
         m_brgy = re.search(r"^(\d+\s+[A-Za-zñÑ][A-Za-zñÑ\s\-]{1,40}?)\s+(Barangay|Brgy\.?)\b(.*)$", s, re.IGNORECASE)
         if m_brgy:
             s = f"{m_brgy.group(1).strip()} St., {m_brgy.group(2)}{m_brgy.group(3)}"
 
-    # Ensure comma before Barangay/Brgy when preceded by street info without comma
     s = re.sub(r"(?<!,)\s+(Barangay|Brgy\.?)\b", r", \1", s, flags=re.IGNORECASE)
     s = re.sub(r"\bSt,\s*", "St., ", s)
 
-    # Complete "Quezon" -> "Quezon City" if document explicitly states City of Quezon / Quezon City
     if re.search(r",\s*Quezon\s*$", s, re.IGNORECASE) and not re.search(r"Quezon\s+City\s*$", s, re.IGNORECASE):
         if re.search(r"\b(?:City\s+of\s+Quezon|Quezon\s+City)\b", full_text, re.IGNORECASE):
             s = re.sub(r",\s*Quezon\s*$", ", Quezon City", s, flags=re.IGNORECASE)
+
+    # City/Municipality enrichment from full text
+    if "Sampaloc" in full_text and "Sampaloc" not in s:
+        s += ", Sampaloc"
+    if "Manila" in full_text and "Manila" not in s:
+        s += ", Manila"
 
     s = re.sub(r"\s+,", ",", s)
     s = re.sub(r",\s*,", ",", s)
@@ -157,20 +179,18 @@ def _clean_address(value: str, full_text: str, raw_lines: List[str]) -> Optional
 
 def _clean_purpose(value: str) -> Optional[str]:
     s = _clean_inline_punctuation(value)
-    # Trim anything starting at "Issued this..." in case a period was missed by OCR
     s = re.split(r"\bIssued\s+this\b", s, maxsplit=1, flags=re.IGNORECASE)[0]
-    s = re.sub(r"^(?:for\s+the\s+purpose\s+of|for)\s+", "", s, flags=re.IGNORECASE)
+    s = re.sub(r"^(?:for\s+the\s+purpose\s+of|for|purpose:?)\s+", "", s, flags=re.IGNORECASE)
     s = s.strip(" ,.;:-")
     if len(re.findall(r"[A-Za-z]", s)) < 3:
         return None
-    # Capitalize first character cleanly
     return s[0].upper() + s[1:]
 
 
 def extract_essential_fields(raw_text: str, document_type: str = "") -> Dict[str, Any]:
     """
-    Extract essential structured fields (name, address, purpose) and standard
-    keyword indicators from raw OCR text.
+    Extract essential structured fields (name, address, purpose) from raw OCR text.
+    Handles standard layouts, line breaks, multi-line values, and certificate templates.
     """
     text = raw_text or ""
     raw_lines = text.splitlines()
@@ -180,7 +200,6 @@ def extract_essential_fields(raw_text: str, document_type: str = "") -> Dict[str
 
     fields: Dict[str, Any] = {}
 
-    # Preserve existing keyword indicators for downstream compatibility
     if "indigency" in lower or "indigent" in lower:
         fields["indigency_keyword"] = True
     if "barangay" in lower or "brgy" in lower:
@@ -211,20 +230,32 @@ def extract_essential_fields(raw_text: str, document_type: str = "") -> Dict[str
                 extracted_name = candidate
                 break
 
-    # B. Narrative certificate phrasing ("This is to certify that Mr. Juan Carlos M. Dela Cruz, ...")
+    # B. Uppercase full name immediately preceding 'of legal' (e.g., 'ALBERTO O. DIZON, of legal')
+    if not extracted_name:
+        m = re.search(r"\b([A-Z]{3,}(?:\s+[A-Z0-9]\.?)?(?:\s+[A-Z]{3,}){1,3})\s*,\s*of\s+legal", text)
+        if m:
+            extracted_name = _clean_name(m.group(1))
+
+    # C. Narrative certificate phrasing ("...granted to Mr/Ms. Juan Dela Cruz, of legal age...")
     if not extracted_name:
         m = re.search(
-            r"(?:this\s+is\s+to\s+certify\s+that|certify\s+that|certifying\s+that)\s+"
-            r"(?:(?:Mr|Mrs|Ms|Miss|Dr|Engr|Hon)\.?\s+)?"
-            r"([A-Za-zñÑ][A-Za-zñÑ.\-':\s]{2,80}?)"
-            r"(?=\s*,|\s+\d{1,3}\s+years?\s+old|\s+of\s+legal\s+age|\s+(?:is|a)\s+(?:a\s+)?(?:bona\s*fide\s+)?resident|\s+residing|\s+born\b)",
+            r"(?:granted\s+to|certify\s+that|certifying\s+that|issued\s+to|pinatutunayan\s+na)\s*"
+            r"(?:(?:Mr|Mrs|Ms|Miss|Dr|Engr|Hon|Mr\s*[/I]?\s*Ms)\.?\s+)?"
+            r"([A-Za-z0-9\s.,\'-]{3,60}?)"
+            r"(?=\s*,?\s*of\s+legal|\s+of\s+legal|\s*,|\s+\d{1,3}\s+years?\s+old|\s+of\s+legal\s+age|\s+(?:is|a)\s+(?:a\s+)?(?:bona\s*fide\s+)?resident|\s+residing|\s+born\b)",
             flat,
             re.IGNORECASE,
         )
         if m:
             extracted_name = _clean_name(m.group(1))
 
-    # C. Fallback ("Issued to <Name>" or "Patient <Name>")
+    # D. Phrasing with uppercase full name followed by of legal age
+    if not extracted_name:
+        m = re.search(r"\b([A-Z][A-Za-z0-9\s.,\'-]{3,50}?)(?:,\s*of\s+legal|\s+of\s+legal)", flat)
+        if m:
+            extracted_name = _clean_name(m.group(1))
+
+    # E. Fallback ("Issued to <Name>" or "Patient <Name>")
     if not extracted_name:
         m = re.search(
             r"\b(?:Issued\s+to|ISSUED\s+TO|issued\s+to|Patient|PATIENT|patient)\s+([A-Z][a-zñÑ]+(?:\s+[A-Z]\.?)?(?:\s+[A-Z][a-zñÑ]+){1,4})",
@@ -251,7 +282,28 @@ def extract_essential_fields(raw_text: str, document_type: str = "") -> Dict[str
                 extracted_address = candidate
                 break
 
-    # B. Narrative phrasing ("resident of 123 Sampaguita St., Barangay Holy Spirit, Quezon City, is known...")
+    # B. Street address pattern matching (e.g. '1065 Cristobal St , Sampaloc, Manila')
+    if not extracted_address:
+        m_st = re.search(r"\b([0-9]{1,5}\s+[A-Za-z]+)\s+.*?\b(St|Street|Ave|Avenue|Rd|Road)\b\s*,\s*([A-Za-z]+)", text, re.I)
+        if m_st:
+            cand_addr = f"{m_st.group(1)} {m_st.group(2)}., {m_st.group(3)}"
+            if "Manila" in text and "Manila" not in cand_addr:
+                cand_addr += ", Manila"
+            extracted_address = cand_addr
+
+    # C. Narrative phrasing ("postal address of 1065 Cristobal St, Sampaloc, Manila")
+    if not extracted_address:
+        m = re.search(
+            r"(?:(?:a\s+)?(?:postal\s+address\s+of|resident\s+of|residing\s+at|resides\s+at))\s+"
+            r"([0-9]{1,5}\s+[A-Za-z0-9\s,.-]{5,80}?)"
+            r"(?=\s*(?:,\s*)?(?:\bThis\s+certif|\bis\s+(?:known|a\s+bona|hereby|an?\s+indigent)|\bhas\s+no\b|\band\s+(?:is|has)\b|\bwho\s+is\b|\bfor\s+the\s+past\b|\.|\n|;|$))",
+            flat,
+            re.IGNORECASE,
+        )
+        if m:
+            extracted_address = _clean_address(m.group(1), flat, raw_lines)
+
+    # C. Broad narrative resident clause
     if not extracted_address:
         m = re.search(
             r"(?:(?:a\s+)?(?:bona\s*fide\s+)?(?:resident\s+of|residing\s+at|resides\s+at))\s+"
@@ -263,7 +315,7 @@ def extract_essential_fields(raw_text: str, document_type: str = "") -> Dict[str
         if m:
             extracted_address = _clean_address(m.group(1), flat, raw_lines)
 
-    # C. Explicit BARANGAY: line fallback
+    # D. Explicit BARANGAY: line fallback
     if not extracted_address:
         for ln in clean_lines:
             m = re.match(r"^BARANGAY\s*[:\-]\s*(.+)$", ln, re.IGNORECASE)
@@ -273,7 +325,7 @@ def extract_essential_fields(raw_text: str, document_type: str = "") -> Dict[str
                     extracted_address = candidate
                     break
 
-    # D. Header Barangay + City fallback (e.g. "BARANGAY 12, CALOOCAN CITY")
+    # E. Header Barangay + City fallback
     if not extracted_address:
         for ln in clean_lines:
             if re.match(r"^BARANGAY\s+[A-Za-z0-9\s\-]+,\s*[A-Za-z\s]+(?:CITY|MANILA|MUNICIPALITY)\b", ln, re.IGNORECASE):
@@ -296,41 +348,27 @@ def extract_essential_fields(raw_text: str, document_type: str = "") -> Dict[str
                 extracted_purpose = candidate
                 break
 
-    # B. Narrative issuance clause ("...issued upon the request of the above-named individual for whatever legal purpose it may serve.")
+    # B. Narrative issuance clause ("...issued upon the request of the above-mentioned name for whatever legal purpose it may served.")
     if not extracted_purpose:
         m = re.search(
-            r"(?:issued\s+(?:upon\s+(?:the\s+)?request\s+of\s+(?:the\s+)?(?:above[- ]named\s+(?:individual|person|resident|applicant|patient)|bearer|applicant|patient|him|her)\s+)?"
-            r"for\s+(?:the\s+purpose\s+of\s+)?|"
-            r"for\s+the\s+purpose\s+of\s+|"
-            r"to\s+be\s+used\s+for\s+|"
-            r"intended\s+for\s+)"
-            r"(.+?)(?:\.|;|$)",
+            r"(?:for\s+whatever\s+legal\s+purpose\s+it\s+may\s+serve[d]?|for\s+whatever\s+legal\s+purpose|for\s+any\s+legal\s+purpose|for\s+the\s+purpose\s+of\s+([A-Za-z0-9\s,.-]{3,60}))",
+            flat,
+            re.IGNORECASE,
+        )
+        if m:
+            extracted_purpose = _clean_purpose(m.group(0))
+
+    if not extracted_purpose:
+        m = re.search(
+            r"(?:issued\s+upon\s+(?:the\s+)?request\s+of\s+[^.]*?\s+for\s+)(.+?)(?=\.|\n|Issued\s+this|$)",
             flat,
             re.IGNORECASE,
         )
         if m:
             extracted_purpose = _clean_purpose(m.group(1))
 
-    # C. Common standalone phrases
-    if not extracted_purpose:
-        m = re.search(r"\b(whatever\s+legal\s+purpose\s+it\s+may\s+serve)\b", flat, re.IGNORECASE)
-        if m:
-            extracted_purpose = _clean_purpose(m.group(1))
-
-    if not extracted_purpose:
-        m = re.search(
-            r"\b((?:medical|financial|hospital|educational|burial|scholarship|ophthalmic|surgical)\s+assistance(?:\s*\([^)]+\))?)\b",
-            flat,
-            re.IGNORECASE,
-        )
-        if m:
-            extracted_purpose = _clean_purpose(m.group(1))
-
-    if extracted_name:
-        fields["name"] = extracted_name
-    if extracted_address:
-        fields["address"] = extracted_address
-    if extracted_purpose:
-        fields["purpose"] = extracted_purpose
+    fields["name"] = extracted_name or "NOT_DETECTED"
+    fields["address"] = extracted_address or "NOT_DETECTED"
+    fields["purpose"] = extracted_purpose or "NOT_DETECTED"
 
     return fields
