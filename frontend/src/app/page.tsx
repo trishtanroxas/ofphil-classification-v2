@@ -375,7 +375,7 @@ export default function RootLandingPage() {
                 </h1>
 
                 <p className="hero-headline-desc">
-                  OFPHIL helps eligible patients access financial assistance for cataract, retinal, and glaucoma surgery through structured assessments, verified hospital quotations, and review by authorized medical social workers.
+                  OFPHIL helps eligible patients access medical assistance (subsidy of the clinic procedure quotation) for cataract, retinal, and glaucoma surgery through structured assessments, verified procedure quotations, and review by authorized medical social workers.
                 </p>
 
                 <div className="hero-headline-actions">
@@ -474,10 +474,10 @@ export default function RootLandingPage() {
             <div className="max-w-3xl mb-12 text-left">
               <div className="text-[13px] font-bold text-[#0B6B3A] uppercase tracking-wider mb-2">How we help</div>
               <h2 className="text-3xl sm:text-4xl font-bold text-[#24352B] font-['Outfit'] tracking-tight">
-                Surgical care covered by our charity fund
+                Surgical care supported through procedure quotation subsidy
               </h2>
               <p className="text-base sm:text-lg text-[#66756B] mt-3 leading-relaxed">
-                We prioritize eligible patients who need essential ophthalmic surgery, using documented financial assessments and verified hospital quotations to guide assistance decisions.
+                We prioritize eligible patients who need essential ophthalmic surgery, using documented socio-economic assessments and verified clinic procedure quotations to guide medical assistance decisions.
               </p>
             </div>
 
@@ -562,20 +562,20 @@ export default function RootLandingPage() {
                 <div className="bg-white rounded-2xl p-7 sm:p-8 border border-[#DCE5DF] shadow-sm hover:shadow-md transition">
                   <div className="flex items-start gap-5">
                     <div className="w-12 h-12 rounded-xl bg-[#E8F5EC] text-[#0B6B3A] flex items-center justify-center text-xl flex-shrink-0 shadow-sm">
-                      <i className="fa-solid fa-file-invoice-dollar" />
+                      <i className="fa-solid fa-hand-holding-medical" />
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-2">
                         <h4 className="text-xl font-bold text-[#24352B] font-['Outfit']">Transparent Surgical Quotation Review</h4>
-                        <span className="text-xs font-bold text-[#0B6B3A] px-3 py-1 rounded-full bg-[#E8F5EC]">Direct Voucher</span>
+                        <span className="text-xs font-bold text-[#0B6B3A] px-3 py-1 rounded-full bg-[#E8F5EC]">Quotation Subsidy</span>
                       </div>
                       <p className="text-sm text-[#66756B] leading-relaxed mb-4">
-                        Assistance vouchers cover itemized surgical expenses directly with healthcare partners, eliminating upfront out-of-pocket surgery costs for verified indigent families.
+                        Medical assistance directly subsidizes the clinic procedure quotation for surgical expenses, reducing or covering approved clinic procedure charges for verified indigent families (no cash payouts are issued to patients).
                       </p>
                       <div className="flex flex-wrap items-center gap-4 text-xs font-semibold text-[#66756B]">
                         <span className="inline-flex items-center gap-1.5"><i className="fa-solid fa-circle-check text-[#0B6B3A]" /> Operating room fee sponsorship</span>
                         <span className="inline-flex items-center gap-1.5"><i className="fa-solid fa-circle-check text-[#0B6B3A]" /> Essential intraocular lens (IOL)</span>
-                        <span className="inline-flex items-center gap-1.5"><i className="fa-solid fa-circle-check text-[#0B6B3A]" /> Zero cash barrier for patients</span>
+                        <span className="inline-flex items-center gap-1.5"><i className="fa-solid fa-circle-check text-[#0B6B3A]" /> Direct subsidy of procedure quotation</span>
                       </div>
                     </div>
                   </div>
@@ -653,7 +653,7 @@ export default function RootLandingPage() {
                   </div>
                   <h3 className="text-xl font-bold text-[#24352B] font-['Outfit'] mb-3">Our Commitment</h3>
                   <p className="text-sm text-[#66756B] leading-relaxed mb-4">
-                    We hold ourselves to the highest standards of fairness, patient privacy, and fiduciary integrity. Every donor peso and charity allocation directly covers essential surgical consumables, intraocular lenses, and approved hospital facility costs.
+                    We hold ourselves to the highest standards of fairness, patient privacy, and fiduciary integrity. Every medical assistance subsidy is applied directly toward the clinic procedure quotation for essential surgical consumables, intraocular lenses, and approved facility costs.
                   </p>
                 </div>
                 <div className="pt-4 border-t border-[#DCE5DF] text-xs font-semibold text-[#0B6B3A] flex items-center gap-2">
@@ -670,7 +670,7 @@ export default function RootLandingPage() {
       <span className="section-eyebrow">PATIENT ASSISTANCE ARCHITECTURE</span>
       <h2 className="section-title">How We Support Patients & Families</h2>
       <p className="section-subtitle">
-        Navigating surgical care and financial aid can be overwhelming. OFPHIL streamlines every phase of the beneficiary journey through dedicated casework assistance and transparent digital tools.
+        Navigating surgical care and medical assistance can be overwhelming. OFPHIL streamlines every phase of the beneficiary journey through dedicated casework assistance and transparent digital tools.
       </p>
     </div>
 
@@ -702,15 +702,15 @@ export default function RootLandingPage() {
         <div>
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-xl bg-[#E8F5EC] text-[#0B6B3A] flex items-center justify-center text-lg shrink-0">
-              <i className="fa-solid fa-file-invoice-dollar"></i>
+              <i className="fa-solid fa-hand-holding-medical"></i>
             </div>
             <div>
-              <h3 className="text-lg font-bold text-[#24352B] font-['Outfit'] m-0">Direct Hospital Settlement</h3>
-              <span className="text-xs text-[#0B6B3A] font-semibold block mt-0.5">Eliminating Out-of-Pocket Stress</span>
+              <h3 className="text-lg font-bold text-[#24352B] font-['Outfit'] m-0">Direct Procedure Quotation Subsidy</h3>
+              <span className="text-xs text-[#0B6B3A] font-semibold block mt-0.5">Clinic Quotation Coverage Only (No Cash Payout)</span>
             </div>
           </div>
           <p className="text-sm text-[#66756B] leading-relaxed mb-6">
-            Once an application is approved by our medical social work committee, OFPHIL issues a formal guarantee voucher directly to the accredited hospital or ambulatory center. Patients are relieved from having to pay upfront cash for costly intraocular implants and specialized surgical consumables.
+            Once an application is approved by our medical social work committee, OFPHIL applies a formal medical assistance subsidy directly to the clinic procedure quotation at the accredited surgical center rather than handing cash to patients, covering approved intraocular implants and surgical consumables.
           </p>
         </div>
         <ul className="space-y-2.5 text-xs text-[#24352B] pt-4 border-t border-[#DCE5DF]" style={{ marginTop: 'auto', paddingTop: '16px' }}>
@@ -778,9 +778,9 @@ export default function RootLandingPage() {
               <i className="fa-solid fa-magnifying-glass-chart"></i>
             </div>
             <div className="flex-1 min-w-0">
-              <h4 className="text-base font-bold text-[#24352B] font-['Outfit'] mb-1.5">Transparent Financial Auditing</h4>
+              <h4 className="text-base font-bold text-[#24352B] font-['Outfit'] mb-1.5">Transparent Quotation Subsidy Auditing</h4>
               <p className="text-xs sm:text-sm text-[#66756B] leading-relaxed m-0">
-                All disbursement records, quotation reviews, and case decisions maintain comprehensive secure activity records, ensuring verifiable audits by clinical and financial stakeholders.
+                All procedure quotation subsidy records, quotation reviews, and case decisions maintain comprehensive secure activity records, ensuring verifiable audits by clinical and institutional stakeholders.
               </p>
             </div>
           </div>
@@ -940,7 +940,7 @@ export default function RootLandingPage() {
             </div>
           </div>
           <p className="text-sm text-[#66756B] mb-5 leading-relaxed">
-            Medical evaluation and charity financial assistance operate as complementary pillars at OFPHIL:
+            Medical evaluation and medical assistance (procedure quotation subsidy) operate as complementary pillars at OFPHIL:
           </p>
           <div className="doctor-numbered-list">
             <div className="doctor-numbered-item">
@@ -948,8 +948,8 @@ export default function RootLandingPage() {
               <p>The ophthalmologist identifies the eye pathology, confirms surgical readiness, and formulates the treatment plan.</p>
             </div>
             <div className="doctor-numbered-item">
-              <strong>2. The Social Worker Evaluates Financial Circumstances:</strong>
-              <p>The medical social worker investigates the family's financial hardship, evaluates statutory benefits, and calculates the appropriate charity subsidy.</p>
+              <strong>2. The Social Worker Evaluates Socio-Economic Circumstances:</strong>
+              <p>The medical social worker interviews the patient and family, evaluates statutory benefits, and determines the appropriate subsidy of the clinic procedure quotation.</p>
             </div>
             <div className="doctor-numbered-item">
               <strong>3. Integrated Case Resolution:</strong>

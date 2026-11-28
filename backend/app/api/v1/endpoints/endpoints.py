@@ -730,7 +730,7 @@ def get_msw_patient_dossier(
             "patient_id": canonical_pid,
             "charity_case_no": enc.get("charity_case_no") or charity_case_no or "Not Assigned",
             "application_date": enc.get("encounter_date") or found_patient.get("registration_date") or "Not Available",
-            "application_type": enc.get("application_type") or enc.get("procedure") or "Ophthalmic Financial Assistance",
+            "application_type": enc.get("application_type") or enc.get("procedure") or "Ophthalmic Medical Assistance",
             "application_status": enc.get("status") or found_patient.get("status") or "PENDING",
             "assigned_msw": enc.get("assigned_msw") or found_patient.get("assigned_msw") or "Maria Santos, RSW",
             "assessment_status": linked_asmt.get("workflow_status") if linked_asmt else (
@@ -1005,7 +1005,7 @@ def get_authenticated_patient_charity_status(
     if current_cls != "CHARITY" and not patient_referrals:
         raise HTTPException(
             status_code=403,
-            detail="Access denied: Charity Assistance Status is only available to patients with a Charity classification or an existing Financial Assistance Referral.",
+            detail="Access denied: Medical Assistance Status is only available to patients with a Charity classification or an existing Medical Assistance Referral.",
         )
 
     from app.services.assessment_service import assessment_service
@@ -1976,7 +1976,7 @@ async def upsert_patient_referral_sb(patient_id: str, payload: dict):
         inquiry_service.create_msw_notification(
             recipient_user_id=target_msw,
             notification_type="REFERRAL_UPDATED",
-            title=f"Financial Assistance Referral Updated: {p_name}",
+            title=f"Medical Assistance Referral Updated: {p_name}",
             message=f"Referral {created['id']} for {p_name} ({patient_id}) is now marked '{created['status']}'.",
             target_destination=f"/patients/{patient_id}?tab=referral",
             related_patient_id=patient_id,
@@ -1993,9 +1993,9 @@ async def upsert_patient_referral_sb(patient_id: str, payload: dict):
         cfg = get_settings()
         msw_email = getattr(cfg, "MSW_NOTIFICATION_EMAIL", None) or getattr(cfg, "SMTP_FROM_EMAIL", None) or getattr(cfg, "SMTP_USER", None)
         if msw_email and getattr(cfg, "SMTP_HOST", None) and getattr(cfg, "SMTP_USER", None) and getattr(cfg, "SMTP_PASSWORD", None):
-            subject = f"New Financial Assistance Referral — {p_name}"
+            subject = f"New Medical Assistance Referral — {p_name}"
             body = (
-                f"New Financial Assistance Referral Submitted\n\n"
+                f"New Medical Assistance Referral Submitted (Procedure Quotation Subsidy)\n\n"
                 f"Referral Number: {created.get('id')}\n"
                 f"Patient Name: {p_name}\n"
                 f"Patient ID: {patient_id}\n"

@@ -163,7 +163,7 @@ class ReferralService:
                         "Dr. Roberto Reyes, MD, DPBO",
                         "Clinic Medical Administrator & Ophthalmologist",
                         "Awaiting MSW Review",
-                        "Endorsed by Clinic Director for DOH/Charity financial tiering.",
+                        "Endorsed by Clinic Director for DOH/Charity medical assistance tiering.",
                         "2026-11-23T08:00:00Z",
                         "2026-11-23T08:00:00Z",
                     ),
@@ -422,7 +422,7 @@ class ReferralService:
                 ).fetchone()
                 if existing_pending:
                     raise ValueError(
-                        "This patient already has a financial assistance referral awaiting MSW review. "
+                        "This patient already has a medical assistance referral awaiting MSW review. "
                         "Another referral can only be created after the current referral has been resolved."
                     )
             conn.execute(
@@ -545,7 +545,7 @@ class ReferralService:
                 (
                     f"notif-{uuid.uuid4().hex[:8]}",
                     row["patient_id"],
-                    f"You acknowledged viewing Financial Assistance Referral {row['referral_no']}.",
+                    f"You acknowledged viewing Medical Assistance Referral {row['referral_no']}.",
                     "/portal/charity-status",
                     row["patient_id"],
                     row["id"],
@@ -578,7 +578,7 @@ class ReferralService:
         if role_norm != "msw":
             raise HTTPException(
                 status_code=403,
-                detail="Unauthorized: Only licensed Medical Social Workers (MSW) can approve financial assistance referrals.",
+                detail="Unauthorized: Only licensed Medical Social Workers (MSW) can approve medical assistance referrals.",
             )
 
         with self._connect() as conn:
@@ -726,7 +726,7 @@ class ReferralService:
                     (
                         f"notif-{uuid.uuid4().hex[:8]}",
                         patient_id,
-                        f"Your Financial Assistance Referral ({row['referral_no']}) has been APPROVED. Your official Charity Case Number is {target_case_no}.",
+                        f"Your Medical Assistance Referral ({row['referral_no']}) for procedure quotation subsidy has been APPROVED. Your official Charity Case Number is {target_case_no}.",
                         "/portal/charity-status",
                         patient_id,
                         canonical_id,
@@ -769,7 +769,7 @@ class ReferralService:
                 (
                     f"notif-{uuid.uuid4().hex[:8]}",
                     row["patient_id"],
-                    f"You acknowledged viewing Financial Assistance Referral {row['referral_no']}.",
+                    f"You acknowledged viewing Medical Assistance Referral {row['referral_no']}.",
                     "/portal/charity-status",
                     row["patient_id"],
                     row["id"],
@@ -793,7 +793,7 @@ class ReferralService:
         if role_norm != "msw":
             raise HTTPException(
                 status_code=403,
-                detail="Unauthorized: Only licensed Medical Social Workers (MSW) can reject financial assistance referrals.",
+                detail="Unauthorized: Only licensed Medical Social Workers (MSW) can reject medical assistance referrals.",
             )
 
         with self._connect() as conn:
@@ -863,7 +863,7 @@ class ReferralService:
                 (
                     f"notif-{uuid.uuid4().hex[:8]}",
                     row["patient_id"],
-                    f"You acknowledged viewing Financial Assistance Referral {row['referral_no']}.",
+                    f"You acknowledged viewing Medical Assistance Referral {row['referral_no']}.",
                     "/portal/charity-status",
                     row["patient_id"],
                     row["id"],

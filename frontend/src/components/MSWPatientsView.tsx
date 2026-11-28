@@ -220,12 +220,8 @@ export function MSWPatientsContent({
   // Filter Charity Patients
   const filteredPatients = useMemo(() => {
     return patients.filter((p) => {
-      const asmt = assessmentsByPatient[p.patient_id];
-      const hasActiveAsmt = asmt && asmt.workflow_status !== 'APPROVED';
-
       if (activeTab === 'pending') {
-        const isPending = p.status === 'PENDING' || hasActiveAsmt;
-        if (!isPending) return false;
+        if (p.status !== 'PENDING') return false;
       } else if (activeTab === 'promissory') {
         const isPromissory =
           p.status === 'DISAPPROVED/PROMISSORY' ||
@@ -249,36 +245,17 @@ export function MSWPatientsContent({
       }
       return true;
     });
-  }, [patients, activeTab, sexFilter, statusFilter, searchQuery, assessmentsByPatient]);
-
-  // Helper to check if a referral is already approved by MSW or has an assigned Charity Case No.
-  const isReferralApproved = (r: ReferralRecordItem) => {
-    const s = String(r.status || '').toUpperCase();
-    return Boolean(r.charity_case_no) || s === 'MSW APPROVED' || s === 'APPROVED' || s === 'ASSESSMENT IN PROGRESS';
-  };
+  }, [patients, activeTab, sexFilter, statusFilter, searchQuery]);
 
   // Pending Referrals (Awaiting MSW Approval)
   const pendingReferrals = useMemo(() => {
-    return referrals.filter((r) => !isReferralApproved(r) && String(r.status || '').toUpperCase() !== 'MSW REJECTED');
+    return referrals.filter((r) => r.status !== 'MSW APPROVED' && r.status !== 'MSW REJECTED');
   }, [referrals]);
 
-  // Helper to check if an approved case already has an assessment record started or in progress
-  const hasAssessmentStarted = (r: ReferralRecordItem) => {
-    const asmt = assessmentsList.find((a: any) => a.referral_id === r.id || a.patient_id === r.patient_id);
-    const refStatus = String(r.status || '').toUpperCase();
-    if (refStatus === 'ASSESSMENT IN PROGRESS' || refStatus === 'ASSESSMENT_IN_PROGRESS') return true;
-    if (asmt) {
-      const wf = String(asmt.workflow_status || '').toUpperCase();
-      // If an assessment has been initiated or has progress
-      if (wf && wf !== 'NOT_STARTED' && wf !== 'NOT STARTED') return true;
-    }
-    return false;
-  };
-
-  // MSW-Approved Charity Cases (Approved but NOT yet started - no assessment progress yet)
+  // MSW-Approved Charity Cases
   const approvedCharityCases = useMemo(() => {
-    return referrals.filter((r) => isReferralApproved(r) && !hasAssessmentStarted(r) && String(r.status || '').toUpperCase() !== 'MSW REJECTED');
-  }, [referrals, assessmentsList]);
+    return referrals.filter((r) => r.status === 'MSW APPROVED' || (r.charity_case_no && r.status !== 'MSW REJECTED'));
+  }, [referrals]);
 
   // Filter Pending Referrals
   const filteredPendingReferrals = useMemo(() => {
@@ -336,6 +313,15 @@ export function MSWPatientsContent({
     currentPage * pageSize
   );
 
+  const formatReferralStatusLabel = (status?: string) => {
+    const raw = String(status || '').trim();
+    if (!raw) return 'Awaiting MSW Review';
+    if (raw.toUpperCase() === 'ENDORSED FOR FINANCIAL ASSISTANCE') {
+      return raw === raw.toUpperCase() ? 'ENDORSED FOR MEDICAL ASSISTANCE' : 'Endorsed for Medical Assistance';
+    }
+    return raw;
+  };
+
   // -------------------------------------------------------------
   // IN-PAGE REFERRAL DETAILS VIEW (NOT MODAL)
   // -------------------------------------------------------------
@@ -343,7 +329,7 @@ export function MSWPatientsContent({
     return (
       <DashboardLayout
         title={`Referral ${selectedReferral.id} · Clinical Dossier`}
-        subtitle="Ophthalmological Foundation of the Philippines — Official Clinical Referral for Medical Assistance"
+        subtitle="Ophthalmological Foundation of the Philippines — Official Clinical Referral for Medical Assistance (Procedure Quotation Subsidy)"
       >
         <div className="space-y-6 animate-in fade-in duration-150">
           {/* Top Bar with Back Navigation & Direct Assess Action */}
@@ -392,7 +378,7 @@ export function MSWPatientsContent({
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-6 border-b border-[#EEF2EF]">
               <div className="flex items-start gap-4">
                 <div className="w-12 h-12 rounded-xl bg-[#E8F5EC] text-[#0B6B3A] flex items-center justify-center text-xl shrink-0">
-                  <i className="fa-solid fa-file-invoice-dollar" />
+                  <i className="fa-solid fa-hand-holding-medical" />
                 </div>
                 <div>
                   <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-md bg-[#E8F5EC] text-[#0B6B3A] text-[11px] font-bold uppercase tracking-wider mb-1">
@@ -404,13 +390,13 @@ export function MSWPatientsContent({
                     Official Clinical Referral Slip &amp; Endorsement
                   </h2>
                   <p className="text-xs text-[#5A7466] mt-0.5">
-                    Endorsed by attending ophthalmic surgeon to Medical Social Work for hospital fee assistance &amp; subsidy evaluation.
+                    Endorsed by attending ophthalmic surgeon to Medical Social Work for clinic procedure quotation subsidy evaluation.
                   </p>
                 </div>
               </div>
               <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-amber-50 text-amber-900 border border-amber-300 uppercase tracking-wider inline-flex items-center gap-1.5 self-start">
                 <i className="fa-solid fa-handshake-angle text-[10px]" />
-                <span>{selectedReferral.status}</span>
+                <span>{formatReferralStatusLabel(selectedReferral.status)}</span>
               </span>
             </div>
 
@@ -602,10 +588,10 @@ export function MSWPatientsContent({
             </h2>
             <p className="text-xs sm:text-sm text-[#5A7466] mt-0.5">
               {activeTab === 'referrals'
-                ? 'Review clinic patients officially endorsed by attending eye surgeons for charity classification and hospital fee assistance.'
+                ? 'Review clinic patients officially endorsed by attending eye surgeons for procedure quotation subsidy and medical assistance.'
                 : activeTab === 'approved_cases'
                 ? 'Physician referrals approved by MSW with generated Charity Case Numbers. Open dossier to start/continue assessment.'
-                : 'Review registered indigent beneficiaries, launch clinical assessments, and manage social welfare subsidies.'}
+                : 'Review registered indigent beneficiaries, launch clinical assessments, and manage procedure quotation subsidies.'}
             </p>
           </div>
 
@@ -633,7 +619,7 @@ export function MSWPatientsContent({
             {
               id: 'referrals',
               label: 'Medical Assistance Referrals',
-              icon: 'fa-file-invoice-dollar',
+              icon: 'fa-hand-holding-medical',
               count: pendingReferrals.length,
               badgeColor: 'bg-amber-100 text-amber-800 border border-amber-300 font-extrabold',
             },
@@ -648,10 +634,7 @@ export function MSWPatientsContent({
               id: 'pending',
               label: 'Pending',
               icon: 'fa-clock',
-              count: patients.filter((p) => {
-                const asmt = assessmentsByPatient[p.patient_id];
-                return p.status === 'PENDING' || (asmt && asmt.workflow_status !== 'APPROVED');
-              }).length,
+              count: patients.filter((p) => p.status === 'PENDING').length,
             },
             {
               id: 'promissory',
@@ -767,7 +750,7 @@ export function MSWPatientsContent({
               <p className="text-xs font-semibold text-[#64748B]">Loading records...</p>
             </div>
           ) : activeTab === 'referrals' ? (
-            /* TAB: MEDICAL ASSISTANCE REFERRALS (Pending MSW Review & Approval) */
+            /* TAB: FINANCIAL ASSISTANCE REFERRALS (Pending MSW Review & Approval) */
             filteredPendingReferrals.length === 0 ? (
               <div className="py-16 text-center">
                 <div className="w-14 h-14 rounded-full bg-emerald-50 text-[#0B6B3A] border border-emerald-200 flex items-center justify-center mx-auto mb-3 text-2xl">
@@ -775,7 +758,7 @@ export function MSWPatientsContent({
                 </div>
                 <h4 className="text-base font-bold text-[#10241A] mb-1">No Pending Clinical Referrals</h4>
                 <p className="text-xs text-[#64748B] max-w-sm mx-auto mb-4">
-                  There are currently no physician-endorsed medical referrals awaiting MSW review.
+                  There are currently no physician-endorsed medical assistance referrals awaiting MSW review.
                 </p>
                 <button
                   type="button"

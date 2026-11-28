@@ -10,22 +10,22 @@ const quotes = [
   {
     category: "Ophthalmic Social Services",
     title: "No one should lose their sight because they can't afford surgery.",
-    subtitle: "OFPHIL helps medical social workers evaluate financial assistance for indigent cataract, retina, and glaucoma patients with fair, consistent guidelines."
+    subtitle: "OFPHIL helps medical social workers evaluate medical assistance (subsidy of the clinic procedure quotation) for indigent cataract, retina, and glaucoma patients with fair, consistent guidelines."
   },
   {
     category: "Clinical Decision Support",
     title: "Empowering social workers with fast, objective evaluation.",
-    subtitle: "Faster document checking and fair financial assessment help speed up surgical approvals within 24 to 48 hours."
+    subtitle: "Faster document checking and structured socio-economic assessment help speed up procedure quotation subsidy approvals within 24 to 48 hours."
   },
   {
     category: "Charity Care & Dignity",
     title: "Restoring vision, uplifting Filipino families.",
-    subtitle: "Over thousands of free eye surgeries performed by board-certified volunteer surgeons and dedicated caseworkers."
+    subtitle: "Over thousands of subsidized eye surgeries performed by board-certified volunteer surgeons and dedicated caseworkers."
   },
   {
     category: "Hospital Transparency",
     title: "Accurate quotation audit with zero hidden discrepancies.",
-    subtitle: "Cross-referencing PhilHealth first-tier coverage with hospital surgical quotations ensures transparent, fair financial assistance."
+    subtitle: "Cross-referencing PhilHealth first-tier coverage with clinic surgical quotations ensures transparent medical assistance through direct subsidy of the procedure quotation."
   }
 ];
 

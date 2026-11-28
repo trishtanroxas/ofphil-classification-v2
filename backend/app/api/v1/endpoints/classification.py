@@ -106,9 +106,8 @@ def post_evaluate_stage2_direct(
         details={
             "is_complete": result.is_complete,
             "status": result.status,
-            "total_risk": str(result.total_risk),
-            "missing_factors": result.missing_factors,
-            "missing_mappings": result.missing_mappings,
+            "total_risk": str(result.total_risk) if result.total_risk is not None else None,
+            "interview_answers_count": len(result.interview_answers),
         },
     )
     return result

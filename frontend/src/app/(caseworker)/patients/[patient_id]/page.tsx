@@ -34,6 +34,15 @@ function formatCurrency(val: any): string {
   return `₱${num.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+function formatReferralStatusLabel(status?: string, fallback = 'Awaiting MSW Review'): string {
+  const raw = String(status || '').trim();
+  if (!raw) return fallback;
+  if (raw.toUpperCase() === 'ENDORSED FOR FINANCIAL ASSISTANCE') {
+    return raw === raw.toUpperCase() ? 'ENDORSED FOR MEDICAL ASSISTANCE' : 'Endorsed for Medical Assistance';
+  }
+  return raw;
+}
+
 function MSWDossierContent() {
   const params = useParams();
   const router = useRouter();
@@ -88,7 +97,7 @@ function MSWDossierContent() {
         },
         body: JSON.stringify({
           patient_id: patientId,
-          notes: 'Direct approval via Unified Patient Dossier Financial Referral tab.',
+          notes: 'Direct approval via Unified Patient Dossier Medical Assistance tab.',
         }),
       });
 
@@ -422,11 +431,11 @@ function MSWDossierContent() {
         {
           stage: 2,
           title: 'Stage 2 — MSW Assessment',
-          subtitle: 'Duration/severity, unified socioeconomic & biopsychosocial functioning',
+          subtitle: 'Qualitative casework interview Q&A & biopsychosocial observations',
           state: 'NOT STARTED',
           stateClass: 'bg-[#F1F5F9] text-[#475569] border-[#CBD5E1]',
           icon: 'fa-user-nurse',
-          details: 'Pending clinical social work interview & risk scoring.',
+          details: 'Pending clinical social work interview Q&A.',
         },
         {
           stage: 3,
@@ -512,15 +521,13 @@ function MSWDossierContent() {
       {
         stage: 2,
         title: 'Stage 2 — MSW Assessment',
-        subtitle: 'Duration/severity, unified socioeconomic & biopsychosocial functioning',
+        subtitle: 'Qualitative casework interview Q&A & biopsychosocial observations',
         state: s2.label,
         stateClass: s2.cls,
         icon: 'fa-user-nurse',
-        details: asmt.stage2_evaluation
-          ? `Severity Index: ${asmt.stage2_evaluation.average_severity} • Coping Index: ${asmt.stage2_evaluation.average_coping} • Risk Score: ${asmt.stage2_evaluation.total_risk}`
-          : hasStage2
-            ? 'Social worker interview responses & clinical observations saved.'
-            : 'Pending MSW biopsychosocial factor evaluation.',
+        details: hasStage2
+          ? 'Social worker interview Q&A responses & clinical observations saved.'
+          : 'Pending MSW qualitative interview Q&A.',
       },
       {
         stage: 3,
@@ -659,7 +666,7 @@ function MSWDossierContent() {
       ? {
         label: 'MEDICAL ASSISTANCE REFERRAL',
         cls: 'bg-[#E0F2FE] text-[#0369A1] border-[#BAE6FD]',
-        icon: 'fa-file-invoice-dollar',
+        icon: 'fa-hand-holding-medical',
       }
       : {
         label: 'REGULAR PATIENT',
@@ -862,24 +869,24 @@ function MSWDossierContent() {
           </div>
         </div>
 
-        {/* Card 2: Clinical / Medical Assistance Status */}
+        {/* Card 2: Medical Assistance Status */}
         <div
           onClick={() => handleTabChange(hasFinancialReferral ? 'referral' : isCharity ? 'assessment' : 'procedures')}
           className="bg-white rounded-2xl border border-[#D5E2D9] p-4 shadow-xs hover:border-[#0B6B3A] transition cursor-pointer"
         >
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider text-[#5A7466]">
-              {isCharity ? 'Clinical / Medical Assistance' : 'Clinic Medical Assistance Status'}
+              {isCharity ? 'Medical Assistance Subsidy' : 'Medical Assistance Status'}
             </span>
             <div className="w-8 h-8 rounded-xl bg-[#E0F2FE] text-[#0284C7] flex items-center justify-center">
-              <i className="fa-solid fa-hand-holding-dollar text-xs" />
+              <i className="fa-solid fa-hand-holding-medical text-xs" />
             </div>
           </div>
           <div className="text-base font-['Outfit'] font-extrabold text-[#0B6B3A] mt-2 truncate">
             {isCharity
               ? `Charity (${patientStatus})`
               : hasFinancialReferral
-                ? latestReferral.status
+                ? formatReferralStatusLabel(latestReferral.status)
                 : `Regular (${patientStatus})`}
           </div>
           <div className="text-[11px] text-[#64748B] mt-1">
@@ -956,7 +963,7 @@ function MSWDossierContent() {
               <span>Medical Assistance History</span>
             </h3>
             <p className="text-[11px] text-[#5A7466] mt-0.5">
-              Institutional tracking of past assistance requests, MSW reviews, and charity grant decisions for Patient ID{' '}
+              Institutional tracking of past procedure quotation subsidy requests, MSW reviews, and medical assistance decisions for Patient ID{' '}
               <span className="font-mono font-bold text-[#0B6B3A]">{identifiers.patientId}</span>.
             </p>
           </div>
@@ -1018,7 +1025,7 @@ function MSWDossierContent() {
         {/* Historical Referrals Chronological Summary */}
         {referrals.length === 0 ? (
           <div className="p-4 text-center bg-[#FAFBF8] rounded-xl border border-[#EEF2EF] text-xs text-[#64748B]">
-            No previous medical assistance referrals or requests recorded for this patient.
+            No previous medical assistance referrals or procedure quotation subsidy requests recorded for this patient.
           </div>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-[#EEF2EF]">
@@ -1069,7 +1076,7 @@ function MSWDossierContent() {
                               : 'bg-amber-50 text-amber-800 border border-amber-200'
                           }`}
                         >
-                          {histRef.status || 'Awaiting MSW Review'}
+                          {formatReferralStatusLabel(histRef.status, 'Awaiting MSW Review')}
                         </span>
                       </td>
                       <td className="py-3 px-4 font-mono font-semibold text-xs whitespace-nowrap">
@@ -1105,8 +1112,8 @@ function MSWDossierContent() {
               { id: 'procedures' as const, label: 'Procedures & Checkups', icon: 'fa-stethoscope' },
               {
                 id: 'referral' as const,
-                label: 'Medical Referral',
-                icon: 'fa-file-invoice-dollar',
+                label: 'Medical Assistance',
+                icon: 'fa-hand-holding-medical',
                 count: referrals.length,
               },
               {
@@ -1532,18 +1539,18 @@ function MSWDossierContent() {
       )}
 
       {/* =====================================================================
-          TAB 4: MEDICAL REFERRAL
+          TAB 4: MEDICAL ASSISTANCE REFERRAL
          ===================================================================== */}
       {effectiveActiveTab === 'referral' && (
         <div className="bg-white rounded-2xl border border-[#D5E2D9] p-5 shadow-xs space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-[#EEF2EF] pb-3">
             <div>
               <h2 className="text-sm font-bold text-[#10241A] flex items-center gap-2">
-                <i className="fa-solid fa-file-invoice-dollar text-[#0B6B3A]" />
+                <i className="fa-solid fa-hand-holding-medical text-[#0B6B3A]" />
                 <span>Clinical Medical Assistance Referrals ({referrals.length})</span>
               </h2>
               <p className="text-[11px] text-[#5A7466] mt-0.5">
-                Official physician-endorsed surgical and medical assistance referrals routed to the MSW division.
+                Official physician-endorsed clinic procedure quotation referrals routed to the MSW division for subsidy review.
               </p>
             </div>
             {isCharity && role === 'msw' && (
@@ -1579,7 +1586,7 @@ function MSWDossierContent() {
                       <div className="flex items-center gap-2">
                         <span className="font-mono font-extrabold text-sm text-[#0B6B3A]">{ref.id}</span>
                         <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#E0F2FE] text-[#0369A1] border border-[#BAE6FD]">
-                          {ref.status || 'ENDORSED FOR MEDICAL ASSISTANCE'}
+                          {formatReferralStatusLabel(ref.status, 'ENDORSED FOR MEDICAL ASSISTANCE')}
                         </span>
                       </div>
                       <div className="text-xs text-[#5A7466] mt-0.5">

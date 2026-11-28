@@ -696,7 +696,7 @@ export default function RegisterPatientPage() {
               DIRECT REGISTRATION
             </span>
             <span className="text-[#14532D] leading-relaxed">
-              <strong>Direct to Patient Records</strong> — Patients registered here receive an official Patient ID immediately and can log into their portal. When seeking financial subsidy for eye surgeries, patients or caseworkers can then submit a Step 1 Charity Assessment.
+              <strong>Direct to Patient Records</strong> — Patients registered here receive an official Patient ID immediately and can log into their portal. When seeking medical assistance (subsidy of the clinic procedure quotation) for eye surgeries, patients or caseworkers can then submit a Step 1 Assessment.
             </span>
           </div>
 

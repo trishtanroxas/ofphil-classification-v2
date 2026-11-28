@@ -1037,13 +1037,22 @@ export default function PatientDossierPage() {
     };
   }, [patientId]);
 
+  const formatReferralStatusLabel = (status?: string) => {
+    const raw = String(status || '').trim();
+    if (!raw) return 'PENDING';
+    if (raw.toUpperCase() === 'ENDORSED FOR FINANCIAL ASSISTANCE') {
+      return raw === raw.toUpperCase() ? 'ENDORSED FOR MEDICAL ASSISTANCE' : 'Endorsed for Medical Assistance';
+    }
+    return raw;
+  };
+
   const updateUrgentEmailTemplate = (type: string, patient?: any) => {
     const p = patient || patientData;
     const pid = p?.patient_id || patientId;
     if (type === 'missing_requirements') {
-      setUrgentSubject(`URGENT: Lacking Evidential Requirements for OFPHIL Charity Assistance (${pid})`);
+      setUrgentSubject(`URGENT: Lacking Evidential Requirements for OFPHIL Medical Assistance (${pid})`);
       setUrgentMessage(
-        `Dear ${p?.first_name || 'Patient'} ${p?.last_name || ''},\n\nPlease be advised that our Medical Social Work and Clinical Desk requires you to submit and upload your lacking evidential requirements into your OFPHIL Patient Portal to finalize your charity medical assistance and procedure endorsement.\n\nPlease upload the required documents at your earliest convenience or contact the clinic reception if you need assistance.`
+        `Dear ${p?.first_name || 'Patient'} ${p?.last_name || ''},\n\nPlease be advised that our Medical Social Work and Clinical Desk requires you to submit and upload your lacking evidential requirements into your OFPHIL Patient Portal to finalize your medical assistance (subsidy of your clinic procedure quotation) and procedure endorsement.\n\nPlease upload the required documents at your earliest convenience or contact the clinic reception if you need assistance.`
       );
     } else if (type === 'urgent_schedule') {
       setUrgentSubject(`URGENT: Ophthalmic Surgery & Consultation Schedule Notice (${pid})`);
@@ -1600,11 +1609,11 @@ export default function PatientDossierPage() {
             <div className="text-[11px] text-[#5A7466] mt-0.5">Recorded clinical visits</div>
           </div>
 
-          {/* Card 3: Financial / Subsidy Status */}
+          {/* Card 3: Medical Assistance / Subsidy Status */}
           <div className="bg-white border border-[#D5E2D9] rounded-xl p-4 shadow-2xs">
             <div className="text-[11px] font-bold text-[#5A7466] uppercase tracking-wider flex items-center gap-1.5">
-              <i className="fa-solid fa-hand-holding-dollar text-[#0B6B3A]" />
-              <span>{isCharity ? 'Total Subsidy Released' : 'Clinic Financial Status'}</span>
+              <i className="fa-solid fa-hand-holding-medical text-[#0B6B3A]" />
+              <span>{isCharity ? 'Total Procedure Quotation Subsidy' : 'Medical Assistance Status'}</span>
             </div>
             <div className="text-2xl font-extrabold mt-1 text-[#0B6B3A]">
               {isCharity ? (
@@ -1614,7 +1623,7 @@ export default function PatientDossierPage() {
               )}
             </div>
             <div className="text-[11px] text-[#5A7466] mt-0.5">
-              {isCharity ? 'Cumulative charity medical assistance' : 'Standard clinic fee (₱0.00 Charity Subsidy)'}
+              {isCharity ? 'Cumulative procedure quotation subsidy' : 'Standard clinic fee (₱0.00 Procedure Subsidy)'}
             </div>
           </div>
 
@@ -1635,7 +1644,7 @@ export default function PatientDossierPage() {
             { id: 'profile' as const, label: 'Profile & Demographics', icon: 'fa-id-card' },
             { id: 'appointments' as const, label: 'Appointments', icon: 'fa-calendar-check', count: appointments.length },
             { id: 'procedures' as const, label: 'Procedures & Checkups', icon: 'fa-stethoscope', count: encounters.length },
-            { id: 'referral' as const, label: 'Medical Referral', icon: 'fa-file-invoice-dollar' },
+            { id: 'referral' as const, label: 'Medical Assistance', icon: 'fa-hand-holding-medical' },
             { id: 'documents' as const, label: 'Documents & Vault', icon: 'fa-folder-open' },
             { id: 'alerts' as const, label: 'Requests & Inquiries', icon: 'fa-file-circle-question' },
             { id: 'assistance_history' as const, label: 'Medical Assistance History', icon: 'fa-clock-rotate-left', count: patientReferralsHistory.length },
@@ -2291,8 +2300,8 @@ export default function PatientDossierPage() {
                     </div>
                     <p className="text-xs text-[#5A7466] m-0 leading-relaxed">
                       {patientReferralsHistory.length > 0
-                        ? 'Previous referrals for this patient have already been resolved. Issue another referral slip if endorsing again to Medical Social Services.'
-                        : 'This regular clinic patient does not have an active charity referral form yet. Issue a referral slip if endorsing to Medical Social Services.'}
+                        ? 'Previous referrals for this patient have already been resolved. Issue another referral slip if endorsing a procedure quotation again to Medical Social Services.'
+                        : 'This regular clinic patient does not have an active medical assistance referral form yet. Issue a referral slip to endorse a procedure quotation for subsidy review.'}
                     </p>
                   </div>
                   <button
@@ -2399,7 +2408,7 @@ export default function PatientDossierPage() {
                           Medical Assistance Referral Form
                         </h2>
                         <p className="text-[11px] text-[#5A7466] m-0">
-                          Ophthalmological Foundation of the Philippines, Inc. &mdash; Medical Social Service &amp; Charity Department
+                          Ophthalmological Foundation of the Philippines, Inc. &mdash; Medical Social Service &amp; Procedure Quotation Subsidy
                         </p>
                         {isReferralSubmitted && (
                           <div className="mt-1.5 space-y-0.5">
@@ -3441,7 +3450,7 @@ export default function PatientDossierPage() {
                     <span>Medical Assistance History</span>
                   </h2>
                   <p className="text-xs text-[#5A7466] m-0 mt-0.5">
-                    Chronological record of medical assistance referrals and MSW review outcomes for this patient.
+                    Chronological record of medical assistance referrals (procedure quotation subsidies) and MSW review outcomes for this patient.
                   </p>
                 </div>
                 <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10.5px] font-extrabold uppercase tracking-wider border ${
@@ -3510,7 +3519,7 @@ export default function PatientDossierPage() {
                             </td>
                             <td className="py-3 px-4">
                               <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-[#E8F5EC] text-[#0B6B3A] border border-[#A7F3D0]">
-                                {ref.status || 'PENDING'}
+                                {formatReferralStatusLabel(ref.status)}
                               </span>
                             </td>
                             <td className="py-3 px-4 font-mono text-[#5A7466]">
@@ -3797,7 +3806,7 @@ export default function PatientDossierPage() {
                       onClick={() => setDossierTab('referral')}
                       className="px-3.5 py-1.5 rounded-xl border border-[#D5E2D9] bg-white hover:bg-[#FAFBF8] text-xs font-bold text-[#0B6B3A] cursor-pointer"
                     >
-                      View Medical Referral
+                      View Medical Assistance Referral
                     </button>
                   </div>
                 </div>
@@ -5404,7 +5413,7 @@ export default function PatientDossierPage() {
                     {viewSlipModalReferral.referral_no || viewSlipModalReferral.id}
                   </span>
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    {viewSlipModalReferral.status || 'APPROVED'}
+                    {formatReferralStatusLabel(viewSlipModalReferral.status || 'APPROVED')}
                   </span>
                 </div>
                 <h3 className="text-base font-bold text-[#10241A] m-0 font-['Outfit']">
@@ -5585,7 +5594,7 @@ export default function PatientDossierPage() {
                   Review Before Submitting
                 </h3>
                 <p className="text-xs text-[#5A7466] m-0 leading-relaxed">
-                  Please double-check all patient information, clinical details, referring physician information, and quotation amounts before submitting this Medical Assistance Referral. Once submitted, the referral will be forwarded to the Medical Social Worker for review.
+                  Please double-check all patient information, clinical details, referring physician information, and procedure quotation amounts before submitting this Medical Assistance Referral. Once submitted, the referral will be forwarded to the Medical Social Worker for quotation subsidy review.
                 </p>
               </div>
             </div>

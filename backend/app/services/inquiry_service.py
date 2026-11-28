@@ -830,8 +830,8 @@ class InquiryService:
                 self.create_msw_notification(
                     recipient_user_id=p_msw,
                     notification_type="REFERRAL_UPDATED",
-                    title=f"Financial Assistance Referral Endorsed: {full_name}",
-                    message=f"Clinical referral OFPHIL-FA-2026-0001 for {full_name} ({pid}) was endorsed for MSW financial assistance review.",
+                    title=f"Medical Assistance Referral Endorsed: {full_name}",
+                    message=f"Clinical referral OFPHIL-FA-2026-0001 for {full_name} ({pid}) was endorsed for MSW medical assistance review.",
                     target_destination=f"/patients/{pid}?tab=referral",
                     related_patient_id=pid,
                     related_encounter_id="OFPHIL-FA-2026-0001",

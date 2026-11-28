@@ -634,7 +634,7 @@ export function Sidebar({
                         : 'text-[#B4CEBE] hover:text-white hover:bg-white/5'
                         }`}
                     >
-                      <i className="fa-solid fa-file-medical text-[10px] w-3 text-center text-white" />
+                      <i className="fa-solid fa-hand-holding-medical text-[10px] w-3 text-center text-white" />
                       <span>Medical Assistance Referrals</span>
                     </Link>
                     <Link
@@ -1115,7 +1115,7 @@ export function Header({
                         : item.notification_type === 'CHARITY_DENIED_OR_PROMISSORY'
                           ? 'fa-file-signature text-[#D97706] bg-[#FEF3C7]'
                           : item.notification_type === 'REFERRAL_UPDATED'
-                            ? 'fa-file-invoice-dollar text-[#0284C7] bg-[#E0F2FE]'
+                            ? 'fa-hand-holding-medical text-[#0284C7] bg-[#E0F2FE]'
                             : item.notification_type === 'DOCUMENT_UPLOADED'
                               ? 'fa-file-shield text-[#7C3AED] bg-[#F3E8FF]'
                               : item.notification_type === 'PATIENT_INQUIRY'

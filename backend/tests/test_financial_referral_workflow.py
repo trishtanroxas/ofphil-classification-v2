@@ -1,9 +1,84 @@
+import pytest
 from fastapi.testclient import TestClient
 from app.main import app
+from app.api.v1.endpoints import endpoints as ep
 from app.services.referral_service import referral_service
 
 client = TestClient(app)
 MSW_HDRS = {"x-user-role": "msw", "x-user-id": "msw_lead"}
+
+
+@pytest.fixture(autouse=True)
+def _seed_referral_test_fixtures(monkeypatch):
+    seed_patients = [
+        {
+            "id": "rec-1",
+            "patient_id": "M26-11-00001",
+            "first_name": "Juan",
+            "middle_name": "Santos",
+            "last_name": "Dela Cruz",
+            "category": "REGULAR",
+            "status": "AWAITING MSW REVIEW",
+            "assigned_msw": "Maria Santos, RSW (msw_lead)",
+            "encounters": [],
+            "inquiries": [],
+        },
+        {
+            "id": "rec-2",
+            "patient_id": "M26-11-00002",
+            "charity_case_no": "MSW_FA_1126-01",
+            "first_name": "Maria Clara",
+            "last_name": "Ramos",
+            "category": "CHARITY",
+            "status": "APPROVED",
+            "assigned_msw": "Maria Santos, RSW (msw_lead)",
+            "encounters": [],
+            "inquiries": [],
+        },
+    ]
+    monkeypatch.setattr(ep, "REGISTERED_PATIENTS_REGISTRY", seed_patients)
+    monkeypatch.setattr(ep, "_save_patients_registry", lambda: None)
+
+    with referral_service._connect() as conn:
+        orig_rows = [dict(r) for r in conn.execute("SELECT * FROM financial_referrals WHERE patient_id IN ('M26-11-00001', 'MSW_FA_1126-01')").fetchall()]
+        conn.execute("DELETE FROM financial_referrals WHERE patient_id = 'M26-11-00001' AND id != 'OFPHIL-FA-2026-0001'")
+        conn.execute(
+            "UPDATE financial_referrals SET status = 'Awaiting MSW Review', charity_case_no = NULL, assessment_id = NULL WHERE id = 'OFPHIL-FA-2026-0001'"
+        )
+        # Ensure repeat-assistance fixture for MSW_FA_1126-01 has at least 2 referrals
+        cur_cnt = conn.execute("SELECT COUNT(*) FROM financial_referrals WHERE patient_id = 'MSW_FA_1126-01'").fetchone()[0]
+        added_ids = []
+        if cur_cnt < 2:
+            for idx in range(2 - cur_cnt):
+                rid = f"OFPHIL-FA-TEST-REP-{idx + 1}"
+                added_ids.append(rid)
+                conn.execute(
+                    """
+                    INSERT OR IGNORE INTO financial_referrals (
+                        id, referral_no, patient_id, patient_name, diagnosis, eye_laterality,
+                        procedure, clinical_findings, particulars, total, requested_amount,
+                        attending_doctor, doctor_signature_title, referring_individual,
+                        referring_signature_title, status, charity_case_no, assessment_id, notes, created_at, updated_at
+                    ) VALUES (?, ?, 'MSW_FA_1126-01', 'Maria Clara Ramos', 'Senile Cataract', 'OS',
+                              'Phacoemulsification', '', '[]', 11600.0, 11600.0,
+                              'Dr. J. E. Garcia, MD', '', 'Dr. Roberto Reyes, MD', '',
+                              'MSW APPROVED', 'MSW_FA_1126-01', NULL, '', '2026-11-20T08:00:00Z', '2026-11-20T08:00:00Z')
+                    """,
+                    (rid, f"REF-REP-{idx + 1}"),
+                )
+        conn.commit()
+    try:
+        yield
+    finally:
+        with referral_service._connect() as conn:
+            for rid in added_ids:
+                conn.execute("DELETE FROM financial_referrals WHERE id = ?", (rid,))
+            for r in orig_rows:
+                conn.execute(
+                    "UPDATE financial_referrals SET status = ?, charity_case_no = ?, assessment_id = ? WHERE id = ?",
+                    (r.get("status"), r.get("charity_case_no"), r.get("assessment_id"), r["id"]),
+                )
+            conn.commit()
 
 def test_financial_referral_assistance_history_and_approval():
     # 1. Fetch Juan Dela Cruz (M26-11-00001) - new referral awaiting MSW review
