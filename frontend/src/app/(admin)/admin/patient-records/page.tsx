@@ -117,7 +117,7 @@ export default function PatientRecordsPage(props: any) {
       // Dropdown filters
       if (sexFilter !== 'All' && p.sex !== sexFilter) return false;
       if (categoryFilter === 'CHARITY' && p.category !== 'CHARITY') return false;
-      if (categoryFilter === 'REGULAR' && p.category !== 'REGULAR' && p.category !== 'CHARITY') return false;
+      if (categoryFilter === 'REGULAR' && p.category !== 'REGULAR') return false;
       if (!isNurse && statusFilter !== 'All' && p.status !== statusFilter) return false;
 
       // Search text
@@ -588,16 +588,10 @@ export default function PatientRecordsPage(props: any) {
                       </td>
                       <td className="py-3 px-4 whitespace-nowrap">
                         {p.category === 'CHARITY' ? (
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#FAFBF8] text-[#475569] border border-[#D5E2D9]">
-                              <span className="w-1.5 h-1.5 rounded-full bg-slate-500 inline-block" />
-                              <span>REGULAR</span>
-                            </span>
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#E8F5EC] text-[#0B6B3A] border border-[#A8DAC0]">
-                              <i className="fa-solid fa-heart text-[8px]" />
-                              <span>CHARITY</span>
-                            </span>
-                          </div>
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#E8F5EC] text-[#0B6B3A] border border-[#A8DAC0]">
+                            <i className="fa-solid fa-heart text-[8px]" />
+                            <span>CHARITY</span>
+                          </span>
                         ) : (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#FAFBF8] text-[#475569] border border-[#D5E2D9]">
                             <span className="w-1.5 h-1.5 rounded-full bg-slate-500 inline-block" />

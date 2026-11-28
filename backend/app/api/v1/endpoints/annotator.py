@@ -34,6 +34,14 @@ class AiDetectPayload(BaseModel):
     active_label: str = "auto_detected"
 
 
+class OcrExtractBoxPayload(BaseModel):
+    relative_path: str
+    x: int
+    y: int
+    w: int
+    h: int
+
+
 class CopyCounterpartPayload(BaseModel):
     boxes: List[Dict[str, Any]] = Field(default_factory=list)
     source_width: float = 1
@@ -113,6 +121,20 @@ def ai_detect_boxes(payload: AiDetectPayload):
     if not rel_path:
         raise HTTPException(status_code=400, detail="Missing 'relative_path'.")
     return svc.ai_detect_boxes(rel_path=rel_path, active_label=payload.active_label)
+
+
+@router.post("/ocr_extract_box")
+def ocr_extract_box(payload: OcrExtractBoxPayload):
+    rel_path = payload.relative_path.strip()
+    if not rel_path:
+        raise HTTPException(status_code=400, detail="Missing 'relative_path'.")
+    return svc.ocr_extract_box(
+        rel_path=rel_path,
+        x=payload.x,
+        y=payload.y,
+        w=payload.w,
+        h=payload.h,
+    )
 
 
 @router.get("/counterpart_info")

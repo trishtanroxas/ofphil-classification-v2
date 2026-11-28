@@ -634,8 +634,8 @@ export function Sidebar({
                         : 'text-[#B4CEBE] hover:text-white hover:bg-white/5'
                         }`}
                     >
-                      <i className="fa-solid fa-file-invoice-dollar text-[10px] w-3 text-center text-white" />
-                      <span>Financial Assistance Referrals</span>
+                      <i className="fa-solid fa-file-medical text-[10px] w-3 text-center text-white" />
+                      <span>Medical Assistance Referrals</span>
                     </Link>
                     <Link
                       href="/patients?tab=pending"

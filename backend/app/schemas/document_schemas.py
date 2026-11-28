@@ -4,16 +4,16 @@ from pydantic import BaseModel, Field
 
 class DocumentProcessRequest(BaseModel):
     assessment_id: Optional[str] = None
-    ocr_engine: str = Field(default="auto", description="auto | paddleocr | easyocr | trocr")
+    ocr_engine: str = Field(default="auto", description="auto | paddleocr | easyocr")
     run_forensics: bool = True
     run_signature_detection: bool = True
 
 
 class DocumentProcessingStatusResponse(BaseModel):
     document_id: str
-    job_id: str
-    processing_status: str  # NOT_CHECKED | QUEUED | PROCESSING | COMPLETED | FAILED
-    engine_version: str
+    job_id: Optional[str] = None
+    processing_status: str  # UPLOADED | QUEUED | PROCESSING | COMPLETED | FAILED
+    engine_version: str = "ofphil-docproc-v2.0"
     started_at: Optional[str] = None
     completed_at: Optional[str] = None
     processing_time_ms: Optional[float] = None
@@ -25,8 +25,9 @@ class DocumentOCRResultResponse(BaseModel):
     document_id: str
     job_id: Optional[str] = None
     processing_status: str
-    engine_used: str
-    engine_version: str
+    status: str = "NOT_EVALUATED"  # COMPLETED | NOT_EVALUATED | INSUFFICIENT_EVIDENCE
+    engine_used: str = "PaddleOCR PP-OCRv6"
+    engine_version: str = "ppocr-v6"
     extracted_text: Optional[str] = None
     confidence_score: Optional[float] = None
     fields_detected: Dict[str, Any] = Field(default_factory=dict)
@@ -37,24 +38,67 @@ class DocumentOCRResultResponse(BaseModel):
 class DocumentSignatureResultResponse(BaseModel):
     document_id: str
     job_id: Optional[str] = None
-    signature_status: str  # NOT_CHECKED | SIGNATURE_DETECTED | SIGNATURE_NOT_FOUND | REQUIRES_MANUAL_REVIEW | UNVERIFIABLE
+    status: str = "NOT_EVALUATED"  # PASSED | SUSPICIOUS | NOT_EVALUATED | INSUFFICIENT_EVIDENCE
+    presence: bool = False
+    signature_status: str = "NOT_EVALUATED"
     signatures_detected_count: int = 0
     regions: List[Dict[str, Any]] = Field(default_factory=list)
-    engine_version: str
-    disclaimer: str = "Signature presence detection only; does not prove signature authenticity or signer identity."
+    engine_version: str = "YOLO11s-OFPHIL"
+    details: Optional[str] = None
+    disclaimer: str = "Signature presence detection only; does not establish signer identity or signature authenticity."
 
 
-class DocumentAuthenticityResultResponse(BaseModel):
+class DocumentStampResultResponse(BaseModel):
     document_id: str
     job_id: Optional[str] = None
-    overall_status: str  # NO_ISSUE_DETECTED | REQUIRES_REVIEW | VERIFICATION_FAILED | UNVERIFIABLE
-    authenticity_classification: str = "Authentic"  # Authentic | Suspicious | Counterfeit
-    authenticity_summary: str = "Passes automated signature, metadata, and forensic integrity checks."
+    status: str = "NOT_EVALUATED"  # PASSED | SUSPICIOUS | NOT_EVALUATED | INSUFFICIENT_EVIDENCE
+    presence: bool = False
+    stamp_status: str = "NOT_EVALUATED"
+    stamps_detected_count: int = 0
+    regions: List[Dict[str, Any]] = Field(default_factory=list)
+    engine_version: str = "YOLO11s-OFPHIL"
+    details: Optional[str] = None
+    disclaimer: str = "Stamp/seal screening only; does not establish official issuing authority legitimacy."
+
+
+class DocumentVerificationResultResponse(BaseModel):
+    document_id: str
+    job_id: Optional[str] = None
+    processing_status: str = "COMPLETED"
+    document_type: str = "general"
+    sha256: str
+    status: str  # NO_SUSPICIOUS_INDICATORS | NEEDS_VERIFICATION | FLAGGED_FOR_MANUAL_REVIEW | INSUFFICIENT_IMAGE_QUALITY
+    screening_status: str
+    authenticity_classification: str
+    tamper_risk: str  # LOW | MEDIUM | HIGH | UNDETERMINED
     tamper_risk_level: str
+    reason: str
+    authenticity_summary: str
+    supporting_evidence: List[str] = Field(default_factory=list)
+    confidence_assessment: str = "MODERATE"
     indicators: Dict[str, Any] = Field(default_factory=dict)
+    checks: Dict[str, Any] = Field(default_factory=dict)
     unavailable_checks: List[str] = Field(default_factory=list)
-    engine_version: str
-    disclaimer: str = "Automated forensic classification based on SHA-256 integrity, ELA variance, resolution, metadata, and signature checks."
+    engine_version: str = "ofphil-docproc-v2.0"
+    disclaimer: str = (
+        "Automated forensic screening provides evidence of integrity or anomalies. "
+        "It does NOT definitively prove authenticity or replace certified MSW document validation."
+    )
+
+
+# Backward compatibility alias for legacy tests
+DocumentAuthenticityResultResponse = DocumentVerificationResultResponse
+
+
+
+class DocumentStandardReportResponse(BaseModel):
+    document_id: str
+    processing_status: str  # UPLOADED | QUEUED | PROCESSING | COMPLETED | FAILED
+    document_type: str
+    sha256: str
+    verification: Dict[str, Any]
+    checks: Dict[str, Any]
+    review: Dict[str, Any]
 
 
 class DocumentReviewRequest(BaseModel):

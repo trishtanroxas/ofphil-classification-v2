@@ -657,7 +657,7 @@ function MSWDossierContent() {
     }
     : hasFinancialReferral
       ? {
-        label: 'FINANCIAL ASSISTANCE REFERRAL',
+        label: 'MEDICAL ASSISTANCE REFERRAL',
         cls: 'bg-[#E0F2FE] text-[#0369A1] border-[#BAE6FD]',
         icon: 'fa-file-invoice-dollar',
       }
@@ -862,14 +862,14 @@ function MSWDossierContent() {
           </div>
         </div>
 
-        {/* Card 2: Clinical / Financial Assistance Status */}
+        {/* Card 2: Clinical / Medical Assistance Status */}
         <div
           onClick={() => handleTabChange(hasFinancialReferral ? 'referral' : isCharity ? 'assessment' : 'procedures')}
           className="bg-white rounded-2xl border border-[#D5E2D9] p-4 shadow-xs hover:border-[#0B6B3A] transition cursor-pointer"
         >
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider text-[#5A7466]">
-              {isCharity ? 'Clinical / Financial Assistance' : 'Clinic Financial Status'}
+              {isCharity ? 'Clinical / Medical Assistance' : 'Clinic Medical Assistance Status'}
             </span>
             <div className="w-8 h-8 rounded-xl bg-[#E0F2FE] text-[#0284C7] flex items-center justify-center">
               <i className="fa-solid fa-hand-holding-dollar text-xs" />
@@ -946,14 +946,14 @@ function MSWDossierContent() {
       </div>
 
       {/* =====================================================================
-          HIGH-VISIBILITY FINANCIAL ASSISTANCE HISTORY (Positioned Above Tabs)
+          HIGH-VISIBILITY MEDICAL ASSISTANCE HISTORY (Positioned Above Tabs)
          ===================================================================== */}
       <div className="bg-white rounded-2xl border border-[#D5E2D9] p-5 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h3 className="text-sm font-bold text-[#10241A] flex items-center gap-2">
               <i className="fa-solid fa-clock-rotate-left text-[#0B6B3A]" />
-              <span>Financial Assistance History</span>
+              <span>Medical Assistance History</span>
             </h3>
             <p className="text-[11px] text-[#5A7466] mt-0.5">
               Institutional tracking of past assistance requests, MSW reviews, and charity grant decisions for Patient ID{' '}
@@ -1018,7 +1018,7 @@ function MSWDossierContent() {
         {/* Historical Referrals Chronological Summary */}
         {referrals.length === 0 ? (
           <div className="p-4 text-center bg-[#FAFBF8] rounded-xl border border-[#EEF2EF] text-xs text-[#64748B]">
-            No previous financial assistance referrals or requests recorded for this patient.
+            No previous medical assistance referrals or requests recorded for this patient.
           </div>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-[#EEF2EF]">
@@ -1105,7 +1105,7 @@ function MSWDossierContent() {
               { id: 'procedures' as const, label: 'Procedures & Checkups', icon: 'fa-stethoscope' },
               {
                 id: 'referral' as const,
-                label: 'Financial Referral',
+                label: 'Medical Referral',
                 icon: 'fa-file-invoice-dollar',
                 count: referrals.length,
               },
@@ -1532,7 +1532,7 @@ function MSWDossierContent() {
       )}
 
       {/* =====================================================================
-          TAB 4: FINANCIAL REFERRAL
+          TAB 4: MEDICAL REFERRAL
          ===================================================================== */}
       {effectiveActiveTab === 'referral' && (
         <div className="bg-white rounded-2xl border border-[#D5E2D9] p-5 shadow-xs space-y-4">
@@ -1540,7 +1540,7 @@ function MSWDossierContent() {
             <div>
               <h2 className="text-sm font-bold text-[#10241A] flex items-center gap-2">
                 <i className="fa-solid fa-file-invoice-dollar text-[#0B6B3A]" />
-                <span>Clinical Financial Assistance Referrals ({referrals.length})</span>
+                <span>Clinical Medical Assistance Referrals ({referrals.length})</span>
               </h2>
               <p className="text-[11px] text-[#5A7466] mt-0.5">
                 Official physician-endorsed surgical and medical assistance referrals routed to the MSW division.
@@ -1567,7 +1567,7 @@ function MSWDossierContent() {
               <p className="text-[11px] text-[#64748B] mt-1 max-w-md mx-auto">
                 {isCharity
                   ? `This patient is registered directly under the Charity Program (${identifiers.charityCaseNo}). Review their eligibility in the Assessment & Charity Status tab.`
-                  : 'No financial assistance referral has been submitted for this patient yet.'}
+                  : 'No medical assistance referral has been submitted for this patient yet.'}
               </p>
             </div>
           ) : (
@@ -1579,7 +1579,7 @@ function MSWDossierContent() {
                       <div className="flex items-center gap-2">
                         <span className="font-mono font-extrabold text-sm text-[#0B6B3A]">{ref.id}</span>
                         <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#E0F2FE] text-[#0369A1] border border-[#BAE6FD]">
-                          {ref.status || 'ENDORSED FOR FINANCIAL ASSISTANCE'}
+                          {ref.status || 'ENDORSED FOR MEDICAL ASSISTANCE'}
                         </span>
                       </div>
                       <div className="text-xs text-[#5A7466] mt-0.5">

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 
 interface BoxItem {
   x: number;
@@ -86,6 +87,9 @@ export default function DocumentAnnotatorPage() {
   const [exportCsv, setExportCsv] = useState(true);
   const [exportOcr, setExportOcr] = useState(true);
   const [exportImg, setExportImg] = useState(true);
+  const [autoOcr, setAutoOcr] = useState(true);
+  const [isOcrLoading, setIsOcrLoading] = useState(false);
+  const [pendingNavAction, setPendingNavAction] = useState<(() => void) | null>(null);
 
   const [zoom, setZoom] = useState(1);
   const [spaceHeld, setSpaceHeld] = useState(false);
@@ -438,7 +442,7 @@ export default function DocumentAnnotatorPage() {
     }
     const { cx, cy } = getCanvasCoords(e);
 
-    // Allow resizing the selected box from its 8 handles in any mode
+    // 1. Allow resizing the selected box from its 8 handles in any mode
     if (primaryIdx !== null && boxes[primaryIdx]) {
       const hDir = hitTestHandle(boxes[primaryIdx], cx, cy);
       if (hDir) {
@@ -447,19 +451,22 @@ export default function DocumentAnnotatorPage() {
       }
     }
 
-    if (mode === 'drag') {
-      // Pick smallest-area matching box so nested/overlapping boxes are clickable
-      let hit = -1;
-      let bestArea = Infinity;
-      boxes.forEach((b, i) => {
-        if (cx >= b.x && cx <= b.x + b.w && cy >= b.y && cy <= b.y + b.h) {
-          const area = b.w * b.h;
-          if (area < bestArea) {
-            bestArea = area;
-            hit = i;
-          }
+    // 2. Check if clicking inside any box
+    let hit = -1;
+    let bestArea = Infinity;
+    boxes.forEach((b, i) => {
+      if (cx >= b.x && cx <= b.x + b.w && cy >= b.y && cy <= b.y + b.h) {
+        const area = b.w * b.h;
+        if (area < bestArea) {
+          bestArea = area;
+          hit = i;
         }
-      });
+      }
+    });
+
+    // In Select/Move ('drag') mode: clicking a box immediately selects and drags it;
+    // in Draw mode: if user clicks an already selected box or any existing box directly, drag it
+    if (mode === 'drag' || hit >= 0) {
       if (hit >= 0) {
         let nextSel = selectedIndices;
         if (e.shiftKey) {
@@ -472,10 +479,13 @@ export default function DocumentAnnotatorPage() {
         dragMoveRef.current = { startX: cx, startY: cy, origBoxes: boxes.map((b) => ({ ...b })), indices: moveIndices };
         return;
       }
-      if (!e.shiftKey) setSelectedIndices([]);
-      marqueeRef.current = { startX: cx, startY: cy, curX: cx, curY: cy };
-      return;
+      if (mode === 'drag') {
+        if (!e.shiftKey) setSelectedIndices([]);
+        marqueeRef.current = { startX: cx, startY: cy, curX: cx, curY: cy };
+        return;
+      }
     }
+
     drawStartRef.current = { x: cx, y: cy };
   };
 
@@ -547,9 +557,11 @@ export default function DocumentAnnotatorPage() {
         return;
       }
     }
-    if (mode === 'drag') {
-      const overBox = boxes.some((b) => cx >= b.x && cx <= b.x + b.w && cy >= b.y && cy <= b.y + b.h);
-      setCanvasCursor(overBox ? 'move' : 'default');
+    const overBox = boxes.some((b) => cx >= b.x && cx <= b.x + b.w && cy >= b.y && cy <= b.y + b.h);
+    if (overBox) {
+      setCanvasCursor('move');
+    } else if (mode === 'drag') {
+      setCanvasCursor('default');
     } else {
       setCanvasCursor('crosshair');
     }
@@ -599,19 +611,23 @@ export default function DocumentAnnotatorPage() {
     drawStartRef.current = null;
     drawPreviewRef.current = null;
     if (w > 8 && h > 8) {
-      const next = [
-        ...boxes,
-        {
-          x, y, w, h,
-          label: activeLabel,
-          box_type: activeBoxType,
-          text: '',
-          image_width: imgDims.w || undefined,
-          image_height: imgDims.h || undefined,
-        },
-      ];
+      const newBox: BoxItem = {
+        x, y, w, h,
+        label: activeLabel,
+        box_type: activeBoxType,
+        text: '',
+        image_width: imgDims.w || undefined,
+        image_height: imgDims.h || undefined,
+      };
+      const next = [...boxes, newBox];
       pushHistory(next);
-      setSelectedIndices([next.length - 1]);
+      const newIdx = next.length - 1;
+      setSelectedIndices([newIdx]);
+
+      // If auto-OCR is enabled, immediately extract OCR text from this region
+      if (autoOcr && selectedImage) {
+        triggerOcrForBox(newBox, newIdx);
+      }
     } else {
       // Single click in Draw mode selects the box under the cursor
       let hit = -1;
@@ -629,9 +645,45 @@ export default function DocumentAnnotatorPage() {
     }
   };
 
-  const handleSave = async () => {
+  const triggerOcrForBox = async (targetBox: BoxItem, targetIdx: number) => {
     if (!selectedImage) return;
+    setIsOcrLoading(true);
+    setStatusMsg(`Running OCR on box #${targetIdx + 1}...`);
+    try {
+      const res = await fetch(`${API_BASE}/annotator/ocr_extract_box`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          relative_path: selectedImage.relative_path,
+          x: targetBox.x,
+          y: targetBox.y,
+          w: targetBox.w,
+          h: targetBox.h,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.status === 'ok' && data.text) {
+        setBoxes((prev) =>
+          prev.map((b, i) => (i === targetIdx ? { ...b, text: data.text } : b))
+        );
+        setIsDirty(true);
+        setStatusMsg(`OCR extracted: "${data.text}" (${Math.round((data.confidence || 0) * 100)}%)`);
+        toast.success(`OCR Extracted: "${data.text}"`, { duration: 3000 });
+      } else {
+        setStatusMsg(`OCR finished: ${data.text ? data.text : '(No text found)'}`);
+      }
+    } catch (err: any) {
+      setStatusMsg('OCR extraction failed.');
+      toast.error('OCR extraction failed.');
+    } finally {
+      setIsOcrLoading(false);
+    }
+  };
+
+  const handleSave = async (): Promise<boolean> => {
+    if (!selectedImage) return false;
     setStatusMsg('Saving annotations & exporting CSV...');
+    const toastId = toast.loading(`Saving annotations for ${selectedImage.file_name}...`);
     try {
       const res = await fetch(`${API_BASE}/annotator/boxes`, {
         method: 'POST',
@@ -647,19 +699,30 @@ export default function DocumentAnnotatorPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setStatusMsg(`Save failed: ${data.detail || 'Unknown error'}`);
-        return;
+        const errMsg = data.detail || 'Unknown error occurred while saving.';
+        setStatusMsg(`Save failed: ${errMsg}`);
+        toast.error(`Save failed: ${errMsg}`, { id: toastId });
+        return false;
       }
       if (data.status === 'warning') {
         setStatusMsg(data.message);
-        alert(data.message);
-        return;
+        toast.warning(data.message, { id: toastId, duration: 5000 });
+        return false;
       }
       setIsDirty(false);
-      setStatusMsg(`Saved ${data.saved_boxes} boxes${data.visualization_saved ? ' + JPG' : ''}`);
+      const msg = `Saved ${data.saved_boxes} boxes successfully!`;
+      setStatusMsg(`${msg}${data.visualization_saved ? ' (JPG generated)' : ''}`);
+      toast.success(msg, {
+        id: toastId,
+        description: `${selectedImage.file_name} · ${data.saved_boxes} box(es) saved to CSV${data.visualization_saved ? ' & visual preview updated' : ''}.`,
+        duration: 3500,
+      });
       refreshImages();
+      return true;
     } catch {
       setStatusMsg('Error: Network failure while saving.');
+      toast.error('Network failure: Unable to reach FastAPI backend.', { id: toastId });
+      return false;
     }
   };
 
@@ -792,10 +855,30 @@ export default function DocumentAnnotatorPage() {
     });
   };
 
-  const navigateToImage = (target: ImageItem) => {
-    if (isDirty && !confirm('You have unsaved changes. Discard and switch document?')) return;
-    setSelectedImage(target);
+  const guardUnsavedChanges = (action: () => void) => {
+    if (isDirty) {
+      setPendingNavAction(() => action);
+      return;
+    }
+    action();
   };
+
+  const navigateToImage = (target: ImageItem) => {
+    if (selectedImage && target.relative_path === selectedImage.relative_path) return;
+    guardUnsavedChanges(() => setSelectedImage(target));
+  };
+
+  // Warn browser tab close/refresh when there are unsaved annotations
+  useEffect(() => {
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [isDirty]);
 
   const categories = Array.from(new Set(images.map((i) => i.category))).sort();
   const catImages = images.filter((im) => categoryFilter === 'All' || im.category === categoryFilter);
@@ -842,20 +925,20 @@ export default function DocumentAnnotatorPage() {
           {/* Category & Status */}
           <div className="space-y-1.5 bg-slate-900/70 p-2 rounded border border-slate-800">
             <div className="text-[10px] uppercase font-bold text-slate-400">Dataset & Filters</div>
-            <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs">
+            <select value={categoryFilter} onChange={(e) => { const val = e.target.value; guardUnsavedChanges(() => setCategoryFilter(val)); }} className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs">
               <option value="All">All Categories</option>
               {categories.map((c) => (
                 <option key={c} value={c}>{c}</option>
               ))}
             </select>
             <div className="grid grid-cols-3 gap-1">
-              <button onClick={() => setStatusFilter('all')} className={`py-1 rounded text-[11px] border ${statusFilter === 'all' ? 'bg-emerald-700 border-emerald-500 text-white' : 'bg-slate-950 border-slate-800 text-slate-400'}`}>
+              <button onClick={() => guardUnsavedChanges(() => setStatusFilter('all'))} className={`py-1 rounded text-[11px] border ${statusFilter === 'all' ? 'bg-emerald-700 border-emerald-500 text-white' : 'bg-slate-950 border-slate-800 text-slate-400'}`}>
                 All ({catImages.length})
               </button>
-              <button onClick={() => setStatusFilter('annotated')} className={`py-1 rounded text-[11px] border ${statusFilter === 'annotated' ? 'bg-emerald-700 border-emerald-500 text-white' : 'bg-slate-950 border-slate-800 text-slate-400'}`}>
+              <button onClick={() => guardUnsavedChanges(() => setStatusFilter('annotated'))} className={`py-1 rounded text-[11px] border ${statusFilter === 'annotated' ? 'bg-emerald-700 border-emerald-500 text-white' : 'bg-slate-950 border-slate-800 text-slate-400'}`}>
                 Saved ({savedCount})
               </button>
-              <button onClick={() => setStatusFilter('unannotated')} className={`py-1 rounded text-[11px] border ${statusFilter === 'unannotated' ? 'bg-emerald-700 border-emerald-500 text-white' : 'bg-slate-950 border-slate-800 text-slate-400'}`}>
+              <button onClick={() => guardUnsavedChanges(() => setStatusFilter('unannotated'))} className={`py-1 rounded text-[11px] border ${statusFilter === 'unannotated' ? 'bg-emerald-700 border-emerald-500 text-white' : 'bg-slate-950 border-slate-800 text-slate-400'}`}>
                 Pending ({pendingCount})
               </button>
             </div>
@@ -915,7 +998,12 @@ export default function DocumentAnnotatorPage() {
               {filteredLabels.slice(0, 60).map((lbl) => (
                 <button
                   key={lbl}
-                  onClick={() => setActiveLabel(lbl)}
+                  onClick={() => {
+                    setActiveLabel(lbl);
+                    if (selectedIndices.length > 0) {
+                      pushHistory(boxes.map((b, i) => (selectedIndices.includes(i) ? { ...b, label: lbl } : b)));
+                    }
+                  }}
                   className={`px-1.5 py-0.5 rounded text-[10px] border ${activeLabel === lbl ? 'bg-emerald-600 border-emerald-400 text-white font-semibold' : 'bg-slate-950 border-slate-800 text-slate-300'}`}
                 >
                   {lbl}
@@ -985,16 +1073,32 @@ export default function DocumentAnnotatorPage() {
                   ))}
                 </select>
               </div>
-              <textarea
-                value={selectedBox.text}
-                onChange={(e) => {
-                  setIsDirty(true);
-                  setBoxes(boxes.map((b, i) => (i === primaryIdx ? { ...b, text: e.target.value } : b)));
-                }}
-                placeholder="OCR transcription..."
-                className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs"
-                rows={2}
-              />
+              <div className="flex gap-1.5 items-center">
+                <textarea
+                  value={selectedBox.text}
+                  onChange={(e) => {
+                    setIsDirty(true);
+                    setBoxes(boxes.map((b, i) => (i === primaryIdx ? { ...b, text: e.target.value } : b)));
+                  }}
+                  placeholder="OCR transcription..."
+                  className="flex-1 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs"
+                  rows={2}
+                />
+                <button
+                  type="button"
+                  disabled={isOcrLoading}
+                  onClick={() => {
+                    if (primaryIdx !== null && boxes[primaryIdx]) {
+                      triggerOcrForBox(boxes[primaryIdx], primaryIdx);
+                    }
+                  }}
+                  title="Extract text using OCR on this box"
+                  className="px-2 py-2 bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white rounded font-bold text-xs flex flex-col items-center justify-center shrink-0"
+                >
+                  <i className={`fa-solid ${isOcrLoading ? 'fa-spinner fa-spin' : 'fa-wand-magic-sparkles'}`} />
+                  <span className="text-[9px] mt-0.5">OCR</span>
+                </button>
+              </div>
               <div className="flex flex-wrap gap-1">
                 {['[✓]', '[ ]', '[signature]', '[seal]'].map((tok) => (
                   <button
@@ -1100,6 +1204,16 @@ export default function DocumentAnnotatorPage() {
             </>
           )}
           <div className="flex-1" />
+          <button
+            onClick={() => setAutoOcr((v) => !v)}
+            className={`px-2 py-1 rounded font-medium flex items-center gap-1.5 transition-colors ${
+              autoOcr ? 'bg-sky-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+            }`}
+            title="Auto-extract text via OCR immediately when a bounding box is drawn"
+          >
+            <i className="fa-solid fa-bolt text-xs" />
+            <span>Auto OCR: {autoOcr ? 'ON' : 'OFF'}</span>
+          </button>
           <button onClick={handleAiDetect} className="px-2.5 py-1 bg-amber-600 hover:bg-amber-500 text-white rounded font-semibold">AI Detect</button>
           <button onClick={handleSave} className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded font-semibold">
             {isDirty ? 'Save *' : 'Save'}
@@ -1204,6 +1318,53 @@ export default function DocumentAnnotatorPage() {
             <div className="flex justify-end gap-2 pt-2">
               <button onClick={() => setShowBatchModal(false)} className="px-3 py-1 bg-slate-800 rounded">Cancel</button>
               <button onClick={handleBatchTransfer} className="px-3 py-1 bg-sky-600 hover:bg-sky-500 text-white rounded font-semibold">Run Batch Transfer</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Unsaved Changes Caution Modal */}
+      {pendingNavAction && (
+        <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50">
+          <div className="bg-[#0f172a] border border-amber-500/60 rounded-lg p-4 w-[400px] shadow-2xl space-y-3">
+            <div className="flex items-center gap-2 text-amber-400">
+              <i className="fa-solid fa-triangle-exclamation text-base" />
+              <h3 className="font-bold text-sm">Unsaved Changes — Save First</h3>
+            </div>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              May mga pagbabago ka pa sa <span className="font-mono text-amber-300">{selectedImage?.file_name}</span> na hindi pa nase-save. I-save muna bago lumipat para hindi mawala ang annotations mo.
+            </p>
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                onClick={() => setPendingNavAction(null)}
+                className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  const act = pendingNavAction;
+                  setPendingNavAction(null);
+                  setIsDirty(false);
+                  act();
+                }}
+                className="px-3 py-1.5 bg-red-700 hover:bg-red-600 text-white rounded text-xs font-semibold"
+              >
+                Discard &amp; Switch
+              </button>
+              <button
+                onClick={async () => {
+                  const act = pendingNavAction;
+                  const ok = await handleSave();
+                  if (ok) {
+                    setPendingNavAction(null);
+                    act();
+                  }
+                }}
+                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-semibold"
+              >
+                Save First &amp; Switch
+              </button>
             </div>
           </div>
         </div>

@@ -44,82 +44,106 @@ function extractIsoDate(val: any): string | null {
   return match ? match[1] : null;
 }
 
-export type DocAuthenticityLabel = 'Authentic' | 'Suspicious' | 'Counterfeit';
+export type DocAuthenticityLabel =
+  | 'NO_SUSPICIOUS_INDICATORS'
+  | 'NEEDS_VERIFICATION'
+  | 'FLAGGED_FOR_MANUAL_REVIEW'
+  | 'INSUFFICIENT_IMAGE_QUALITY';
 
 function resolveDocAuthenticity(docOrAuth: any): {
   label: DocAuthenticityLabel;
+  displayTitle: string;
   summary: string;
   badgeCls: string;
   bannerCls: string;
   iconCls: string;
 } {
-  const rawLabel = String(
-    docOrAuth?.authenticity_classification ||
-      docOrAuth?.authenticity_result?.authenticity_classification ||
-      ''
-  )
-    .trim()
-    .toLowerCase();
   const rawStatus = String(
-    docOrAuth?.overall_status ||
-      docOrAuth?.authenticity_result?.overall_status ||
+    docOrAuth?.status ||
+      docOrAuth?.screening_status ||
+      docOrAuth?.authenticity_classification ||
+      docOrAuth?.authenticity_result?.status ||
+      docOrAuth?.authenticity_result?.screening_status ||
+      docOrAuth?.authenticity_result?.authenticity_classification ||
       docOrAuth?.verification_status ||
       ''
   )
     .trim()
     .toUpperCase();
-  const rawRisk = String(
-    docOrAuth?.tamper_risk_level ||
-      docOrAuth?.authenticity_result?.tamper_risk_level ||
-      docOrAuth?.tamper_risk ||
-      ''
-  )
-    .trim()
-    .toLowerCase();
-
-  let label: DocAuthenticityLabel = 'Authentic';
-  if (rawLabel === 'counterfeit' || rawStatus === 'VERIFICATION_FAILED' || rawRisk === 'high') {
-    label = 'Counterfeit';
-  } else if (
-    rawLabel === 'suspicious' ||
-    rawStatus === 'REQUIRES_REVIEW' ||
-    rawStatus === 'UNVERIFIABLE' ||
-    rawRisk === 'medium' ||
-    rawRisk === 'review required' ||
-    rawRisk === 'unverifiable'
-  ) {
-    label = 'Suspicious';
-  } else {
-    label = 'Authentic';
-  }
 
   const customSummary =
-    docOrAuth?.authenticity_summary || docOrAuth?.authenticity_result?.authenticity_summary || '';
+    docOrAuth?.reason ||
+    docOrAuth?.authenticity_summary ||
+    docOrAuth?.authenticity_result?.reason ||
+    docOrAuth?.authenticity_result?.authenticity_summary ||
+    '';
 
-  if (label === 'Authentic') {
+  if (
+    rawStatus.includes('INSUFFICIENT') ||
+    rawStatus === 'INSUFFICIENT_IMAGE_QUALITY' ||
+    rawStatus === 'INSUFFICIENT_EVIDENCE'
+  ) {
     return {
-      label: 'Authentic',
-      summary: customSummary || 'Passes signature, metadata, and forensic integrity checks.',
-      badgeCls: 'bg-emerald-50 text-emerald-800 border border-emerald-300',
-      bannerCls: 'bg-emerald-50/80 border-emerald-300 text-emerald-950',
-      iconCls: 'fa-circle-check text-emerald-600',
+      label: 'INSUFFICIENT_IMAGE_QUALITY',
+      displayTitle: 'Insufficient Image Quality',
+      summary:
+        customSummary ||
+        'Image resolution or sharpness is too low for definitive evidential verification.',
+      badgeCls: 'bg-slate-100 text-slate-800 border border-slate-300',
+      bannerCls: 'bg-slate-50 border-slate-300 text-slate-900',
+      iconCls: 'fa-triangle-exclamation text-slate-600',
     };
   }
-  if (label === 'Counterfeit') {
+
+  if (
+    rawStatus.includes('FLAGGED') ||
+    rawStatus === 'FLAGGED_FOR_MANUAL_REVIEW' ||
+    rawStatus === 'COUNTERFEIT' ||
+    rawStatus === 'VERIFICATION_FAILED' ||
+    String(docOrAuth?.tamper_risk || docOrAuth?.tamper_risk_level || '').toUpperCase() === 'HIGH'
+  ) {
     return {
-      label: 'Counterfeit',
-      summary: customSummary || 'Detected tampering, forged layout, or failed forensic verification.',
+      label: 'FLAGGED_FOR_MANUAL_REVIEW',
+      displayTitle: 'Flagged for Manual Review',
+      summary:
+        customSummary ||
+        'Corroborated digital forensic anomalies detected requiring closer caseworker examination.',
       badgeCls: 'bg-rose-50 text-rose-800 border border-rose-300',
       bannerCls: 'bg-rose-50/80 border-rose-300 text-rose-950',
       iconCls: 'fa-circle-xmark text-rose-600',
     };
   }
+
+  if (
+    rawStatus.includes('NEEDS_VERIFICATION') ||
+    rawStatus === 'SUSPICIOUS' ||
+    rawStatus === 'REQUIRES_REVIEW' ||
+    rawStatus === 'UNVERIFIABLE' ||
+    rawStatus === 'PENDING REVIEW' ||
+    String(docOrAuth?.tamper_risk || docOrAuth?.tamper_risk_level || '').toUpperCase() === 'MEDIUM' ||
+    String(docOrAuth?.tamper_risk || docOrAuth?.tamper_risk_level || '').toUpperCase() === 'UNDETERMINED'
+  ) {
+    return {
+      label: 'NEEDS_VERIFICATION',
+      displayTitle: 'Needs Verification',
+      summary:
+        customSummary ||
+        'Document lacks conclusive digital verification (e.g. missing metadata, unconfirmed signature, photocopy).',
+      badgeCls: 'bg-amber-50 text-amber-800 border border-amber-300',
+      bannerCls: 'bg-amber-50/80 border-amber-300 text-amber-950',
+      iconCls: 'fa-shield-halved text-amber-600',
+    };
+  }
+
   return {
-    label: 'Suspicious',
-    summary: customSummary || 'Flagged anomalies, low resolution, or partial discrepancies requiring closer inspection.',
-    badgeCls: 'bg-amber-50 text-amber-800 border border-amber-300',
-    bannerCls: 'bg-amber-50/80 border-amber-300 text-amber-950',
-    iconCls: 'fa-triangle-exclamation text-amber-600',
+    label: 'NO_SUSPICIOUS_INDICATORS',
+    displayTitle: 'No Suspicious Indicators',
+    summary:
+      customSummary ||
+      'No tampering detected across evaluated forensic modules. Evidence-based screening (does not legally prove genuineness).',
+    badgeCls: 'bg-emerald-50 text-emerald-800 border border-emerald-300',
+    bannerCls: 'bg-emerald-50/80 border-emerald-300 text-emerald-950',
+    iconCls: 'fa-circle-check text-emerald-600',
   };
 }
 
@@ -139,6 +163,8 @@ function MSWAssessmentContent() {
 
   // Stages: 1 = Case Study & Profile, 2 = MSW Assessment, 3 = Supporting Documents, 4 = Eligibility Grant Tier
   const [activeStage, setActiveStage] = useState<1 | 2 | 3 | 4>(1);
+  const [stage1Approved, setStage1Approved] = useState(false);
+  const [showDisapproveModal, setShowDisapproveModal] = useState(false);
 
   // Common Header & Encounter metadata
   const [applicationEncounterNo, setApplicationEncounterNo] = useState('');
@@ -867,7 +893,9 @@ function MSWAssessmentContent() {
   const [isUploadingDoc, setIsUploadingDoc] = useState(false);
   const [selectedUploadCategory, setSelectedUploadCategory] = useState('SIGNED CERTIFICATE OF INDIGENCY');
   const [inspectDoc, setInspectDoc] = useState<any>(null);
-  const [inspectDetails, setInspectDetails] = useState<{ ocr?: any; sig?: any; auth?: any } | null>(null);
+  const [inspectDetails, setInspectDetails] = useState<{ ocr?: any; sig?: any; auth?: any; stamp?: any } | null>(null);
+  const [deleteConfirmDoc, setDeleteConfirmDoc] = useState<any | null>(null);
+  const [isDeletingDoc, setIsDeletingDoc] = useState(false);
 
   // Stage 4 MSW Recommendation, Institutional Approval & ML state
   const [mswCaseNotes, setMswCaseNotes] = useState('');
@@ -969,6 +997,7 @@ function MSWAssessmentContent() {
           if (a.interview_date) setInterviewDate(a.interview_date);
           if (a.source_of_referral) setSourceOfReferral(a.source_of_referral);
           const s1 = a.stage1_data || {};
+          if (s1.is_approved) setStage1Approved(true);
           if (s1.informant_is_patient !== undefined) setIsInformantPatient(Boolean(s1.informant_is_patient));
           if (s1.informant_relation) setInfRelation(s1.informant_relation);
           if (s1.informant_first_name) setInfFirstName(s1.informant_first_name);
@@ -1371,6 +1400,7 @@ function MSWAssessmentContent() {
     interview_date: interviewDate,
     source_of_referral: sourceOfReferral,
     stage1_data: {
+      is_approved: stageOverride ? true : stage1Approved,
       informant_is_patient: isInformantPatient,
       informant_relation: infRelation,
       informant_first_name: infFirstName,
@@ -1606,21 +1636,35 @@ function MSWAssessmentContent() {
         [selectedUploadCategory]: 'Submitted',
       }));
 
-      setTimeout(async () => {
+      // Poll until backend completes processing instead of displaying preliminary results
+      let attempts = 0;
+      const pollInterval = setInterval(async () => {
+        attempts += 1;
         try {
-          const docs = await fetchApi(`/documents?patient_id=${encodeURIComponent(patientIdParam)}`, { headers: MSW_HDRS });
-          if (Array.isArray(docs)) {
-            setPatientDocs(docs);
-            const uploadedItem = docs.find((item: any) => item.id === doc.id);
-            if (uploadedItem) {
-              const authInfo = resolveDocAuthenticity(uploadedItem);
-              if (authInfo.label === 'Authentic') {
-                setDocStatuses((prev) => ({ ...prev, [selectedUploadCategory]: 'Verified' }));
+          const statusRes = await fetchApi(`/documents/${doc.id}/status`, { headers: MSW_HDRS });
+          const currentStatus = statusRes?.processing_status;
+          if (currentStatus === 'COMPLETED' || currentStatus === 'FAILED' || attempts > 15) {
+            clearInterval(pollInterval);
+            const updatedDocs = await fetchApi(`/documents?patient_id=${encodeURIComponent(patientIdParam)}`, { headers: MSW_HDRS });
+            if (Array.isArray(updatedDocs)) {
+              setPatientDocs(updatedDocs);
+              const processedItem = updatedDocs.find((item: any) => item.id === doc.id);
+              if (processedItem) {
+                const authInfo = resolveDocAuthenticity(processedItem);
+                if (authInfo.label === 'NO_SUSPICIOUS_INDICATORS') {
+                  setDocStatuses((prev) => ({ ...prev, [selectedUploadCategory]: 'Verified' }));
+                }
               }
             }
+          } else {
+            // Refresh list to show active PROCESSING status
+            loadPatientDocuments(patientIdParam);
           }
-        } catch {}
-      }, 900);
+        } catch {
+          if (attempts > 15) clearInterval(pollInterval);
+        }
+      }, 1500);
+
       loadPatientDocuments(patientIdParam);
     } catch (err: any) {
       toast.error(err?.message || 'Document upload failed.');
@@ -1633,14 +1677,35 @@ function MSWAssessmentContent() {
     setInspectDoc(doc);
     setInspectDetails(null);
     try {
-      const [ocr, sig, auth] = await Promise.all([
-        fetchApi(`/documents/${doc.id}/ocr-results`, { headers: MSW_HDRS }),
+      const [ocr, sig, stamp, auth] = await Promise.all([
+        fetchApi(`/documents/${doc.id}/ocr`, { headers: MSW_HDRS }),
         fetchApi(`/documents/${doc.id}/signature-results`, { headers: MSW_HDRS }),
-        fetchApi(`/documents/${doc.id}/authenticity-results`, { headers: MSW_HDRS }),
+        fetchApi(`/documents/${doc.id}/stamp-results`, { headers: MSW_HDRS }),
+        fetchApi(`/documents/${doc.id}/verification`, { headers: MSW_HDRS }),
       ]);
-      setInspectDetails({ ocr, sig, auth });
+      setInspectDetails({ ocr, sig, stamp, auth });
     } catch (err: any) {
       toast.error(err?.message || 'Failed to load authenticity details.');
+    }
+  };
+
+  const handleDeleteDocument = async (docId: string) => {
+    setIsDeletingDoc(true);
+    try {
+      await fetchApi(`/documents/${docId}`, {
+        method: 'DELETE',
+        headers: MSW_HDRS,
+      });
+      toast.success('Document deleted successfully.');
+      setDeleteConfirmDoc(null);
+      if (inspectDoc?.id === docId) {
+        setInspectDoc(null);
+      }
+      loadPatientDocuments(patientIdParam);
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to delete document.');
+    } finally {
+      setIsDeletingDoc(false);
     }
   };
 
@@ -1752,28 +1817,44 @@ function MSWAssessmentContent() {
             className={`p-3 rounded-2xl border transition cursor-pointer flex items-center justify-between shadow-2xs ${
               activeStage === 1
                 ? 'bg-[#0B6B3A] text-white border-[#0B6B3A]'
+                : stage1Approved
+                ? 'bg-emerald-50/60 text-[#14532D] border-emerald-200 hover:bg-emerald-50'
                 : 'bg-white text-[#334155] border-[#E2E8F0] hover:bg-[#FAFBF8]'
             }`}
           >
             <div className="flex items-center gap-2.5">
               <span
                 className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs ${
-                  activeStage === 1 ? 'bg-white text-[#0B6B3A]' : 'bg-[#F1F5F9] text-[#64748B]'
+                  activeStage === 1
+                    ? 'bg-white text-[#0B6B3A]'
+                    : stage1Approved
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-[#F1F5F9] text-[#64748B]'
                 }`}
               >
-                1
+                {stage1Approved ? <i className="fa-solid fa-check text-[11px]" /> : '1'}
               </span>
               <div>
                 <div className="text-[10px] font-bold uppercase opacity-80">STAGE 1</div>
-                <div className="font-bold text-xs">Case Study &amp; Profile</div>
+                <div className="font-bold text-xs flex items-center gap-1.5">
+                  <span>Case Study &amp; Profile</span>
+                  {stage1Approved && <i className="fa-solid fa-circle-check text-[11px] text-emerald-400" />}
+                </div>
               </div>
             </div>
             <span
-              className={`text-[9.5px] px-2 py-0.5 rounded-md font-bold uppercase ${
-                activeStage === 1 ? 'bg-white/20 text-white' : 'bg-[#FEF3C7] text-[#92400E]'
+              className={`text-[9.5px] px-2 py-0.5 rounded-md font-bold uppercase flex items-center gap-1 ${
+                stage1Approved
+                  ? activeStage === 1
+                    ? 'bg-white/20 text-white'
+                    : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                  : activeStage === 1
+                  ? 'bg-white/20 text-white'
+                  : 'bg-[#FEF3C7] text-[#92400E]'
               }`}
             >
-              Needed
+              {stage1Approved && <i className="fa-solid fa-check text-[9px]" />}
+              <span>{stage1Approved ? 'Approved' : 'Needed'}</span>
             </span>
           </div>
 
@@ -3174,7 +3255,7 @@ function MSWAssessmentContent() {
                           }
                           className="accent-[#0B6B3A] w-4 h-4 rounded"
                         />
-                        <span>Financial Assistance Requirement</span>
+                        <span>Medical Assistance Requirement</span>
                       </label>
 
                       <div className="pl-6 space-y-2">
@@ -3829,51 +3910,7 @@ function MSWAssessmentContent() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs pt-2 border-t border-[#EEF2EF]">
-                  <div>
-                    <label className="block text-[10px] font-bold text-[#64748B] uppercase mb-1">INTERVIEWED PERSON *</label>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setInterviewedPerson('PATIENT')}
-                        className={`flex-1 h-8 rounded border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-                          interviewedPerson === 'PATIENT'
-                            ? 'bg-[#0B6B3A] text-white border-[#0B6B3A]'
-                            : 'bg-white text-[#475569] border-[#CBD5E1]'
-                        }`}
-                      >
-                        <i className="fa-solid fa-user text-[10px]" />
-                        <span>Patient</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setInterviewedPerson('REPRESENTATIVE')}
-                        className={`flex-1 h-8 rounded border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-                          interviewedPerson === 'REPRESENTATIVE'
-                            ? 'bg-[#0B6B3A] text-white border-[#0B6B3A]'
-                            : 'bg-white text-[#475569] border-[#CBD5E1]'
-                        }`}
-                      >
-                        <i className="fa-solid fa-users text-[10px]" />
-                        <span>Representative</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] font-bold text-[#64748B] uppercase mb-1">
-                      REPRESENTATIVE RELATIONSHIP {interviewedPerson === 'REPRESENTATIVE' ? '*' : '(IF APPLICABLE)'}
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Spouse / Eldest Daughter / Sibling"
-                      value={representativeRelationship}
-                      onChange={(e) => setRepresentativeRelationship(e.target.value)}
-                      disabled={interviewedPerson === 'PATIENT'}
-                      className="w-full h-8 px-2.5 bg-white border border-[#CBD5E1] rounded disabled:bg-slate-100 disabled:text-slate-400"
-                    />
-                  </div>
-
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs pt-2 border-t border-[#EEF2EF]">
                   <div>
                     <label className="block text-[10px] font-bold text-[#64748B] uppercase mb-1">INTERVIEW METHOD *</label>
                     <select
@@ -3881,11 +3918,23 @@ function MSWAssessmentContent() {
                       onChange={(e: any) => setInterviewMethod(e.target.value)}
                       className="w-full h-8 px-2 bg-white border border-[#CBD5E1] rounded font-semibold text-[#10241A]"
                     >
-                      <option value="FACE_TO_FACE">Face-to-Face (Eye Center Clinic)</option>
-                      <option value="TELECONSULTATION">Teleconsultation / Video Intake</option>
-                      <option value="HOSPITAL_BEDSIDE">Hospital Bedside Intake</option>
-                      <option value="HOME_VISIT">Home Visit / Field Casework</option>
+                      <option value="F2F">F2F (Face-to-Face)</option>
+                      <option value="CALL">Call (Phone Interview)</option>
+                      <option value="TEXT">Text (SMS / Messaging)</option>
                     </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-[#64748B] uppercase mb-1">
+                      REPRESENTATIVE / COMPANION RELATIONSHIP (IF APPLICABLE)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Self / Spouse / Daughter / Sibling"
+                      value={representativeRelationship}
+                      onChange={(e) => setRepresentativeRelationship(e.target.value)}
+                      className="w-full h-8 px-2.5 bg-white border border-[#CBD5E1] rounded"
+                    />
                   </div>
                 </div>
 
@@ -3913,7 +3962,7 @@ function MSWAssessmentContent() {
                 </div>
               </div>
 
-              {/* SECTION II-B: PATIENT & FAMILY BACKGROUND (SEPARATED RESPONSES & MSW OBSERVATIONS) */}
+              {/* SECTION II-B: PATIENT & FAMILY BACKGROUND */}
               <div className="p-4 rounded-xl border border-[#E2E8F0] bg-white space-y-4">
                 <div className="flex items-center justify-between pb-2 border-b border-[#EEF2EF]">
                   <div>
@@ -3922,151 +3971,120 @@ function MSWAssessmentContent() {
                       <span>II-B. Patient &amp; Family Background</span>
                     </span>
                     <p className="text-[11px] text-[#5A7466] mt-0.5 mb-0">
-                      Dual-source documentation: Left column records patient disclosures; right column records verified clinical observations.
+                      Concise interview assessment of living situation, household composition, support system, and income.
                     </p>
                   </div>
-                  <span className="text-[10px] font-bold uppercase text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
-                    INTERVIEW DUAL-PANEL
-                  </span>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {/* Living Situation */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="p-3 rounded-lg border border-blue-100 bg-blue-50/40 space-y-1">
-                      <label className="block text-[10.5px] font-bold text-blue-900 uppercase">
+                    <div className="space-y-1">
+                      <label className="block text-[11px] font-bold text-[#10241A]">
                         1. Living Situation (Patient Disclosure)
                       </label>
-                      <textarea
-                        rows={2}
+                      <input
+                        type="text"
                         value={livingSituation}
                         onChange={(e) => setLivingSituation(e.target.value)}
-                        placeholder="Patient description of home dwelling, ownership, tenancy, condition..."
-                        className="w-full p-2 bg-white border border-[#CBD5E1] rounded text-xs"
+                        placeholder="Dwelling type, ownership, housing condition..."
+                        className="w-full h-9 px-3 bg-white border border-[#CBD5E1] rounded-lg text-xs"
                       />
                     </div>
-                    <div className="p-3 rounded-lg border border-emerald-100 bg-[#F0FDF4]/50 space-y-1">
-                      <label className="block text-[10.5px] font-bold text-[#14532D] uppercase">
+                    <div className="space-y-1">
+                      <label className="block text-[11px] font-bold text-[#14532D]">
                         MSW Clinical Observation &amp; Verification
                       </label>
-                      <textarea
-                        rows={2}
+                      <input
+                        type="text"
                         value={livingSituationObs}
                         onChange={(e) => setLivingSituationObs(e.target.value)}
-                        placeholder="Objective findings, barangay verification, physical environment notes..."
-                        className="w-full p-2 bg-white border border-[#CBD5E1] rounded text-xs"
+                        placeholder="Dwelling status verification, environmental assessment..."
+                        className="w-full h-9 px-3 bg-white border border-[#CBD5E1] rounded-lg text-xs"
                       />
                     </div>
                   </div>
 
                   {/* Household Composition */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="p-3 rounded-lg border border-blue-100 bg-blue-50/40 space-y-1">
-                      <label className="block text-[10.5px] font-bold text-blue-900 uppercase">
-                        2. Household Composition &amp; Dependents (Patient Disclosure)
+                    <div className="space-y-1">
+                      <label className="block text-[11px] font-bold text-[#10241A]">
+                        2. Household Composition &amp; Dependents
                       </label>
-                      <textarea
-                        rows={2}
+                      <input
+                        type="text"
                         value={householdComposition}
                         onChange={(e) => setHouseholdComposition(e.target.value)}
-                        placeholder="Members residing in household, school-age children, elderly dependents..."
-                        className="w-full p-2 bg-white border border-[#CBD5E1] rounded text-xs"
+                        placeholder="Number of members, minor dependents, elderly..."
+                        className="w-full h-9 px-3 bg-white border border-[#CBD5E1] rounded-lg text-xs"
                       />
                     </div>
-                    <div className="p-3 rounded-lg border border-emerald-100 bg-[#F0FDF4]/50 space-y-1">
-                      <label className="block text-[10.5px] font-bold text-[#14532D] uppercase">
+                    <div className="space-y-1">
+                      <label className="block text-[11px] font-bold text-[#14532D]">
                         MSW Clinical Observation &amp; Dependent Risk
                       </label>
-                      <textarea
-                        rows={2}
+                      <input
+                        type="text"
                         value={householdCompositionObs}
                         onChange={(e) => setHouseholdCompositionObs(e.target.value)}
-                        placeholder="Assessment of family dependency ratio, vulnerable minor protection..."
-                        className="w-full p-2 bg-white border border-[#CBD5E1] rounded text-xs"
+                        placeholder="Dependency ratio and support needs..."
+                        className="w-full h-9 px-3 bg-white border border-[#CBD5E1] rounded-lg text-xs"
                       />
                     </div>
                   </div>
 
-                  {/* Family Support */}
+                  {/* Family Support System */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="p-3 rounded-lg border border-blue-100 bg-blue-50/40 space-y-1">
-                      <label className="block text-[10.5px] font-bold text-blue-900 uppercase">
-                        3. Family Support System (Patient Disclosure)
+                    <div className="space-y-1">
+                      <label className="block text-[11px] font-bold text-[#10241A]">
+                        3. Family Support System &amp; Caregiver
                       </label>
-                      <textarea
-                        rows={2}
+                      <input
+                        type="text"
                         value={familySupport}
                         onChange={(e) => setFamilySupport(e.target.value)}
-                        placeholder="Available caregiver assistance, family members assisting with mobility..."
-                        className="w-full p-2 bg-white border border-[#CBD5E1] rounded text-xs"
+                        placeholder="Available family caregiver, mobility assistance..."
+                        className="w-full h-9 px-3 bg-white border border-[#CBD5E1] rounded-lg text-xs"
                       />
                     </div>
-                    <div className="p-3 rounded-lg border border-emerald-100 bg-[#F0FDF4]/50 space-y-1">
-                      <label className="block text-[10.5px] font-bold text-[#14532D] uppercase">
+                    <div className="space-y-1">
+                      <label className="block text-[11px] font-bold text-[#14532D]">
                         MSW Clinical Observation &amp; Caregiver Burden
                       </label>
-                      <textarea
-                        rows={2}
+                      <input
+                        type="text"
                         value={familySupportObs}
                         onChange={(e) => setFamilySupportObs(e.target.value)}
-                        placeholder="Observed caregiver stress, psychological bandwidth, mobility accompaniment..."
-                        className="w-full p-2 bg-white border border-[#CBD5E1] rounded text-xs"
+                        placeholder="Caregiver capacity and strain level..."
+                        className="w-full h-9 px-3 bg-white border border-[#CBD5E1] rounded-lg text-xs"
                       />
                     </div>
                   </div>
 
-                  {/* Current Employment */}
+                  {/* Current Employment & Livelihood */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="p-3 rounded-lg border border-blue-100 bg-blue-50/40 space-y-1">
-                      <label className="block text-[10.5px] font-bold text-blue-900 uppercase">
-                        4. Current Employment &amp; Livelihood (Patient Disclosure)
+                    <div className="space-y-1">
+                      <label className="block text-[11px] font-bold text-[#10241A]">
+                        4. Current Employment &amp; Income Sources
                       </label>
-                      <textarea
-                        rows={2}
+                      <input
+                        type="text"
                         value={employmentSituation}
                         onChange={(e) => setEmploymentSituation(e.target.value)}
-                        placeholder="Current employment status, informal jobs, daily wage, impact of blindness..."
-                        className="w-full p-2 bg-white border border-[#CBD5E1] rounded text-xs"
+                        placeholder="Job/livelihood status, daily wage, impact of eye condition..."
+                        className="w-full h-9 px-3 bg-white border border-[#CBD5E1] rounded-lg text-xs"
                       />
                     </div>
-                    <div className="p-3 rounded-lg border border-emerald-100 bg-[#F0FDF4]/50 space-y-1">
-                      <label className="block text-[10.5px] font-bold text-[#14532D] uppercase">
+                    <div className="space-y-1">
+                      <label className="block text-[11px] font-bold text-[#14532D]">
                         MSW Clinical Observation &amp; Productivity Loss
                       </label>
-                      <textarea
-                        rows={2}
+                      <input
+                        type="text"
                         value={employmentObs}
                         onChange={(e) => setEmploymentObs(e.target.value)}
-                        placeholder="Evaluation of work incapacity directly attributable to ocular disability..."
-                        className="w-full p-2 bg-white border border-[#CBD5E1] rounded text-xs"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Income Sources & Financial Responsibilities */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="p-3 rounded-lg border border-blue-100 bg-blue-50/40 space-y-1">
-                      <label className="block text-[10.5px] font-bold text-blue-900 uppercase">
-                        5. Income Sources &amp; Responsibilities (Patient Disclosure)
-                      </label>
-                      <textarea
-                        rows={2}
-                        value={incomeSources}
-                        onChange={(e) => setIncomeSources(e.target.value)}
-                        placeholder="Reported earnings, informal assistance, debts, rent obligations..."
-                        className="w-full p-2 bg-white border border-[#CBD5E1] rounded text-xs"
-                      />
-                    </div>
-                    <div className="p-3 rounded-lg border border-emerald-100 bg-[#F0FDF4]/50 space-y-1">
-                      <label className="block text-[10.5px] font-bold text-[#14532D] uppercase">
-                        MSW Clinical Observation &amp; Financial Stability
-                      </label>
-                      <textarea
-                        rows={2}
-                        value={financialResponsibilitiesObs}
-                        onChange={(e) => setFinancialResponsibilitiesObs(e.target.value)}
-                        placeholder="Verified per capita threshold, food security risk, emergency liquidity..."
-                        className="w-full p-2 bg-white border border-[#CBD5E1] rounded text-xs"
+                        placeholder="Work capacity reduction and financial stability..."
+                        className="w-full h-9 px-3 bg-white border border-[#CBD5E1] rounded-lg text-xs"
                       />
                     </div>
                   </div>
@@ -4119,12 +4137,15 @@ function MSWAssessmentContent() {
                       <div className="pt-1.5">
                         <div className="text-[10px] font-bold uppercase text-[#5A7466] mb-1">Itemized Surgical Quotation:</div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                          {activeReferral.particulars.map((pt: any, idx: number) => (
-                            <div key={idx} className="flex justify-between bg-white px-2 py-1 rounded border border-[#E2ECE5] text-[11px]">
-                              <span className="text-[#334155]">{pt.description}</span>
-                              <span className="font-mono font-semibold text-[#0B6B3A]">₱{Number(pt.amount || 0).toLocaleString()}</span>
-                            </div>
-                          ))}
+                          {activeReferral.particulars.map((pt: any, idx: number) => {
+                            const itemName = pt.name || pt.description || pt.particulars || 'Operation Fee / Surgical Package';
+                            return (
+                              <div key={idx} className="flex justify-between bg-white px-2.5 py-1.5 rounded border border-[#E2ECE5] text-[11px] items-center">
+                                <span className="text-[#10241A] font-semibold">{itemName}</span>
+                                <span className="font-mono font-bold text-[#0B6B3A]">₱{Number(pt.amount || 0).toLocaleString()}</span>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     )}
@@ -4224,91 +4245,66 @@ function MSWAssessmentContent() {
                 <div className="flex items-center justify-between pb-2 border-b border-[#EEF2EF]">
                   <span className="font-bold text-xs text-[#0B6B3A] flex items-center gap-1.5 uppercase tracking-wide">
                     <i className="fa-solid fa-brain text-sm" />
-                    <span>II-D. Psychosocial Circumstances</span>
+                    <span>II-D. Psychosocial Circumstances &amp; Daily Coping</span>
                   </span>
                   <span className="text-[10px] font-bold uppercase text-[#0B6B3A] bg-[#E8F5EC] px-2 py-0.5 rounded">
                     COPING &amp; RESILIENCE
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className="p-3 rounded-lg border border-blue-100 bg-blue-50/40 space-y-1">
-                    <label className="block text-[10.5px] font-bold text-blue-900 uppercase">
-                      Stigma / Discrimination Experiences (Patient Disclosure)
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={discriminationExperienced}
-                      onChange={(e) => setDiscriminationExperienced(e.target.value)}
-                      placeholder="Work refusal, social isolation due to visible cataract..."
-                      className="w-full p-2 bg-white border border-[#CBD5E1] rounded text-xs"
-                    />
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="block text-[11px] font-bold text-[#10241A]">
+                        Safety Concerns &amp; Daily Difficulties
+                      </label>
+                      <input
+                        type="text"
+                        value={safetyHazards}
+                        onChange={(e) => setSafetyHazards(e.target.value)}
+                        placeholder="Mobility, household tasks, hazards faced..."
+                        className="w-full h-9 px-3 bg-white border border-[#CBD5E1] rounded-lg text-xs"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="block text-[11px] font-bold text-[#14532D]">
+                        MSW Clinical Observation &amp; Safety Risk
+                      </label>
+                      <input
+                        type="text"
+                        value={safetyHazardsObs}
+                        onChange={(e) => setSafetyHazardsObs(e.target.value)}
+                        placeholder="Observed risk level and mobility needs..."
+                        className="w-full h-9 px-3 bg-white border border-[#CBD5E1] rounded-lg text-xs"
+                      />
+                    </div>
                   </div>
-                  <div className="p-3 rounded-lg border border-emerald-100 bg-[#F0FDF4]/50 space-y-1">
-                    <label className="block text-[10.5px] font-bold text-[#14532D] uppercase">
-                      MSW Clinical Observation &amp; Discrimination Burden
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={discriminationObs}
-                      onChange={(e) => setDiscriminationObs(e.target.value)}
-                      placeholder="Observed psychological withdrawal, employment marginalization..."
-                      className="w-full p-2 bg-white border border-[#CBD5E1] rounded text-xs"
-                    />
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className="p-3 rounded-lg border border-blue-100 bg-blue-50/40 space-y-1">
-                    <label className="block text-[10.5px] font-bold text-blue-900 uppercase">
-                      Safety Concerns &amp; Fall Hazards (Patient Disclosure)
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={safetyHazards}
-                      onChange={(e) => setSafetyHazards(e.target.value)}
-                      placeholder="Stumbling, cooking hazards, difficulty with stairs/paths..."
-                      className="w-full p-2 bg-white border border-[#CBD5E1] rounded text-xs"
-                    />
-                  </div>
-                  <div className="p-3 rounded-lg border border-emerald-100 bg-[#F0FDF4]/50 space-y-1">
-                    <label className="block text-[10.5px] font-bold text-[#14532D] uppercase">
-                      MSW Clinical Observation &amp; Domestic Trauma Risk
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={safetyHazardsObs}
-                      onChange={(e) => setSafetyHazardsObs(e.target.value)}
-                      placeholder="Physical safety hazards without bilateral stereoscopic restoration..."
-                      className="w-full p-2 bg-white border border-[#CBD5E1] rounded text-xs"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className="p-3 rounded-lg border border-blue-100 bg-blue-50/40 space-y-1">
-                    <label className="block text-[10.5px] font-bold text-blue-900 uppercase">
-                      Coping Capacity Narrative (Patient Disclosure)
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={copingCapacityNarrative}
-                      onChange={(e) => setCopingCapacityNarrative(e.target.value)}
-                      placeholder="Emotional coping, faith, family encouragement, daily struggle..."
-                      className="w-full p-2 bg-white border border-[#CBD5E1] rounded text-xs"
-                    />
-                  </div>
-                  <div className="p-3 rounded-lg border border-emerald-100 bg-[#F0FDF4]/50 space-y-1">
-                    <label className="block text-[10.5px] font-bold text-[#14532D] uppercase">
-                      MSW Clinical Observation &amp; Resilience Index
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={copingCapacityObs}
-                      onChange={(e) => setCopingCapacityObs(e.target.value)}
-                      placeholder="Emotional orientation, motivation to regain independence and work..."
-                      className="w-full p-2 bg-white border border-[#CBD5E1] rounded text-xs"
-                    />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="block text-[11px] font-bold text-[#10241A]">
+                        Emotional Coping &amp; Family Encouragement
+                      </label>
+                      <input
+                        type="text"
+                        value={copingCapacityNarrative}
+                        onChange={(e) => setCopingCapacityNarrative(e.target.value)}
+                        placeholder="Emotional outlook, family support, coping attitude..."
+                        className="w-full h-9 px-3 bg-white border border-[#CBD5E1] rounded-lg text-xs"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="block text-[11px] font-bold text-[#14532D]">
+                        MSW Clinical Observation &amp; Resilience
+                      </label>
+                      <input
+                        type="text"
+                        value={copingCapacityObs}
+                        onChange={(e) => setCopingCapacityObs(e.target.value)}
+                        placeholder="Casework evaluation on motivation and adaptation..."
+                        className="w-full h-9 px-3 bg-white border border-[#CBD5E1] rounded-lg text-xs"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -4364,121 +4360,6 @@ function MSWAssessmentContent() {
                       className="w-full h-9 px-3 border border-[#CBD5E1] rounded-lg text-xs"
                     />
                   </div>
-                </div>
-              </div>
-
-              {/* LIVE AUTOMATED SOCIOECONOMIC SCORING & ELIGIBILITY OUTPUT (100% AUTOMATIC — NO MANUAL OVERRIDES) */}
-              <div className="p-4 rounded-xl border border-[#0B6B3A]/30 bg-[#F0FDF4] space-y-4 shadow-sm">
-                <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-[#BBF7D0]">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-[#0B6B3A] text-white flex items-center justify-center text-sm font-bold shadow-xs">
-                      <i className="fa-solid fa-gears" />
-                    </div>
-                    <div>
-                      <h4 className="font-['Outfit'] font-bold text-sm text-[#14532D] m-0">
-                        Automated Socioeconomic Risk Score &amp; Charity Eligibility Output
-                      </h4>
-                      <p className="text-[11px] text-[#166534] m-0">
-                        Automatically computed in the background from Stage 1 intake/financial data and OFPHIL system rules — no manual tier selection required
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-2">
-                    {isEvaluating && (
-                      <span className="text-[11px] font-semibold text-[#0B6B3A] flex items-center gap-1">
-                        <i className="fa-solid fa-circle-notch fa-spin text-[10px]" />
-                        <span>Updating...</span>
-                      </span>
-                    )}
-                    <span className="text-[11px] font-bold text-[#14532D]">Computed Tier:</span>
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold border ${badgeColor} shadow-2xs`}>
-                      {mswClassification}
-                    </span>
-                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-[#0B6B3A] text-white shadow-2xs">
-                      {subsidyLevel}
-                    </span>
-                  </div>
-                </div>
-
-                {/* 4 Metric Cards (Automatically Computed) */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-                  <div className="p-3 bg-white border border-[#CBD5E1] rounded-xl shadow-2xs">
-                    <div className="text-[10px] font-bold text-[#64748B] uppercase">Average Severity</div>
-                    <div className="text-xl font-extrabold text-[#0B6B3A] my-0.5">
-                      {backendEval?.is_complete ? averageSeverity.toFixed(2) : '—'}
-                    </div>
-                    <div className="text-[10px] text-[#94A3B8]">Auto-Computed (&ge; 3.8 / 2.8)</div>
-                  </div>
-
-                  <div className="p-3 bg-white border border-[#CBD5E1] rounded-xl shadow-2xs">
-                    <div className="text-[10px] font-bold text-[#64748B] uppercase">Average Coping</div>
-                    <div className="text-xl font-extrabold text-[#0284C7] my-0.5">
-                      {backendEval?.is_complete ? averageCoping.toFixed(2) : '—'}
-                    </div>
-                    <div className="text-[10px] text-[#94A3B8]">Auto-Computed (&ge; 3.8 / 2.8)</div>
-                  </div>
-
-                  <div className="p-3 bg-white border border-[#CBD5E1] rounded-xl shadow-2xs">
-                    <div className="text-[10px] font-bold text-[#64748B] uppercase">Total Risk Score</div>
-                    <div className="text-xl font-extrabold text-[#0F766E] my-0.5">
-                      {backendEval?.is_complete ? `${totalRisk.toFixed(1)}%` : '—'}
-                    </div>
-                    <div className="text-[10px] text-[#94A3B8]">(Sev &times; 8.5) + (Cop &times; 5)</div>
-                  </div>
-
-                  <div className="p-3 bg-white border border-[#CBD5E1] rounded-xl shadow-2xs">
-                    <div className="text-[10px] font-bold text-[#64748B] uppercase">Total Household Income</div>
-                    <div className="text-xl font-extrabold text-[#10241A] my-0.5">₱{totalHouseholdIncome.toLocaleString()}</div>
-                    <div className="text-[10px] text-[#94A3B8]">
-                      Per Capita: ₱{Number(backendEval?.financial_classification?.monthly_per_capita_income ?? (totalHouseholdIncome / Math.max(1, familyMembers.length + 1))).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Official Trigger Condition Reference Table Banner */}
-                <div className="bg-white border border-[#CBD5E1] rounded-xl p-3 text-xs overflow-x-auto">
-                  <div className="font-bold text-[11px] uppercase tracking-wide text-[#0B6B3A] mb-2 flex items-center gap-1.5">
-                    <i className="fa-solid fa-table-list" />
-                    <span>Official OFPHIL Automated Classification Rubric &amp; Trigger Conditions</span>
-                  </div>
-                  <table className="w-full text-left border-collapse text-[11px]">
-                    <thead>
-                      <tr className="bg-[#FAFBF8] border-b border-[#E2E8F0] text-[#64748B]">
-                        <th className="py-1.5 px-2.5">Charity Classification Tier</th>
-                        <th className="py-1.5 px-2.5">Automated Trigger Rule</th>
-                        <th className="py-1.5 px-2.5">Subsidy Level</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#EEF2EF]">
-                      <tr className={currentMswClass === 'INDIGENT' ? 'bg-[#F0FDF4] font-bold text-[#14532D]' : ''}>
-                        <td className="py-1.5 px-2.5">Indigent</td>
-                        <td className="py-1.5 px-2.5 font-mono text-[10.5px]">
-                          Average Severity &ge; 3.8 <strong className="text-[#0B6B3A]">OR</strong> Average Coping &ge; 3.8 <strong className="text-[#0B6B3A]">OR</strong> Total Risk &ge; 65.0% (or Total Household Income &le; ₱14,000 on initial load)
-                        </td>
-                        <td className="py-1.5 px-2.5">100% Full Charity Subsidy</td>
-                      </tr>
-                      <tr className={currentMswClass === 'FINANCIALLY_INCAPACITATED_B1' ? 'bg-[#EFF6FF] font-bold text-[#1E40AF]' : ''}>
-                        <td className="py-1.5 px-2.5">Financially Incapacitated B1</td>
-                        <td className="py-1.5 px-2.5 font-mono text-[10.5px]">
-                          Average Severity &ge; 2.8 <strong className="text-[#0B6B3A]">OR</strong> Average Coping &ge; 2.8 <strong className="text-[#0B6B3A]">OR</strong> Total Risk &ge; 45.0%
-                        </td>
-                        <td className="py-1.5 px-2.5">High Partial Charity Subsidy (75% – 90%)</td>
-                      </tr>
-                      <tr className={currentMswClass === 'FINANCIALLY_INCAPACITATED_B2' ? 'bg-[#FFFBEB] font-bold text-[#92400E]' : ''}>
-                        <td className="py-1.5 px-2.5">Financially Incapacitated B2</td>
-                        <td className="py-1.5 px-2.5 font-mono text-[10.5px]">
-                          Total Risk &ge; 30.0% (or Total Household Income &le; ₱25,000 on initial load)
-                        </td>
-                        <td className="py-1.5 px-2.5">Moderate Partial Charity Subsidy (50% – 74%)</td>
-                      </tr>
-                      <tr className={currentMswClass === 'FINANCIALLY_CAPACITATED' ? 'bg-[#F8FAFC] font-bold text-[#334155]' : ''}>
-                        <td className="py-1.5 px-2.5">Financially Capacitated</td>
-                        <td className="py-1.5 px-2.5 font-mono text-[10.5px]">All scores below the charity thresholds above</td>
-                        <td className="py-1.5 px-2.5">Full Pay / Non-Charity (0%)</td>
-                      </tr>
-                    </tbody>
-                  </table>
                 </div>
               </div>
 
@@ -4740,7 +4621,14 @@ function MSWAssessmentContent() {
                   { id: '3. ELECTRICITY BILL', key: 'ELECTRICITY BILL', sub: 'Recent Meralco or provincial cooperative power bill' },
                   { id: '4. WATER BILL', key: 'WATER BILL', sub: 'Recent Manila Water / Maynilad / Local Water District bill' },
                 ].map((doc) => (
-                  <div key={doc.id} className="p-3.5 rounded-xl border border-[#CBD5E1] bg-white space-y-2">
+                  <div
+                    key={doc.id}
+                    className={`p-3.5 rounded-xl border bg-white space-y-2 transition ${
+                      selectedUploadCategory === doc.key
+                        ? 'border-[#0B6B3A] ring-2 ring-[#0B6B3A]/20 bg-[#F0FDF4]'
+                        : 'border-[#CBD5E1]'
+                    }`}
+                  >
                     <div className="font-bold text-[11px] text-[#1E293B] leading-snug">{doc.id}</div>
 
                     <div className="flex items-center justify-between pt-2 border-t border-[#EEF2EF]">
@@ -4763,9 +4651,17 @@ function MSWAssessmentContent() {
 
                       <button
                         type="button"
-                        onClick={() => toast.info(`Camera Scanner opened for ${doc.id}`)}
-                        className="w-7 h-7 rounded border border-[#CBD5E1] bg-[#F8FAFC] hover:bg-[#E8F5EC] text-[#0B6B3A] flex items-center justify-center cursor-pointer transition"
-                        title="Scan Document with Camera"
+                        onClick={() => {
+                          setSelectedUploadCategory(doc.key);
+                          document.getElementById('doc-upload-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                          toast.info(`Selected ${doc.id} for upload`);
+                        }}
+                        className={`w-7 h-7 rounded border flex items-center justify-center cursor-pointer transition ${
+                          selectedUploadCategory === doc.key
+                            ? 'bg-[#0B6B3A] border-[#0B6B3A] text-white'
+                            : 'border-[#CBD5E1] bg-[#F8FAFC] hover:bg-[#E8F5EC] text-[#0B6B3A]'
+                        }`}
+                        title="Select this document for upload"
                       >
                         <i className="fa-solid fa-camera text-xs" />
                       </button>
@@ -4805,7 +4701,7 @@ function MSWAssessmentContent() {
               </div>
 
               {/* REAL DOCUMENT AUTHENTICITY & VERIFICATION UPLOAD QUEUE */}
-              <div className="p-4 rounded-xl border border-[#CBD5E1] bg-[#F8FAFC] space-y-4">
+              <div id="doc-upload-section" className="p-4 rounded-xl border border-[#CBD5E1] bg-[#F8FAFC] space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <div className="font-bold text-xs text-[#10241A]">
@@ -4904,9 +4800,19 @@ function MSWAssessmentContent() {
                                 <button
                                   type="button"
                                   onClick={() => handleInspectDocument(d)}
-                                  className="px-2.5 py-1 rounded-lg border border-[#0B6B3A] text-[#0B6B3A] hover:bg-[#E8F5EC] text-[11px] font-semibold cursor-pointer"
+                                  className="px-2.5 py-1 rounded-lg border border-[#0B6B3A] text-[#0B6B3A] hover:bg-[#E8F5EC] text-[11px] font-semibold cursor-pointer inline-flex items-center gap-1"
+                                  title="Inspect forensic integrity and OCR text"
                                 >
-                                  Inspect &amp; Review
+                                  <i className="fa-solid fa-magnifying-glass text-[10px]" />
+                                  <span>Inspect &amp; Review</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setDeleteConfirmDoc(d)}
+                                  className="p-1.5 rounded-lg border border-rose-200 text-rose-600 hover:text-rose-800 hover:bg-rose-50 transition cursor-pointer inline-flex items-center justify-center"
+                                  title="Delete document"
+                                >
+                                  <i className="fa-solid fa-trash-can text-[11px]" />
                                 </button>
                               </td>
                             </tr>
@@ -5204,11 +5110,7 @@ function MSWAssessmentContent() {
           <div className="flex items-center gap-2.5">
             <button
               type="button"
-              onClick={() => {
-                if (confirm('Are you sure you want to disapprove Step 1?')) {
-                  toast.error('Step 1 Disapproved');
-                }
-              }}
+              onClick={() => setShowDisapproveModal(true)}
               className="px-4 py-2.5 rounded-xl border border-rose-200 bg-white hover:bg-rose-50 text-rose-700 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
             >
               <i className="fa-solid fa-xmark text-xs" />
@@ -5247,6 +5149,9 @@ function MSWAssessmentContent() {
                     });
                     if (classified?.classification_result) setBackendEval(classified.classification_result);
                     if (classified?.workflow_status) setWorkflowStatus(classified.workflow_status);
+                  }
+                  if (activeStage === 1) {
+                    setStage1Approved(true);
                   }
                   if (activeStage < 4) {
                     setActiveStage((activeStage + 1) as any);
@@ -5313,88 +5218,336 @@ function MSWAssessmentContent() {
         </div>
       </div>
 
-      {/* Document Authenticity & Verification Modal (Automated Classification Only) */}
+      {/* Delete Document Confirmation Dialog */}
+      {deleteConfirmDoc && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-rose-200 max-w-sm w-full p-6 shadow-2xl space-y-4 text-xs">
+            <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto text-xl">
+              <i className="fa-solid fa-triangle-exclamation" />
+            </div>
+            <div className="text-center space-y-1.5">
+              <h4 className="font-heading font-bold text-base text-[#10241A] m-0">Confirm Document Deletion</h4>
+              <p className="text-xs text-[#64748B] m-0 leading-relaxed">
+                Are you sure you want to delete <strong className="text-[#10241A]">&ldquo;{deleteConfirmDoc.filename}&rdquo;</strong> from this assessment record?
+              </p>
+              <div className="p-2.5 bg-[#FAFBF8] rounded-lg border border-[#EEF2EF] font-mono text-[10.5px] text-[#475569] text-left">
+                <div>Document ID: <strong>{deleteConfirmDoc.id}</strong></div>
+                <div>Category: {deleteConfirmDoc.document_type || 'Credential'}</div>
+                <div className="truncate">SHA-256: {deleteConfirmDoc.sha256_hash?.slice(0, 16) || 'N/A'}...</div>
+              </div>
+              <p className="text-[10px] text-amber-700 m-0">
+                This deletion will be permanently logged in the institutional audit log according to document retention policy.
+              </p>
+            </div>
+            <div className="flex items-center justify-center gap-2 pt-2 border-t border-[#EEF2EF]">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmDoc(null)}
+                className="px-4 py-2 border border-[#CBD5E1] text-[#334155] rounded-xl text-xs font-semibold hover:bg-[#F8FAFC] cursor-pointer"
+                disabled={isDeletingDoc}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDeleteDocument(deleteConfirmDoc.id)}
+                disabled={isDeletingDoc}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer inline-flex items-center gap-1.5 disabled:opacity-50"
+              >
+                {isDeletingDoc ? (
+                  <>
+                    <i className="fa-solid fa-circle-notch fa-spin text-xs" />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <i className="fa-solid fa-trash-can text-xs" />
+                    <span>Confirm Delete</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Document Authenticity & Verification Modal (Comprehensive Evidential Audit) */}
       {inspectDoc && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-[#CBD5E1] max-w-2xl w-full max-h-[85vh] overflow-y-auto p-6 space-y-4 shadow-xl text-xs">
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-[#CBD5E1] max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-4 shadow-2xl text-xs">
             <div className="flex items-center justify-between border-b border-[#EEF2EF] pb-3">
-              <div>
-                <h4 className="font-bold text-sm text-[#10241A] m-0">Document Authenticity &amp; Verification</h4>
-                <div className="text-[11px] text-[#64748B]">
-                  {inspectDoc.filename} &bull; SHA-256: <span className="font-mono">{inspectDoc.sha256_hash?.slice(0, 16) || 'N/A'}...</span>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-[#E6F1EA] text-[#0B6B3A] flex items-center justify-center font-bold">
+                  <i className="fa-solid fa-file-shield text-sm" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm text-[#10241A] m-0">Document Authenticity &amp; Verification</h4>
+                  <div className="text-[11px] text-[#64748B]">
+                    Evidential inspection report &bull; <span className="font-mono text-[#0B6B3A]">{inspectDoc.id}</span>
+                  </div>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setInspectDoc(null)}
-                className="px-3 py-1 rounded-lg border border-[#CBD5E1] hover:bg-slate-50 text-xs font-semibold cursor-pointer"
+                className="px-3 py-1.5 rounded-lg border border-[#CBD5E1] hover:bg-slate-50 text-xs font-semibold cursor-pointer"
               >
                 Close
               </button>
             </div>
 
             {!inspectDetails ? (
-              <div className="py-8 text-center text-[#64748B]">Loading OCR, signature, and forensic verification results...</div>
+              <div className="py-12 text-center text-[#64748B] flex flex-col items-center justify-center gap-2">
+                <i className="fa-solid fa-circle-notch fa-spin text-xl text-[#0B6B3A]" />
+                <span>Loading forensic evidence, OCR transcription, and screening results...</span>
+              </div>
             ) : (
               (() => {
                 const modalAuth = resolveDocAuthenticity(inspectDetails.auth || inspectDoc);
+                const checks = inspectDetails.auth?.checks || {};
                 const ind = inspectDetails.auth?.indicators || {};
+                const sig = inspectDetails.sig || {};
+                const stamp = inspectDetails.stamp || {};
+                const ocr = inspectDetails.ocr || {};
+                const evidenceList: string[] = inspectDetails.auth?.supporting_evidence || [];
+
                 return (
-                  <div className="space-y-3.5">
-                    {/* Automated Authenticity Classification Banner */}
-                    <div className={`p-4 rounded-xl border ${modalAuth.bannerCls} flex flex-wrap items-center justify-between gap-3`}>
-                      <div className="space-y-1">
-                        <div className="text-[10px] font-bold uppercase opacity-75">
-                          Automated Document Authenticity Classification
+                  <div className="space-y-4">
+                    {/* SECTION A: Document Information */}
+                    <div className="p-3.5 bg-[#FAFBF8] rounded-xl border border-[#D5E2D9] space-y-2">
+                      <div className="text-[11px] font-bold uppercase tracking-wider text-[#0B6B3A] flex items-center gap-1.5">
+                        <i className="fa-solid fa-circle-info" />
+                        <span>Section A — Document Information</span>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-[11px]">
+                        <div>
+                          <span className="text-[#64748B] block text-[10px]">Original Filename:</span>
+                          <span className="font-semibold text-[#10241A] break-all">{inspectDoc.filename}</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${modalAuth.badgeCls}`}>
-                            <i className={`fa-solid ${modalAuth.iconCls}`} />
-                            <span>{modalAuth.label}</span>
-                          </span>
-                          <span className="text-[11px] font-semibold opacity-90">
-                            Tamper Risk: {inspectDetails.auth?.tamper_risk_level || inspectDoc.tamper_risk || 'Low'}
+                        <div>
+                          <span className="text-[#64748B] block text-[10px]">Document Category:</span>
+                          <span className="font-semibold text-[#10241A]">{inspectDoc.document_type || 'General'}</span>
+                        </div>
+                        <div>
+                          <span className="text-[#64748B] block text-[10px]">Upload Timestamp:</span>
+                          <span className="font-mono text-[#334155]">{inspectDoc.uploaded_at || 'Recorded'}</span>
+                        </div>
+                        <div>
+                          <span className="text-[#64748B] block text-[10px]">Processing Status:</span>
+                          <span className="font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded text-[10px] inline-block">
+                            {inspectDetails.auth?.processing_status || inspectDoc.processing_status || 'COMPLETED'}
                           </span>
                         </div>
-                        <div className="text-xs pt-0.5">{modalAuth.summary}</div>
+                        <div className="sm:col-span-2">
+                          <span className="text-[#64748B] block text-[10px]">SHA-256 Digest:</span>
+                          <span className="font-mono text-[10px] text-[#334155] break-all block" title={inspectDoc.sha256_hash}>
+                            {inspectDoc.sha256_hash || 'Verified on upload'}
+                          </span>
+                        </div>
                       </div>
                     </div>
 
-                    {/* OCR Extraction */}
-                    <div className="p-3 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
-                      <div className="font-bold text-[#10241A] mb-1">OCR Extraction ({inspectDetails.ocr?.engine_used})</div>
-                      <pre className="whitespace-pre-wrap text-[11px] text-[#334155] font-mono max-h-32 overflow-y-auto m-0">
-                        {inspectDetails.ocr?.extracted_text || inspectDetails.ocr?.unavailable_reason || 'No text extracted.'}
+                    {/* SECTION B: Authenticity Screening & Tamper Risk Assessment */}
+                    <div className={`p-4 rounded-xl border ${modalAuth.bannerCls} space-y-2`}>
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-black/10 pb-2">
+                        <div className="text-[11px] font-bold uppercase tracking-wider opacity-85">
+                          Section B — Authenticity Screening Result
+                        </div>
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${modalAuth.badgeCls}`}>
+                          <i className={`fa-solid ${modalAuth.iconCls}`} />
+                          <span>{modalAuth.displayTitle}</span>
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs pt-1">
+                        <div>
+                          <span className="text-[10.5px] opacity-75 block">Tamper Risk Assessment:</span>
+                          <span className="font-bold font-mono text-sm">
+                            {inspectDetails.auth?.tamper_risk || inspectDoc.tamper_risk || 'UNDETERMINED'}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[10.5px] opacity-75 block">Defensible Screening Assessment:</span>
+                          <p className="m-0 text-[11px] leading-relaxed pt-0.5 font-medium">{modalAuth.summary}</p>
+                        </div>
+                      </div>
+                      {evidenceList.length > 0 && (
+                        <div className="pt-2 border-t border-black/10">
+                          <span className="text-[10.5px] font-bold block mb-1">Supporting Evidential Findings:</span>
+                          <ul className="list-disc pl-4 space-y-0.5 text-[10.5px] m-0">
+                            {evidenceList.map((ev, i) => (
+                              <li key={i}>{ev}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      <div className="text-[10px] opacity-75 italic pt-1 border-t border-black/5">
+                        {inspectDetails.auth?.disclaimer}
+                      </div>
+                    </div>
+
+                    {/* SECTION C: OCR Text Extraction */}
+                    <div className="p-3.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="text-[11px] font-bold uppercase tracking-wider text-[#334155] flex items-center gap-1.5">
+                          <i className="fa-solid fa-align-left text-[#0B6B3A]" />
+                          <span>Section C — PaddleOCR PP-OCRv6 Text Extraction</span>
+                        </div>
+                        <span className="text-[10.5px] font-mono text-[#64748B]">
+                          Confidence: {ocr.confidence_score ? `${(ocr.confidence_score * 100).toFixed(1)}%` : 'N/A'}
+                        </span>
+                      </div>
+                      <pre className="whitespace-pre-wrap text-[11px] text-[#334155] font-mono max-h-32 overflow-y-auto m-0 p-2.5 bg-white rounded-lg border border-[#E2E8F0]">
+                        {ocr.extracted_text || ocr.unavailable_reason || 'No text extracted.'}
                       </pre>
                     </div>
 
-                    {/* Signature & Forensic Integrity Cards */}
+                    {/* SECTION D & F: Signature & Stamp Presence Screening */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="p-3 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-1">
-                        <div className="font-bold text-[#10241A]">Signature Presence</div>
-                        <div className="font-mono text-[#0B6B3A] font-bold">
-                          {inspectDetails.sig?.signature_status || 'NOT_CHECKED'}
+                      {/* Section D: Signature */}
+                      <div className="p-3.5 rounded-xl bg-[#FAFBF8] border border-[#D5E2D9] space-y-1.5">
+                        <div className="text-[11px] font-bold uppercase tracking-wider text-[#10241A] flex items-center gap-1.5">
+                          <i className="fa-solid fa-signature text-[#0B6B3A]" />
+                          <span>Section D — Signature Presence</span>
                         </div>
-                        <div className="text-[10px] text-[#64748B]">{inspectDetails.sig?.disclaimer}</div>
-                      </div>
-
-                      <div className="p-3 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-[#10241A]">Forensic Integrity Check</span>
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${modalAuth.badgeCls}`}>
-                            <i className={`fa-solid ${modalAuth.iconCls} text-[9px]`} />
-                            <span>{modalAuth.label}</span>
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-[#64748B]">Screening Status:</span>
+                          <span className="font-mono font-bold text-[#0B6B3A]">
+                            {sig.signature_status || 'NOT_EVALUATED'}
                           </span>
                         </div>
-                        {Object.keys(ind).length > 0 && (
-                          <div className="text-[10.5px] text-[#334155] font-mono space-y-0.5">
-                            {ind.resolution && <div>Resolution: {ind.resolution}</div>}
-                            {ind.ela_std_diff !== undefined && <div>ELA Std Variance: {ind.ela_std_diff}</div>}
-                            {ind.splicing_indicator && <div>Profile: {ind.splicing_indicator}</div>}
-                          </div>
-                        )}
-                        <div className="text-[10px] text-[#64748B]">{inspectDetails.auth?.disclaimer}</div>
+                        <p className="text-[10.5px] text-[#475569] m-0">
+                          {sig.details || (sig.presence ? 'Candidate signature localized.' : 'No signature detected.')}
+                        </p>
+                        <div className="text-[9.5px] text-[#64748B] pt-1 border-t border-[#EEF2EF]">
+                          {sig.disclaimer || 'Signature presence screening only; does not establish signer identity or authenticity.'}
+                        </div>
                       </div>
+
+                      {/* Section F: Stamp / Seal */}
+                      <div className="p-3.5 rounded-xl bg-[#FAFBF8] border border-[#D5E2D9] space-y-1.5">
+                        <div className="text-[11px] font-bold uppercase tracking-wider text-[#10241A] flex items-center gap-1.5">
+                          <i className="fa-solid fa-stamp text-[#0B6B3A]" />
+                          <span>Section F — Stamp &amp; Seal Screening</span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-[#64748B]">Screening Status:</span>
+                          <span className="font-mono font-bold text-[#0B6B3A]">
+                            {stamp.stamp_status || 'NOT_EVALUATED'}
+                          </span>
+                        </div>
+                        <p className="text-[10.5px] text-[#475569] m-0">
+                          {stamp.details || (stamp.presence ? 'Official seal/stamp localized.' : 'No official seal detected.')}
+                        </p>
+                        <div className="text-[9.5px] text-[#64748B] pt-1 border-t border-[#EEF2EF]">
+                          {stamp.disclaimer || 'Stamp presence screening only; does not establish official authority legitimacy.'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* SECTION E: Digital Forensic Integrity */}
+                    <div className="p-3.5 rounded-xl bg-white border border-[#CBD5E1] space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <div className="text-[11px] font-bold uppercase tracking-wider text-[#10241A] flex items-center gap-1.5">
+                          <i className="fa-solid fa-magnifying-glass-chart text-[#0B6B3A]" />
+                          <span>Section E — Digital Forensic Integrity Checks</span>
+                        </div>
+                        <span className="text-[10px] text-[#64748B]">Non-destructive image forensics</span>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10.5px]">
+                        <div className="p-2 rounded bg-[#FAFBF8] border border-[#EEF2EF]">
+                          <span className="text-[#64748B] block text-[9.5px]">Resolution &amp; Quality:</span>
+                          <span className="font-bold text-[#10241A]">
+                            {checks.resolution_analysis?.status || 'NOT_EVALUATED'}
+                          </span>
+                          <span className="text-[9px] text-[#475569] block mt-0.5 truncate">
+                            {checks.resolution_analysis?.details || 'N/A'}
+                          </span>
+                        </div>
+
+                        <div className="p-2 rounded bg-[#FAFBF8] border border-[#EEF2EF]">
+                          <span className="text-[#64748B] block text-[9.5px]">Error Level Analysis (ELA):</span>
+                          <span className={`font-bold ${checks.ela_analysis?.status === 'SUSPICIOUS' ? 'text-rose-700' : 'text-emerald-700'}`}>
+                            {checks.ela_analysis?.status || 'NOT_EVALUATED'}
+                          </span>
+                          <span className="text-[9px] text-[#475569] block mt-0.5 truncate">
+                            {checks.ela_analysis?.details || 'N/A'}
+                          </span>
+                        </div>
+
+                        <div className="p-2 rounded bg-[#FAFBF8] border border-[#EEF2EF]">
+                          <span className="text-[#64748B] block text-[9.5px]">Noise Inconsistency:</span>
+                          <span className={`font-bold ${checks.noise_analysis?.status === 'SUSPICIOUS' ? 'text-rose-700' : 'text-emerald-700'}`}>
+                            {checks.noise_analysis?.status || 'NOT_EVALUATED'}
+                          </span>
+                          <span className="text-[9px] text-[#475569] block mt-0.5 truncate">
+                            {checks.noise_analysis?.details || 'N/A'}
+                          </span>
+                        </div>
+
+                        <div className="p-2 rounded bg-[#FAFBF8] border border-[#EEF2EF]">
+                          <span className="text-[#64748B] block text-[9.5px]">Chromatic Dispersion:</span>
+                          <span className={`font-bold ${checks.chromatic_analysis?.status === 'SUSPICIOUS' ? 'text-rose-700' : 'text-emerald-700'}`}>
+                            {checks.chromatic_analysis?.status || 'NOT_EVALUATED'}
+                          </span>
+                          <span className="text-[9px] text-[#475569] block mt-0.5 truncate">
+                            {checks.chromatic_analysis?.details || 'N/A'}
+                          </span>
+                        </div>
+
+                        <div className="p-2 rounded bg-[#FAFBF8] border border-[#EEF2EF]">
+                          <span className="text-[#64748B] block text-[9.5px]">ORB Copy-Move (CMFD):</span>
+                          <span className={`font-bold ${checks.copy_move_analysis?.status === 'SUSPICIOUS' ? 'text-rose-700' : 'text-emerald-700'}`}>
+                            {checks.copy_move_analysis?.status || 'NOT_EVALUATED'}
+                          </span>
+                          <span className="text-[9px] text-[#475569] block mt-0.5 truncate">
+                            {checks.copy_move_analysis?.details || 'N/A'}
+                          </span>
+                        </div>
+
+                        <div className="p-2 rounded bg-[#FAFBF8] border border-[#EEF2EF]">
+                          <span className="text-[#64748B] block text-[9.5px]">Edge Gradient Disparity:</span>
+                          <span className={`font-bold ${checks.edge_analysis?.status === 'SUSPICIOUS' ? 'text-rose-700' : 'text-emerald-700'}`}>
+                            {checks.edge_analysis?.status || 'NOT_EVALUATED'}
+                          </span>
+                          <span className="text-[9px] text-[#475569] block mt-0.5 truncate">
+                            {checks.edge_analysis?.details || 'N/A'}
+                          </span>
+                        </div>
+
+                        <div className="p-2 rounded bg-[#FAFBF8] border border-[#EEF2EF] sm:col-span-2">
+                          <span className="text-[#64748B] block text-[9.5px]">Metadata / EXIF Audit:</span>
+                          <span className={`font-bold ${checks.metadata_analysis?.status === 'SUSPICIOUS' ? 'text-rose-700' : 'text-emerald-700'}`}>
+                            {checks.metadata_analysis?.status || 'NOT_EVALUATED'}
+                          </span>
+                          <span className="text-[9px] text-[#475569] block mt-0.5 truncate">
+                            {checks.metadata_analysis?.details || 'N/A'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* SECTION G: MSW Caseworker Review */}
+                    <div className="p-3.5 rounded-xl bg-[#FAFBF8] border border-[#CBD5E1] space-y-2">
+                      <div className="text-[11px] font-bold uppercase tracking-wider text-[#10241A] flex items-center gap-1.5">
+                        <i className="fa-solid fa-user-check text-[#0B6B3A]" />
+                        <span>Section G — MSW Adjudication &amp; Manual Verification</span>
+                      </div>
+                      {inspectDoc.manual_review ? (
+                        <div className="p-2.5 bg-emerald-50 rounded-lg border border-emerald-200 text-emerald-950 text-xs space-y-1">
+                          <div className="font-bold flex items-center justify-between">
+                            <span>Decision: {inspectDoc.manual_review.review_decision}</span>
+                            <span className="text-[10px] font-normal">{inspectDoc.manual_review.reviewed_at}</span>
+                          </div>
+                          <p className="m-0 text-[11px]">{inspectDoc.manual_review.review_notes}</p>
+                          <div className="text-[10px] opacity-75">Reviewer: {inspectDoc.manual_review.reviewer_name}</div>
+                        </div>
+                      ) : (
+                        <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200 text-slate-700 text-xs flex items-center justify-between">
+                          <span>Pending authorized MSW caseworker adjudication. Automated flags do not disqualify applicants.</span>
+                          <span className="font-mono text-[10px] uppercase font-bold text-slate-500">PENDING_REVIEW</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -5445,6 +5598,46 @@ function MSWAssessmentContent() {
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Disapprove Step 1 Confirmation Modal */}
+      {showDisapproveModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl border border-[#CBD5E1] max-w-md w-full p-6 space-y-5 shadow-2xl">
+            <div className="flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0 text-base">
+                <i className="fa-solid fa-triangle-exclamation" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-bold text-base text-[#10241A] m-0">Disapprove Step 1?</h3>
+                <p className="text-xs text-[#64748B] m-0 leading-relaxed">
+                  Are you sure you want to disapprove Step 1 intake verification for this patient? This will flag the assessment intake and prevent advancing to subsequent stages without correction.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-[#EEF2EF]">
+              <button
+                type="button"
+                onClick={() => setShowDisapproveModal(false)}
+                className="px-4 py-2 rounded-xl border border-[#CBD5E1] bg-white hover:bg-[#F8FAFC] text-[#334155] text-xs font-semibold transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDisapproveModal(false);
+                  setStage1Approved(false);
+                  toast.error('Step 1 Disapproved');
+                }}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition shadow-xs cursor-pointer border-0"
+              >
+                Confirm Disapproval
+              </button>
             </div>
           </div>
         </div>

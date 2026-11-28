@@ -610,10 +610,16 @@ def get_msw_patient_dossier(
 
     canonical_pid = str(found_patient.get("patient_id"))
     raw_category = str(found_patient.get("category") or "").strip().upper()
-    is_charity_patient = raw_category == "CHARITY"
     from app.services.referral_service import referral_service
     patient_referrals = referral_service.list_referrals(patient_id=canonical_pid)
     approved_ref = next((r for r in patient_referrals if r.get("status") in {"MSW APPROVED", "Assessment in Progress", "Referred for Administrative Decision", "Approved", "Assessed"}), None)
+    is_charity_patient = (
+        raw_category == "CHARITY"
+        or bool(found_patient.get("is_charity_beneficiary"))
+        or str(found_patient.get("charity_status") or "").strip().upper() == "APPROVED"
+        or bool(found_patient.get("charity_case_no"))
+        or (approved_ref is not None)
+    )
     charity_case_no = (
         (found_patient.get("charity_case_no") or (approved_ref.get("charity_case_no") if approved_ref else None) or (canonical_pid if canonical_pid.startswith("MSW_FA_") else None))
         if is_charity_patient
@@ -1613,15 +1619,18 @@ def list_patient_records(
         is_charity = (
             charity_st == "APPROVED"
             or bool(item.get("is_charity_beneficiary"))
+            or bool(item.get("charity_case_no"))
             or str(item.get("category") or "").strip().upper() == "CHARITY"
         )
+        effective_category = "CHARITY" if is_charity else "REGULAR"
+
         if category and category.upper() != "ALL":
             cat_req = category.upper()
-            if cat_req == "REGULAR" and reg_type != "REGULAR":
+            if cat_req == "REGULAR" and is_charity:
                 continue
             elif cat_req == "CHARITY" and not is_charity:
                 continue
-            elif cat_req not in {"REGULAR", "CHARITY"} and item.get("category") != cat_req:
+            elif cat_req not in {"REGULAR", "CHARITY"} and effective_category != cat_req:
                 continue
         if search and search.strip():
             q = search.strip().lower()
@@ -1637,6 +1646,7 @@ def list_patient_records(
         history = referral_service.get_patient_assistance_history(patient_id=pid_clean)
         enriched = {
             **item,
+            "category": effective_category,
             "registration_type": reg_type,
             "charity_status": charity_st or ("APPROVED" if is_charity else "NONE"),
             "is_charity_beneficiary": is_charity,

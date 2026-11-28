@@ -1043,7 +1043,7 @@ export default function PatientDossierPage() {
     if (type === 'missing_requirements') {
       setUrgentSubject(`URGENT: Lacking Evidential Requirements for OFPHIL Charity Assistance (${pid})`);
       setUrgentMessage(
-        `Dear ${p?.first_name || 'Patient'} ${p?.last_name || ''},\n\nPlease be advised that our Medical Social Work and Clinical Desk requires you to submit and upload your lacking evidential requirements into your OFPHIL Patient Portal to finalize your charity financial assistance and procedure endorsement.\n\nPlease upload the required documents at your earliest convenience or contact the clinic reception if you need assistance.`
+        `Dear ${p?.first_name || 'Patient'} ${p?.last_name || ''},\n\nPlease be advised that our Medical Social Work and Clinical Desk requires you to submit and upload your lacking evidential requirements into your OFPHIL Patient Portal to finalize your charity medical assistance and procedure endorsement.\n\nPlease upload the required documents at your earliest convenience or contact the clinic reception if you need assistance.`
       );
     } else if (type === 'urgent_schedule') {
       setUrgentSubject(`URGENT: Ophthalmic Surgery & Consultation Schedule Notice (${pid})`);
@@ -1614,7 +1614,7 @@ export default function PatientDossierPage() {
               )}
             </div>
             <div className="text-[11px] text-[#5A7466] mt-0.5">
-              {isCharity ? 'Cumulative charity financial assistance' : 'Standard clinic fee (₱0.00 Charity Subsidy)'}
+              {isCharity ? 'Cumulative charity medical assistance' : 'Standard clinic fee (₱0.00 Charity Subsidy)'}
             </div>
           </div>
 
@@ -1635,10 +1635,10 @@ export default function PatientDossierPage() {
             { id: 'profile' as const, label: 'Profile & Demographics', icon: 'fa-id-card' },
             { id: 'appointments' as const, label: 'Appointments', icon: 'fa-calendar-check', count: appointments.length },
             { id: 'procedures' as const, label: 'Procedures & Checkups', icon: 'fa-stethoscope', count: encounters.length },
-            { id: 'referral' as const, label: 'Financial Referral', icon: 'fa-file-invoice-dollar' },
+            { id: 'referral' as const, label: 'Medical Referral', icon: 'fa-file-invoice-dollar' },
             { id: 'documents' as const, label: 'Documents & Vault', icon: 'fa-folder-open' },
             { id: 'alerts' as const, label: 'Requests & Inquiries', icon: 'fa-file-circle-question' },
-            { id: 'assistance_history' as const, label: 'Financial Assistance History', icon: 'fa-clock-rotate-left', count: patientReferralsHistory.length },
+            { id: 'assistance_history' as const, label: 'Medical Assistance History', icon: 'fa-clock-rotate-left', count: patientReferralsHistory.length },
             ...(isCharity
               ? [
                   {
@@ -2277,7 +2277,7 @@ export default function PatientDossierPage() {
         {dossierTab === 'referral' && (
           <>
             {/* =====================================================================
-            FINANCIAL ASSISTANCE REFERRAL SLIP
+            MEDICAL ASSISTANCE REFERRAL SLIP
            ===================================================================== */}
             <div className="bg-white border border-[#D5E2D9] rounded-2xl p-6 shadow-xs space-y-4">
               {!hasReferralSlip ? (
@@ -2287,7 +2287,7 @@ export default function PatientDossierPage() {
                   </div>
                   <div className="space-y-1 max-w-md">
                     <div className="font-bold text-sm text-[#10241A]">
-                      {patientReferralsHistory.length > 0 ? 'No Active Financial Assistance Referral' : 'No Financial Assistance Referral Slip Filed'}
+                      {patientReferralsHistory.length > 0 ? 'No Active Medical Assistance Referral' : 'No Medical Assistance Referral Slip Filed'}
                     </div>
                     <p className="text-xs text-[#5A7466] m-0 leading-relaxed">
                       {patientReferralsHistory.length > 0
@@ -2304,7 +2304,7 @@ export default function PatientDossierPage() {
                     className="mt-1 px-4 py-2 rounded-xl bg-[#0B6B3A] hover:bg-[#084D29] text-white font-bold text-xs inline-flex items-center gap-2 transition shadow-xs cursor-pointer border-0"
                   >
                     <i className="fa-solid fa-file-medical text-xs" />
-                    <span>+ Create Financial Assistance Referral Form</span>
+                    <span>+ Create Medical Assistance Referral Form</span>
                   </button>
                 </div>
               ) : (() => {
@@ -2396,7 +2396,7 @@ export default function PatientDossierPage() {
                           )}
                         </div>
                         <h2 className="text-base font-bold text-[#10241A] m-0 font-['Outfit']">
-                          Financial Assistance Referral Form
+                          Medical Assistance Referral Form
                         </h2>
                         <p className="text-[11px] text-[#5A7466] m-0">
                           Ophthalmological Foundation of the Philippines, Inc. &mdash; Medical Social Service &amp; Charity Department
@@ -2404,14 +2404,14 @@ export default function PatientDossierPage() {
                         {isReferralSubmitted && (
                           <div className="mt-1.5 space-y-0.5">
                             <p className="text-[11.5px] font-medium text-[#10241A] m-0">
-                              This financial assistance referral has been successfully submitted and is awaiting review by the Medical Social Worker.
+                              This medical assistance referral has been successfully submitted and is awaiting review by the Medical Social Worker.
                             </p>
                             <p className="text-[11px] text-[#5A7466] m-0">
                               Referral No.: <span className="font-mono font-bold text-[#10241A]">{savedReferralMeta?.id}</span> &bull; Submitted: <span className="font-semibold text-[#10241A]">{formattedSubmittedAt}</span>
                             </p>
                             {!['APPROVED', 'MSW APPROVED', 'DISAPPROVED', 'MSW REJECTED', 'CANCELLED'].includes(rawStatus) && (
                               <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1 mt-1 inline-block">
-                                This patient already has a financial assistance referral awaiting MSW review. Another referral can only be created after the current referral has been resolved.
+                                This patient already has a medical assistance referral awaiting MSW review. Another referral can only be created after the current referral has been resolved.
                               </p>
                             )}
                           </div>
@@ -2465,8 +2465,8 @@ export default function PatientDossierPage() {
                           disabled={!['APPROVED', 'MSW APPROVED', 'DISAPPROVED', 'MSW REJECTED', 'CANCELLED'].includes(rawStatus)}
                           title={
                             !['APPROVED', 'MSW APPROVED', 'DISAPPROVED', 'MSW REJECTED', 'CANCELLED'].includes(rawStatus)
-                              ? 'This patient already has a financial assistance referral awaiting MSW review. Another referral can only be created after the current referral has been resolved.'
-                              : 'Create a new Financial Assistance Referral for this patient'
+                              ? 'This patient already has a medical assistance referral awaiting MSW review. Another referral can only be created after the current referral has been resolved.'
+                              : 'Create a new Medical Assistance Referral for this patient'
                           }
                           onClick={() => {
                             setSavedReferralMeta(null);
@@ -2510,7 +2510,7 @@ export default function PatientDossierPage() {
                         <span>OPHTHALMOLOGICAL FOUNDATION OF THE PHILIPPINES, INC.</span>
                       </div>
                       <div className="text-[11px] font-bold tracking-widest text-[#5A7466] uppercase">
-                        &mdash; FINANCIAL ASSISTANCE REFERRAL FORM &mdash;
+                        &mdash; MEDICAL ASSISTANCE REFERRAL FORM &mdash;
                       </div>
                     </div>
 
@@ -3438,10 +3438,10 @@ export default function PatientDossierPage() {
                 <div>
                   <h2 className="text-base font-bold text-[#10241A] m-0 font-['Outfit'] flex items-center gap-2">
                     <i className="fa-solid fa-clock-rotate-left text-[#0B6B3A]" />
-                    <span>Financial Assistance History</span>
+                    <span>Medical Assistance History</span>
                   </h2>
                   <p className="text-xs text-[#5A7466] m-0 mt-0.5">
-                    Chronological record of financial assistance referrals and MSW review outcomes for this patient.
+                    Chronological record of medical assistance referrals and MSW review outcomes for this patient.
                   </p>
                 </div>
                 <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10.5px] font-extrabold uppercase tracking-wider border ${
@@ -3486,7 +3486,7 @@ export default function PatientDossierPage() {
                       {historicalReferrals.length === 0 ? (
                         <tr>
                           <td colSpan={7} className="py-8 px-4 text-center text-xs text-[#5A7466]">
-                            First-time applicant — no previous financial assistance referrals recorded.
+                            First-time applicant — no previous medical assistance referrals recorded.
                           </td>
                         </tr>
                       ) : (
@@ -3797,7 +3797,7 @@ export default function PatientDossierPage() {
                       onClick={() => setDossierTab('referral')}
                       className="px-3.5 py-1.5 rounded-xl border border-[#D5E2D9] bg-white hover:bg-[#FAFBF8] text-xs font-bold text-[#0B6B3A] cursor-pointer"
                     >
-                      View Financial Referral
+                      View Medical Referral
                     </button>
                   </div>
                 </div>
@@ -5408,7 +5408,7 @@ export default function PatientDossierPage() {
                   </span>
                 </div>
                 <h3 className="text-base font-bold text-[#10241A] m-0 font-['Outfit']">
-                  Financial Assistance Referral Slip
+                  Medical Assistance Referral Slip
                 </h3>
               </div>
               <button
@@ -5503,7 +5503,7 @@ export default function PatientDossierPage() {
               </div>
               <div className="space-y-1">
                 <h3 className="text-base font-bold text-[#10241A] m-0 font-['Outfit']">
-                  Cancel Financial Assistance Referral?
+                  Cancel Medical Assistance Referral?
                 </h3>
                 <p className="text-xs text-[#5A7466] m-0 leading-relaxed">
                   Are you sure you want to cancel referral <span className="font-mono font-bold text-[#10241A]">{savedReferralMeta?.id}</span>? This will mark the referral as <span className="font-bold text-red-700">CANCELLED</span> and stop MSW review.
@@ -5550,9 +5550,9 @@ export default function PatientDossierPage() {
                     const updatedStatus = res?.referral?.status || 'CANCELLED';
                     setSavedReferralMeta((prev) => (prev ? { ...prev, status: updatedStatus } : prev));
                     setShowCancelReferralModal(false);
-                    toast.success('Financial Assistance Referral has been cancelled.');
+                    toast.success('Medical Assistance Referral has been cancelled.');
                   } catch (err: any) {
-                    toast.error(err?.message || 'Failed to cancel Financial Assistance Referral.');
+                    toast.error(err?.message || 'Failed to cancel Medical Assistance Referral.');
                   } finally {
                     setIsCancellingReferral(false);
                   }
@@ -5585,7 +5585,7 @@ export default function PatientDossierPage() {
                   Review Before Submitting
                 </h3>
                 <p className="text-xs text-[#5A7466] m-0 leading-relaxed">
-                  Please double-check all patient information, clinical details, referring physician information, and quotation amounts before submitting this Financial Assistance Referral. Once submitted, the referral will be forwarded to the Medical Social Worker for review.
+                  Please double-check all patient information, clinical details, referring physician information, and quotation amounts before submitting this Medical Assistance Referral. Once submitted, the referral will be forwarded to the Medical Social Worker for review.
                 </p>
               </div>
             </div>
@@ -5674,15 +5674,15 @@ export default function PatientDossierPage() {
                     } catch { }
                     setShowReferralConfirmModal(false);
                     setIsEditingReferral(false);
-                    toast.success('Financial Assistance Referral successfully submitted to MSW.');
+                    toast.success('Medical Assistance Referral successfully submitted to MSW.');
                     setReferralFeedbackModal({
-                      title: 'Financial Assistance Referral Successfully Submitted',
+                      title: 'Medical Assistance Referral Successfully Submitted',
                       message: `Referral Number: ${meta.id || 'N/A'} • Patient: ${patientData?.name || patientId} (${patientId}) • Status: PENDING • Email Notification: ${data?.email_sent ? 'Sent to MSW' : 'Saved (Email queued/skipped)'}`,
                     });
                   } catch (err: any) {
                     const msg = err?.message === 'Failed to fetch'
                       ? 'Unable to reach the backend server. Please verify the backend is running and try again.'
-                      : (err?.message || 'Failed to save Financial Assistance Referral.');
+                      : (err?.message || 'Failed to save Medical Assistance Referral.');
                     toast.error(msg);
                   } finally {
                     setIsSubmittingReferral(false);

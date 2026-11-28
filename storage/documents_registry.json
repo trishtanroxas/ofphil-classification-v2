@@ -10,9 +10,9 @@
     "status": "processed",
     "ocr_processed": true,
     "manipulation_risk": "clean",
-    "verification_status": "Verified Authentic",
+    "verification_status": "NO_SUSPICIOUS_INDICATORS",
     "seal_detected": true,
-    "tamper_risk": "Low",
+    "tamper_risk": "LOW",
     "extracted_text": "REPUBLIC OF THE PHILIPPINES\nUNIFIED MULTI-PURPOSE ID (UMID)\nCRN: 0111-2948192-4\nNAME: DELA CRUZ, JUAN\nDATE OF BIRTH: MAY 15, 1978\nADDRESS: DISTRICT 4, SAMPALOC, MANILA",
     "processing_state": {
       "job_id": "seed-doc-001",
@@ -43,15 +43,18 @@
       "indicators": {},
       "unavailable_checks": [],
       "engine_version": "seed-v1",
-      "authenticity_classification": "Authentic",
-      "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
+      "authenticity_classification": "NO_SUSPICIOUS_INDICATORS",
+      "authenticity_summary": "No suspicious forensic indicators detected across evaluated screening modules.",
+      "screening_status": "NO_SUSPICIOUS_INDICATORS",
+      "tamper_risk": "LOW"
     },
     "manual_review": null,
     "storage_path": "C:\\Users\\ASUS TUF\\Desktop\\Project in Program\\Thesis Project\\ofphil-classification-v2\\storage\\uploads\\originals\\doc-001_Government_Valid_ID_DelaCruz.jpg",
     "sha256_hash": "8aa441b1bc3f6febe135f5ade21bb7ce4d74adc313266ffb3ad797d6017c5880",
     "mime_type": "image/jpeg",
-    "authenticity_classification": "Authentic",
-    "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
+    "authenticity_classification": "NO_SUSPICIOUS_INDICATORS",
+    "authenticity_summary": "No suspicious forensic indicators detected across evaluated screening modules.",
+    "screening_status": "NO_SUSPICIOUS_INDICATORS"
   },
   "doc-002": {
     "id": "doc-002",
@@ -64,9 +67,9 @@
     "status": "processed",
     "ocr_processed": true,
     "manipulation_risk": "clean",
-    "verification_status": "Verified Authentic",
+    "verification_status": "NO_SUSPICIOUS_INDICATORS",
     "seal_detected": false,
-    "tamper_risk": "Low",
+    "tamper_risk": "LOW",
     "extracted_text": "OFPHIL EYE CENTER - OUTPATIENT REGULAR CLINIC\nPATIENT: Juan Dela Cruz (M26-11-00001)\nCHIEF COMPLAINT: Blurring of vision on both eyes\nDIAGNOSIS: Bilateral Cataract, Senile Mature (OD > OS)\nATTENDING PHYSICIAN: Dr. J. E. Garcia, MD",
     "processing_state": {
       "job_id": "seed-doc-002",
@@ -97,15 +100,18 @@
       "indicators": {},
       "unavailable_checks": [],
       "engine_version": "seed-v1",
-      "authenticity_classification": "Authentic",
-      "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
+      "authenticity_classification": "NO_SUSPICIOUS_INDICATORS",
+      "authenticity_summary": "No suspicious forensic indicators detected across evaluated screening modules.",
+      "screening_status": "NO_SUSPICIOUS_INDICATORS",
+      "tamper_risk": "LOW"
     },
     "manual_review": null,
     "storage_path": "C:\\Users\\ASUS TUF\\Desktop\\Project in Program\\Thesis Project\\ofphil-classification-v2\\storage\\uploads\\originals\\doc-002_Initial_Eye_Examination_Record.pdf",
     "sha256_hash": "0ff72e07c73a70ebf47283965e62ff2230c1c5c742db0f1f52b7811a1bf9b241",
     "mime_type": "application/pdf",
-    "authenticity_classification": "Authentic",
-    "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
+    "authenticity_classification": "NO_SUSPICIOUS_INDICATORS",
+    "authenticity_summary": "No suspicious forensic indicators detected across evaluated screening modules.",
+    "screening_status": "NO_SUSPICIOUS_INDICATORS"
   },
   "doc-003": {
     "id": "doc-003",
@@ -118,9 +124,9 @@
     "status": "processed",
     "ocr_processed": true,
     "manipulation_risk": "clean",
-    "verification_status": "Verified Authentic",
+    "verification_status": "NO_SUSPICIOUS_INDICATORS",
     "seal_detected": true,
-    "tamper_risk": "Low",
+    "tamper_risk": "LOW",
     "extracted_text": "REPUBLIC OF THE PHILIPPINES\nBARANGAY 12, CALOOCAN CITY\nCERTIFICATE OF INDIGENCY\nPATIENT: Maria Clara Flores Ramos (MSW_FA_1126-01)\nOCCUPATION: Market Vendor\nPURPOSE: Ophthalmic Surgery Financial Assistance (Senile Cataract OS)",
     "processing_state": {
       "job_id": "seed-doc-003",
@@ -151,15 +157,18 @@
       "indicators": {},
       "unavailable_checks": [],
       "engine_version": "seed-v1",
-      "authenticity_classification": "Authentic",
-      "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
+      "authenticity_classification": "NO_SUSPICIOUS_INDICATORS",
+      "authenticity_summary": "No suspicious forensic indicators detected across evaluated screening modules.",
+      "screening_status": "NO_SUSPICIOUS_INDICATORS",
+      "tamper_risk": "LOW"
     },
     "manual_review": null,
     "storage_path": "C:\\Users\\ASUS TUF\\Desktop\\Project in Program\\Thesis Project\\ofphil-classification-v2\\storage\\uploads\\originals\\doc-003_Barangay_Indigency_Ramos.pdf",
     "sha256_hash": "912c69408919757d6acd9c1c0099422f2a6aae2dddd66c74ff0ab5d679a74ddf",
     "mime_type": "application/pdf",
-    "authenticity_classification": "Authentic",
-    "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
+    "authenticity_classification": "NO_SUSPICIOUS_INDICATORS",
+    "authenticity_summary": "No suspicious forensic indicators detected across evaluated screening modules.",
+    "screening_status": "NO_SUSPICIOUS_INDICATORS"
   },
   "doc-004": {
     "id": "doc-004",
@@ -172,9 +181,9 @@
     "status": "processed",
     "ocr_processed": true,
     "manipulation_risk": "clean",
-    "verification_status": "Verified Authentic",
+    "verification_status": "NO_SUSPICIOUS_INDICATORS",
     "seal_detected": true,
-    "tamper_risk": "Low",
+    "tamper_risk": "LOW",
     "extracted_text": "OFPHIL EYE CENTER - SURGICAL QUOTATION\nPATIENT: Maria Clara Ramos (MSW_FA_1126-01)\nDIAGNOSIS: Senile Cataract, Immature (OS)\nPROCEDURE: Phacoemulsification with Foldable IOL Implant (OS)\nESTIMATED TOTAL: PHP 11,600.00",
     "processing_state": {
       "job_id": "seed-doc-004",
@@ -205,15 +214,18 @@
       "indicators": {},
       "unavailable_checks": [],
       "engine_version": "seed-v1",
-      "authenticity_classification": "Authentic",
-      "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
+      "authenticity_classification": "NO_SUSPICIOUS_INDICATORS",
+      "authenticity_summary": "No suspicious forensic indicators detected across evaluated screening modules.",
+      "screening_status": "NO_SUSPICIOUS_INDICATORS",
+      "tamper_risk": "LOW"
     },
     "manual_review": null,
     "storage_path": "C:\\Users\\ASUS TUF\\Desktop\\Project in Program\\Thesis Project\\ofphil-classification-v2\\storage\\uploads\\originals\\doc-004_Surgical_Quotation_Ramos.png",
     "sha256_hash": "5c6fa1eee2f57efcd74547a75e9fe35f539ea4a145e052ac09d044e904eaac68",
     "mime_type": "image/jpeg",
-    "authenticity_classification": "Authentic",
-    "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
+    "authenticity_classification": "NO_SUSPICIOUS_INDICATORS",
+    "authenticity_summary": "No suspicious forensic indicators detected across evaluated screening modules.",
+    "screening_status": "NO_SUSPICIOUS_INDICATORS"
   },
   "doc-005": {
     "id": "doc-005",
@@ -226,9 +238,9 @@
     "status": "processed",
     "ocr_processed": true,
     "manipulation_risk": "clean",
-    "verification_status": "Verified Authentic",
+    "verification_status": "NO_SUSPICIOUS_INDICATORS",
     "seal_detected": true,
-    "tamper_risk": "Low",
+    "tamper_risk": "LOW",
     "extracted_text": "REPUBLIC OF THE PHILIPPINES\nOFFICE FOR SENIOR CITIZENS AFFAIRS (OSCA) - QUEZON CITY\nNAME: BAUTISTA, PEDRO ALVAREZ SR.\nBARANGAY: COMMONWEALTH, QUEZON CITY\nDIAGNOSIS: Primary Open-Angle Glaucoma (OU)",
     "processing_state": {
       "job_id": "seed-doc-005",
@@ -259,15 +271,18 @@
       "indicators": {},
       "unavailable_checks": [],
       "engine_version": "seed-v1",
-      "authenticity_classification": "Authentic",
-      "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
+      "authenticity_classification": "NO_SUSPICIOUS_INDICATORS",
+      "authenticity_summary": "No suspicious forensic indicators detected across evaluated screening modules.",
+      "screening_status": "NO_SUSPICIOUS_INDICATORS",
+      "tamper_risk": "LOW"
     },
     "manual_review": null,
     "storage_path": "C:\\Users\\ASUS TUF\\Desktop\\Project in Program\\Thesis Project\\ofphil-classification-v2\\storage\\uploads\\originals\\doc-005_Senior_Citizen_ID_Bautista.jpg",
     "sha256_hash": "aa6fb457f6914969239b7d1a948c8d7824b5af95e7be299b0230ec22285090f5",
     "mime_type": "image/jpeg",
-    "authenticity_classification": "Authentic",
-    "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
+    "authenticity_classification": "NO_SUSPICIOUS_INDICATORS",
+    "authenticity_summary": "No suspicious forensic indicators detected across evaluated screening modules.",
+    "screening_status": "NO_SUSPICIOUS_INDICATORS"
   },
   "doc-006": {
     "id": "doc-006",
@@ -280,9 +295,9 @@
     "status": "processed",
     "ocr_processed": true,
     "manipulation_risk": "clean",
-    "verification_status": "Pending MSW Verification",
+    "verification_status": "NO_SUSPICIOUS_INDICATORS",
     "seal_detected": true,
-    "tamper_risk": "Low",
+    "tamper_risk": "LOW",
     "extracted_text": "OFPHIL EYE CENTER - RETINA & VITREOUS CLINIC\nPATIENT: Elena Velasco Santos (MSW_FA_1126-03)\nDIAGNOSIS: Diabetic Retinopathy (OU)\nRECOMMENDED TREATMENT: Panretinal Photocoagulation / Anti-VEGF Therapy",
     "processing_state": {
       "job_id": "seed-doc-006",
@@ -313,15 +328,18 @@
       "indicators": {},
       "unavailable_checks": [],
       "engine_version": "seed-v1",
-      "authenticity_classification": "Authentic",
-      "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
+      "authenticity_classification": "NO_SUSPICIOUS_INDICATORS",
+      "authenticity_summary": "No suspicious forensic indicators detected across evaluated screening modules.",
+      "screening_status": "NO_SUSPICIOUS_INDICATORS",
+      "tamper_risk": "LOW"
     },
     "manual_review": null,
     "storage_path": "C:\\Users\\ASUS TUF\\Desktop\\Project in Program\\Thesis Project\\ofphil-classification-v2\\storage\\uploads\\originals\\doc-006_Clinical_Eye_Exam_Santos.pdf",
     "sha256_hash": "4adbe5c8b252827f3e9e8f0d8ea219048f106824454640e35e530c1e7be8bdbe",
     "mime_type": "application/pdf",
-    "authenticity_classification": "Authentic",
-    "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
+    "authenticity_classification": "NO_SUSPICIOUS_INDICATORS",
+    "authenticity_summary": "No suspicious forensic indicators detected across evaluated screening modules.",
+    "screening_status": "NO_SUSPICIOUS_INDICATORS"
   },
   "doc-19da3072e1": {
     "id": "doc-19da3072e1",
@@ -339,9 +357,9 @@
     "status": "processed",
     "ocr_processed": false,
     "manipulation_risk": "clean",
-    "verification_status": "NO_ISSUE_DETECTED",
+    "verification_status": "NO_SUSPICIOUS_INDICATORS",
     "seal_detected": true,
-    "tamper_risk": "Low",
+    "tamper_risk": "LOW",
     "signature_status": "SIGNATURE_DETECTED",
     "extracted_text": null,
     "processing_state": {
@@ -440,11 +458,750 @@
         "custom_cnn_splice_detector"
       ],
       "engine_version": "PIL-ELA-OpenCV-v1",
-      "authenticity_classification": "Authentic",
-      "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
+      "authenticity_classification": "NO_SUSPICIOUS_INDICATORS",
+      "authenticity_summary": "No suspicious forensic indicators detected across evaluated screening modules.",
+      "screening_status": "NO_SUSPICIOUS_INDICATORS",
+      "tamper_risk": "LOW"
     },
     "manual_review": null,
-    "authenticity_classification": "Authentic",
-    "authenticity_summary": "Passes signature, metadata, and forensic integrity checks."
+    "authenticity_classification": "NO_SUSPICIOUS_INDICATORS",
+    "authenticity_summary": "No suspicious forensic indicators detected across evaluated screening modules.",
+    "screening_status": "NO_SUSPICIOUS_INDICATORS"
+  },
+  "doc-fd81c00c55": {
+    "id": "doc-fd81c00c55",
+    "patient_id": "M26-11-000001",
+    "patient_name": "Trishtan Roxas",
+    "assessment_id": "asmt-d4b4a5efdd",
+    "filename": "ind_f_001.jpg",
+    "document_type": "SIGNED CERTIFICATE OF INDIGENCY",
+    "file_size_bytes": 379000,
+    "mime_type": "image/jpeg",
+    "sha256_hash": "492822f8e71525d91a5cdeeafe9064a1456dc00c55d7d007f38d4e9908e8c6e2",
+    "storage_path": "C:\\Users\\ASUS TUF\\Desktop\\Project in Program\\Thesis Project\\ofphil-classification-v2\\storage\\uploads\\originals\\doc-fd81c00c55_ind_f_001.jpg",
+    "uploaded_at": "2026-11-27T23:59:37.463848+00:00",
+    "uploaded_by": "msw_lead",
+    "status": "processed",
+    "ocr_processed": true,
+    "manipulation_risk": "clean",
+    "verification_status": "NO_SUSPICIOUS_INDICATORS",
+    "authenticity_classification": "NO_SUSPICIOUS_INDICATORS",
+    "authenticity_summary": "No suspicious forensic indicators detected across evaluated screening modules.",
+    "seal_detected": true,
+    "tamper_risk": "LOW",
+    "signature_status": "SIGNATURE_DETECTED",
+    "extracted_text": "REPUBLIC OF THE PHILIPPINES\nCITY OF QUEZON\nBARANGAY HOLY SPIRIT\nFOR RESEARCH\nONLY\nDistrict IV, Quezon\nCERTIFICATE OF INDIGENCY\nTO WHOM IT MAY CONCERN:\nThis is\nto certify that\nMr .\nJuan\nCarlos M: Dela Cruz,\n29\nyears\nold,\nsingle,\nresident\nof\n123\nSampaguita\nBarangay Holy Spirit, Quezon\nis\nknown\nto\nbe indigent\nin this community.\nThis certification is being issued upon the request of the\nabove-named\nindividual\nfor\nwhatever\nlegal\npurpose\nit\nmay\nserve.\nIssued this 20th\nof May 2025 at the Barangay Holy Spirit\nHall, Quezon\nPrepared by:\nCertified by:\nOFECIAL\nLhwlz\nMARIA L. SANTOS\ncis\nRICO T: VALENZUELA\nBarangay Secretary\nPunong Barangay\nSYNTHETIC\nRESEARCH ONLY\nNOT VALID\nHOLY\nQAnGAY\n1\nCity\nQUEZON\nCITY _\nSt ,\nCity,\nday\nCity.\nHOLY\nRANGAY\n0\nQUEZON `",
+    "processing_state": {
+      "job_id": "job-579aff04",
+      "processing_status": "COMPLETED",
+      "engine_version": "ofphil-docauth-v2.0",
+      "started_at": "2026-11-27T23:59:37.486286+00:00",
+      "completed_at": "2026-11-28T00:00:00.405642+00:00",
+      "processing_time_ms": 22914.24,
+      "unavailable_checks": [],
+      "error_message": null
+    },
+    "ocr_result": {
+      "engine_used": "EasyOCR",
+      "engine_version": "ofphil-ocr-v2.0",
+      "extracted_text": "REPUBLIC OF THE PHILIPPINES\nCITY OF QUEZON\nBARANGAY HOLY SPIRIT\nFOR RESEARCH\nONLY\nDistrict IV, Quezon\nCERTIFICATE OF INDIGENCY\nTO WHOM IT MAY CONCERN:\nThis is\nto certify that\nMr .\nJuan\nCarlos M: Dela Cruz,\n29\nyears\nold,\nsingle,\nresident\nof\n123\nSampaguita\nBarangay Holy Spirit, Quezon\nis\nknown\nto\nbe indigent\nin this community.\nThis certification is being issued upon the request of the\nabove-named\nindividual\nfor\nwhatever\nlegal\npurpose\nit\nmay\nserve.\nIssued this 20th\nof May 2025 at the Barangay Holy Spirit\nHall, Quezon\nPrepared by:\nCertified by:\nOFECIAL\nLhwlz\nMARIA L. SANTOS\ncis\nRICO T: VALENZUELA\nBarangay Secretary\nPunong Barangay\nSYNTHETIC\nRESEARCH ONLY\nNOT VALID\nHOLY\nQAnGAY\n1\nCity\nQUEZON\nCITY _\nSt ,\nCity,\nday\nCity.\nHOLY\nRANGAY\n0\nQUEZON `",
+      "confidence_score": 0.8249,
+      "fields_detected": {
+        "indigency_keyword": true,
+        "barangay_reference": true
+      },
+      "missing_information": [],
+      "unavailable_reason": null
+    },
+    "signature_result": {
+      "signature_status": "SIGNATURE_DETECTED",
+      "signatures_detected_count": 2,
+      "regions": [
+        {
+          "label": "candidate_signature_region",
+          "box": [
+            137,
+            1061,
+            311,
+            1098
+          ],
+          "ink_density": 0.199
+        },
+        {
+          "label": "candidate_signature_region",
+          "box": [
+            75,
+            777,
+            265,
+            789
+          ],
+          "ink_density": 0.221
+        }
+      ],
+      "engine_version": "OpenCV-Contour-v1 (YOLO signature weights not loaded)"
+    },
+    "authenticity_result": {
+      "overall_status": "NO_ISSUE_DETECTED",
+      "authenticity_classification": "NO_SUSPICIOUS_INDICATORS",
+      "authenticity_summary": "No suspicious forensic indicators detected across evaluated screening modules.",
+      "tamper_risk_level": "Low",
+      "indicators": {
+        "resolution": "1000x1413",
+        "ela_mean_diff": 0.749,
+        "ela_std_diff": 1.161,
+        "ela_max_diff": 24.0,
+        "patch_ela_disparity_ratio": 2.0,
+        "laplacian_sharpness_var": 2227.29,
+        "editing_software_metadata": false,
+        "splicing_indicator": "Normal compression profile",
+        "signature_presence": "SIGNATURE_DETECTED"
+      },
+      "unavailable_checks": [],
+      "engine_version": "PIL-ELA-OpenCV-v2",
+      "screening_status": "NO_SUSPICIOUS_INDICATORS",
+      "tamper_risk": "LOW"
+    },
+    "manual_review": null,
+    "screening_status": "NO_SUSPICIOUS_INDICATORS"
+  },
+  "doc-8216a747d7": {
+    "id": "doc-8216a747d7",
+    "patient_id": "M26-11-00001",
+    "patient_name": "Juan Dela Cruz",
+    "assessment_id": null,
+    "filename": "indigency_cert.png",
+    "document_type": "SIGNED CERTIFICATE OF INDIGENCY",
+    "file_size_bytes": 3608,
+    "mime_type": "image/png",
+    "sha256_hash": "f4d329628a15e2be3e20add7c2047f7e2e4360b915ddea1464b93044cc6a5dd2",
+    "storage_path": "C:\\Users\\ASUS TUF\\Desktop\\Project in Program\\Thesis Project\\ofphil-classification-v2\\storage\\uploads\\originals\\doc-8216a747d7_indigency_cert.png",
+    "uploaded_at": "2026-11-28T00:22:56.523253+00:00",
+    "uploaded_by": "msw_test",
+    "status": "UPLOADED",
+    "processing_status": "UPLOADED",
+    "ocr_processed": false,
+    "screening_status": "NEEDS_VERIFICATION",
+    "authenticity_classification": "NEEDS_VERIFICATION",
+    "tamper_risk": "UNDETERMINED",
+    "verification_status": "NEEDS_VERIFICATION",
+    "authenticity_summary": "Document uploaded and hashed. Pending automated processing.",
+    "seal_detected": null,
+    "signature_status": "NOT_EVALUATED",
+    "stamp_status": "NOT_EVALUATED",
+    "extracted_text": null,
+    "processing_state": {
+      "job_id": null,
+      "processing_status": "UPLOADED",
+      "engine_version": "ofphil-docproc-v2.0",
+      "started_at": null,
+      "completed_at": null,
+      "processing_time_ms": null,
+      "unavailable_checks": [],
+      "error_message": null
+    },
+    "ocr_result": {
+      "status": "NOT_EVALUATED",
+      "engine_used": "PaddleOCR PP-OCRv6",
+      "engine_version": "ppocr-v6",
+      "extracted_text": null,
+      "confidence_score": null,
+      "fields_detected": {},
+      "missing_information": [],
+      "unavailable_reason": "Processing not started"
+    },
+    "signature_result": {
+      "status": "NOT_EVALUATED",
+      "presence": false,
+      "signature_status": "NOT_EVALUATED",
+      "signatures_detected_count": 0,
+      "regions": [],
+      "engine_version": "YOLO11s-OFPHIL",
+      "disclaimer": "Signature presence detection only; does not establish signer identity or signature authenticity."
+    },
+    "stamp_result": {
+      "status": "NOT_EVALUATED",
+      "presence": false,
+      "stamp_status": "NOT_EVALUATED",
+      "stamps_detected_count": 0,
+      "regions": [],
+      "engine_version": "YOLO11s-OFPHIL",
+      "disclaimer": "Stamp/seal screening only; does not establish official issuing authority legitimacy."
+    },
+    "forensics_result": {
+      "resolution_analysis": {
+        "status": "NOT_EVALUATED",
+        "details": "Pending processing"
+      },
+      "metadata_analysis": {
+        "status": "NOT_EVALUATED",
+        "details": "Pending processing"
+      },
+      "ela_analysis": {
+        "status": "NOT_EVALUATED",
+        "details": "Pending processing"
+      },
+      "noise_analysis": {
+        "status": "NOT_EVALUATED",
+        "details": "Pending processing"
+      },
+      "chromatic_analysis": {
+        "status": "NOT_EVALUATED",
+        "details": "Pending processing"
+      },
+      "edge_analysis": {
+        "status": "NOT_EVALUATED",
+        "details": "Pending processing"
+      },
+      "copy_move_analysis": {
+        "status": "NOT_EVALUATED",
+        "details": "Pending processing"
+      }
+    },
+    "authenticity_result": {
+      "status": "NEEDS_VERIFICATION",
+      "screening_status": "NEEDS_VERIFICATION",
+      "authenticity_classification": "NEEDS_VERIFICATION",
+      "tamper_risk": "UNDETERMINED",
+      "tamper_risk_level": "UNDETERMINED",
+      "reason": "Document uploaded and hashed. Pending automated forensic screening.",
+      "authenticity_summary": "Pending automated forensic screening.",
+      "supporting_evidence": [],
+      "indicators": {},
+      "unavailable_checks": [],
+      "engine_version": "ofphil-docproc-v2.0",
+      "disclaimer": "Evidence-based screening. Missing indicators do not constitute proof of authenticity."
+    },
+    "manual_review": null
+  },
+  "doc-4d31f62305": {
+    "id": "doc-4d31f62305",
+    "patient_id": "M26-11-00001",
+    "patient_name": "Juan Dela Cruz",
+    "assessment_id": null,
+    "filename": "indigency_cert.png",
+    "document_type": "SIGNED CERTIFICATE OF INDIGENCY",
+    "file_size_bytes": 3608,
+    "mime_type": "image/png",
+    "sha256_hash": "f4d329628a15e2be3e20add7c2047f7e2e4360b915ddea1464b93044cc6a5dd2",
+    "storage_path": "C:\\Users\\ASUS TUF\\Desktop\\Project in Program\\Thesis Project\\ofphil-classification-v2\\storage\\uploads\\originals\\doc-4d31f62305_indigency_cert.png",
+    "uploaded_at": "2026-11-28T00:23:34.211565+00:00",
+    "uploaded_by": "msw_test",
+    "status": "UPLOADED",
+    "processing_status": "UPLOADED",
+    "ocr_processed": false,
+    "screening_status": "NEEDS_VERIFICATION",
+    "authenticity_classification": "NEEDS_VERIFICATION",
+    "tamper_risk": "UNDETERMINED",
+    "verification_status": "NEEDS_VERIFICATION",
+    "authenticity_summary": "Document uploaded and hashed. Pending automated processing.",
+    "seal_detected": null,
+    "signature_status": "NOT_EVALUATED",
+    "stamp_status": "NOT_EVALUATED",
+    "extracted_text": null,
+    "processing_state": {
+      "job_id": null,
+      "processing_status": "UPLOADED",
+      "engine_version": "ofphil-docproc-v2.0",
+      "started_at": null,
+      "completed_at": null,
+      "processing_time_ms": null,
+      "unavailable_checks": [],
+      "error_message": null
+    },
+    "ocr_result": {
+      "status": "NOT_EVALUATED",
+      "engine_used": "PaddleOCR PP-OCRv6",
+      "engine_version": "ppocr-v6",
+      "extracted_text": null,
+      "confidence_score": null,
+      "fields_detected": {},
+      "missing_information": [],
+      "unavailable_reason": "Processing not started"
+    },
+    "signature_result": {
+      "status": "NOT_EVALUATED",
+      "presence": false,
+      "signature_status": "NOT_EVALUATED",
+      "signatures_detected_count": 0,
+      "regions": [],
+      "engine_version": "YOLO11s-OFPHIL",
+      "disclaimer": "Signature presence detection only; does not establish signer identity or signature authenticity."
+    },
+    "stamp_result": {
+      "status": "NOT_EVALUATED",
+      "presence": false,
+      "stamp_status": "NOT_EVALUATED",
+      "stamps_detected_count": 0,
+      "regions": [],
+      "engine_version": "YOLO11s-OFPHIL",
+      "disclaimer": "Stamp/seal screening only; does not establish official issuing authority legitimacy."
+    },
+    "forensics_result": {
+      "resolution_analysis": {
+        "status": "NOT_EVALUATED",
+        "details": "Pending processing"
+      },
+      "metadata_analysis": {
+        "status": "NOT_EVALUATED",
+        "details": "Pending processing"
+      },
+      "ela_analysis": {
+        "status": "NOT_EVALUATED",
+        "details": "Pending processing"
+      },
+      "noise_analysis": {
+        "status": "NOT_EVALUATED",
+        "details": "Pending processing"
+      },
+      "chromatic_analysis": {
+        "status": "NOT_EVALUATED",
+        "details": "Pending processing"
+      },
+      "edge_analysis": {
+        "status": "NOT_EVALUATED",
+        "details": "Pending processing"
+      },
+      "copy_move_analysis": {
+        "status": "NOT_EVALUATED",
+        "details": "Pending processing"
+      }
+    },
+    "authenticity_result": {
+      "status": "NEEDS_VERIFICATION",
+      "screening_status": "NEEDS_VERIFICATION",
+      "authenticity_classification": "NEEDS_VERIFICATION",
+      "tamper_risk": "UNDETERMINED",
+      "tamper_risk_level": "UNDETERMINED",
+      "reason": "Document uploaded and hashed. Pending automated forensic screening.",
+      "authenticity_summary": "Pending automated forensic screening.",
+      "supporting_evidence": [],
+      "indicators": {},
+      "unavailable_checks": [],
+      "engine_version": "ofphil-docproc-v2.0",
+      "disclaimer": "Evidence-based screening. Missing indicators do not constitute proof of authenticity."
+    },
+    "manual_review": null
+  },
+  "doc-5df9f42429": {
+    "id": "doc-5df9f42429",
+    "patient_id": "M26-11-00001",
+    "patient_name": "Juan Dela Cruz",
+    "assessment_id": null,
+    "filename": "indigency_cert.png",
+    "document_type": "SIGNED CERTIFICATE OF INDIGENCY",
+    "file_size_bytes": 3608,
+    "mime_type": "image/png",
+    "sha256_hash": "f4d329628a15e2be3e20add7c2047f7e2e4360b915ddea1464b93044cc6a5dd2",
+    "storage_path": "C:\\Users\\ASUS TUF\\Desktop\\Project in Program\\Thesis Project\\ofphil-classification-v2\\storage\\uploads\\originals\\doc-5df9f42429_indigency_cert.png",
+    "uploaded_at": "2026-11-28T00:24:30.099116+00:00",
+    "uploaded_by": "msw_test",
+    "status": "COMPLETED",
+    "processing_status": "COMPLETED",
+    "ocr_processed": true,
+    "screening_status": "INSUFFICIENT_IMAGE_QUALITY",
+    "authenticity_classification": "INSUFFICIENT_IMAGE_QUALITY",
+    "tamper_risk": "UNDETERMINED",
+    "verification_status": "INSUFFICIENT_IMAGE_QUALITY",
+    "authenticity_summary": "Insufficient image quality for digital forensic verification. Physical inspection recommended.",
+    "seal_detected": false,
+    "signature_status": "PASSED",
+    "stamp_status": "NOT_EVALUATED",
+    "extracted_text": "BARANGAY INDIGENCYCERTIFICATE\nPatient Juan Dela Cruz",
+    "processing_state": {
+      "job_id": "job-26110112",
+      "processing_status": "COMPLETED",
+      "engine_version": "ofphil-docproc-v2.0",
+      "started_at": "2026-11-28T00:24:30.138311+00:00",
+      "completed_at": "2026-11-28T00:24:47.319306+00:00",
+      "processing_time_ms": 17177.12,
+      "unavailable_checks": [],
+      "error_message": null
+    },
+    "ocr_result": {
+      "status": "COMPLETED",
+      "engine_used": "PaddleOCR PP-OCRv6",
+      "engine_version": "ppocr-v6",
+      "extracted_text": "BARANGAY INDIGENCYCERTIFICATE\nPatient Juan Dela Cruz",
+      "confidence_score": 0.8772,
+      "fields_detected": {
+        "indigency_keyword": true,
+        "barangay_reference": true
+      },
+      "missing_information": [],
+      "unavailable_reason": null
+    },
+    "signature_result": {
+      "status": "PASSED",
+      "presence": true,
+      "signature_status": "PRESENCE_DETECTED",
+      "signatures_detected_count": 1,
+      "regions": [
+        {
+          "label": "candidate_signature_contour",
+          "confidence": 0.55,
+          "box": [
+            53,
+            202,
+            228,
+            234
+          ]
+        }
+      ],
+      "engine_version": "YOLO11s-OFPHIL",
+      "details": "1 signature region(s) detected.",
+      "disclaimer": "Signature presence detection only; does not establish signer identity or signature authenticity."
+    },
+    "stamp_result": {
+      "status": "NOT_EVALUATED",
+      "presence": false,
+      "stamp_status": "NOT_DETECTED",
+      "stamps_detected_count": 0,
+      "regions": [],
+      "engine_version": "YOLO11s-OFPHIL",
+      "details": "No official stamp or seal localized.",
+      "disclaimer": "Stamp/seal screening only; does not establish official issuing authority legitimacy."
+    },
+    "forensics_result": {
+      "resolution_analysis": {
+        "status": "INSUFFICIENT_EVIDENCE",
+        "details": "Extremely low image resolution (400x300, 120,000 px). Insufficient for definitive forensic verification.",
+        "metrics": {
+          "width": 400,
+          "height": 300,
+          "aspect_ratio": 1.33,
+          "total_pixels": 120000,
+          "file_size_kb": 3.5
+        }
+      },
+      "metadata_analysis": {
+        "status": "NOT_EVALUATED",
+        "details": "Image metadata absent (common for web uploads, photocopies, scans, or privacy-scrubbed files). Missing metadata alone does not indicate forgery.",
+        "metrics": {
+          "has_exif": false,
+          "detected_editing_software": [],
+          "format": "PNG"
+        }
+      },
+      "ela_analysis": {
+        "status": "PASSED",
+        "details": "Uniform compression profile across document regions (patch ratio 4.16x, ELA std 0.67).",
+        "metrics": {
+          "ela_mean": 0.092,
+          "ela_std": 0.666,
+          "ela_max": 14.0,
+          "patch_ela_disparity_ratio": 4.16,
+          "median_patch_ela": 0.0,
+          "max_patch_ela": 0.832
+        }
+      },
+      "noise_analysis": {
+        "status": "SUSPICIOUS",
+        "details": "Pronounced noise variance discrepancy across image blocks (disparity ratio 56491.27x). Inconsistent sensor or rendering noise levels detected.",
+        "metrics": {
+          "noise_mean": 1.319,
+          "noise_std": 15.642,
+          "noise_disparity_ratio": 56491.27,
+          "median_block_variance": 0.0,
+          "max_block_variance": 2824.563
+        }
+      },
+      "chromatic_analysis": {
+        "status": "PASSED",
+        "details": "Natural optical color balance and uniform chromatic dispersion (0.0).",
+        "metrics": {
+          "chroma_dispersion": 0.0,
+          "saturation_std": 0.0
+        }
+      },
+      "edge_analysis": {
+        "status": "PASSED",
+        "details": "Expected optical edge gradient and natural sharpness (Laplacian variance 2712.9).",
+        "metrics": {
+          "laplacian_sharpness_var": 2712.86,
+          "canny_edge_density": 0.0116
+        }
+      },
+      "copy_move_analysis": {
+        "status": "SUSPICIOUS",
+        "details": "Detected 77 correlated keypoint pairs at distinct spatial locations, indicating potential copy-move duplication.",
+        "metrics": {
+          "keypoints_extracted": 275,
+          "duplicated_pairs_count": 77
+        }
+      }
+    },
+    "authenticity_result": {
+      "status": "INSUFFICIENT_IMAGE_QUALITY",
+      "screening_status": "INSUFFICIENT_IMAGE_QUALITY",
+      "authenticity_classification": "INSUFFICIENT_IMAGE_QUALITY",
+      "tamper_risk": "UNDETERMINED",
+      "tamper_risk_level": "UNDETERMINED",
+      "reason": "Document spatial resolution or image clarity is insufficient to perform reliable evidential forensic analysis.",
+      "authenticity_summary": "Insufficient image quality for digital forensic verification. Physical inspection recommended.",
+      "supporting_evidence": [
+        "[ELA_ANALYSIS] Consistent: Uniform compression profile across document regions (patch ratio 4.16x, ELA std 0.67).",
+        "[NOISE_ANALYSIS] Suspicious finding: Pronounced noise variance discrepancy across image blocks (disparity ratio 56491.27x). Inconsistent sensor or rendering noise levels detected.",
+        "[COPY_MOVE_ANALYSIS] Suspicious finding: Detected 77 correlated keypoint pairs at distinct spatial locations, indicating potential copy-move duplication.",
+        "[SIGNATURE] Presence detected (does not verify signer identity).",
+        "[OCR] Machine text extracted (confidence: 0.8772)."
+      ],
+      "confidence_assessment": "LOW",
+      "indicators": {
+        "resolution_analysis": {
+          "width": 400,
+          "height": 300,
+          "aspect_ratio": 1.33,
+          "total_pixels": 120000,
+          "file_size_kb": 3.5
+        },
+        "metadata_analysis": {
+          "has_exif": false,
+          "detected_editing_software": [],
+          "format": "PNG"
+        },
+        "ela_analysis": {
+          "ela_mean": 0.092,
+          "ela_std": 0.666,
+          "ela_max": 14.0,
+          "patch_ela_disparity_ratio": 4.16,
+          "median_patch_ela": 0.0,
+          "max_patch_ela": 0.832
+        },
+        "noise_analysis": {
+          "noise_mean": 1.319,
+          "noise_std": 15.642,
+          "noise_disparity_ratio": 56491.27,
+          "median_block_variance": 0.0,
+          "max_block_variance": 2824.563
+        },
+        "chromatic_analysis": {
+          "chroma_dispersion": 0.0,
+          "saturation_std": 0.0
+        },
+        "edge_analysis": {
+          "laplacian_sharpness_var": 2712.86,
+          "canny_edge_density": 0.0116
+        },
+        "copy_move_analysis": {
+          "keypoints_extracted": 275,
+          "duplicated_pairs_count": 77
+        }
+      },
+      "unavailable_checks": [],
+      "engine_version": "ofphil-docproc-v2.0",
+      "disclaimer": "Automated forensic screening provides evidence of integrity or anomalies. It does NOT definitively prove authenticity or replace certified MSW document validation."
+    },
+    "manual_review": null
+  },
+  "doc-eb0d8d4168": {
+    "id": "doc-eb0d8d4168",
+    "patient_id": "M26-11-00001",
+    "patient_name": "Juan Dela Cruz",
+    "assessment_id": null,
+    "filename": "indigency_cert.png",
+    "document_type": "SIGNED CERTIFICATE OF INDIGENCY",
+    "file_size_bytes": 3608,
+    "mime_type": "image/png",
+    "sha256_hash": "f4d329628a15e2be3e20add7c2047f7e2e4360b915ddea1464b93044cc6a5dd2",
+    "storage_path": "C:\\Users\\ASUS TUF\\Desktop\\Project in Program\\Thesis Project\\ofphil-classification-v2\\storage\\uploads\\originals\\doc-eb0d8d4168_indigency_cert.png",
+    "uploaded_at": "2026-11-28T00:25:08.846063+00:00",
+    "uploaded_by": "msw_test",
+    "status": "COMPLETED",
+    "processing_status": "COMPLETED",
+    "ocr_processed": true,
+    "screening_status": "INSUFFICIENT_IMAGE_QUALITY",
+    "authenticity_classification": "INSUFFICIENT_IMAGE_QUALITY",
+    "tamper_risk": "UNDETERMINED",
+    "verification_status": "INSUFFICIENT_IMAGE_QUALITY",
+    "authenticity_summary": "Insufficient image quality for digital forensic verification. Physical inspection recommended.",
+    "seal_detected": false,
+    "signature_status": "PASSED",
+    "stamp_status": "NOT_EVALUATED",
+    "extracted_text": "BARANGAY INDIGENCYCERTIFICATE\nPatient Juan Dela Cruz",
+    "processing_state": {
+      "job_id": "job-bd7313be",
+      "processing_status": "COMPLETED",
+      "engine_version": "ofphil-docproc-v2.0",
+      "started_at": "2026-11-28T00:25:08.911446+00:00",
+      "completed_at": "2026-11-28T00:25:25.081053+00:00",
+      "processing_time_ms": 16162.72,
+      "unavailable_checks": [],
+      "error_message": null
+    },
+    "ocr_result": {
+      "status": "COMPLETED",
+      "engine_used": "PaddleOCR PP-OCRv6",
+      "engine_version": "ppocr-v6",
+      "extracted_text": "BARANGAY INDIGENCYCERTIFICATE\nPatient Juan Dela Cruz",
+      "confidence_score": 0.8772,
+      "fields_detected": {
+        "indigency_keyword": true,
+        "barangay_reference": true
+      },
+      "missing_information": [],
+      "unavailable_reason": null
+    },
+    "signature_result": {
+      "status": "PASSED",
+      "presence": true,
+      "signature_status": "PRESENCE_DETECTED",
+      "signatures_detected_count": 1,
+      "regions": [
+        {
+          "label": "candidate_signature_contour",
+          "confidence": 0.55,
+          "box": [
+            53,
+            202,
+            228,
+            234
+          ]
+        }
+      ],
+      "engine_version": "YOLO11s-OFPHIL",
+      "details": "1 signature region(s) detected.",
+      "disclaimer": "Signature presence detection only; does not establish signer identity or signature authenticity."
+    },
+    "stamp_result": {
+      "status": "NOT_EVALUATED",
+      "presence": false,
+      "stamp_status": "NOT_DETECTED",
+      "stamps_detected_count": 0,
+      "regions": [],
+      "engine_version": "YOLO11s-OFPHIL",
+      "details": "No official stamp or seal localized.",
+      "disclaimer": "Stamp/seal screening only; does not establish official issuing authority legitimacy."
+    },
+    "forensics_result": {
+      "resolution_analysis": {
+        "status": "INSUFFICIENT_EVIDENCE",
+        "details": "Extremely low image resolution (400x300, 120,000 px). Insufficient for definitive forensic verification.",
+        "metrics": {
+          "width": 400,
+          "height": 300,
+          "aspect_ratio": 1.33,
+          "total_pixels": 120000,
+          "file_size_kb": 3.5
+        }
+      },
+      "metadata_analysis": {
+        "status": "NOT_EVALUATED",
+        "details": "Image metadata absent (common for web uploads, photocopies, scans, or privacy-scrubbed files). Missing metadata alone does not indicate forgery.",
+        "metrics": {
+          "has_exif": false,
+          "detected_editing_software": [],
+          "format": "PNG"
+        }
+      },
+      "ela_analysis": {
+        "status": "PASSED",
+        "details": "Uniform compression profile across document regions (patch ratio 4.16x, ELA std 0.67).",
+        "metrics": {
+          "ela_mean": 0.092,
+          "ela_std": 0.666,
+          "ela_max": 14.0,
+          "patch_ela_disparity_ratio": 4.16,
+          "median_patch_ela": 0.0,
+          "max_patch_ela": 0.832
+        }
+      },
+      "noise_analysis": {
+        "status": "SUSPICIOUS",
+        "details": "Pronounced noise variance discrepancy across image blocks (disparity ratio 56491.27x). Inconsistent sensor or rendering noise levels detected.",
+        "metrics": {
+          "noise_mean": 1.319,
+          "noise_std": 15.642,
+          "noise_disparity_ratio": 56491.27,
+          "median_block_variance": 0.0,
+          "max_block_variance": 2824.563
+        }
+      },
+      "chromatic_analysis": {
+        "status": "PASSED",
+        "details": "Natural optical color balance and uniform chromatic dispersion (0.0).",
+        "metrics": {
+          "chroma_dispersion": 0.0,
+          "saturation_std": 0.0
+        }
+      },
+      "edge_analysis": {
+        "status": "PASSED",
+        "details": "Expected optical edge gradient and natural sharpness (Laplacian variance 2712.9).",
+        "metrics": {
+          "laplacian_sharpness_var": 2712.86,
+          "canny_edge_density": 0.0116
+        }
+      },
+      "copy_move_analysis": {
+        "status": "SUSPICIOUS",
+        "details": "Detected 77 correlated keypoint pairs at distinct spatial locations, indicating potential copy-move duplication.",
+        "metrics": {
+          "keypoints_extracted": 275,
+          "duplicated_pairs_count": 77
+        }
+      }
+    },
+    "authenticity_result": {
+      "status": "INSUFFICIENT_IMAGE_QUALITY",
+      "screening_status": "INSUFFICIENT_IMAGE_QUALITY",
+      "authenticity_classification": "INSUFFICIENT_IMAGE_QUALITY",
+      "tamper_risk": "UNDETERMINED",
+      "tamper_risk_level": "UNDETERMINED",
+      "reason": "Document spatial resolution or image clarity is insufficient to perform reliable evidential forensic analysis.",
+      "authenticity_summary": "Insufficient image quality for digital forensic verification. Physical inspection recommended.",
+      "supporting_evidence": [
+        "[ELA_ANALYSIS] Consistent: Uniform compression profile across document regions (patch ratio 4.16x, ELA std 0.67).",
+        "[NOISE_ANALYSIS] Suspicious finding: Pronounced noise variance discrepancy across image blocks (disparity ratio 56491.27x). Inconsistent sensor or rendering noise levels detected.",
+        "[COPY_MOVE_ANALYSIS] Suspicious finding: Detected 77 correlated keypoint pairs at distinct spatial locations, indicating potential copy-move duplication.",
+        "[SIGNATURE] Presence detected (does not verify signer identity).",
+        "[OCR] Machine text extracted (confidence: 0.8772)."
+      ],
+      "confidence_assessment": "LOW",
+      "indicators": {
+        "resolution_analysis": {
+          "width": 400,
+          "height": 300,
+          "aspect_ratio": 1.33,
+          "total_pixels": 120000,
+          "file_size_kb": 3.5
+        },
+        "metadata_analysis": {
+          "has_exif": false,
+          "detected_editing_software": [],
+          "format": "PNG"
+        },
+        "ela_analysis": {
+          "ela_mean": 0.092,
+          "ela_std": 0.666,
+          "ela_max": 14.0,
+          "patch_ela_disparity_ratio": 4.16,
+          "median_patch_ela": 0.0,
+          "max_patch_ela": 0.832
+        },
+        "noise_analysis": {
+          "noise_mean": 1.319,
+          "noise_std": 15.642,
+          "noise_disparity_ratio": 56491.27,
+          "median_block_variance": 0.0,
+          "max_block_variance": 2824.563
+        },
+        "chromatic_analysis": {
+          "chroma_dispersion": 0.0,
+          "saturation_std": 0.0
+        },
+        "edge_analysis": {
+          "laplacian_sharpness_var": 2712.86,
+          "canny_edge_density": 0.0116
+        },
+        "copy_move_analysis": {
+          "keypoints_extracted": 275,
+          "duplicated_pairs_count": 77
+        }
+      },
+      "unavailable_checks": [],
+      "engine_version": "ofphil-docproc-v2.0",
+      "disclaimer": "Automated forensic screening provides evidence of integrity or anomalies. It does NOT definitively prove authenticity or replace certified MSW document validation."
+    },
+    "manual_review": null
   }
 }

@@ -89,7 +89,9 @@ export default function DocumentManagementPage() {
 
   const fetchDocuments = async () => {
     try {
-      const res = await fetch(`${API_BASE}/documents`);
+      const res = await fetch(`${API_BASE}/documents`, {
+        headers: { 'x-user-role': 'msw', 'x-user-id': 'msw_lead' },
+      });
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
@@ -100,12 +102,12 @@ export default function DocumentManagementPage() {
             doc_type: d.document_type || 'Barangay Indigency Certificate',
             filename: d.filename || 'uploaded_document.pdf',
             uploaded_at: d.uploaded_at ? String(d.uploaded_at).split(' ')[0] : '2026-11-22',
-            verification_status: d.verification_status || 'Verified Authentic',
-            seal_detected: d.seal_detected ?? true,
-            tamper_risk: d.tamper_risk || 'Low',
-            signature_status: d.signature_status || 'SIGNATURE_DETECTED',
+            verification_status: d.screening_status || d.verification_status || 'NEEDS_VERIFICATION',
+            seal_detected: d.seal_detected ?? false,
+            tamper_risk: d.tamper_risk || 'UNDETERMINED',
+            signature_status: d.signature_status || 'NOT_EVALUATED',
             sha256_hash: d.sha256_hash,
-            extracted_text: d.extracted_text
+            extracted_text: d.extracted_text,
           }));
           setDocs(mapped);
           return;
@@ -133,35 +135,37 @@ export default function DocumentManagementPage() {
 
       const res = await fetch(`${API_BASE}/documents/upload`, {
         method: 'POST',
-        body: formData
+        headers: { 'x-user-role': 'msw', 'x-user-id': 'msw_lead' },
+        body: formData,
       });
 
       if (res.ok) {
-        toast.success(`"${uploadFile.name}" verified & uploaded successfully!`);
+        const uploadedDoc = await res.json();
+        toast.success(`"${uploadFile.name}" uploaded. Starting automated processing...`);
         setUploadModalOpen(false);
         setUploadFile(null);
+
+        // Queue processing
+        await fetch(`${API_BASE}/documents/${uploadedDoc.id}/process`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-role': 'msw',
+            'x-user-id': 'msw_lead',
+          },
+          body: JSON.stringify({
+            ocr_engine: 'auto',
+            run_forensics: true,
+            run_signature_detection: true,
+          }),
+        });
+
         fetchDocuments();
       } else {
         throw new Error('Upload failed');
       }
-    } catch {
-      // Create local item if backend is unreachable
-      const newDoc: ClinicalDocument = {
-        id: `doc-${Date.now()}`,
-        patient_id: uploadPatientId,
-        patient_name: uploadPatientName,
-        doc_type: uploadDocType,
-        filename: uploadFile.name,
-        uploaded_at: new Date().toISOString().split('T')[0],
-        verification_status: 'Verified Authentic',
-        seal_detected: true,
-        tamper_risk: 'Low',
-        extracted_text: `Document ${uploadFile.name} verified authentic for ${uploadPatientName} (${uploadPatientId}). Official seals validated.`
-      };
-      setDocs((prev) => [newDoc, ...prev]);
-      toast.success(`"${uploadFile.name}" added to verified documents!`);
-      setUploadModalOpen(false);
-      setUploadFile(null);
+    } catch (err: any) {
+      toast.error(err?.message || 'Upload failed.');
     } finally {
       setIsUploading(false);
     }
@@ -169,16 +173,20 @@ export default function DocumentManagementPage() {
 
   const handleDeleteDoc = async (doc: ClinicalDocument) => {
     try {
-      await fetch(`http://localhost:8000/api/v1/documents/${doc.id}`, { method: 'DELETE' });
+      const res = await fetch(`${API_BASE}/documents/${doc.id}`, {
+        method: 'DELETE',
+        headers: { 'x-user-role': 'msw', 'x-user-id': 'msw_lead' },
+      });
+      if (!res.ok) throw new Error('Deletion failed');
+      setDocs((prev) => prev.filter((d) => d.id !== doc.id));
+      setDeleteTargetDoc(null);
+      if (selectedDoc?.id === doc.id) {
+        setSelectedDoc(null);
+      }
+      toast.success(`Document "${doc.filename}" permanently deleted and logged in audit.`);
     } catch {
-      // ignore
+      toast.error('Failed to delete document from backend.');
     }
-    setDocs((prev) => prev.filter((d) => d.id !== doc.id));
-    setDeleteTargetDoc(null);
-    if (selectedDoc?.id === doc.id) {
-      setSelectedDoc(null);
-    }
-    toast.success(`Document "${doc.filename}" removed.`);
   };
 
   const handleClearAll = async () => {

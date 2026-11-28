@@ -557,6 +557,75 @@ def ai_detect_boxes(rel_path: str, active_label: str = "auto_detected") -> Dict[
     return {"status": "ok", "boxes": ai_boxes[:45]}
 
 
+# Global lazy-loaded OCR reader for fast crop text extraction
+_OCR_READER = None
+
+
+def get_ocr_reader():
+    global _OCR_READER
+    if _OCR_READER is None:
+        try:
+            import easyocr
+            _OCR_READER = easyocr.Reader(["en"], gpu=False, verbose=False)
+        except Exception as exc:
+            logger.warning(f"EasyOCR reader init failed: {exc}")
+            _OCR_READER = False
+    return _OCR_READER if _OCR_READER is not False else None
+
+
+def ocr_extract_box(rel_path: str, x: int, y: int, w: int, h: int) -> Dict[str, Any]:
+    """Crops the specified ROI from the image and runs OCR to extract text in real time."""
+    img_path = safe_resolve_under(DOC_DIR, rel_path)
+    img = cv2.imread(str(img_path))
+    if img is None:
+        raise HTTPException(status_code=404, detail="Unable to load image for OCR extraction.")
+
+    img_h, img_w = img.shape[:2]
+    # Bound crop coordinates with small 2px padding for better boundary recognition
+    pad = 2
+    x1 = max(0, int(x) - pad)
+    y1 = max(0, int(y) - pad)
+    x2 = min(img_w, int(x + w) + pad)
+    y2 = min(img_h, int(y + h) + pad)
+
+    if x2 <= x1 or y2 <= y1 or (x2 - x1) < 4 or (y2 - y1) < 4:
+        return {"status": "ok", "text": "", "confidence": 0.0}
+
+    crop = img[y1:y2, x1:x2]
+
+    # Preprocess crop: slight upscale if small for better character clarity
+    crop_h, crop_w = crop.shape[:2]
+    if crop_h < 32:
+        scale = 32.0 / crop_h
+        crop = cv2.resize(crop, (int(crop_w * scale), 32), interpolation=cv2.INTER_CUBIC)
+
+    reader = get_ocr_reader()
+    if reader is None:
+        return {"status": "warning", "text": "", "confidence": 0.0, "message": "OCR reader unavailable."}
+
+    try:
+        results = reader.readtext(crop)
+        texts = []
+        confs = []
+        for item in results:
+            # item format: (bbox, text, prob)
+            t = str(item[1]).strip()
+            if t:
+                texts.append(t)
+                confs.append(float(item[2]))
+        combined_text = " ".join(texts)
+        avg_conf = float(sum(confs) / len(confs)) if confs else 0.0
+        return {
+            "status": "ok",
+            "text": combined_text,
+            "confidence": round(avg_conf, 4),
+            "line_count": len(texts),
+        }
+    except Exception as exc:
+        logger.warning(f"OCR crop extraction failed: {exc}")
+        return {"status": "error", "text": "", "confidence": 0.0, "message": str(exc)}
+
+
 def find_counterpart_file(file_path: Path, target_mode: Optional[str] = None) -> Optional[Path]:
     parts = list(file_path.parts)
     stem = file_path.stem

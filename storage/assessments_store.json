@@ -2990,7 +2990,7 @@
     "institutional_approval": null,
     "created_by": "msw_santos_01",
     "created_at": "2026-11-22T18:24:50.011197+00:00",
-    "updated_at": "2026-11-23T08:17:23.693170+00:00",
+    "updated_at": "2026-11-28T00:23:13.963451+00:00",
     "history": [
       {
         "timestamp": "2026-11-22T18:24:50.011197+00:00",
@@ -3498,6 +3498,50 @@
       },
       {
         "timestamp": "2026-11-23T08:17:23.720694+00:00",
+        "event": "STAGE2_INTERVIEW_EVALUATED",
+        "actor_id": "msw_santos_01",
+        "role": "msw",
+        "workflow_status": "DRAFT",
+        "details": {
+          "status": "EVALUATED",
+          "is_complete": true,
+          "missing_factors": []
+        }
+      },
+      {
+        "timestamp": "2026-11-28T00:14:30.913127+00:00",
+        "event": "INTERVIEW_DRAFT_SAVED",
+        "actor_id": "msw_santos_01",
+        "role": "msw",
+        "workflow_status": "DRAFT",
+        "details": {
+          "mark_completed": false
+        }
+      },
+      {
+        "timestamp": "2026-11-28T00:14:30.953946+00:00",
+        "event": "STAGE2_INTERVIEW_EVALUATED",
+        "actor_id": "msw_santos_01",
+        "role": "msw",
+        "workflow_status": "DRAFT",
+        "details": {
+          "status": "EVALUATED",
+          "is_complete": true,
+          "missing_factors": []
+        }
+      },
+      {
+        "timestamp": "2026-11-28T00:23:13.963451+00:00",
+        "event": "INTERVIEW_DRAFT_SAVED",
+        "actor_id": "msw_santos_01",
+        "role": "msw",
+        "workflow_status": "DRAFT",
+        "details": {
+          "mark_completed": false
+        }
+      },
+      {
+        "timestamp": "2026-11-28T00:23:13.993473+00:00",
         "event": "STAGE2_INTERVIEW_EVALUATED",
         "actor_id": "msw_santos_01",
         "role": "msw",
@@ -13920,6 +13964,668 @@
         "workflow_status": "PENDING_MSW_REVIEW",
         "details": {
           "active_stage": 2
+        }
+      }
+    ]
+  },
+  "asmt-d4b4a5efdd": {
+    "id": "asmt-d4b4a5efdd",
+    "patient_id": "M26-11-000001",
+    "referral_id": "OFPHIL-FA-9845CF",
+    "encounter_no": "ENC-M26-11-000001",
+    "interview_date": "2026-11-27",
+    "source_of_referral": "CLINICAL REFERRAL: Anna Liza D. Borja, RN",
+    "active_stage": 1,
+    "workflow_status": "ASSESSMENT_IN_PROGRESS",
+    "is_initial_load": true,
+    "stage1_data": {
+      "informant_is_patient": true,
+      "informant_relation": "Self",
+      "informant_first_name": "Trishtan",
+      "informant_middle_name": "Santos",
+      "informant_last_name": "Roxas",
+      "informant_suffix": "None",
+      "informant_age": "48",
+      "informant_dob": "1978-05-15",
+      "informant_sex": "Male",
+      "informant_religion": "Roman Catholic",
+      "informant_civil_status": "Single",
+      "informant_street": "Block 4 Lot 12, St. Jude Street",
+      "informant_barangay": "Barangay 659 (Intramuros)",
+      "informant_city": "City of Manila",
+      "informant_province": "Metro Manila (NCR)",
+      "informant_region": "Metro Manila (NCR)",
+      "informant_contact": "09668353508",
+      "informant_occupation": "Public Utility Driver",
+      "informant_education": "High School",
+      "informant_income": 0,
+      "patient_first_name": "Trishtan",
+      "patient_middle_name": "Santos",
+      "patient_last_name": "Roxas",
+      "patient_suffix": "None",
+      "patient_age": "48",
+      "patient_dob": "1978-05-15",
+      "patient_sex": "Male",
+      "patient_religion": "Roman Catholic",
+      "patient_civil_status": "Single",
+      "patient_contact": "09668353508",
+      "patient_email": "tan1925alex@gmail.com",
+      "patient_occupation": "Public Utility Driver",
+      "patient_income": 0,
+      "patient_street": "Block 4 Lot 12, St. Jude Street",
+      "patient_barangay": "Barangay 659 (Intramuros)",
+      "patient_city": "City of Manila",
+      "patient_province": "Metro Manila (NCR)",
+      "patient_region": "Metro Manila (NCR)",
+      "patient_permanent_address": "Block 4 Lot 12, St. Jude Street, Barangay 659 (Intramuros), City of Manila, Metro Manila (NCR), Metro Manila (NCR)",
+      "same_as_permanent_address": true,
+      "patient_alt_street": "Block 4 Lot 12, St. Jude Street",
+      "patient_alt_barangay": "Barangay 659 (Intramuros)",
+      "patient_alt_city": "City of Manila",
+      "patient_alt_province": "Metro Manila (NCR)",
+      "patient_alt_region": "Metro Manila (NCR)",
+      "patient_alt_address": "Block 4 Lot 12, St. Jude Street, Barangay 659 (Intramuros), City of Manila, Metro Manila (NCR), Metro Manila (NCR)",
+      "patient_education": "High School",
+      "sectoral": {
+        "artisanalFisherfolk": false,
+        "seniorCitizens": false,
+        "urbanPoor": false,
+        "victimsOfDisasters": false,
+        "farmersLandless": false,
+        "informalSector": true,
+        "pwd": false,
+        "indigenousPeoples": false,
+        "formalLaborMigrant": false
+      },
+      "sectoral_others": "",
+      "household_size": 1,
+      "total_household_income": 0,
+      "family_members": [],
+      "socio_economic_expenses": {
+        "patient_source_detail": "Public Utility Driver",
+        "patient_source_rate": "",
+        "patient_source_period": "per day",
+        "spouse_not_applicable": true,
+        "spouse_source_detail": "Not Applicable",
+        "spouse_source_rate": "",
+        "spouse_source_period": "per day",
+        "gov_assistance_enrolled": "No",
+        "gov_assistance_programs": "",
+        "rent_amount": 500,
+        "rent_note": "",
+        "water_bill": 1500,
+        "electricity_bill": 1200,
+        "transportation_amount": 500,
+        "transportation_notes": "",
+        "other_medical_expenses": [],
+        "eye_maintenance_amount": 1000,
+        "total_monthly_expenses": 4700,
+        "first_consultation_date": "2026-11-25"
+      },
+      "admitting_diagnosis": "Senile Mature Cataract, Right Eye (OD)",
+      "final_diagnosis": "Senile Mature Cataract, Right Eye (OD)",
+      "treatment_plan": "Phacoemulsification with Foldable Intraocular Lens (IOL) Implant (OD)",
+      "is_approved": false
+    },
+    "stage2_data": {
+      "auto_compute_scores": true,
+      "interview_info": {
+        "interview_date": "2026-11-27",
+        "interview_start_time": "09:00 AM",
+        "interview_end_time": "09:45 AM",
+        "assigned_msw": "Maria Santos, RSW",
+        "interviewed_person": "PATIENT",
+        "representative_relationship": "Self",
+        "interview_method": "FACE_TO_FACE",
+        "interview_status": "IN_PROGRESS",
+        "consent_obtained": true,
+        "consent_notes": "Patient/Representative signed social service intake acknowledgment and privacy consent."
+      },
+      "background": {
+        "living_situation": "Renting a small room in high-density settlement; informal tenancy",
+        "living_situation_obs": "Crowded living quarters; verified with barangay certificate of residency",
+        "household_composition": "4 household members: patient, spouse, and 2 minor school-age children",
+        "household_composition_obs": "Two vulnerable minor dependents entirely reliant on parental labor",
+        "family_support": "Spouse provides primary home caregiving, guided mobility, and basic nursing",
+        "family_support_obs": "Caregiver shows high dedication but experiences substantial emotional strain",
+        "employment_situation": "Patient previously worked as daily informal utility driver; now incapacitated by cataract",
+        "employment_obs": "Complete loss of primary family livelihood directly attributable to ocular disability",
+        "income_sources": "Irregular earnings from spouse home laundry and occasional sibling assistance",
+        "income_sources_obs": "Combined monthly earnings below poverty threshold; unstable and intermittent",
+        "financial_responsibilities": "Monthly room rental (\u20b13,500), basic food sustenance, children educational needs",
+        "financial_responsibilities_obs": "Zero emergency savings; family accumulating neighborhood sari-sari store debt"
+      },
+      "medical_difficulties": {
+        "medical_condition_summary": "Mature cataract with near-total visual acuity loss in operative eye; secondary glare",
+        "medical_condition_obs": "Clinical referral confirms urgent surgical necessity to prevent bilateral blindness",
+        "problem_duration": "2 years progressive visual deterioration with significant functional impairment",
+        "previous_treatments": "Over-the-counter lubricant eyedrops; optical consultation with local optometrist",
+        "recommended_procedure": "Phacoemulsification with Foldable Intraocular Lens (IOL) Implant (OD)",
+        "estimated_treatment_expenses": 25000,
+        "financial_barriers": "Inability to afford hospital surgical package, intraocular lens, and post-op medication",
+        "financial_barriers_obs": "Out-of-pocket surgical expense represents over 100% of entire monthly family earnings",
+        "service_accessibility": "Lack of specialized ophthalmic surgical center in local municipal district",
+        "available_healthcare_resources": "PhilHealth Indigent Member, Barangay Certificate of Indigency, Malasakit Referral"
+      },
+      "psychosocial": {
+        "accessibility_concerns": "Patient cannot safely travel alone; requires two jeepney transfers and companion fare",
+        "discrimination_experienced": "Experienced job refusal and societal stigma due to visible white cataract pupillary reflex",
+        "discrimination_obs": "Social isolation and withdrawal observed; loss of social status as productive worker",
+        "safety_hazards": "Multiple indoor stumble incidents; unpaved wet pathways around dwelling",
+        "safety_hazards_obs": "High fall and domestic trauma risk without restoration of bilateral stereoscopic vision",
+        "social_responsibilities": "Traditional role as head of household and family protector now severely impaired",
+        "social_responsibilities_obs": "Role reversal causing distress; spouse forced to seek outside daily labor",
+        "support_systems": "Barangay health worker, parish charity fund, and extended family neighbors",
+        "support_systems_obs": "Informal community support present but financial capacity of neighbors is also limited",
+        "basic_needs_living_conditions": "Shared communal water meter; reliance on subsidized rice ration",
+        "basic_needs_obs": "Basic caloric intake maintained with difficulty; vulnerable to inflationary food shocks",
+        "coping_capacity_narrative": "Patient relies on faith and spouse encouragement, but feels burdened by inactivity",
+        "coping_capacity_obs": "Psychological resilience present; highly motivated for sight restoration and return to work"
+      },
+      "health_factors": [
+        {
+          "factor": "Absence of adequate health services",
+          "patient_reported": "High surgical fee barrier; nearest specialty tertiary hospital requires substantial out-of-pocket payment.",
+          "msw_observation": "Nearest tertiary hospital with phacoemulsification equipment requires inter-city transport."
+        },
+        {
+          "factor": "Inaccessibility of Health Services",
+          "patient_reported": "No direct ophthalmic subspecialist in local municipality; requires long travel with escort.",
+          "msw_observation": "Public transportation inaccessible for unaccompanied visually impaired patient."
+        },
+        {
+          "factor": "Absence of support services needed to use health services",
+          "patient_reported": "Limited caregiver capacity; primary earner cannot take leave without wage loss.",
+          "msw_observation": "Caregiver wage loss represents substantial portion of weekly household sustenance."
+        },
+        {
+          "factor": "Absence of adequate Mental Health / Psychosocial Support services",
+          "patient_reported": "Mild anxiety over deteriorating sight; community social worker supportive.",
+          "msw_observation": "Patient emotionally supported by spouse and parish counseling; well-oriented."
+        }
+      ],
+      "discrimination_patient_reported": "Faced hiring reluctance and wage discount due to visual impairment.",
+      "discrimination_msw_observation": "Economic marginalization directly linked to progressive cataract blindness.",
+      "safety_patient_reported": "Frequent stumbling and disorientation at dusk.",
+      "safety_msw_observation": "Home environment lacks handrails and adequate task lighting.",
+      "roles_patient_reported": "Unable to work or guide children safely.",
+      "roles_msw_observation": "Severe breadwinner role strain; spouse forced into informal work.",
+      "environment_patient_reported": "Congested rental room with communal water facility.",
+      "environment_msw_observation": "Substandard dwelling conditions with high vulnerability to economic shocks.",
+      "average_severity": "5.12",
+      "average_coping": "4.92",
+      "total_risk": "68.1"
+    },
+    "stage3_documents": [],
+    "classification_result": null,
+    "classification_history": [],
+    "ml_prediction": null,
+    "msw_recommendation": null,
+    "institutional_approval": null,
+    "created_by": "msw_lead",
+    "created_at": "2026-11-27T22:41:25.529160+00:00",
+    "updated_at": "2026-11-27T23:29:06.571744+00:00",
+    "history": [
+      {
+        "timestamp": "2026-11-27T22:41:25.529160+00:00",
+        "event": "ASSESSMENT_CREATED",
+        "actor_id": "msw_lead",
+        "role": "msw",
+        "workflow_status": "DRAFT",
+        "details": {
+          "encounter_no": "ENC-M26-11-000001",
+          "referral_id": "OFPHIL-FA-9845CF"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T22:45:38.792867+00:00",
+        "event": "DRAFT_SAVED",
+        "actor_id": "msw_lead",
+        "role": "msw",
+        "workflow_status": "ASSESSMENT_IN_PROGRESS",
+        "details": {
+          "active_stage": 2
+        }
+      },
+      {
+        "timestamp": "2026-11-27T23:05:13.080344+00:00",
+        "event": "DRAFT_SAVED",
+        "actor_id": "msw_lead",
+        "role": "msw",
+        "workflow_status": "ASSESSMENT_IN_PROGRESS",
+        "details": {
+          "active_stage": 1
+        }
+      },
+      {
+        "timestamp": "2026-11-27T23:10:10.203230+00:00",
+        "event": "DRAFT_SAVED",
+        "actor_id": "msw_lead",
+        "role": "msw",
+        "workflow_status": "ASSESSMENT_IN_PROGRESS",
+        "details": {
+          "active_stage": 1
+        }
+      },
+      {
+        "timestamp": "2026-11-27T23:29:06.571744+00:00",
+        "event": "DRAFT_SAVED",
+        "actor_id": "msw_lead",
+        "role": "msw",
+        "workflow_status": "ASSESSMENT_IN_PROGRESS",
+        "details": {
+          "active_stage": 1
+        }
+      }
+    ]
+  },
+  "asmt-f976ac04cd": {
+    "id": "asmt-f976ac04cd",
+    "patient_id": "M26-11-TEST01",
+    "referral_id": null,
+    "encounter_no": "ENC-M26-11-TEST01",
+    "interview_date": "2026-11-22",
+    "source_of_referral": "EYE CLINIC REFERRAL",
+    "active_stage": 2,
+    "workflow_status": "APPROVED",
+    "is_initial_load": true,
+    "stage1_data": {
+      "patient_first_name": "Elena",
+      "patient_last_name": "Reyes",
+      "informant_income": 0,
+      "patient_income": 5000,
+      "household_size": 4
+    },
+    "stage2_data": {
+      "health_factors": [
+        {
+          "factor": "Absence of adequate health services",
+          "severity": 4,
+          "coping": 4
+        },
+        {
+          "factor": "Inaccessibility",
+          "severity": 4,
+          "coping": 4
+        }
+      ],
+      "discrimination_severity": 3,
+      "discrimination_coping": 3,
+      "safety_severity": 3,
+      "safety_coping": 3,
+      "roles_severity": 4,
+      "roles_coping": 4,
+      "environment_severity": 4
+    },
+    "stage3_documents": [],
+    "classification_result": {
+      "financial_classification": {
+        "monthly_per_capita_income": "1250.00",
+        "total_monthly_household_income": "5000.00",
+        "household_size": 4,
+        "classification": "INDIGENT",
+        "classification_label": "Indigent",
+        "reference_threshold": "4715.76",
+        "pcpt_reference": "3368.40",
+        "family_of_five_reference": "16842.00",
+        "classification_basis": "OFPHIL_FINANCIAL_RUBRIC",
+        "rubric_version": "1.0",
+        "explanation": "Monthly per capita income (\u20b11,250.00) is at or below the OFPHIL Indigent threshold of \u20b14,715.76."
+      },
+      "msw_classification": {
+        "classification": "FINANCIALLY_INCAPACITATED_B1",
+        "classification_label": "Financially Incapacitated B1",
+        "proposed_subsidy": "High Partial Charity Subsidy",
+        "subsidy_percentage_range": "75% - 90%",
+        "average_severity": "3.60",
+        "average_coping": "3.50",
+        "total_risk": "48.1",
+        "total_risk_formula": "(Average Severity * 8.5) + (Average Coping * 5.0)",
+        "triggered_conditions": [
+          {
+            "tier": "FINANCIALLY_INCAPACITATED_B1",
+            "rule": "Average Severity >= 2.8",
+            "metric": "average_severity",
+            "actual_value": "3.60",
+            "threshold": "2.8",
+            "context_applicable": true
+          },
+          {
+            "tier": "FINANCIALLY_INCAPACITATED_B1",
+            "rule": "Average Coping >= 2.8",
+            "metric": "average_coping",
+            "actual_value": "3.50",
+            "threshold": "2.8",
+            "context_applicable": true
+          },
+          {
+            "tier": "FINANCIALLY_INCAPACITATED_B1",
+            "rule": "Total Risk >= 45.0%",
+            "metric": "total_risk",
+            "actual_value": "48.1%",
+            "threshold": "45.0%",
+            "context_applicable": true
+          },
+          {
+            "tier": "FINANCIALLY_INCAPACITATED_B2",
+            "rule": "Total Risk >= 30.0%",
+            "metric": "total_risk",
+            "actual_value": "48.1%",
+            "threshold": "30.0%",
+            "context_applicable": true
+          }
+        ],
+        "classification_precedence": [
+          "INDIGENT",
+          "FINANCIALLY_INCAPACITATED_B1",
+          "FINANCIALLY_INCAPACITATED_B2",
+          "FINANCIALLY_CAPACITATED"
+        ],
+        "initial_load_applied": false,
+        "assessment_context": "live_recalculation",
+        "missing_factors": [],
+        "calculation_breakdown": {
+          "severity_components": [
+            4.0,
+            3.0,
+            3.0,
+            4.0,
+            4.0
+          ],
+          "coping_components": [
+            4.0,
+            3.0,
+            3.0,
+            4.0
+          ],
+          "average_severity": 3.6,
+          "average_coping": 3.5,
+          "severity_weighted": 30.6,
+          "coping_weighted": 17.5,
+          "total_risk_percent": 48.1
+        },
+        "classification_basis": "OFPHIL_MSW_RUBRIC",
+        "rubric_version": "1.0",
+        "explanation": "MSW Rubric Classification: Financially Incapacitated B1 (High Partial Charity Subsidy). Computed Avg Severity=3.60, Avg Coping=3.50, Total Risk=48.1%. Primary triggers: Average Severity >= 2.8; Average Coping >= 2.8; Total Risk >= 45.0%."
+      },
+      "monthly_per_capita_income": "1250.00",
+      "average_severity": "3.60",
+      "average_coping": "3.50",
+      "total_risk": "48.1",
+      "triggered_conditions": [
+        {
+          "tier": "FINANCIALLY_INCAPACITATED_B1",
+          "rule": "Average Severity >= 2.8",
+          "metric": "average_severity",
+          "actual_value": "3.60",
+          "threshold": "2.8",
+          "context_applicable": true
+        },
+        {
+          "tier": "FINANCIALLY_INCAPACITATED_B1",
+          "rule": "Average Coping >= 2.8",
+          "metric": "average_coping",
+          "actual_value": "3.50",
+          "threshold": "2.8",
+          "context_applicable": true
+        },
+        {
+          "tier": "FINANCIALLY_INCAPACITATED_B1",
+          "rule": "Total Risk >= 45.0%",
+          "metric": "total_risk",
+          "actual_value": "48.1%",
+          "threshold": "45.0%",
+          "context_applicable": true
+        },
+        {
+          "tier": "FINANCIALLY_INCAPACITATED_B2",
+          "rule": "Total Risk >= 30.0%",
+          "metric": "total_risk",
+          "actual_value": "48.1%",
+          "threshold": "30.0%",
+          "context_applicable": true
+        }
+      ],
+      "subsidy_recommendation": "High Partial Charity Subsidy",
+      "discrepancy_detected": true,
+      "discrepancy_details": "Financial Income Rubric classified patient as 'Indigent' (\u20b11,250.00/person), whereas MSW Scoring Rubric classified patient as 'Financially Incapacitated B1' (Risk 48.1%). Case flagged for MSW professional review.",
+      "requires_msw_review": true,
+      "rubric_version": "1.0",
+      "explanations": {
+        "financial": "Monthly per capita income (\u20b11,250.00) is at or below the OFPHIL Indigent threshold of \u20b14,715.76.",
+        "msw": "MSW Rubric Classification: Financially Incapacitated B1 (High Partial Charity Subsidy). Computed Avg Severity=3.60, Avg Coping=3.50, Total Risk=48.1%. Primary triggers: Average Severity >= 2.8; Average Coping >= 2.8; Total Risk >= 45.0%."
+      }
+    },
+    "classification_history": [
+      {
+        "timestamp": "2026-11-28T00:22:49.611096+00:00",
+        "actor_id": "msw_test",
+        "result": {
+          "financial_classification": {
+            "monthly_per_capita_income": "1250.00",
+            "total_monthly_household_income": "5000.00",
+            "household_size": 4,
+            "classification": "INDIGENT",
+            "classification_label": "Indigent",
+            "reference_threshold": "4715.76",
+            "pcpt_reference": "3368.40",
+            "family_of_five_reference": "16842.00",
+            "classification_basis": "OFPHIL_FINANCIAL_RUBRIC",
+            "rubric_version": "1.0",
+            "explanation": "Monthly per capita income (\u20b11,250.00) is at or below the OFPHIL Indigent threshold of \u20b14,715.76."
+          },
+          "msw_classification": {
+            "classification": "FINANCIALLY_INCAPACITATED_B1",
+            "classification_label": "Financially Incapacitated B1",
+            "proposed_subsidy": "High Partial Charity Subsidy",
+            "subsidy_percentage_range": "75% - 90%",
+            "average_severity": "3.60",
+            "average_coping": "3.50",
+            "total_risk": "48.1",
+            "total_risk_formula": "(Average Severity * 8.5) + (Average Coping * 5.0)",
+            "triggered_conditions": [
+              {
+                "tier": "FINANCIALLY_INCAPACITATED_B1",
+                "rule": "Average Severity >= 2.8",
+                "metric": "average_severity",
+                "actual_value": "3.60",
+                "threshold": "2.8",
+                "context_applicable": true
+              },
+              {
+                "tier": "FINANCIALLY_INCAPACITATED_B1",
+                "rule": "Average Coping >= 2.8",
+                "metric": "average_coping",
+                "actual_value": "3.50",
+                "threshold": "2.8",
+                "context_applicable": true
+              },
+              {
+                "tier": "FINANCIALLY_INCAPACITATED_B1",
+                "rule": "Total Risk >= 45.0%",
+                "metric": "total_risk",
+                "actual_value": "48.1%",
+                "threshold": "45.0%",
+                "context_applicable": true
+              },
+              {
+                "tier": "FINANCIALLY_INCAPACITATED_B2",
+                "rule": "Total Risk >= 30.0%",
+                "metric": "total_risk",
+                "actual_value": "48.1%",
+                "threshold": "30.0%",
+                "context_applicable": true
+              }
+            ],
+            "classification_precedence": [
+              "INDIGENT",
+              "FINANCIALLY_INCAPACITATED_B1",
+              "FINANCIALLY_INCAPACITATED_B2",
+              "FINANCIALLY_CAPACITATED"
+            ],
+            "initial_load_applied": false,
+            "assessment_context": "live_recalculation",
+            "missing_factors": [],
+            "calculation_breakdown": {
+              "severity_components": [
+                4.0,
+                3.0,
+                3.0,
+                4.0,
+                4.0
+              ],
+              "coping_components": [
+                4.0,
+                3.0,
+                3.0,
+                4.0
+              ],
+              "average_severity": 3.6,
+              "average_coping": 3.5,
+              "severity_weighted": 30.6,
+              "coping_weighted": 17.5,
+              "total_risk_percent": 48.1
+            },
+            "classification_basis": "OFPHIL_MSW_RUBRIC",
+            "rubric_version": "1.0",
+            "explanation": "MSW Rubric Classification: Financially Incapacitated B1 (High Partial Charity Subsidy). Computed Avg Severity=3.60, Avg Coping=3.50, Total Risk=48.1%. Primary triggers: Average Severity >= 2.8; Average Coping >= 2.8; Total Risk >= 45.0%."
+          },
+          "monthly_per_capita_income": "1250.00",
+          "average_severity": "3.60",
+          "average_coping": "3.50",
+          "total_risk": "48.1",
+          "triggered_conditions": [
+            {
+              "tier": "FINANCIALLY_INCAPACITATED_B1",
+              "rule": "Average Severity >= 2.8",
+              "metric": "average_severity",
+              "actual_value": "3.60",
+              "threshold": "2.8",
+              "context_applicable": true
+            },
+            {
+              "tier": "FINANCIALLY_INCAPACITATED_B1",
+              "rule": "Average Coping >= 2.8",
+              "metric": "average_coping",
+              "actual_value": "3.50",
+              "threshold": "2.8",
+              "context_applicable": true
+            },
+            {
+              "tier": "FINANCIALLY_INCAPACITATED_B1",
+              "rule": "Total Risk >= 45.0%",
+              "metric": "total_risk",
+              "actual_value": "48.1%",
+              "threshold": "45.0%",
+              "context_applicable": true
+            },
+            {
+              "tier": "FINANCIALLY_INCAPACITATED_B2",
+              "rule": "Total Risk >= 30.0%",
+              "metric": "total_risk",
+              "actual_value": "48.1%",
+              "threshold": "30.0%",
+              "context_applicable": true
+            }
+          ],
+          "subsidy_recommendation": "High Partial Charity Subsidy",
+          "discrepancy_detected": true,
+          "discrepancy_details": "Financial Income Rubric classified patient as 'Indigent' (\u20b11,250.00/person), whereas MSW Scoring Rubric classified patient as 'Financially Incapacitated B1' (Risk 48.1%). Case flagged for MSW professional review.",
+          "requires_msw_review": true,
+          "rubric_version": "1.0",
+          "explanations": {
+            "financial": "Monthly per capita income (\u20b11,250.00) is at or below the OFPHIL Indigent threshold of \u20b14,715.76.",
+            "msw": "MSW Rubric Classification: Financially Incapacitated B1 (High Partial Charity Subsidy). Computed Avg Severity=3.60, Avg Coping=3.50, Total Risk=48.1%. Primary triggers: Average Severity >= 2.8; Average Coping >= 2.8; Total Risk >= 45.0%."
+          }
+        }
+      }
+    ],
+    "ml_prediction": null,
+    "msw_recommendation": {
+      "recommended_tier": "Indigent",
+      "recommended_subsidy_pct": 100.0,
+      "case_notes": "Household per capita income is \u20b11,250.00; qualifies for 100% full charity subsidy.",
+      "discrepancy_explanation": null,
+      "override_reason": null,
+      "msw_assessor_id": "msw_test",
+      "msw_assessor_name": "Maria Santos, RSW",
+      "recommended_at": "2026-11-28T00:22:49.699971+00:00"
+    },
+    "institutional_approval": {
+      "decision": "APPROVED",
+      "approved_subsidy_percentage": 100.0,
+      "decision_notes": "Approved by Hospital Director.",
+      "approved_by_user_id": "admin_officer_01",
+      "approver_name": "Dr. Director",
+      "decision_timestamp": "2026-11-28T00:22:49.764889+00:00"
+    },
+    "created_by": "msw_test",
+    "created_at": "2026-11-28T00:22:49.507937+00:00",
+    "updated_at": "2026-11-28T00:22:49.764889+00:00",
+    "history": [
+      {
+        "timestamp": "2026-11-28T00:22:49.507937+00:00",
+        "event": "ASSESSMENT_CREATED",
+        "actor_id": "msw_test",
+        "role": "msw",
+        "workflow_status": "DRAFT",
+        "details": {
+          "encounter_no": "ENC-M26-11-TEST01",
+          "referral_id": null
+        }
+      },
+      {
+        "timestamp": "2026-11-28T00:22:49.555324+00:00",
+        "event": "DRAFT_SAVED",
+        "actor_id": "msw_test",
+        "role": "msw",
+        "workflow_status": "ASSESSMENT_IN_PROGRESS",
+        "details": {
+          "active_stage": 2
+        }
+      },
+      {
+        "timestamp": "2026-11-28T00:22:49.611096+00:00",
+        "event": "ASSESSMENT_CLASSIFIED",
+        "actor_id": "msw_test",
+        "role": "msw",
+        "workflow_status": "PENDING_MSW_REVIEW",
+        "details": {
+          "financial_classification": "INDIGENT",
+          "msw_classification": "FINANCIALLY_INCAPACITATED_B1",
+          "discrepancy_detected": true
+        }
+      },
+      {
+        "timestamp": "2026-11-28T00:22:49.699971+00:00",
+        "event": "MSW_RECOMMENDATION_SUBMITTED",
+        "actor_id": "msw_test",
+        "role": "msw",
+        "workflow_status": "PENDING_APPROVAL",
+        "details": {
+          "recommended_tier": "Indigent",
+          "recommended_subsidy_pct": 100.0,
+          "case_notes": "Household per capita income is \u20b11,250.00; qualifies for 100% full charity subsidy.",
+          "discrepancy_explanation": null,
+          "override_reason": null,
+          "msw_assessor_id": "msw_test",
+          "msw_assessor_name": "Maria Santos, RSW",
+          "recommended_at": "2026-11-28T00:22:49.699971+00:00"
+        }
+      },
+      {
+        "timestamp": "2026-11-28T00:22:49.764889+00:00",
+        "event": "INSTITUTIONAL_APPROVED",
+        "actor_id": "admin_officer_01",
+        "role": "admin",
+        "workflow_status": "APPROVED",
+        "details": {
+          "decision": "APPROVED",
+          "approved_subsidy_percentage": 100.0,
+          "decision_notes": "Approved by Hospital Director.",
+          "approved_by_user_id": "admin_officer_01",
+          "approver_name": "Dr. Director",
+          "decision_timestamp": "2026-11-28T00:22:49.764889+00:00"
         }
       }
     ]

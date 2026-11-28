@@ -46,8 +46,8 @@ const CATEGORY_LABELS: Record<string, { label: string; icon: string; badgeClass:
     badgeClass: 'bg-[#FEF3C7] text-[#B45309] border-[#FDE68A]',
   },
   REFERRAL_UPDATED: {
-    label: 'Financial Referral',
-    icon: 'fa-file-invoice-dollar',
+    label: 'Medical Referral',
+    icon: 'fa-file-medical',
     badgeClass: 'bg-[#E0F2FE] text-[#0284C7] border-[#BAE6FD]',
   },
   DOCUMENT_UPLOADED: {
@@ -312,7 +312,7 @@ export default function MSWNotificationsPage() {
               )}
             </div>
             <p className="text-xs text-[#5A7466] mt-1">
-              Real-time alerts for assigned patient records, MSW assessments, charity assistance decisions, financial referrals, documents, and patient inquiries.
+              Real-time alerts for assigned patient records, MSW assessments, charity assistance decisions, medical referrals, documents, and patient inquiries.
             </p>
           </div>
         </div>
