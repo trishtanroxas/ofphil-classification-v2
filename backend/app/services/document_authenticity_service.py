@@ -43,6 +43,9 @@ from app.services.document_screening.validation.evidence_aggregation import (
     evidence_aggregation_engine,
     ScreeningAssessment,
 )
+from app.services.document_screening.classification.resnet_classifier import resnet50_classifier
+from app.services.document_screening.signature_screening.signature_verification_service import signature_screening_service
+from app.services.document_screening.stamp_seal_screening.stamp_verification_service import stamp_seal_screening_service
 
 settings = get_settings()
 
@@ -64,9 +67,10 @@ class DocumentAuthenticityService:
         self._records: Dict[str, Dict[str, Any]] = {}
         self.forensic_analyzer = DocumentForensicAnalyzer()
         self.aggregation_engine = evidence_aggregation_engine
-        self._yolo_model = None
+        self.resnet_classifier = resnet50_classifier
+        self.signature_screener = signature_screening_service
+        self.stamp_screener = stamp_seal_screening_service
         self._paddle_ocr = None
-        self._init_yolo()
         self._load_registry()
 
     def _init_yolo(self) -> None:
@@ -440,7 +444,12 @@ class DocumentAuthenticityService:
                 img_bgr = None
 
         # 2. ResNet-50 Document Classification / Category Mapping
-        doc_category = doc.get("document_type", "certificate_of_indigency")
+        classification_result = self.resnet_classifier.classify_image(
+            image_bytes=raw_bytes if not is_pdf else (raw_bytes[:4096]),
+            claimed_document_type=doc.get("document_type", "certificate_of_indigency")
+        )
+        doc["classification_result"] = classification_result
+        doc_category = classification_result.get("predicted_category") or doc.get("document_type", "certificate_of_indigency")
 
         # 3. PaddleOCR PP-OCRv6 Text Extraction
         extracted_text: Optional[str] = None
@@ -479,6 +488,16 @@ class DocumentAuthenticityService:
                 ocr_status = "INSUFFICIENT_EVIDENCE"
                 ocr_unavailable_reason = "Failed to decode image bytes."
 
+        # Re-verify classification with extracted OCR keywords if initially low confidence
+        if extracted_text and classification_result.get("classification_status") == "LOW_CONFIDENCE":
+            classification_result = self.resnet_classifier.classify_image(
+                image_bytes=raw_bytes if not is_pdf else (raw_bytes[:4096]),
+                extracted_text=extracted_text,
+                claimed_document_type=doc.get("document_type", "certificate_of_indigency")
+            )
+            doc["classification_result"] = classification_result
+            doc_category = classification_result.get("predicted_category") or doc_category
+
         fields_detected = self._extract_structured_fields(extracted_text or "")
         doc["ocr_processed"] = extracted_text is not None and len(extracted_text.strip()) > 0
         doc["extracted_text"] = extracted_text
@@ -493,12 +512,36 @@ class DocumentAuthenticityService:
             "unavailable_reason": ocr_unavailable_reason,
         }
 
-        # 4. Signature & Stamp/Seal Screening via YOLO11s
-        sig_result, stamp_result = self._screen_signatures_and_stamps(img_bgr, is_pdf)
+        # 4. Signature & Stamp/Seal Screening (Dedicated CV & Morphological Screening)
+        if is_pdf or img_bgr is None:
+            sig_result = {
+                "status": "NOT_EVALUATED",
+                "presence": False,
+                "signature_status": "NOT_EVALUATED",
+                "signatures_detected_count": 0,
+                "regions": [],
+                "engine_version": "OFPHIL-Signature-Screening-v2",
+                "details": "Direct raster screening unavailable for PDF format.",
+                "disclaimer": "Signature presence detection only; does not establish signer identity or signature authenticity.",
+            }
+            stamp_result = {
+                "status": "NOT_EVALUATED",
+                "presence": False,
+                "stamp_status": "NOT_EVALUATED",
+                "stamps_detected_count": 0,
+                "regions": [],
+                "engine_version": "OFPHIL-StampSeal-Screening-v2",
+                "details": "Direct raster screening unavailable for PDF format.",
+                "disclaimer": "Stamp/seal screening only; does not establish official issuing authority legitimacy.",
+            }
+        else:
+            sig_result = self.signature_screener.screen(img_bgr)
+            stamp_result = self.stamp_screener.screen(img_bgr)
+
         doc["signature_result"] = sig_result
-        doc["signature_status"] = sig_result["status"]
+        doc["signature_status"] = sig_result["signature_status"]
         doc["stamp_result"] = stamp_result
-        doc["stamp_status"] = stamp_result["status"]
+        doc["stamp_status"] = stamp_result["stamp_status"]
         doc["seal_detected"] = stamp_result["presence"]
 
         # 5. Digital Image Forensics (ELA, Noise, Chromatic, ORB CMFD, Edge, Metadata, Resolution)
